@@ -1,4 +1,4 @@
-# Go-FTW - Firewall for Testing WAFs in Go! 
+# Go-FTW - Framework for Testing WAFs in Go! 
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![Go Report Card](https://goreportcard.com/badge/github.com/golang-standards/project-layout?style=flat-square)](https://goreportcard.com/report/github.com/fzipi/go-ftw)
