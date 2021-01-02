@@ -1,25 +1,22 @@
-package ftwtest
+package test
 
-// UnmarshalYAML is used to unmarshal into map[string]string
-// func (h *FTWHeaders) UnmarshalYAML(unmarshal func(interface{}) error) error {
-// 	log.Printf("%s", unmarshal(&h.Names))
-// 	return unmarshal(&h.Names)
-// }
+import "ftw/http"
 
 // Input represents the input request in a stage
+// The fields `Version`, `Method` and `URI` we want to explicitly now when they are set to ""
 type Input struct {
-	DestAddr       string            `yaml:"dest_addr"`
-	Port           int               `yaml:"port"`
-	Protocol       string            `yaml:"protocol"`
-	URI            string            `yaml:"uri"`
-	Version        string            `yaml:"version"`
-	Headers        map[string]string `yaml:"headers,omitempty"`
-	Method         string            `yaml:"method"`
-	Data           string            `yaml:"data,omitempty"`
-	SaveCookie     bool              `yaml:"save_cookie,omitempty"`
-	StopMagic      bool              `yaml:"stop_magic"`
-	EncodedRequest string            `yaml:"encoded_request,omitempty"`
-	RAWRequest     string            `yaml:"raw_request,omitempty"`
+	DestAddr       *string     `yaml:"dest_addr,omitempty"`
+	Port           *int        `yaml:"port,omitempty"`
+	Protocol       *string     `yaml:"protocol,omitempty"`
+	URI            *string     `yaml:"uri,omitempty"`
+	Version        *string     `yaml:"version,omitempty"`
+	Headers        http.Header `yaml:"headers,omitempty"`
+	Method         *string     `yaml:"method,omitempty"`
+	Data           string      `yaml:"data,omitempty"`
+	SaveCookie     bool        `yaml:"save_cookie,omitempty"`
+	StopMagic      bool        `yaml:"stop_magic"`
+	EncodedRequest string      `yaml:"encoded_request,omitempty"`
+	RAWRequest     string      `yaml:"raw_request,omitempty"`
 }
 
 // Output is the response expected from the test

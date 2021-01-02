@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-//Init we use two config files, defaults and local customizations
+// Init reads data from the config file and/or env vars
 func Init(cfgFile string) {
 	log.Debug().Msgf("ftw/config: executing init")
 	if cfgFile != "" {

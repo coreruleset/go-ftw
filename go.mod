@@ -4,7 +4,6 @@ go 1.15
 
 require (
 	github.com/bykof/gostradamus v1.0.4
-	github.com/creasty/defaults v1.5.1
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/icza/backscanner v0.0.0-20200205093934-2120fccb01f7
 	github.com/kyokomi/emoji v2.2.4+incompatible

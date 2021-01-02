@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"ftw/ftwtest"
 
 	"github.com/kyokomi/emoji"
 	"github.com/spf13/cobra"
 
 	"ftw/runner"
+	"ftw/test"
 )
 
 // cleanCmd represents the clean command
@@ -23,7 +23,7 @@ var runCmd = &cobra.Command{
 		quiet, _ := cmd.Flags().GetBool("quiet")
 		emoji.Println(":hammer_and_wrench: Starting tests!")
 		files := fmt.Sprintf("%s/**/*.yaml", dir)
-		tests := ftwtest.GetTestsFromFiles(files)
+		tests := test.GetTestsFromFiles(files)
 		runner.Run(testid, exclude, showTime, quiet, tests)
 	},
 }

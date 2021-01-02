@@ -3,9 +3,11 @@ package http
 import (
 	"bytes"
 	"crypto/tls"
-	"encoding/base64"
+	"errors"
 	"fmt"
+	"ftw/utils"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -13,108 +15,204 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func connect(destination string, port int, protocol string) FTWHTTPConnection {
+// Destination is the host, port and protocol to be used when connecting to a remote host
+type Destination struct {
+	DestAddr string `default:"localhost"`
+	Port     int    `default:"80"`
+	Protocol string `default:"http"`
+}
+
+// RequestLine is the first line in the HTTP request dialog
+type RequestLine struct {
+	Method  string `default:"GET"`
+	Version string `default:"HTTP/1.1"`
+	URI     string `default:"/"`
+}
+
+// ToString converts the request line to string for sending it in the wire
+func (rl RequestLine) ToString() string {
+	return fmt.Sprintf("%s %s %s\r\n", rl.Method, rl.URI, rl.Version)
+}
+
+// Request represents a request
+// No Defaults represents the previous "stop_magic" behavior
+type Request struct {
+	destination         *Destination
+	requestLine         *RequestLine
+	headers             Header
+	cookies             http.CookieJar
+	data                []byte
+	raw                 []byte
+	autoCompleteHeaders bool
+}
+
+// NewRequest creates a new request base on a destination, an initial request line, and headers
+func (r *Request) NewRequest(dest *Destination, reqLine *RequestLine, h Header, data []byte, raw []byte, b bool) *Request {
+	r = &Request{
+		destination:         dest,
+		requestLine:         reqLine,
+		headers:             h.Clone(),
+		cookies:             nil,
+		data:                data,
+		raw:                 raw,
+		autoCompleteHeaders: b,
+	}
+	return r
+}
+
+// SetAutoCompleteHeaders sets the value to the corresponding bool
+func (r *Request) SetAutoCompleteHeaders(value bool) {
+	r.autoCompleteHeaders = value
+}
+
+// WithAutoCompleteHeaders returns true when we need to add additional headers to complete the request
+func (r Request) WithAutoCompleteHeaders() bool {
+	return r.autoCompleteHeaders
+}
+
+// SetData sets the data
+// You can use only one of raw, encoded or data.
+func (r *Request) SetData(data []byte) error {
+	if utils.IsNotEmpty(r.raw) {
+		return errors.New("ftw/http: there is already raw data in this request")
+	}
+	r.data = data
+	return nil
+}
+
+// SetRawData sets the data using raw bytes
+//
+// When using raw data, no other checks will be done.
+// You are responsible of creating the request line, all the headers, and body.
+// You can use only one of raw or data.
+func (r *Request) SetRawData(raw []byte) error {
+	if utils.IsNotEmpty(r.data) {
+		return errors.New("ftw/http: there is already data in this request")
+	}
+	r.raw = raw
+	return nil
+}
+
+// Data returns the data
+func (r Request) Data() []byte {
+	return r.data
+}
+
+// Headers return request headers
+func (r Request) Headers() Header {
+	if r.headers == nil {
+		return nil
+	}
+	return r.headers
+}
+
+// SetHeaders sets the request headers
+func (r *Request) SetHeaders(h Header) {
+	r.headers = h
+}
+
+// AddHeader adds a new header to the request, if doesn't exist
+func (r *Request) AddHeader(name string, value string) {
+	r.headers.Add(name, value)
+}
+
+// AddStandardHeaders adds standard headers to the request, if they don't exist
+//
+// This will add Content-Lenght and the proper Content-Type
+func (r *Request) AddStandardHeaders(size int) {
+	r.headers.AddStandard(size)
+}
+
+func (c *Connection) connect(d *Destination) *Connection {
 	var netConn net.Conn
 	var tlsConn *tls.Conn
 	var err error
-	var conn *FTWHTTPConnection
 	var timeout time.Duration
 
-	hostPort := fmt.Sprintf("%s:%d", destination, port)
+	hostPort := fmt.Sprintf("%s:%d", d.DestAddr, d.Port)
 	timeout = 3 * time.Second
 
 	// Fatal error: dial tcp 127.0.0.1:80: connect: connection refused
 	// strings.HasSuffix(err.String(), "connection refused") {
-	if strings.ToLower(protocol) == "https" {
+	if strings.ToLower(d.Protocol) == "https" {
 		tlsConn, err = tls.Dial("tcp", hostPort, &tls.Config{InsecureSkipVerify: true})
-		conn = &FTWHTTPConnection{netConn: netConn, tlsConn: tlsConn, protocol: "https", err: err}
 	} else {
 		netConn, err = net.DialTimeout("tcp", hostPort, timeout)
-		conn = &FTWHTTPConnection{netConn: netConn, tlsConn: tlsConn, protocol: "http", err: err}
+	}
+	c = &Connection{
+		netConn:  netConn,
+		tlsConn:  tlsConn,
+		protocol: d.Protocol,
+		duration: &TransactionTime{},
+		err:      err,
 	}
 
-	return *conn
+	return c
 }
 
 // Request will use all the inputs and send a raw http request to the destination
-func Request(request *FTWHTTPRequest) (FTWHTTPConnection, error) {
+func (c *Connection) Request(request *Request) (*Connection, error) {
 	// Build request first, then connect and send, so timers are accurate
 	data, err := buildRequest(request)
 	if err != nil {
 		log.Fatal().Msgf("ftw/http: fatal error building request: %s", err.Error())
 	}
 
-	req := connect(request.DestAddr, request.Port, request.Protocol)
+	c = c.connect(request.destination)
 
-	if req.err != nil {
-		log.Fatal().Msgf("ftw/http: fatal error connecting to %s:%d using %s -> %s", request.DestAddr, request.Port, request.Protocol, req.err.Error())
+	if c.err != nil {
+		log.Fatal().Msgf("ftw/http: fatal error connecting to %s:%d using %s -> %s", request.destination.DestAddr, request.destination.Port, request.destination.Protocol, c.err.Error())
 	}
 
 	log.Debug().Msgf("ftw/http: sending data:\n%s", data)
 
-	_, err = req.send(data)
+	_, err = c.send(data)
 
 	if err != nil {
-		log.Fatal().Msgf("ftw/http: fatal error writing data: %s", err.Error())
+		log.Error().Msgf("ftw/http: error writing data: %s", err.Error())
 	}
 
-	return req, err
+	return c, err
+}
+
+// isRaw is a helper that returns true if raw or encoded data
+func (r Request) isRaw() bool {
+	return utils.IsNotEmpty(r.raw)
 }
 
 // The request should be created with anything we want. We want to actually break HTTP.
-func buildRequest(request *FTWHTTPRequest) ([]byte, error) {
+func buildRequest(r *Request) ([]byte, error) {
 	var err error
 	var b bytes.Buffer
 
 	// Check if we need to create from all fields
-	if len(request.Raw) == 0 && request.Encoded == "" {
+	if !r.isRaw() {
 		// Request line
-		_, err = fmt.Fprintf(&b, "%s %s %s\r\n", request.Method, request.URI, request.Version)
+		_, err = fmt.Fprintf(&b, "%s", r.requestLine.ToString())
 		if err != nil {
 			return nil, err
 		}
 
-		log.Debug().Msgf("ftw/http: this is data: %q, of len %d", request.Data, len(request.Data))
+		log.Trace().Msgf("ftw/http: this is data: %q, of len %d", r.data, len(r.data))
+
 		// We need to add the remaining headers, unless "NoDefaults"
-		if len(request.Data) > 0 && request.NoDefaults == false {
+		if utils.IsNotEmpty(r.data) && r.WithAutoCompleteHeaders() {
 			// If there is no Content-Type, then we add one
-			if _, found := request.Headers["Content-Type"]; !found {
-				request.Headers["Content-Type"] = "application/x-www-form-urlencoded"
-			}
-			// We need to url encode parameters in data
-			if contentType, _ := request.Headers["Content-Type"]; contentType == "application/x-www-form-urlencoded" {
-				if escapedData, _ := url.QueryUnescape(string(request.Data)); escapedData == string(request.Data) {
-					log.Debug().Msgf("ftw/http: parsing data: %q", request.Data)
-					queryString, err := url.ParseQuery(string(request.Data))
-					if err != nil || emptyQueryValues(queryString) {
-						log.Debug().Msgf("ftw/http: cannot parse or empty values in query string: %s", request.Data)
-					} else {
-						log.Debug().Msgf("ftw/http: this is the query string parsed: %+v", queryString)
-						data := queryString.Encode()
-						log.Debug().Msgf("ftw/http: encoded data to: %s", data)
-						if data != string(request.Data) {
-							// we need to encode data
-							request.Data = []byte(data)
-						}
-					}
-				}
-			}
-			if _, found := request.Headers["Content-Length"]; !found {
-				request.Headers["Content-Length"] = fmt.Sprintf("%d", len(request.Data))
-			}
-		}
-
-		// For better performance, we always close the connection (unless otherwise)
-		if _, found := request.Headers["Connection"]; !found {
-			request.Headers["Connection"] = "close"
-		}
-
-		// Write header lines now
-		for name, value := range request.Headers {
-			_, err = fmt.Fprintf(&b, "%s: %s\r\n", name, value)
+			r.AddHeader("Content-Type", "application/x-www-form-urlencoded")
+			err := r.SetData(encodeDataParameters(r.headers, r.data))
 			if err != nil {
-				return nil, err
+				log.Info().Msgf("ftw/http: cannot set data to: %q", r.data)
 			}
+		}
+
+		if r.WithAutoCompleteHeaders() {
+			r.AddStandardHeaders(len(r.data))
+		}
+
+		err = r.Headers().WriteBytes(&b)
+		if err != nil {
+			log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
+			return nil, err
 		}
 
 		// TODO: handle cookies
@@ -128,25 +226,13 @@ func buildRequest(request *FTWHTTPRequest) ([]byte, error) {
 		_, err = fmt.Fprintf(&b, "\r\n")
 
 		// Now the body, if anything
-		if len(request.Data) > 0 {
-			_, err = fmt.Fprintf(&b, "%s", request.Data)
+		if utils.IsNotEmpty(r.data) {
+			_, err = fmt.Fprintf(&b, "%s", r.data)
 		}
 	}
 
-	// If Raw, just dump it
-	if len(request.Raw) > 0 {
-		log.Debug().Msgf("ftw/http: using RAW data")
-		fmt.Fprintf(&b, "%s", request.Raw)
-	}
-
-	// if Encoded, first base64 decode, then dump
-	if len(request.Encoded) > 0 {
-		data, err := base64.StdEncoding.DecodeString(request.Encoded)
-		if err != nil {
-			return nil, err
-		}
-		log.Debug().Msgf("ftw/http: using Base64 Encoded data")
-		fmt.Fprintf(&b, "%s", data)
+	if utils.IsNotEmpty(r.raw) {
+		dumpRawData(&b, r.raw)
 	}
 
 	return b.Bytes(), err
@@ -161,4 +247,32 @@ func emptyQueryValues(values url.Values) bool {
 		}
 	}
 	return true
+}
+
+// encodeDataParameters url encode parameters in data
+func encodeDataParameters(h Header, data []byte) []byte {
+	if h.Get("Content-Type") == "application/x-www-form-urlencoded" {
+		if escapedData, _ := url.QueryUnescape(string(data)); escapedData == string(data) {
+			log.Trace().Msgf("ftw/http: parsing data: %q", data)
+			queryString, err := url.ParseQuery(string(data))
+			if err != nil || emptyQueryValues(queryString) {
+				log.Trace().Msgf("ftw/http: cannot parse or empty values in query string: %s", data)
+			} else {
+				log.Trace().Msgf("ftw/http: this is the query string parsed: %+v", queryString)
+				encodedData := queryString.Encode()
+				log.Trace().Msgf("ftw/http: encoded data to: %s", encodedData)
+				if encodedData != string(data) {
+					// we need to encode data
+					return []byte(encodedData)
+				}
+			}
+		}
+	}
+	return data
+}
+
+func dumpRawData(b *bytes.Buffer, raw []byte) {
+	log.Trace().Msgf("ftw/http: using RAW data")
+
+	fmt.Fprintf(b, "%s", raw)
 }

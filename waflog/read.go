@@ -46,7 +46,8 @@ func getLinesSinceUntil(f *FTWLogLines, timeRegex string) [][]byte {
 
 	fi, err := logfile.Stat()
 	if err != nil {
-		log.Fatal().Msgf("cannot read file's size")
+		log.Error().Msgf("cannot read file's size")
+		return found
 	}
 
 	compiledRegex := regexp.MustCompile(timeRegex)
@@ -60,7 +61,7 @@ func getLinesSinceUntil(f *FTWLogLines, timeRegex string) [][]byte {
 		line, _, err := scanner.LineBytes()
 		if err != nil {
 			if err == io.EOF {
-				log.Debug().Msgf("got to the beggining of file")
+				log.Debug().Msgf("got to the beginning of file")
 			} else {
 				log.Debug().Err(err)
 			}
@@ -68,16 +69,15 @@ func getLinesSinceUntil(f *FTWLogLines, timeRegex string) [][]byte {
 		}
 		if matchedLine := compiledRegex.FindSubmatch(line); matchedLine != nil {
 			date := matchedLine[1]
-			//log.Debug().Msgf("ftw/waflog: found line with date %q", date)
 			// well, go doesn't want to have a proper time format, so we need to use gostradamus
 			t, err := gostradamus.Parse(string(date), "ddd MMM DD HH:mm:ss.S YYYY")
 			if err != nil {
-				log.Fatal().Msgf("ftw/waflog: %s", err.Error())
+				log.Error().Msgf("ftw/waflog: %s", err.Error())
+				// return with what we got up to now
+				break
 			}
-			//log.Debug().Msgf("ftw/waflog: parsed line with time %s", t)
 			// compare dates now
 			if t.IsBetween(gostradamus.DateTimeFromTime(f.Since), gostradamus.DateTimeFromTime(f.Until)) {
-				//log.Debug().Msgf("ftw/waflog: found match at line position: %d, line: %s\n", pos, line)
 				saneCopy := make([]byte, len(line))
 				copy(saneCopy, line)
 				found = append(found, saneCopy)
@@ -85,14 +85,10 @@ func getLinesSinceUntil(f *FTWLogLines, timeRegex string) [][]byte {
 			}
 			// if we are before since, we need to stop searching
 			if t.IsBetween(gostradamus.DateTimeFromTime(time.Time{}), gostradamus.DateTimeFromTime(f.Since)) {
-				//log.Debug().Msgf("ftw/waflog: no more lines found and we before the time since the request started")
 				break
 			}
 		}
 
 	}
-	// for _, l := range found {
-	// 	log.Debug().Msgf("ftw/waflog: \n<<<<<<\n<<<<<<\n%s\n<<<<<<\n<<<<<<\n", l)
-	// }
 	return found
 }
