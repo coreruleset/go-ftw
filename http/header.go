@@ -68,7 +68,7 @@ func (h Header) Del(key string) {
 func (h Header) AddStandard(dataSize int) {
 	// For better performance, we always close the connection (unless otherwise)
 	h.Add("Connection", "close")
-	// If there is data, we add the lenght also
+	// If there is data, we add the length also
 	if dataSize > 0 {
 		h.Add("Content-Length", strconv.Itoa(dataSize))
 	}
