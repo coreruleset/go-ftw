@@ -118,7 +118,7 @@ func (r *Request) AddHeader(name string, value string) {
 
 // AddStandardHeaders adds standard headers to the request, if they don't exist
 //
-// This will add Content-Lenght and the proper Content-Type
+// This will add Content-Length and the proper Content-Type
 func (r *Request) AddStandardHeaders(size int) {
 	r.headers.AddStandard(size)
 }
