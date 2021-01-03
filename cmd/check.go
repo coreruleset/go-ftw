@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"ftw/ftwtest"
+	"ftw/test"
 
 	"github.com/kyokomi/emoji"
 	"github.com/spf13/cobra"
@@ -26,6 +26,6 @@ func init() {
 
 func checkFiles(dir string) {
 	files := fmt.Sprintf("%s/**/*.y[a]ml", dir)
-	tests := ftwtest.GetTestsFromFiles(files)
+	tests := test.GetTestsFromFiles(files)
 	emoji.Printf("ftw: checked %d files, everything looks good!\n", len(tests))
 }

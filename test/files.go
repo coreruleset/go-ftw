@@ -1,4 +1,4 @@
-package ftwtest
+package test
 
 import (
 	"io/ioutil"
@@ -23,7 +23,7 @@ func GetTestsFromFiles(globPattern string) []FTWTest {
 	for _, test := range testFiles {
 		t, err := readTest(test)
 		if err != nil {
-			log.Info().Msgf("Fatal error parsing %s: %v\nSkipping it.\n", test, err)
+			log.Info().Msgf("Fatal error parsing %s: %v\nSkipping file.\n", test, err)
 		} else {
 			tests = append(tests, *t)
 		}

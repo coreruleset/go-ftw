@@ -6,8 +6,9 @@ import (
 	"net/http"
 )
 
-// Response should compare and return a boolean based on the received response
-func (f *FTWHTTPConnection) Response() (*FTWHTTPResponse, error) {
+// Response reads the response sent by the WAF and return the corresponding struct
+// It leverages the go stdlib for reading and parsing the response
+func (f *Connection) Response() (*Response, error) {
 	data, err := f.receive()
 
 	if err != nil {
@@ -21,7 +22,7 @@ func (f *FTWHTTPConnection) Response() (*FTWHTTPResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	response := FTWHTTPResponse{
+	response := Response{
 		RAW:    data,
 		Parsed: *httpResponse,
 	}

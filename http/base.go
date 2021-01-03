@@ -13,99 +13,82 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// FTWHTTPConnection is the type used for sending/receiving data
-type FTWHTTPConnection struct {
+// Connection is the type used for sending/receiving data
+type Connection struct {
 	netConn  net.Conn
 	tlsConn  *tls.Conn
 	protocol string
-	duration *FTWHTTPTransactionTime
-	request  *FTWHTTPRequest
-	response *FTWHTTPResponse
+	duration *TransactionTime
 	err      error
 }
 
-//FTWHTTPTransactionTime abstracts the time a transaction takes
-type FTWHTTPTransactionTime struct {
+// TransactionTime abstracts the time a transaction takes
+type TransactionTime struct {
 	Begin time.Time
 	End   time.Time
 }
 
 // FTWConnection is the interface method implement to send and receive data
 type FTWConnection interface {
+	Request(*Request)
+	Response(*Response)
+	GetTrackedTime() *TransactionTime
 	send([]byte) (int, error)
 	receive() ([]byte, error)
-	getTrackedTime() *FTWHTTPTransactionTime
 }
 
-// FTWHTTPRequest represents a request
-// No Defaults represents the previous "stop_magic" behavior
-type FTWHTTPRequest struct {
-	NoDefaults bool   `default:"false"`
-	DestAddr   string `default:"localhost"`
-	Port       int    `default:"80"`
-	Method     string `default:"GET"`
-	Protocol   string `default:"http"`
-	Version    string `default:"HTTP/1.1"`
-	URI        string `default:"/"`
-	Headers    map[string]string
-	Cookies    http.CookieJar
-	Data       []byte
-	Raw        []byte
-	Encoded    string
-}
-
-// FTWHTTPResponse represents the http response received from the server/waf
-type FTWHTTPResponse struct {
+// Response represents the http response received from the server/waf
+type Response struct {
 	RAW    []byte
 	Parsed http.Response
 }
 
-func (f *FTWHTTPConnection) startTracking() {
-	f.duration = &FTWHTTPTransactionTime{
+func (c *Connection) startTracking() {
+	c.duration = &TransactionTime{
 		Begin: time.Now(),
 		End:   time.Now(),
 	}
 }
 
-func (f *FTWHTTPConnection) stopTracking() {
-	f.duration.End = time.Now()
+func (c *Connection) stopTracking() {
+	c.duration.End = time.Now()
 }
 
 // GetTrackedTime will return the time since the request started and the response was parsed
-func (f *FTWHTTPConnection) GetTrackedTime() *FTWHTTPTransactionTime {
-	return f.duration
+func (c *Connection) GetTrackedTime() *TransactionTime {
+	return c.duration
 }
 
-func (f *FTWHTTPConnection) send(data []byte) (int, error) {
+func (c *Connection) send(data []byte) (int, error) {
 	var err error
 	var sent int
 
 	log.Debug().Msg("ftw/http: sending data")
 	// Store times for searching in logs, if necessary
-	f.startTracking()
+	c.startTracking()
 
-	switch f.protocol {
+	switch c.protocol {
 	case "http":
-		if f.netConn != nil {
-			sent, err = f.netConn.Write(data)
+		if c.netConn != nil {
+			sent, err = c.netConn.Write(data)
 		} else {
 			err = errors.New("ftw/http: http selected but not connected to http")
 		}
 	case "https":
-		if f.tlsConn != nil {
-			sent, err = f.tlsConn.Write(data)
+		if c.tlsConn != nil {
+			sent, err = c.tlsConn.Write(data)
 		} else {
 			err = errors.New("ftw/http: https selected but not connected to https")
 		}
 	default:
-		err = fmt.Errorf("ftw/http: unsupported protocol %s", f.protocol)
+		err = fmt.Errorf("ftw/http: unsupported protocol %s", c.protocol)
 	}
 
 	return sent, err
 
 }
 
-func (f *FTWHTTPConnection) receive() ([]byte, error) {
+func (c *Connection) receive() ([]byte, error) {
 	log.Debug().Msg("ftw/http: receiving data")
 	var err error
 	var buf []byte
@@ -116,22 +99,27 @@ func (f *FTWHTTPConnection) receive() ([]byte, error) {
 
 	// We assume the response body can be handled in memory without problems
 	// That's why we use ioutil.ReadAll
-	switch f.protocol {
+	switch c.protocol {
 	case "https":
-		defer f.tlsConn.Close()
-		buf, err = ioutil.ReadAll(f.tlsConn)
+		defer c.tlsConn.Close()
+		if err = c.tlsConn.SetReadDeadline(time.Now().Add(timeoutDuration)); err == nil {
+			buf, err = ioutil.ReadAll(c.tlsConn)
+		}
 	default:
-		defer f.netConn.Close()
-		f.netConn.SetReadDeadline(time.Now().Add(timeoutDuration))
-		buf, err = ioutil.ReadAll(f.netConn)
+		defer c.netConn.Close()
+		if err = c.netConn.SetReadDeadline(time.Now().Add(timeoutDuration)); err == nil {
+			buf, err = ioutil.ReadAll(c.netConn)
+		}
 	}
 	if err != nil && !strings.Contains(err.Error(), "i/o timeout") {
-		log.Fatal().Msgf("ftw/http: %s\n", err.Error())
+		log.Error().Msgf("ftw/http: %s\n", err.Error())
+	} else {
+		err = nil
 	}
-	log.Debug().Msgf("ftw/http: received data - %q", buf)
-	f.stopTracking()
+	log.Trace().Msgf("ftw/http: received data - %q", buf)
+	c.stopTracking()
 
-	return buf, nil
+	return buf, err
 }
 
 // All users of cookiejar should import "golang.org/x/net/publicsuffix"
