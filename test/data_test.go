@@ -1,7 +1,6 @@
 package test
 
 import (
-	"fmt"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -23,7 +22,6 @@ uri: "/"
 `
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
-	fmt.Printf("%v", input)
 
 	if err == nil && input.StopMagic == true {
 		t.Logf("Success !")

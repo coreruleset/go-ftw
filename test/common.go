@@ -1,6 +1,6 @@
 package test
 
-import "ftw/http"
+import "github.com/fzipi/go-ftw/http"
 
 // Input represents the input request in a stage
 // The fields `Version`, `Method` and `URI` we want to explicitly now when they are set to ""

@@ -1,9 +1,10 @@
 package check
 
 import (
-	config "ftw/config"
-	waflog "ftw/waflog"
 	"time"
+
+	config "github.com/fzipi/go-ftw/config"
+	waflog "github.com/fzipi/go-ftw/waflog"
 )
 
 // NoLogContains asd
