@@ -1,4 +1,4 @@
-module ftw
+module github.com/fzipi/go-ftw
 
 go 1.15
 

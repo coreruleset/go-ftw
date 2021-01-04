@@ -1,12 +1,13 @@
 package runner
 
 import (
-	"ftw/check"
-	"ftw/http"
-	"ftw/test"
 	"os"
 	"regexp"
 	"time"
+
+	"github.com/fzipi/go-ftw/check"
+	"github.com/fzipi/go-ftw/http"
+	"github.com/fzipi/go-ftw/test"
 
 	"github.com/kyokomi/emoji"
 	"github.com/rs/zerolog/log"

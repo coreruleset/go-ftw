@@ -5,12 +5,13 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"ftw/utils"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/fzipi/go-ftw/utils"
 
 	"github.com/rs/zerolog/log"
 )

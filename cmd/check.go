@@ -2,7 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"ftw/test"
+
+	"github.com/fzipi/go-ftw/test"
 
 	"github.com/kyokomi/emoji"
 	"github.com/spf13/cobra"

@@ -6,8 +6,8 @@ import (
 	"github.com/kyokomi/emoji"
 	"github.com/spf13/cobra"
 
-	"ftw/runner"
-	"ftw/test"
+	"github.com/fzipi/go-ftw/runner"
+	"github.com/fzipi/go-ftw/test"
 )
 
 // cleanCmd represents the clean command

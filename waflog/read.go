@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"time"
 
-	config "ftw/config"
+	config "github.com/fzipi/go-ftw/config"
 
 	"github.com/bykof/gostradamus"
 	"github.com/icza/backscanner"

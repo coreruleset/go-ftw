@@ -1,12 +1,7 @@
-/*
-Package cmd implements a CLI to manage test
-Copyright © 2020 Perceptyx Inc
-Maintainers: admins@perceptyx.com
-*/
 package cmd
 
 import (
-	config "ftw/config"
+	config "github.com/fzipi/go-ftw/config"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -21,13 +16,13 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "ftw run",
-	Short: "Waf Testing Framework - Go Version",
-	Long:  ``,
+	Short: "Framework for Testing WAFs - Go Version",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func Execute(version string) {
+	rootCmd.Version = version
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal().Msgf("Problem executing: %s", err.Error())
 	}
