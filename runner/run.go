@@ -103,9 +103,8 @@ func Run(testid string, exclude string, showTime bool, quiet bool, ftwtests []te
 				startReceivingResponse := time.Now()
 				response, err := client.Response()
 				if err != nil {
-					log.Error().Msgf("ftw/run: error receiving response: %s\n", err.Error())
-					// Just jump to next test for now
-					continue
+					log.Debug().Msgf("ftw/run: error receiving response: %s\n", err.Error())
+					// This error might be expected. Let's continue
 				}
 				log.Trace().Msgf("ftw/run: response took %d", time.Since(startReceivingResponse))
 
