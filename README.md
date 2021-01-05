@@ -3,8 +3,8 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fzipi/go-ftw)](https://goreportcard.com/report/github.com/fzipi/go-ftw)
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/fzipi/go-ftw)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/golang-standards/project-layout)](https://pkg.go.dev/github.com/fzipi/go-ftw)
-[![Release](https://img.shields.io/github/release/golang-standards/project-layout.svg?style=flat-square)](https://github.com/fzipi/go-ftw/releases/latest)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/fzipi/go-ftw)](https://pkg.go.dev/github.com/fzipi/go-ftw)
+[![Release](https://img.shields.io/github/v/release/fzipi/go-ftw.svg?style=flat-square)](https://github.com/fzipi/go-ftw/releases/latest)
 
 
 This software should be compatible with the [Python version](https://pypi.org/project/ftw/).
@@ -25,23 +25,6 @@ My goals are:
 Just get the binary file for your architecture, and run it!
 
 ```bash
-Waf Testing Framework - Go Version
-
-Usage:
-  ftw [command]
-
-Available Commands:
-  check       Checks ftw test files for syntax errors.
-  help        Help about any command
-  run         Run Tests
-  version     Print ftw version.
-
-Flags:
-      --cfg string   override config file (default is $PWD/.ftw.yaml)
-      --debug        debug output
-  -h, --help         help for ftw
-
-Use "ftw [command] --help" for more information about a command.
 ```
 
 ## Example Usage
@@ -62,9 +45,40 @@ logtype:
   timeformat: '%a %b %d %H:%M:%S.%f %Y'
 ```
 
-Then run all tests with:
+I normally perform my testing using the [Core Rule Set](https://github.com/coreruleset/coreruleset/).
 
-`ftw run -d tests -t -q`
+You can start the containers from that repo using docker-compose:
+
+```bash
+git clone https://github.com/coreruleset/coreruleset.git
+docker-compose -f tests/docker-compose.yml up -d modsec2-apache
+```
+
+This is the help for the `run` command:
+```bash
+❯ ./ftw run -h
+Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.
+
+Usage:
+  ftw run [flags]
+
+Flags:
+  -d, --dir string       recursively find yaml tests in this directory (default ".")
+      --exclude string   exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*")
+  -h, --help             help for run
+      --id string        set test id to run
+  -q, --quiet            do not show test by test, only results
+  -t, --time             show time spent per test
+
+Global Flags:
+      --cfg string   override config file (default is $PWD/.ftw.yaml)
+      --debug        debug output
+
+```
+
+Then run all tests (slightly modified, see [here](https://gist.github.com/fzipi/b9e22b3834a5fa32970878c72775d41e)) in the ModSecurity Core Rule set using:
+
+`ftw run -d tests -t`
 
 And the result should be similar to:
 
