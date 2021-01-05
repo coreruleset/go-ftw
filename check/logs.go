@@ -15,9 +15,11 @@ func NoLogContains(notfound string, since time.Time, until time.Time) bool {
 // LogContains is the text in the log or not?
 func LogContains(contains string, since time.Time, until time.Time) bool {
 	logFile := waflog.FTWLogLines{
-		FileName: config.FTWConfig.LogFile,
-		Since:    since,
-		Until:    until,
+		FileName:   config.FTWConfig.LogFile,
+		TimeRegex:  config.FTWConfig.LogType.TimeRegex,
+		TimeFormat: config.FTWConfig.LogType.TimeFormat,
+		Since:      since,
+		Until:      until,
 	}
 	return waflog.SearchLogContains(contains, &logFile)
 }

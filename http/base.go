@@ -1,3 +1,4 @@
+// Package http provides low level abstractions for sending/receiving raw http messages
 package http
 
 import (
