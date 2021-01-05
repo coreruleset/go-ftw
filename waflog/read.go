@@ -6,8 +6,6 @@ import (
 	"regexp"
 	"time"
 
-	config "github.com/fzipi/go-ftw/config"
-
 	"github.com/bykof/gostradamus"
 	"github.com/icza/backscanner"
 	"github.com/rs/zerolog/log"
@@ -17,7 +15,7 @@ import (
 func SearchLogContains(match string, ll *FTWLogLines) bool {
 	log.Debug().Msgf("ftw/waflog: Looking at file %s, between %s and %s", ll.FileName, ll.Since, ll.Until)
 	// this should be a flag
-	lines := getLinesSinceUntil(ll, config.FTWConfig.LogType.TimeRegex)
+	lines := getLinesSinceUntil(ll)
 	log.Debug().Msgf("ftw/waflog: got %d lines", len(lines))
 
 	result := false
@@ -35,7 +33,7 @@ func SearchLogContains(match string, ll *FTWLogLines) bool {
 	return result
 }
 
-func getLinesSinceUntil(f *FTWLogLines, timeRegex string) [][]byte {
+func getLinesSinceUntil(f *FTWLogLines) [][]byte {
 	var found [][]byte
 	logfile, err := os.Open(f.FileName)
 
@@ -50,7 +48,7 @@ func getLinesSinceUntil(f *FTWLogLines, timeRegex string) [][]byte {
 		return found
 	}
 
-	compiledRegex := regexp.MustCompile(timeRegex)
+	compiledRegex := regexp.MustCompile(f.TimeRegex)
 
 	// Lines in modsec logging can be quite large
 	backscannerOptions := &backscanner.Options{
@@ -70,7 +68,7 @@ func getLinesSinceUntil(f *FTWLogLines, timeRegex string) [][]byte {
 		if matchedLine := compiledRegex.FindSubmatch(line); matchedLine != nil {
 			date := matchedLine[1]
 			// well, go doesn't want to have a proper time format, so we need to use gostradamus
-			t, err := gostradamus.Parse(string(date), "ddd MMM DD HH:mm:ss.S YYYY")
+			t, err := gostradamus.Parse(string(date), f.TimeFormat)
 			if err != nil {
 				log.Error().Msgf("ftw/waflog: %s", err.Error())
 				// return with what we got up to now
