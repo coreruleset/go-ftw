@@ -23,7 +23,7 @@ var headerWriteTests = []struct {
 			"Content-Type":   "text/html; charset=UTF-8",
 			"Content-Length": "0",
 		},
-		"Content-Type: text/html; charset=UTF-8\r\nContent-Length: 0\r\n",
+		"Content-Length: 0\r\nContent-Type: text/html; charset=UTF-8\r\n",
 	},
 	{
 		Header{
@@ -37,7 +37,7 @@ var headerWriteTests = []struct {
 			"Content-Length":   "0",
 			"Content-Encoding": "gzip",
 		},
-		"Expires: -1\r\nContent-Length: 0\r\nContent-Encoding: gzip\r\n",
+		"Content-Encoding: gzip\r\nContent-Length: 0\r\nExpires: -1\r\n",
 	},
 	{
 		Header{
