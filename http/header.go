@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"io"
+	"sort"
 	"strconv"
 )
 
@@ -81,9 +82,11 @@ func (h Header) Write(w io.Writer) error {
 		ws = stringWriter{w}
 	}
 
-	for key, value := range h {
+	sorted := h.getSortedHeadersByName()
+
+	for _, key := range sorted {
 		// we want all headers "as-is"
-		s := key + ": " + value + "\r\n"
+		s := key + ": " + h[key] + "\r\n"
 		if _, err := ws.WriteString(s); err != nil {
 			return err
 		}
@@ -95,9 +98,11 @@ func (h Header) Write(w io.Writer) error {
 
 // WriteBytes writes a header in a ByteWriter.
 func (h Header) WriteBytes(b *bytes.Buffer) error {
-	for key, value := range h {
+	sorted := h.getSortedHeadersByName()
+
+	for _, key := range sorted {
 		// we want all headers "as-is"
-		s := key + ": " + value + "\r\n"
+		s := key + ": " + h[key] + "\r\n"
 		if _, err := b.Write([]byte(s)); err != nil {
 			return err
 		}
@@ -119,4 +124,16 @@ func (h Header) Clone() Header {
 	}
 
 	return clone
+}
+
+// sortHeadersByName gets headers sorted by name
+// This way the output is predictable, for tests
+func (h Header) getSortedHeadersByName() []string {
+	keys := make([]string, 0, len(h))
+	for k := range h {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	return keys
 }
