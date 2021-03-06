@@ -1,24 +1,48 @@
 package utils
 
+import (
+	"fmt"
+	"reflect"
+)
+
 // IsNotEmpty helper that returns true when a type is not empty
 func IsNotEmpty(data interface{}) bool {
-	return !IsEmpty(data)
+	switch t := data.(type) {
+	case string:
+		if data != "" {
+			return true
+		}
+	case []byte:
+		if len(t) > 0 {
+			return true
+		}
+	case *string:
+		if !reflect.ValueOf(data).IsNil() {
+			return true
+		}
+	default:
+		fmt.Printf("data has unknown type %s", t)
+	}
+	return false
 }
 
 // IsEmpty helper that returns true when a type is empty
 func IsEmpty(data interface{}) bool {
-	switch data := data.(type) {
+	switch t := data.(type) {
 	case string:
 		if data == "" {
 			return true
 		}
-		return false
 	case []byte:
-		if len(data) == 0 {
+		if len(t) == 0 {
 			return true
 		}
-		return false
+	case *string:
+		if reflect.ValueOf(data).IsNil() {
+			return true
+		}
 	default:
-		return false
+		fmt.Printf("data has unknown type %s", t)
 	}
+	return false
 }

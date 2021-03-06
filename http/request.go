@@ -2,14 +2,10 @@ package http
 
 import (
 	"bytes"
-	"crypto/tls"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
-	"strings"
-	"time"
 
 	"github.com/fzipi/go-ftw/utils"
 
@@ -38,7 +34,6 @@ func (rl RequestLine) ToString() string {
 // Request represents a request
 // No Defaults represents the previous "stop_magic" behavior
 type Request struct {
-	destination         *Destination
 	requestLine         *RequestLine
 	headers             Header
 	cookies             http.CookieJar
@@ -47,14 +42,22 @@ type Request struct {
 	autoCompleteHeaders bool
 }
 
-// NewRequest creates a new request base on a destination, an initial request line, and headers
-func (r *Request) NewRequest(dest *Destination, reqLine *RequestLine, h Header, data []byte, raw []byte, b bool) *Request {
-	r = &Request{
-		destination:         dest,
+// NewRequest creates a new request, an initial request line, and headers
+func NewRequest(reqLine *RequestLine, h Header, data []byte, b bool) *Request {
+	r := &Request{
 		requestLine:         reqLine,
 		headers:             h.Clone(),
 		cookies:             nil,
 		data:                data,
+		raw:                 nil,
+		autoCompleteHeaders: b,
+	}
+	return r
+}
+
+// NewRawRequest creates a new request, an initial request line, and headers
+func NewRawRequest(raw []byte, b bool) *Request {
+	r := &Request{
 		raw:                 raw,
 		autoCompleteHeaders: b,
 	}
@@ -75,7 +78,7 @@ func (r Request) WithAutoCompleteHeaders() bool {
 // You can use only one of raw, encoded or data.
 func (r *Request) SetData(data []byte) error {
 	if utils.IsNotEmpty(r.raw) {
-		return errors.New("ftw/http: there is already raw data in this request")
+		return errors.New("ftw/http: raw field is already present in this request")
 	}
 	r.data = data
 	return nil
@@ -88,7 +91,7 @@ func (r *Request) SetData(data []byte) error {
 // You can use only one of raw or data.
 func (r *Request) SetRawData(raw []byte) error {
 	if utils.IsNotEmpty(r.data) {
-		return errors.New("ftw/http: there is already data in this request")
+		return errors.New("ftw/http: data field is already present in this request")
 	}
 	r.raw = raw
 	return nil
@@ -97,6 +100,11 @@ func (r *Request) SetRawData(raw []byte) error {
 // Data returns the data
 func (r Request) Data() []byte {
 	return r.data
+}
+
+// RawData returns the raw data
+func (r Request) RawData() []byte {
+	return r.raw
 }
 
 // Headers return request headers
@@ -124,45 +132,12 @@ func (r *Request) AddStandardHeaders(size int) {
 	r.headers.AddStandard(size)
 }
 
-func (c *Connection) connect(d *Destination) *Connection {
-	var netConn net.Conn
-	var tlsConn *tls.Conn
-	var err error
-	var timeout time.Duration
-
-	hostPort := fmt.Sprintf("%s:%d", d.DestAddr, d.Port)
-	timeout = 3 * time.Second
-
-	// Fatal error: dial tcp 127.0.0.1:80: connect: connection refused
-	// strings.HasSuffix(err.String(), "connection refused") {
-	if strings.ToLower(d.Protocol) == "https" {
-		tlsConn, err = tls.Dial("tcp", hostPort, &tls.Config{InsecureSkipVerify: true})
-	} else {
-		netConn, err = net.DialTimeout("tcp", hostPort, timeout)
-	}
-	c = &Connection{
-		netConn:  netConn,
-		tlsConn:  tlsConn,
-		protocol: d.Protocol,
-		duration: &TransactionTime{},
-		err:      err,
-	}
-
-	return c
-}
-
 // Request will use all the inputs and send a raw http request to the destination
 func (c *Connection) Request(request *Request) (*Connection, error) {
 	// Build request first, then connect and send, so timers are accurate
 	data, err := buildRequest(request)
 	if err != nil {
 		log.Fatal().Msgf("ftw/http: fatal error building request: %s", err.Error())
-	}
-
-	c = c.connect(request.destination)
-
-	if c.err != nil {
-		log.Fatal().Msgf("ftw/http: fatal error connecting to %s:%d using %s -> %s", request.destination.DestAddr, request.destination.Port, request.destination.Protocol, c.err.Error())
 	}
 
 	log.Debug().Msgf("ftw/http: sending data:\n%s", data)
@@ -207,6 +182,7 @@ func buildRequest(r *Request) ([]byte, error) {
 		}
 
 		if r.WithAutoCompleteHeaders() {
+			log.Debug().Msgf("ftw/http: adding standard headers")
 			r.AddStandardHeaders(len(r.data))
 		}
 
@@ -230,9 +206,7 @@ func buildRequest(r *Request) ([]byte, error) {
 		if utils.IsNotEmpty(r.data) {
 			_, err = fmt.Fprintf(&b, "%s", r.data)
 		}
-	}
-
-	if utils.IsNotEmpty(r.raw) {
+	} else {
 		dumpRawData(&b, r.raw)
 	}
 

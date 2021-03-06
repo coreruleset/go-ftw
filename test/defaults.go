@@ -54,14 +54,14 @@ func (i *Input) GetPort() int {
 	return *i.Port
 }
 
-// GetRawData returns the proper raw data, and error if there was one
-func (i *Input) GetRawData(data string, encoded string) ([]byte, error) {
-	if utils.IsNotEmpty(data) {
-		return []byte(data), nil
-	}
-	if utils.IsNotEmpty(encoded) {
+// GetRawRequest returns the proper raw data, and error if there was none
+func (i *Input) GetRawRequest() ([]byte, error) {
+	if utils.IsNotEmpty(i.EncodedRequest) {
 		// if Encoded, first base64 decode, then dump
-		return base64.StdEncoding.DecodeString(encoded)
+		return base64.StdEncoding.DecodeString(i.EncodedRequest)
+	}
+	if utils.IsNotEmpty(i.RAWRequest) {
+		return []byte(i.RAWRequest), nil
 	}
 	return nil, nil
 }

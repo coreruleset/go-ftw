@@ -1,25 +1,11 @@
 package check
 
-import (
-	"time"
-
-	config "github.com/fzipi/go-ftw/config"
-	waflog "github.com/fzipi/go-ftw/waflog"
-)
-
-// NoLogContains asd
-func NoLogContains(notfound string, since time.Time, until time.Time) bool {
-	return !LogContains(notfound, since, until)
+// AssertNoLogContains returns true is the string is not found in the logs
+func (c *FTWCheck) AssertNoLogContains() bool {
+	return !c.log.Contains(c.expected.NoLogContains)
 }
 
-// LogContains is the text in the log or not?
-func LogContains(contains string, since time.Time, until time.Time) bool {
-	logFile := waflog.FTWLogLines{
-		FileName:   config.FTWConfig.LogFile,
-		TimeRegex:  config.FTWConfig.LogType.TimeRegex,
-		TimeFormat: config.FTWConfig.LogType.TimeFormat,
-		Since:      since,
-		Until:      until,
-	}
-	return waflog.SearchLogContains(contains, &logFile)
+// AssertLogContains returns true when the logs contain the string
+func (c *FTWCheck) AssertLogContains() bool {
+	return c.log.Contains(c.expected.LogContains)
 }
