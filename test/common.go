@@ -12,7 +12,7 @@ type Input struct {
 	Version        *string     `yaml:"version,omitempty"`
 	Headers        http.Header `yaml:"headers,omitempty"`
 	Method         *string     `yaml:"method,omitempty"`
-	Data           string      `yaml:"data,omitempty"`
+	Data           *string     `yaml:"data,omitempty"`
 	SaveCookie     bool        `yaml:"save_cookie,omitempty"`
 	StopMagic      bool        `yaml:"stop_magic"`
 	EncodedRequest string      `yaml:"encoded_request,omitempty"`

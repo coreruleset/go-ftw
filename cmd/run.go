@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kyokomi/emoji"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	"github.com/fzipi/go-ftw/runner"
@@ -21,9 +22,14 @@ var runCmd = &cobra.Command{
 		dir, _ := cmd.Flags().GetString("dir")
 		showTime, _ := cmd.Flags().GetBool("time")
 		quiet, _ := cmd.Flags().GetBool("quiet")
-		emoji.Println(":hammer_and_wrench: Starting tests!")
+		if !quiet {
+			emoji.Println(":hammer_and_wrench: Starting tests!")
+		}
 		files := fmt.Sprintf("%s/**/*.yaml", dir)
-		tests := test.GetTestsFromFiles(files)
+		tests, err := test.GetTestsFromFiles(files)
+		if err != nil {
+			log.Error().Msg(err.Error())
+		}
 		runner.Run(testid, exclude, showTime, quiet, tests)
 	},
 }

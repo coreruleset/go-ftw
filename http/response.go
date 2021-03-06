@@ -3,6 +3,7 @@ package http
 import (
 	"bufio"
 	"bytes"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -27,4 +28,13 @@ func (f *Connection) Response() (*Response, error) {
 		Parsed: *httpResponse,
 	}
 	return &response, err
+}
+
+// GetBodyAsString gives the response body as string, or nil if there was some error
+func (r *Response) GetBodyAsString() string {
+	body, err := ioutil.ReadAll(r.Parsed.Body)
+	if err != nil {
+		return ""
+	}
+	return string(body)
 }

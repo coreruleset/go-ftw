@@ -2,7 +2,6 @@ package test
 
 import (
 	"io/ioutil"
-	"os"
 	"path/filepath"
 
 	"github.com/rs/zerolog/log"
@@ -10,26 +9,23 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// GetTestsFromFiles will get the files to be processed
-func GetTestsFromFiles(globPattern string) []FTWTest {
-	currentDirectory, err := os.Getwd()
-	if err != nil {
-		log.Fatal().Msgf(err.Error())
-	}
+// GetTestsFromFiles will get the files to be processed. If some file has yaml error, will stop processing and return the error with the partial list of files read.
+func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 	var tests []FTWTest
+	var err error
 
-	testFiles, _ := filepath.Glob(currentDirectory + "/" + globPattern)
+	testFiles, _ := filepath.Glob(globPattern)
 
 	for _, test := range testFiles {
 		t, err := readTest(test)
 		if err != nil {
-			log.Info().Msgf("Fatal error parsing %s: %v\nSkipping file.\n", test, err)
+			break
 		} else {
 			tests = append(tests, *t)
 		}
 	}
 
-	return tests
+	return tests, err
 }
 
 func readTest(filename string) (t *FTWTest, err error) {
@@ -38,9 +34,6 @@ func readTest(filename string) (t *FTWTest, err error) {
 		log.Info().Msgf("yamlFile.Get err   #%v ", err)
 	}
 	err = yaml.Unmarshal(yamlFile, &t)
-	if err != nil {
-		log.Fatal().Msgf("Unmarshaling %s: %v", filename, err)
-	}
 
 	// Set Defaults
 	return t, err

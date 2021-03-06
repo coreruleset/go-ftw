@@ -11,11 +11,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// SearchLogContains looks in logfile for regex
-func SearchLogContains(match string, ll *FTWLogLines) bool {
+// Contains looks in logfile for regex
+func (ll *FTWLogLines) Contains(match string) bool {
 	log.Debug().Msgf("ftw/waflog: Looking at file %s, between %s and %s", ll.FileName, ll.Since, ll.Until)
 	// this should be a flag
-	lines := getLinesSinceUntil(ll)
+	lines := ll.getLinesSinceUntil()
 	log.Debug().Msgf("ftw/waflog: got %d lines", len(lines))
 
 	result := false
@@ -23,9 +23,10 @@ func SearchLogContains(match string, ll *FTWLogLines) bool {
 		log.Debug().Msgf("ftw/waflog: Matching %s in %s", match, line)
 		got, err := regexp.Match(match, line)
 		if err != nil {
-			log.Fatal().Msgf("ftw/waflog: %s", err.Error())
+			log.Fatal().Msgf("ftw/waflog: bad regexp %s", err.Error())
 		}
 		if got {
+			log.Debug().Msgf("ftw/waflog: Found %s at %s", match, line)
 			result = true
 			break
 		}
@@ -33,12 +34,12 @@ func SearchLogContains(match string, ll *FTWLogLines) bool {
 	return result
 }
 
-func getLinesSinceUntil(f *FTWLogLines) [][]byte {
+func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 	var found [][]byte
-	logfile, err := os.Open(f.FileName)
+	logfile, err := os.Open(ll.FileName)
 
 	if err != nil {
-		log.Fatal().Msgf("cannot open file %s", f.FileName)
+		log.Fatal().Msgf("cannot open file %s", ll.FileName)
 	}
 	defer logfile.Close()
 
@@ -48,7 +49,7 @@ func getLinesSinceUntil(f *FTWLogLines) [][]byte {
 		return found
 	}
 
-	compiledRegex := regexp.MustCompile(f.TimeRegex)
+	compiledRegex := regexp.MustCompile(ll.TimeRegex)
 
 	// Lines in modsec logging can be quite large
 	backscannerOptions := &backscanner.Options{
@@ -68,21 +69,21 @@ func getLinesSinceUntil(f *FTWLogLines) [][]byte {
 		if matchedLine := compiledRegex.FindSubmatch(line); matchedLine != nil {
 			date := matchedLine[1]
 			// well, go doesn't want to have a proper time format, so we need to use gostradamus
-			t, err := gostradamus.Parse(string(date), f.TimeFormat)
+			t, err := gostradamus.Parse(string(date), ll.TimeFormat)
 			if err != nil {
 				log.Error().Msgf("ftw/waflog: %s", err.Error())
 				// return with what we got up to now
 				break
 			}
 			// compare dates now
-			if t.IsBetween(gostradamus.DateTimeFromTime(f.Since), gostradamus.DateTimeFromTime(f.Until)) {
+			if t.IsBetween(gostradamus.DateTimeFromTime(ll.Since), gostradamus.DateTimeFromTime(ll.Until)) {
 				saneCopy := make([]byte, len(line))
 				copy(saneCopy, line)
 				found = append(found, saneCopy)
 				continue
 			}
 			// if we are before since, we need to stop searching
-			if t.IsBetween(gostradamus.DateTimeFromTime(time.Time{}), gostradamus.DateTimeFromTime(f.Since)) {
+			if t.IsBetween(gostradamus.DateTimeFromTime(time.Time{}), gostradamus.DateTimeFromTime(ll.Since)) {
 				break
 			}
 		}

@@ -7,56 +7,66 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
 )
 
-// Connection is the type used for sending/receiving data
-type Connection struct {
-	netConn  net.Conn
-	tlsConn  *tls.Conn
-	protocol string
-	duration *TransactionTime
-	err      error
+// NewConnection creates a new Connection based on a Destination
+func NewConnection(d Destination) (*Connection, error) {
+	var netConn net.Conn
+	var tlsConn *tls.Conn
+	var err error
+	var timeout time.Duration
+
+	hostPort := fmt.Sprintf("%s:%d", d.DestAddr, d.Port)
+	timeout = 3 * time.Second
+
+	// Fatal error: dial tcp 127.0.0.1:80: connect: connection refused
+	// strings.HasSuffix(err.String(), "connection refused") {
+	if strings.ToLower(d.Protocol) == "https" {
+		tlsConn, err = tls.Dial("tcp", hostPort, &tls.Config{InsecureSkipVerify: true})
+	} else {
+		netConn, err = net.DialTimeout("tcp", hostPort, timeout)
+	}
+	c := &Connection{
+		netConn:  netConn,
+		tlsConn:  tlsConn,
+		protocol: d.Protocol,
+		duration: NewRoundTripTime(),
+	}
+
+	return c, err
 }
 
-// TransactionTime abstracts the time a transaction takes
-type TransactionTime struct {
-	Begin time.Time
-	End   time.Time
-}
+// DestinationFromString create a Destination from String
+func DestinationFromString(urlString string) *Destination {
+	u, _ := url.Parse(urlString)
+	host, port, _ := net.SplitHostPort(u.Host)
+	p, _ := strconv.Atoi(port)
 
-// FTWConnection is the interface method implement to send and receive data
-type FTWConnection interface {
-	Request(*Request)
-	Response(*Response)
-	GetTrackedTime() *TransactionTime
-	send([]byte) (int, error)
-	receive() ([]byte, error)
-}
+	d := &Destination{
+		Port:     p,
+		DestAddr: host,
+		Protocol: u.Scheme,
+	}
 
-// Response represents the http response received from the server/waf
-type Response struct {
-	RAW    []byte
-	Parsed http.Response
+	return d
 }
 
 func (c *Connection) startTracking() {
-	c.duration = &TransactionTime{
-		Begin: time.Now(),
-		End:   time.Now(),
-	}
+	c.duration.StartTracking()
 }
 
 func (c *Connection) stopTracking() {
-	c.duration.End = time.Now()
+	c.duration.StopTracking()
 }
 
-// GetTrackedTime will return the time since the request started and the response was parsed
-func (c *Connection) GetTrackedTime() *TransactionTime {
+// GetRoundTripTime will return the time since the request started and the response was parsed
+func (c *Connection) GetRoundTripTime() *RoundTripTime {
 	return c.duration
 }
 

@@ -27,6 +27,9 @@ func init() {
 
 func checkFiles(dir string) {
 	files := fmt.Sprintf("%s/**/*.y[a]ml", dir)
-	tests := test.GetTestsFromFiles(files)
+	tests, err := test.GetTestsFromFiles(files)
+	if err != nil {
+		emoji.Printf("ftw: :red_cross: oops, found %s\n", err.Error())
+	}
 	emoji.Printf("ftw: checked %d files, everything looks good!\n", len(tests))
 }
