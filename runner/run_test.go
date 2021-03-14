@@ -104,8 +104,14 @@ func TestRun(t *testing.T) {
 		}
 	})
 
-	t.Run("execute only test 008 and execute all", func(t *testing.T) {
+	t.Run("execute only test 008 but exclude all", func(t *testing.T) {
 		if res := Run("008", "*", false, false, tests); !res {
+			t.Fatalf("Oops, test run failed!")
+		}
+	})
+
+	t.Run("execute only test 008 but exclude all", func(t *testing.T) {
+		if res := Run("*", "010", false, false, tests); !res {
 			t.Fatalf("Oops, test run failed!")
 		}
 	})
