@@ -18,12 +18,12 @@ import (
 // testid is the name of the unique test you want to run
 // exclude is a regexp that matches the test name: e.g. "920*", excludes all tests starting with "920"
 // Returns true if no test failed, or false otherwise.
-func Run(testid string, exclude string, showTime bool, quiet bool, ftwtests []test.FTWTest) bool {
+func Run(testid string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) bool {
 	var testResult bool
 	var stats TestStats
 	var duration time.Duration
 
-	emoji.Println(":rocket:Running!")
+	printUnlessQuietMode(output, ":rocket:Running!")
 
 	for _, tests := range ftwtests {
 		changed := true
@@ -41,12 +41,12 @@ func Run(testid string, exclude string, showTime bool, quiet bool, ftwtests []te
 			}
 			// this is just for printing once the next text
 			if changed {
-				emoji.Printf(":point_right:executing tests in file %s\n", tests.Meta.Name)
+				printUnlessQuietMode(output, ":point_right:executing tests in file %s\n", tests.Meta.Name)
 				changed = false
 			}
 
 			// can we use goroutines here?
-			emoji.Printf("\trunning %s: ", t.TestTitle)
+			printUnlessQuietMode(output, "\trunning %s: ", t.TestTitle)
 			// Iterate over stages
 			for _, stage := range t.Stages {
 				var responseError error
@@ -122,18 +122,15 @@ func Run(testid string, exclude string, showTime bool, quiet bool, ftwtests []te
 				addResultToStats(testResult, t.TestTitle, &stats)
 
 				// show the result unless quiet was passed in the command line
-				if !quiet {
-					displayResult(testResult, duration)
-				}
+				displayResult(output, testResult, duration)
 
 				stats.Run++
 				stats.RunTime += duration
 			}
 		}
 	}
-	if !quiet {
-		printSummary(stats)
-	}
+
+	printSummary(output, stats)
 
 	return stats.Failed == 0
 }
@@ -148,11 +145,11 @@ func checkTestSanity(testRequest test.Input) bool {
 		(testRequest.EncodedRequest != "" && testRequest.RAWRequest != "")
 }
 
-func displayResult(result bool, duration time.Duration) {
+func displayResult(quiet bool, result bool, duration time.Duration) {
 	if result {
-		emoji.Printf(":check_mark:passed in %s\n", duration)
+		printUnlessQuietMode(quiet, ":check_mark:passed in %s\n", duration)
 	} else {
-		emoji.Printf(":collision:failed in %s\n", duration)
+		printUnlessQuietMode(quiet, ":collision:failed in %s\n", duration)
 	}
 }
 
@@ -216,4 +213,11 @@ func getRequestFromTest(testRequest test.Input) *http.Request {
 
 	}
 	return req
+}
+
+// We want to have output unless we are in quiet mode
+func printUnlessQuietMode(quiet bool, format string, a ...interface{}) {
+	if !quiet {
+		emoji.Printf(format, a...)
+	}
 }
