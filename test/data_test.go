@@ -1,10 +1,13 @@
 package test
 
 import (
+	"bytes"
 	"testing"
 
 	"gopkg.in/yaml.v2"
 )
+
+var repeatTestSprig = `foo=%3d++++++++++++++++++++++++++++++++++`
 
 func TestGetDataFromYAML(t *testing.T) {
 	yamlString := `
@@ -52,5 +55,35 @@ uri: "/"
 		t.Logf("Success !")
 	} else {
 		t.Errorf("Failed !")
+	}
+}
+
+func TestDataTemplateFromYAML(t *testing.T) {
+	yamlString := `
+dest_addr: "127.0.0.1"
+method: ""
+port: 80
+headers:
+User-Agent: "ModSecurity CRS 3 Tests"
+Host: "localhost"
+Content-Type: "application/x-www-form-urlencoded"
+data: 'foo=%3d{{ "+" | repeat 34 }}'
+version: ""
+protocol: "http"
+stop_magic: true
+uri: "/"
+`
+	input := Input{}
+	var data []byte
+	err := yaml.Unmarshal([]byte(yamlString), &input)
+
+	if err != nil {
+		t.Fatalf("Failed !")
+	}
+
+	if data = input.ParseData(); bytes.Equal(data, []byte(repeatTestSprig)) {
+		t.Logf("Success !")
+	} else {
+		t.Fatalf("Failed: %s", data)
 	}
 }
