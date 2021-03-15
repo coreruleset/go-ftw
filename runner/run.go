@@ -200,13 +200,8 @@ func getRequestFromTest(testRequest test.Input) *http.Request {
 			URI:     testRequest.GetURI(),
 			Version: testRequest.GetVersion(),
 		}
-		var data []byte
 
-		if testRequest.Data == nil {
-			data = nil
-		} else {
-			data = []byte(*testRequest.Data)
-		}
+		data := testRequest.ParseData()
 		// create a new request
 		req = http.NewRequest(rline, testRequest.Headers,
 			data, !testRequest.StopMagic)

@@ -1,4 +1,4 @@
-# Go-FTW - Framework for Testing WAFs in Go! 
+# Go-FTW - Framework for Testing WAFs in Go!
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fzipi/go-ftw)](https://goreportcard.com/report/github.com/fzipi/go-ftw)
@@ -110,6 +110,35 @@ And the result should be similar to:
 ```
 Happy testing!
 
+## Additional features implemented already
+
+You can add functions to your tests, to simplify bulk writing, or even read values from the environment while executing. This is because `data:` sections in tests will be parse for Go [text/template](https://golang.org/pkg/text/template/) additional syntax, and with the power of additional [Sprig functions](https://masterminds.github.io/sprig/).
+
+This will allow you to write tests like this:
+
+```yaml
+data: 'foo=%3d{{ "+" | repeat 34 }}'
+```
+
+Will be expanded to:
+
+```yaml
+data: 'foo=%3d++++++++++++++++++++++++++++++++++'
+```
+
+But also, you can get values from the environment dinamically when the test is run:
+
+```yaml
+data: 'username={{ env "USERNAME" }}
+```
+
+Will give you, as you expect, the username running the tests
+
+```yaml
+data: 'username=fzipi
+```
+
+Other interesting functions you can use are: `randBytes`, `htpasswd`, `encryptAES`, etc.
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffzipi%2Fgo-ftw.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffzipi%2Fgo-ftw?ref=badge_large)
