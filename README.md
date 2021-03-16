@@ -35,7 +35,7 @@ To run tests you need:
 2. a file where the waf stores the logs
 3. a config file, or environment variables, with the information to get the logs and how to parse them (I might embed this for the most commonly used, like Apache/Nginx)
 
-By default, _ftw_ would search for a file in `$PWD` with the name `.ftw.yaml`. An example configuration is:
+By default, _ftw_ would search for a file in `$PWD` with the name `.ftw.yaml`. Example configurations for `apache` and `nginx` below:
 
 ```yaml
 ---
@@ -45,6 +45,17 @@ logtype:
   timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
   timeformat: '%a %b %d %H:%M:%S.%f %Y'
 ```
+
+```yaml
+---
+logfile: '../coreruleset/tests/logs/modsec3-nginx/nginx/error.log'
+logtype:
+  name: 'nginx'
+  timeregex:  '(\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})'
+  timeformat: 'YYYY/MM/DD HH:mm:ss'
+```
+
+If your webserver uses a different time format, please [create an issue](https://github.com/fzipi/go-ftw/issues/new/choose) and we can extend the documentation to cover it.
 
 I normally perform my testing using the [Core Rule Set](https://github.com/coreruleset/coreruleset/).
 
