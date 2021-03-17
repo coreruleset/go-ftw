@@ -9,7 +9,7 @@ func (c *FTWCheck) AssertExpectError(err error) bool {
 	} else {
 		log.Debug().Msgf("ftw/check: expected error? -> %t, and error is nil", c.expected.ExpectError)
 	}
-	if c.expected.ExpectError && err != nil || !c.expected.ExpectError && err == nil {
+	if c.expected.ExpectError && err != nil {
 		return true
 	}
 	return false

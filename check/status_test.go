@@ -6,15 +6,6 @@ import (
 	"github.com/fzipi/go-ftw/config"
 )
 
-var yamlConfig = `
----
-logfile: 'tests/logs/modsec2-apache/apache2/error.log'
-logtype:
-  name: 'apache'
-  timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
-  timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
-`
-
 var statusOKTests = []struct {
 	status         int
 	expectedStatus []int
@@ -33,7 +24,7 @@ var statusFailTests = []struct {
 }
 
 func TestStatusOK(t *testing.T) {
-	config.ImportFromString(yamlConfig)
+	config.ImportFromString(yamlApacheConfig)
 
 	c := NewCheck(config.FTWConfig)
 
@@ -46,7 +37,7 @@ func TestStatusOK(t *testing.T) {
 }
 
 func TestStatusFail(t *testing.T) {
-	config.ImportFromString(yamlConfig)
+	config.ImportFromString(yamlApacheConfig)
 
 	c := NewCheck(config.FTWConfig)
 
