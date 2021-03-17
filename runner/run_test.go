@@ -1,10 +1,16 @@
 package runner
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/fzipi/go-ftw/config"
+	httpftw "github.com/fzipi/go-ftw/http"
 	"github.com/fzipi/go-ftw/test"
 	"github.com/fzipi/go-ftw/utils"
 )
@@ -39,42 +45,62 @@ var yamlTest = `
         -
           stage:
             input:
-              dest_addr: "www.example.com"
+              dest_addr: "httpbin.org"
               port: 80
               headers:
                   User-Agent: "ModSecurity CRS 3 Tests"
-                  Host: "www.example.com"
+                  Host: "httpbin.org"
             output:
-              status: [200]
+              expect_error: True
     -
       test_title: 008
       stages:
         -
           stage:
             input:
-              dest_addr: "127.0.0.1"
-              port: 80
-              method: "OPTIONS"
+              dest_addr: TEST_ADDR
+              port: TEST_PORT
               headers:
                   User-Agent: "ModSecurity CRS 3 Tests"
                   Host: "localhost"
             output:
-              expect_error: True
+              status: [200]
     -
       test_title: 010
       stages:
         -
           stage:
             input:
-              dest_addr: "127.0.0.1"
-              port: 80
+              dest_addr: TEST_ADDR
+              port: TEST_PORT
+              version: "HTTP/1.1"
               method: "OTHER"
               headers:
                   User-Agent: "ModSecurity CRS 3 Tests"
                   Host: "localhost"
             output:
-              expect_error: True
+              response_contains: "Hello, client"
 `
+
+// Error checking omitted for brevity
+func testServer() (server *httptest.Server) {
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Hello, client")
+	}))
+
+	return ts
+}
+
+// replace localhost or 127.0.0.1 in tests with test url
+func replaceLocalhostWithTestServer(yaml string, url string) string {
+	d := httpftw.DestinationFromString(url)
+
+	destChanged := strings.ReplaceAll(yaml, "TEST_ADDR", d.DestAddr)
+	replacedYaml := strings.ReplaceAll(destChanged, "TEST_PORT", strconv.Itoa(d.Port))
+
+	return replacedYaml
+}
 
 func TestRun(t *testing.T) {
 	// This is an integration test, and depends on having the waf up for checking logs
@@ -83,36 +109,46 @@ func TestRun(t *testing.T) {
 	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
 	config.FTWConfig.LogFile = logName
 
-	filename, err := utils.CreateTempFileWithContent(yamlTest, "goftw-test-*.yaml")
+	// setup test webserver (not a waf)
+	server := testServer()
+
+	// We should inject server.URL now into some tests
+	// d := DestinationFromString(server.URL)
+	yamlTestContent := replaceLocalhostWithTestServer(yamlTest, server.URL)
+
+	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	}
 
-	defer os.Remove(filename) // clean up
-
-	tests, _ := test.GetTestsFromFiles("/tmp/goftw-test-*.yaml")
+	tests, _ := test.GetTestsFromFiles(filename)
 
 	t.Run("showtime and execute all", func(t *testing.T) {
 		if res := Run("", "", false, true, tests); !res {
-			t.Fatalf("Oops, test run failed!")
+			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("don't showtime and execute all", func(t *testing.T) {
 		if res := Run("*", "", false, false, tests); !res {
-			t.Fatalf("Oops, test run failed!")
+			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("execute only test 008 but exclude all", func(t *testing.T) {
 		if res := Run("008", "*", false, false, tests); !res {
-			t.Fatalf("Oops, test run failed!")
+			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("execute only test 008 but exclude all", func(t *testing.T) {
 		if res := Run("*", "010", false, false, tests); !res {
-			t.Fatalf("Oops, test run failed!")
+			t.Error("Oops, test run failed!")
 		}
 	})
+
+	// Clean up
+	server.Close()
+	os.Remove(logName)
+	os.Remove(filename)
 }

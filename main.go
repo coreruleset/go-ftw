@@ -5,6 +5,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
+	_ "time/tzdata"
 
 	"github.com/fzipi/go-ftw/cmd"
 	"github.com/rs/zerolog"
@@ -25,6 +27,14 @@ func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	// Default level for this example is info, unless debug flag is present
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	// Load timezone location based on TZ
+	loc, err := time.LoadLocation(os.Getenv("TZ"))
+	if err != nil {
+		log.Error().Msgf("ftw/main: cannot load timezone")
+	} else {
+		time.Local = loc // -> set the global timezone
+	}
 
 	cmd.Execute(
 		buildVersion(version, commit, date, builtBy),

@@ -48,7 +48,7 @@ func (i *Input) GetDestAddr() string {
 
 // GetPort returns the proper semantic when the field is empty
 func (i *Input) GetPort() int {
-	if i.Protocol == nil {
+	if i.Port == nil {
 		return 80
 	}
 	return *i.Port

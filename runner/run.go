@@ -19,7 +19,7 @@ import (
 // exclude is a regexp that matches the test name: e.g. "920*", excludes all tests starting with "920"
 // Returns true if no test failed, or false otherwise.
 func Run(testid string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) bool {
-	var testResult bool
+	var testResult TestResult
 	var stats TestStats
 	var duration time.Duration
 
@@ -30,12 +30,12 @@ func Run(testid string, exclude string, showTime bool, output bool, ftwtests []t
 		for _, t := range tests.Tests {
 			// if we received a particular testid, skip until we find it
 			if needToSkipTest(testid, t.TestTitle, tests.Meta.Enabled) {
-				stats.Skipped++
+				addResultToStats(Skipped, t.TestTitle, &stats)
 				continue
 			} else if exclude != "" {
 				if ok, _ := regexp.MatchString(exclude, t.TestTitle); ok {
 					log.Debug().Msgf("matched: %s matched %s", exclude, t.TestTitle)
-					stats.Skipped++
+					addResultToStats(Skipped, t.TestTitle, &stats)
 					continue
 				}
 			}
@@ -54,6 +54,7 @@ func Run(testid string, exclude string, showTime bool, output bool, ftwtests []t
 				var responseCode int
 
 				testRequest := stage.Stage.Input
+				expectedOutput := stage.Stage.Output
 
 				// Check sanity first
 				if checkTestSanity(testRequest) {
@@ -72,8 +73,10 @@ func Run(testid string, exclude string, showTime bool, output bool, ftwtests []t
 
 				client, err := http.NewConnection(*dest)
 
-				if err != nil {
-					log.Fatal().Msgf("ftw/run: can't connect to destination")
+				if err != nil && !expectedOutput.ExpectError {
+					log.Fatal().Msgf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+					addResultToStats(Skipped, t.TestTitle, &stats)
+					continue
 				}
 
 				req = getRequestFromTest(testRequest)
@@ -112,7 +115,7 @@ func Run(testid string, exclude string, showTime bool, output bool, ftwtests []t
 				// Logs need a timespan to check
 				ftwcheck.SetRoundTripTime(client.GetRoundTripTime().StartTime(), client.GetRoundTripTime().StopTime())
 				// Set expected test output in check
-				ftwcheck.SetExpectTestOutput(&stage.Stage.Output)
+				ftwcheck.SetExpectTestOutput(&expectedOutput)
 
 				// now get the test result based on output
 				testResult = checkResult(ftwcheck, responseCode, responseError, responseText)
@@ -132,7 +135,7 @@ func Run(testid string, exclude string, showTime bool, output bool, ftwtests []t
 
 	printSummary(output, stats)
 
-	return stats.Failed == 0
+	return len(stats.Failed) == 0
 }
 
 func needToSkipTest(id string, title string, skip bool) bool {
@@ -145,42 +148,50 @@ func checkTestSanity(testRequest test.Input) bool {
 		(testRequest.EncodedRequest != "" && testRequest.RAWRequest != "")
 }
 
-func displayResult(quiet bool, result bool, duration time.Duration) {
-	if result {
+func displayResult(quiet bool, result TestResult, duration time.Duration) {
+	switch result {
+	case Success:
 		printUnlessQuietMode(quiet, ":check_mark:passed in %s\n", duration)
-	} else {
+	case Failed:
 		printUnlessQuietMode(quiet, ":collision:failed in %s\n", duration)
+	default:
+		// don't print anything if skipped test
 	}
 }
 
 // checkResult has the logic for verifying the result for the test sent
-func checkResult(c *check.FTWCheck, responseCode int, responseError error, responseText string) bool {
+func checkResult(c *check.FTWCheck, responseCode int, responseError error, responseText string) TestResult {
+	var result TestResult
+
+	// Set to failed initially
+	result = Failed
 	// Request might return an error, but it could be expected, we check that first
 	if c.AssertExpectError(responseError) {
 		log.Debug().Msgf("ftw/check: found expected error")
-		return true
+		result = Success
 	}
 	// If we didn't expect an error, check the actual response from the waf
 	if c.AssertStatus(responseCode) {
 		log.Debug().Msgf("ftw/check: checking if we expected response with status %d", responseCode)
-		return true
+		result = Success
 	}
 	// Check response
 	if c.AssertResponseContains(responseText) {
 		log.Debug().Msgf("ftw/check: checking if response contains \"%s\"", responseText)
+		result = Success
 	}
 	// Lastly, check logs
+	if c.AssertLogContains() {
+		log.Debug().Msgf("ftw/check: checking if log contains")
+		result = Success
+	}
 	// We assume that the they were already setup, for comparing
 	if c.AssertNoLogContains() {
 		log.Debug().Msgf("ftw/check: checking if log does not contains")
-		return true
-	}
-	if c.AssertLogContains() {
-		log.Debug().Msgf("ftw/check: checking if log contains")
-		return true
+		result = Success
 	}
 
-	return false
+	return result
 }
 
 func getRequestFromTest(testRequest test.Input) *http.Request {
