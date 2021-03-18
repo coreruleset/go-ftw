@@ -34,6 +34,18 @@ func (ll *FTWLogLines) Contains(match string) bool {
 	return result
 }
 
+func isBetweenOrEqual(dt gostradamus.DateTime, start gostradamus.DateTime, end gostradamus.DateTime) bool {
+	isBetween := dt.Time().After(start.Time()) && dt.Time().Before(end.Time())
+	log.Trace().Msgf("ftw/waflog: time %s is between %s and %s? %t", dt.Time(),
+		start.Time(), end.Time(), isBetween)
+
+	isEqualStart := dt.Time().Equal(start.Time().Truncate(time.Second))
+	log.Trace().Msgf("ftw/waflog: time %s is equal to %s ? %t", dt.Time(),
+		start.Time(), isEqualStart)
+
+	return isBetween || isEqualStart
+}
+
 func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 	var found [][]byte
 	logfile, err := os.Open(ll.FileName)
@@ -68,22 +80,30 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 		}
 		if matchedLine := compiledRegex.FindSubmatch(line); matchedLine != nil {
 			date := matchedLine[1]
+			log.Trace().Msgf("ftw/waflog: matched %s in line %s", date, matchedLine)
 			// well, go doesn't want to have a proper time format, so we need to use gostradamus
 			t, err := gostradamus.Parse(string(date), ll.TimeFormat)
 			if err != nil {
-				log.Error().Msgf("ftw/waflog: %s", err.Error())
+				log.Error().Msgf("ftw/waflog: error parsing date %s", err.Error())
 				// return with what we got up to now
 				break
 			}
 			// compare dates now
-			if t.IsBetween(gostradamus.DateTimeFromTime(ll.Since), gostradamus.DateTimeFromTime(ll.Until)) {
+			since := gostradamus.DateTimeFromTime(ll.Since).InTimezone(gostradamus.Local())
+			until := gostradamus.DateTimeFromTime(ll.Until).InTimezone(gostradamus.Local())
+			if isBetweenOrEqual(t, since, until) {
 				saneCopy := make([]byte, len(line))
 				copy(saneCopy, line)
 				found = append(found, saneCopy)
 				continue
+			} else {
+				log.Trace().Msgf("ftw/waflog: time %s is not between %s and %s", t.Time(),
+					gostradamus.DateTimeFromTime(ll.Since).InTimezone(gostradamus.Local()).Format(ll.TimeFormat),
+					gostradamus.DateTimeFromTime(ll.Until).InTimezone(gostradamus.Local()).Format(ll.TimeFormat))
 			}
 			// if we are before since, we need to stop searching
-			if t.IsBetween(gostradamus.DateTimeFromTime(time.Time{}), gostradamus.DateTimeFromTime(ll.Since)) {
+			if t.IsBetween(gostradamus.DateTimeFromTime(time.Time{}).InTimezone(gostradamus.Local()),
+				gostradamus.DateTimeFromTime(ll.Since).InTimezone(gostradamus.Local())) {
 				break
 			}
 		}
