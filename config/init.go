@@ -31,6 +31,11 @@ func Init(cfgFile string) {
 	if err != nil {
 		log.Fatal().Msgf("ftw/config: fatal error decoding config: %s", err.Error())
 	}
+	if duration := viper.GetDuration("logtype.timetruncate"); duration != 0 {
+		log.Info().Msgf("ftw/config: will truncate logs to %s", duration)
+	} else {
+		log.Info().Msgf("ftw/config: no duration found")
+	}
 }
 
 // ImportFromString initializes the configuration from a yaml formatted string. Useful for testing.

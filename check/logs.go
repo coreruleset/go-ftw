@@ -12,6 +12,7 @@ func (c *FTWCheck) AssertNoLogContains() bool {
 
 // AssertLogContains returns true when the logs contain the string
 func (c *FTWCheck) AssertLogContains() bool {
+	log.Trace().Msgf("ftw/check: check will truncate at %s", c.log.TimeTruncate)
 	if c.expected.LogContains != "" {
 		log.Debug().Msgf("ftw/check: log contains? -> %s", c.expected.LogContains)
 		return c.log.Contains(c.expected.LogContains)

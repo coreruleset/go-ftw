@@ -2,7 +2,9 @@ package config
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/fzipi/go-ftw/utils"
 )
@@ -25,6 +27,16 @@ logtype:
   timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
 `
 
+var yamlTruncateConfig = `
+---
+logfile: 'tests/logs/modsec3-nginx/nginx/error.log'
+logtype:
+  name: nginx
+  timetruncate:  1s
+  timeformat: 'ddd MMM DD HH:mm:ss'
+
+`
+
 var jsonConfig = `
 {"test": "type"}
 `
@@ -45,13 +57,13 @@ func TestInitConfig(t *testing.T) {
 
 func TestInitBadFileConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(jsonConfig, "test-*.yaml")
-
+	defer os.Remove(filename)
 	Init(filename)
 }
 
 func TestInitBadConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlBadConfig, "test-*.yaml")
-
+	defer os.Remove(filename)
 	Init(filename)
 
 	if FTWConfig == nil {
@@ -78,6 +90,24 @@ func TestImportConfig(t *testing.T) {
 	}
 
 	if FTWConfig.LogType.TimeFormat != "ddd MMM DD HH:mm:ss.S YYYY" {
+		t.Errorf("Failed !")
+	}
+}
+
+func TestTimeTruncateConfig(t *testing.T) {
+	filename, _ := utils.CreateTempFileWithContent(yamlTruncateConfig, "test-*.yaml")
+	defer os.Remove(filename)
+	Init(filename)
+
+	if FTWConfig.LogType.Name != "nginx" {
+		t.Errorf("Failed !")
+	}
+
+	if FTWConfig.LogType.TimeFormat != "ddd MMM DD HH:mm:ss" {
+		t.Errorf("Failed !")
+	}
+
+	if FTWConfig.LogType.TimeTruncate != time.Second {
 		t.Errorf("Failed !")
 	}
 }

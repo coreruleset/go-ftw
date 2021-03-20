@@ -11,6 +11,9 @@ type FTWLogLines struct {
 	TimeRegex string
 	// Gostradamus time format, e.g. 'ddd MMM DD HH:mm:ss.S YYYY'
 	TimeFormat string
-	Since      time.Time
-	Until      time.Time
+	// Truncate time to this time.Duration. Example is nginx logs will be up to the second,
+	// so you want to truncate using '1s'.
+	TimeTruncate time.Duration
+	Since        time.Time
+	Until        time.Time
 }
