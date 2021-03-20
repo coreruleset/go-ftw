@@ -46,6 +46,8 @@ logtype:
   timeformat: '%a %b %d %H:%M:%S.%f %Y'
 ```
 
+For nginx, as logs will be to the second, you need to add the amount of time you want to truncate to. This will for example discard anything less than one second:
+
 ```yaml
 ---
 logfile: '../coreruleset/tests/logs/modsec3-nginx/nginx/error.log'
@@ -53,6 +55,7 @@ logtype:
   name: 'nginx'
   timeregex:  '(\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})'
   timeformat: 'YYYY/MM/DD HH:mm:ss'
+  timetruncate: 1s
 ```
 
 If your webserver uses a different time format, please [create an issue](https://github.com/fzipi/go-ftw/issues/new/choose) and we can extend the documentation to cover it.

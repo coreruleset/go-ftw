@@ -6,6 +6,7 @@ import (
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/test"
 	"github.com/fzipi/go-ftw/waflog"
+	"github.com/rs/zerolog/log"
 )
 
 // FTWCheck is the base struct for checks
@@ -18,15 +19,17 @@ type FTWCheck struct {
 func NewCheck(c *config.FTWConfiguration) *FTWCheck {
 	check := &FTWCheck{
 		log: &waflog.FTWLogLines{
-			FileName:   c.LogFile,
-			TimeRegex:  c.LogType.TimeRegex,
-			TimeFormat: c.LogType.TimeFormat,
-			Since:      time.Now(),
-			Until:      time.Now(),
+			FileName:     c.LogFile,
+			TimeRegex:    c.LogType.TimeRegex,
+			TimeFormat:   c.LogType.TimeFormat,
+			Since:        time.Now(),
+			Until:        time.Now(),
+			TimeTruncate: c.LogType.TimeTruncate,
 		},
 		expected: &test.Output{},
 	}
 
+	log.Trace().Msgf("check/base: truncate set to %s", check.log.TimeTruncate)
 	return check
 }
 
