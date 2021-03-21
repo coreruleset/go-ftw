@@ -43,7 +43,7 @@ logfile: '../coreruleset/tests/logs/modsec2-apache/apache2/error.log'
 logtype:
   name: 'apache'
   timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
-  timeformat: '%a %b %d %H:%M:%S.%f %Y'
+  timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
 ```
 
 For nginx, as logs will be to the second, you need to add the amount of time you want to truncate to. This will for example discard anything less than one second:
@@ -57,6 +57,8 @@ logtype:
   timeformat: 'YYYY/MM/DD HH:mm:ss'
   timetruncate: 1s
 ```
+
+Time format specification follows the one used by [gostradamus](https://github.com/bykof/gostradamus#token-table).
 
 If your webserver uses a different time format, please [create an issue](https://github.com/fzipi/go-ftw/issues/new/choose) and we can extend the documentation to cover it.
 
