@@ -100,10 +100,12 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 				break
 			}
 			// compare dates now
+			// use the same timezone for all
+			dt := t.InTimezone(gostradamus.Local())
 			since := gostradamus.DateTimeFromTime(ll.Since).InTimezone(gostradamus.Local())
 			until := gostradamus.DateTimeFromTime(ll.Until).InTimezone(gostradamus.Local())
 			// Comparision will need to truncate
-			if isBetweenOrEqual(t, since, until, ll.TimeTruncate) {
+			if isBetweenOrEqual(dt, since, until, ll.TimeTruncate) {
 				saneCopy := make([]byte, len(line))
 				copy(saneCopy, line)
 				found = append(found, saneCopy)
@@ -114,7 +116,7 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 					until.Format(ll.TimeFormat))
 			}
 			// if we are before since, we need to stop searching
-			if t.IsBetween(gostradamus.DateTimeFromTime(time.Time{}).InTimezone(gostradamus.Local()),
+			if dt.IsBetween(gostradamus.DateTimeFromTime(time.Time{}).InTimezone(gostradamus.Local()),
 				since) {
 				break
 			}

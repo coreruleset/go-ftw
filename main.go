@@ -29,7 +29,8 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	// Load timezone location based on TZ
-	loc, err := time.LoadLocation(os.Getenv("TZ"))
+	tzone, _ := time.Now().Zone()
+	loc, err := time.LoadLocation(tzone)
 	if err != nil {
 		log.Error().Msgf("ftw/main: cannot load timezone")
 	} else {
