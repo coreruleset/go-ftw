@@ -79,6 +79,8 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 		ChunkSize: 4096,
 	}
 	scanner := backscanner.NewOptions(logfile, int(fi.Size()), backscannerOptions)
+	tzonename, _ := time.Now().Zone()
+	tzone := gostradamus.Timezone(tzonename)
 	for {
 		line, _, err := scanner.LineBytes()
 		if err != nil {
@@ -93,7 +95,7 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 			date := matchedLine[1]
 			log.Trace().Msgf("ftw/waflog: matched %s in line %s", date, matchedLine)
 			// well, go doesn't want to have a proper time format, so we need to use gostradamus
-			t, err := gostradamus.Parse(string(date), ll.TimeFormat)
+			t, err := gostradamus.ParseInTimezone(string(date), ll.TimeFormat, tzone)
 			if err != nil {
 				log.Error().Msgf("ftw/waflog: error parsing date %s", err.Error())
 				// return with what we got up to now
