@@ -14,18 +14,23 @@ func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 	var tests []FTWTest
 	var err error
 
-	testFiles, _ := filepath.Glob(globPattern)
+	testFiles, err := filepath.Glob(globPattern)
+
+	if err != nil {
+		log.Info().Msgf("ftw/test: error getting test files from %s", globPattern)
+		return tests, err
+	}
 
 	for _, test := range testFiles {
 		t, err := readTest(test)
 		if err != nil {
-			break
-		} else {
-			tests = append(tests, *t)
+			log.Debug().Msgf("ftw/test: error reading %s file. Is it patched?", test)
+			return tests, err
 		}
+		tests = append(tests, *t)
 	}
 
-	return tests, err
+	return tests, nil
 }
 
 func readTest(filename string) (t *FTWTest, err error) {

@@ -95,6 +95,22 @@ Global Flags:
 
 Then run all tests (slightly modified, see [here](https://gist.github.com/fzipi/b9e22b3834a5fa32970878c72775d41e)) in the ModSecurity Core Rule set using:
 
+`ftw check -d tests -t`
+
+If you see errors like these:
+```
+> ./ftw run -d tests
+1:33PM INF Using config file: .ftw
+1:33PM INF ftw/config: no duration found
+🛠️  Starting tests!
+1:33PM ERR yaml: unmarshal errors:
+  line 44: cannot unmarshal !!int `400` into []int
+  line 98: cannot unmarshal !!int `400` into []int
+  line 229: cannot unmarshal !!int `400` into []int
+```
+
+You need to apply the patch above. Then you can run your tests using:
+
 `ftw run -d tests -t`
 
 And the result should be similar to:
