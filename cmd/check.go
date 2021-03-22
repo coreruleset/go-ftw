@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/fzipi/go-ftw/test"
+	"github.com/rs/zerolog/log"
 
 	"github.com/kyokomi/emoji"
 	"github.com/spf13/cobra"
@@ -26,10 +28,16 @@ func init() {
 }
 
 func checkFiles(dir string) {
-	files := fmt.Sprintf("%s/**/*.y[a]ml", dir)
+	var exit int
+	files := fmt.Sprintf("%s/**/*.yaml", dir)
+	log.Debug().Msgf("ftw/check: checking files using glob pattern: %s", files)
 	tests, err := test.GetTestsFromFiles(files)
 	if err != nil {
-		emoji.Printf("ftw: :red_cross: oops, found %s\n", err.Error())
+		emoji.Printf("ftw/check: :collision: oops, found %s\n", err.Error())
+		exit = 1
+	} else {
+		emoji.Printf("ftw/check: checked %d files, everything looks good!\n", len(tests))
+		exit = 0
 	}
-	emoji.Printf("ftw: checked %d files, everything looks good!\n", len(tests))
+	os.Exit(exit)
 }

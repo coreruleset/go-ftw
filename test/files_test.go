@@ -65,7 +65,7 @@ func TestGetFromBadYAML(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(wrongYamlTest, "test-yaml-*")
 	_, err := GetTestsFromFiles(filename)
 
-	if err != nil {
+	if err == nil {
 		t.Fatalf("Error!")
 	}
 }
