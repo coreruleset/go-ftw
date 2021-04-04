@@ -42,7 +42,6 @@ func TestResponse(t *testing.T) {
 
 	req := generateRequestForTesting()
 
-	fmt.Printf("%+v\n", d)
 	client, err := NewConnection(*d)
 
 	if err != nil {

@@ -58,7 +58,7 @@ func Run(testid string, exclude string, showTime bool, output bool, ftwtests []t
 
 				// Check sanity first
 				if checkTestSanity(testRequest) {
-					log.Fatal().Msgf("bad test: choose between data, encoded_request, or raw_request")
+					log.Fatal().Msgf("ftw/run: bad test: choose between data, encoded_request, or raw_request")
 				}
 
 				var client *http.Connection
@@ -83,8 +83,9 @@ func Run(testid string, exclude string, showTime bool, output bool, ftwtests []t
 
 				log.Debug().Msgf("ftw/run: sending request")
 
-				startSendingRequest := time.Now()
+				startSendingRequest := time.Now().Local()
 
+				log.Trace().Msgf("ftw/run: started at %s", startSendingRequest.String())
 				client, err = client.Request(req)
 				if err != nil {
 					log.Error().Msgf("ftw/run: error sending request: %s\n", err.Error())
@@ -95,8 +96,8 @@ func Run(testid string, exclude string, showTime bool, output bool, ftwtests []t
 
 				// We wrap go stdlib http for the response
 				log.Debug().Msgf("ftw/check: getting response")
-				startReceivingResponse := time.Now()
-
+				startReceivingResponse := time.Now().Local()
+				log.Trace().Msgf("ftw/run: started receiving at %s", startReceivingResponse.String())
 				response, responseError := client.Response()
 				if responseError != nil {
 					log.Debug().Msgf("ftw/run: error receiving response: %s\n", responseError.Error())
@@ -118,7 +119,7 @@ func Run(testid string, exclude string, showTime bool, output bool, ftwtests []t
 				ftwcheck.SetExpectTestOutput(&expectedOutput)
 
 				// now get the test result based on output
-				testResult = checkResult(ftwcheck, responseCode, responseError, responseText)
+				testResult = checkResult(ftwcheck, t.TestTitle, responseCode, responseError, responseText)
 
 				duration = client.GetRoundTripTime().RoundTripDuration()
 
@@ -154,17 +155,20 @@ func displayResult(quiet bool, result TestResult, duration time.Duration) {
 		printUnlessQuietMode(quiet, ":check_mark:passed in %s\n", duration)
 	case Failed:
 		printUnlessQuietMode(quiet, ":collision:failed in %s\n", duration)
+	case Ignored:
+		printUnlessQuietMode(quiet, ":equal:test result ignored in %s\n", duration)
 	default:
 		// don't print anything if skipped test
 	}
 }
 
 // checkResult has the logic for verifying the result for the test sent
-func checkResult(c *check.FTWCheck, responseCode int, responseError error, responseText string) TestResult {
+func checkResult(c *check.FTWCheck, id string, responseCode int, responseError error, responseText string) TestResult {
 	var result TestResult
 
 	// Set to failed initially
 	result = Failed
+
 	// Request might return an error, but it could be expected, we check that first
 	if c.AssertExpectError(responseError) {
 		log.Debug().Msgf("ftw/check: found expected error")
@@ -189,6 +193,19 @@ func checkResult(c *check.FTWCheck, responseCode int, responseError error, respo
 	if c.AssertNoLogContains() {
 		log.Debug().Msgf("ftw/check: checking if log does not contains")
 		result = Success
+	}
+
+	// After all normal checks, see if the test result has been explicitly forced
+	if c.ForcedIgnore(id) {
+		result = Ignored
+	}
+
+	if c.ForcedFail(id) {
+		result = ForceFail
+	}
+
+	if c.ForcedPass(id) {
+		result = ForcePass
 	}
 
 	return result

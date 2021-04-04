@@ -11,6 +11,8 @@ type FTWLogLines struct {
 	TimeRegex string
 	// Gostradamus time format, e.g. 'ddd MMM DD HH:mm:ss.S YYYY'
 	TimeFormat string
+	// Truncate Log file. Smaller log files will give smaller search times
+	LogTruncate bool
 	// Truncate time to this time.Duration. Example is nginx logs will be up to the second,
 	// so you want to truncate using '1s'.
 	TimeTruncate time.Duration

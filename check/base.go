@@ -9,10 +9,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// FTWCheck is the base struct for checks
+// FTWCheck is the base struct for checking test results
 type FTWCheck struct {
-	log      *waflog.FTWLogLines
-	expected *test.Output
+	log       *waflog.FTWLogLines
+	expected  *test.Output
+	overrides *config.FTWTestOverride
 }
 
 // NewCheck creates a new FTWCheck, allowing to inject the configuration
@@ -25,11 +26,15 @@ func NewCheck(c *config.FTWConfiguration) *FTWCheck {
 			Since:        time.Now(),
 			Until:        time.Now(),
 			TimeTruncate: c.LogType.TimeTruncate,
+			LogTruncate:  c.LogTruncate,
 		},
-		expected: &test.Output{},
+		expected:  &test.Output{},
+		overrides: &c.TestOverride,
 	}
 
-	log.Trace().Msgf("check/base: truncate set to %s", check.log.TimeTruncate)
+	log.Trace().Msgf("check/base: time will be truncated to %s", check.log.TimeTruncate)
+	log.Trace().Msgf("check/base: logfile will be truncated? %t", check.log.LogTruncate)
+
 	return check
 }
 
@@ -67,4 +72,22 @@ func (c *FTWCheck) SetLogContains(contains string) {
 // SetNoLogContains sets the string to look that should not present in logs
 func (c *FTWCheck) SetNoLogContains(contains string) {
 	c.expected.NoLogContains = contains
+}
+
+// ForcedIgnore check if this id need to be ignored from results
+func (c *FTWCheck) ForcedIgnore(id string) bool {
+	_, ok := c.overrides.Ignore[id]
+	return ok
+}
+
+// ForcedPass check if this id need to be ignored from results
+func (c *FTWCheck) ForcedPass(id string) bool {
+	_, ok := c.overrides.ForcePass[id]
+	return ok
+}
+
+// ForcedFail check if this id need to be ignored from results
+func (c *FTWCheck) ForcedFail(id string) bool {
+	_, ok := c.overrides.ForceFail[id]
+	return ok
 }

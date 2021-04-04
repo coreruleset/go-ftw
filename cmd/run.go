@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kyokomi/emoji"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
@@ -23,7 +24,9 @@ var runCmd = &cobra.Command{
 		showTime, _ := cmd.Flags().GetBool("time")
 		quiet, _ := cmd.Flags().GetBool("quiet")
 		if !quiet {
-			emoji.Println(":hammer_and_wrench: Starting tests!")
+			log.Info().Msgf(emoji.Sprintf(":hammer_and_wrench: Starting tests!\n"))
+		} else {
+			zerolog.SetGlobalLevel(zerolog.Disabled)
 		}
 		files := fmt.Sprintf("%s/**/*.yaml", dir)
 		tests, err := test.GetTestsFromFiles(files)
@@ -37,7 +40,7 @@ var runCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(runCmd)
 	runCmd.Flags().StringP("id", "", "", "set test id to run")
-	runCmd.Flags().StringP("exclude", "", "", "exclude tests matching this Go regexp (e.g. to exclude all tests beginning with \"91\", use \"91.*\")")
+	runCmd.Flags().StringP("exclude", "", "", "exclude tests matching this Go regexp (e.g. to exclude all tests beginning with \"91\", use \"91.*\"). If you want more permanent exclusion, check the 'testmodify' option in the config file.")
 	runCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
 	runCmd.Flags().BoolP("quiet", "q", false, "do not show test by test, only results")
 	runCmd.Flags().BoolP("time", "t", false, "show time spent per test")
