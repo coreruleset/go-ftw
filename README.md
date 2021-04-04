@@ -142,7 +142,7 @@ And the result should be similar to:
 ```
 Happy testing!
 
-## Additional features implemented already
+## Additional features
 
 You can add functions to your tests, to simplify bulk writing, or even read values from the environment while executing. This is because `data:` sections in tests will be parse for Go [text/template](https://golang.org/pkg/text/template/) additional syntax, and with the power of additional [Sprig functions](https://masterminds.github.io/sprig/).
 
@@ -171,6 +171,35 @@ data: 'username=fzipi
 ```
 
 Other interesting functions you can use are: `randBytes`, `htpasswd`, `encryptAES`, etc.
+
+## Overriding test results
+
+Sometimes you have tests that work well in some platform combination, e.g. Apache + modsecurity2, but fail in other, e.g. Nginx + modsecurity3. Taking that into account, you can override test results using the `testoverride` config param. The test will be run, but the _result_ would be overriden, and your comment will be printed out.
+
+Example:
+
+```yaml
+...
+testoverride:
+  ignore:
+    # text comes from our friends at https://github.com/digitalwave/ftwrunner
+    '941190-3': 'known MSC bug - PR #2023 (Cookie without value)'
+    '941330-1': 'know MSC bug - #2148 (double escape)'
+    '942480-2': 'known MSC bug - PR #2023 (Cookie without value)'
+    '944100-11': 'known MSC bug - PR #2045, ISSUE #2146'
+  forcefail:
+    '123456-01': 'I want this test to fail, even if passing'
+  forcepass:
+    '123456-02': 'This test will always pass'
+```
+
+You can combine any of `ignore`, `forcefail` and `forcepass` to make it work for you.
+
+## Truncating logs
+
+Log files can get really big. Searching patterns are performed using reverse text search in the file. Because the test tool is *really* fast, we sometimes see failures in nginx depending on how fast the tests are performed, mainly because log times in nginx are truncated to one second.
+
+To overcome this, you can use the new config value `logtruncate: True`. This will, as it says, call _truncate_ on the file, actively modifying it between each test. You will need permissions to write the logfile, implying you might need to call the go-ftw binary using sudo.
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffzipi%2Fgo-ftw.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffzipi%2Fgo-ftw?ref=badge_large)

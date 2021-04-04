@@ -17,6 +17,10 @@ func (ll *FTWLogLines) Contains(match string) bool {
 	log.Trace().Msgf("ftw/waflog: Looking at file %s, between %s and %s, truncating on %s", ll.FileName, ll.Since, ll.Until, ll.TimeTruncate.String())
 	// this should be a flag
 	lines := ll.getLinesSinceUntil()
+	// if we need to truncate file
+	if ll.LogTruncate {
+		ll.truncateLogFile()
+	}
 	log.Trace().Msgf("ftw/waflog: got %d lines", len(lines))
 
 	result := false
@@ -79,8 +83,8 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 		ChunkSize: 4096,
 	}
 	scanner := backscanner.NewOptions(logfile, int(fi.Size()), backscannerOptions)
-	tzonename, _ := time.Now().Zone()
-	tzone := gostradamus.Timezone(tzonename)
+	tzonename := time.Now().Location()
+	tzone := gostradamus.Timezone(tzonename.String())
 	for {
 		line, _, err := scanner.LineBytes()
 		if err != nil {
@@ -126,4 +130,13 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 
 	}
 	return found
+}
+
+// truncateLogFile
+func (ll *FTWLogLines) truncateLogFile() {
+	err := os.Truncate(ll.FileName, 0)
+
+	if err != nil {
+		log.Fatal().Msgf("ftw/waflong: cannot truncate file %s. Check if you have permissions!", ll.FileName)
+	}
 }

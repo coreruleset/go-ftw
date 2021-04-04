@@ -3,6 +3,7 @@ package config
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +17,9 @@ logtype:
   name: 'apache'
   timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
   timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
+testoverride:
+  ignore:
+    '920400-1': 'This test result must be ignored'
 `
 
 var yamlBadConfig = `
@@ -30,6 +34,7 @@ logtype:
 var yamlTruncateConfig = `
 ---
 logfile: 'tests/logs/modsec3-nginx/nginx/error.log'
+logtruncate: True
 logtype:
   name: nginx
   timetruncate:  1s
@@ -52,6 +57,19 @@ func TestInitConfig(t *testing.T) {
 
 	if FTWConfig.LogType.TimeFormat != "ddd MMM DD HH:mm:ss.S YYYY" {
 		t.Errorf("Failed !")
+	}
+
+	if len(FTWConfig.TestOverride.Ignore) == 0 {
+		t.Errorf("Failed! Len must be > 0")
+	}
+
+	for id, text := range FTWConfig.TestOverride.Ignore {
+		if !strings.Contains(id, "920400-1") {
+			t.Errorf("Looks like we could not find item to ignore")
+		}
+		if text != "This test result must be ignored" {
+			t.Errorf("Text doesn't match")
+		}
 	}
 }
 
@@ -107,6 +125,9 @@ func TestTimeTruncateConfig(t *testing.T) {
 		t.Errorf("Failed !")
 	}
 
+	if FTWConfig.LogTruncate != true {
+		t.Errorf("Trucate file is wrong !")
+	}
 	if FTWConfig.LogType.TimeTruncate != time.Second {
 		t.Errorf("Failed !")
 	}

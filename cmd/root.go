@@ -40,6 +40,7 @@ func init() {
 
 func initConfig() {
 	config.Init(cfgFile)
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if debug {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	}
