@@ -17,7 +17,7 @@ var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Tests",
 	Long:  `Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		testid, _ := cmd.Flags().GetString("id")
 		exclude, _ := cmd.Flags().GetString("exclude")
 		dir, _ := cmd.Flags().GetString("dir")
@@ -33,7 +33,7 @@ var runCmd = &cobra.Command{
 		if err != nil {
 			log.Error().Msg(err.Error())
 		}
-		runner.Run(testid, exclude, showTime, quiet, tests)
+		return runner.Run(testid, exclude, showTime, quiet, tests)
 	},
 }
 
