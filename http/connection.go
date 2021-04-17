@@ -28,7 +28,8 @@ func NewConnection(d Destination) (*Connection, error) {
 	// Fatal error: dial tcp 127.0.0.1:80: connect: connection refused
 	// strings.HasSuffix(err.String(), "connection refused") {
 	if strings.ToLower(d.Protocol) == "https" {
-		tlsConn, err = tls.Dial("tcp", hostPort, &tls.Config{InsecureSkipVerify: true})
+		// Commenting InsecureSkipVerify: true.
+		tlsConn, err = tls.Dial("tcp", hostPort, &tls.Config{})
 	} else {
 		netConn, err = net.DialTimeout("tcp", hostPort, timeout)
 	}
