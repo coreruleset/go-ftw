@@ -124,25 +124,25 @@ func TestRun(t *testing.T) {
 	tests, _ := test.GetTestsFromFiles(filename)
 
 	t.Run("showtime and execute all", func(t *testing.T) {
-		if res := Run("", "", false, true, tests); !res {
+		if err := Run("", "", false, true, tests); err != nil {
 			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("don't showtime and execute all", func(t *testing.T) {
-		if res := Run("*", "", false, false, tests); !res {
+		if err := Run("*", "", false, false, tests); err != nil {
 			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("execute only test 008 but exclude all", func(t *testing.T) {
-		if res := Run("008", "*", false, false, tests); !res {
+		if err := Run("008", "*", false, false, tests); err != nil {
 			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("execute only test 008 but exclude all", func(t *testing.T) {
-		if res := Run("*", "010", false, false, tests); !res {
+		if err := Run("*", "010", false, false, tests); err != nil {
 			t.Error("Oops, test run failed!")
 		}
 	})

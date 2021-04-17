@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"os"
 	"time"
 
 	"github.com/kyokomi/emoji"
@@ -52,7 +51,7 @@ func addResultToStats(result TestResult, title string, stats *TestStats) {
 	}
 }
 
-func printSummary(quiet bool, stats TestStats) {
+func printSummary(quiet bool, stats TestStats) int {
 	totalFailed := len(stats.Failed) + len(stats.ForcedFail)
 
 	if !quiet {
@@ -78,5 +77,5 @@ func printSummary(quiet bool, stats TestStats) {
 		}
 	}
 
-	os.Exit(totalFailed)
+	return totalFailed
 }
