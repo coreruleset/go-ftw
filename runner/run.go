@@ -19,26 +19,21 @@ import (
 // testid is the name of the unique test you want to run
 // exclude is a regexp that matches the test name: e.g. "920*", excludes all tests starting with "920"
 // Returns error if some test failed
-func Run(testid string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) error {
+func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) error {
 	var testResult TestResult
 	var stats TestStats
 	var duration time.Duration
 
-	printUnlessQuietMode(output, ":rocket:Running!")
+	printUnlessQuietMode(output, ":rocket:Running go-ftw!\n")
 
 	for _, tests := range ftwtests {
 		changed := true
 		for _, t := range tests.Tests {
 			// if we received a particular testid, skip until we find it
-			if needToSkipTest(testid, t.TestTitle, tests.Meta.Enabled) {
+			if needToSkipTest(include, exclude, t.TestTitle, tests.Meta.Enabled) {
+				log.Trace().Msgf("ftw/run: skipping test %s", t.TestTitle)
 				addResultToStats(Skipped, t.TestTitle, &stats)
 				continue
-			} else if exclude != "" {
-				if ok, _ := regexp.MatchString(exclude, t.TestTitle); ok {
-					log.Debug().Msgf("matched: %s matched %s", exclude, t.TestTitle)
-					addResultToStats(Skipped, t.TestTitle, &stats)
-					continue
-				}
 			}
 			// this is just for printing once the next text
 			if changed {
@@ -136,17 +131,46 @@ func Run(testid string, exclude string, showTime bool, output bool, ftwtests []t
 	}
 
 	if res := printSummary(output, stats); res > 0 {
-		return errors.New("Some test failed")
+		return errors.New("some test failed")
 	}
 
 	return nil
 }
 
-func needToSkipTest(id string, title string, skip bool) bool {
-	return id != "" && id != title || !skip
+func needToSkipTest(include string, exclude string, title string, skip bool) bool {
+	result := false
+
+	log.Trace().Msgf("ftw/run: need to include \"%s\", and to exclude \"%s\". Test title \"%s\" and skip is %t", include, exclude, title, skip)
+
+	// if we need to exclude tests, and the title matches,
+	// it needs to be skipped
+	if exclude != "" {
+		if ok, _ := regexp.MatchString(exclude, title); ok {
+			result = true
+		}
+	}
+
+	// if we need to include tests, but the title does not match
+	// it needs to be skipped
+	if include != "" {
+		if ok, _ := regexp.MatchString(include, title); !ok {
+			result = true
+		}
+	}
+
+	// if the test itself is disabled, needs to be skipped
+	if !skip {
+		result = true
+	}
+
+	log.Trace().Msgf("ftw/run: need to exclude? %t", result)
+
+	return result
 }
 
 func checkTestSanity(testRequest test.Input) bool {
+	log.Debug().Msgf("ftw/run: checking test sanity")
+
 	return (utils.IsNotEmpty(testRequest.Data) && testRequest.EncodedRequest != "") ||
 		(utils.IsNotEmpty(testRequest.Data) && testRequest.RAWRequest != "") ||
 		(testRequest.EncodedRequest != "" && testRequest.RAWRequest != "")
