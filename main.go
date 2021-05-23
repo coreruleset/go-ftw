@@ -32,7 +32,7 @@ func main() {
 	tzone, _ := time.Now().Zone()
 	loc, err := time.LoadLocation(tzone)
 	if err != nil {
-		log.Error().Msgf("ftw/main: cannot load timezone")
+		log.Info().Msgf("ftw/main: cannot load timezone")
 	} else {
 		time.Local = loc // -> set the global timezone
 	}
@@ -40,6 +40,7 @@ func main() {
 	cmd.Execute(
 		buildVersion(version, commit, date, builtBy),
 	)
+
 }
 
 func buildVersion(version, commit, date, builtBy string) string {

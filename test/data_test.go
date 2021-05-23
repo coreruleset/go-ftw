@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"gopkg.in/yaml.v2"
+	"github.com/goccy/go-yaml"
 )
 
 var repeatTestSprig = `foo=%3d++++++++++++++++++++++++++++++++++`

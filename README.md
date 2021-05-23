@@ -23,10 +23,7 @@ My goals are:
 
 ## Install
 
-Just get the binary file for your architecture, and run it!
-
-```bash
-```
+Go to the [releases](https://github.com/fzipi/go-ftw/releases) page and get the one that matches your OS.
 
 ## Example Usage
 
@@ -73,7 +70,7 @@ docker-compose -f tests/docker-compose.yml up -d modsec2-apache
 
 This is the help for the `run` command:
 ```bash
-❯ ./ftw run -h
+❯ ftw run -h
 Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.
 
 Usage:
@@ -81,35 +78,25 @@ Usage:
 
 Flags:
   -d, --dir string       recursively find yaml tests in this directory (default ".")
-      --exclude string   exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*")
+  -e, --exclude string   exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*").
+                         If you want more permanent exclusion, check the 'testmodify' option in the config file.
   -h, --help             help for run
-      --id string        set test id to run
+      --id string        (deprecated). Use --include matching your test only.
+  -i, --include string   include only tests matching this Go regexp (e.g. to include only tests beginning with "91", use "91.*").
   -q, --quiet            do not show test by test, only results
   -t, --time             show time spent per test
 
 Global Flags:
-      --cfg string   override config file (default is $PWD/.ftw.yaml)
-      --debug        debug output
+      --config string   override config file (default is $PWD/.ftw.yaml) (default "c")
+      --debug           debug output
+      --trace           trace output: really, really verbose
 
 ```
 
-Then run all tests (slightly modified, see [here](https://gist.github.com/fzipi/b9e22b3834a5fa32970878c72775d41e)) in the ModSecurity Core Rule set using:
+After merging [this PR](https://github.com/coreruleset/coreruleset/pull/2080), no changes will be needed. 
+Until that happens, you can get and apply the [patch](https://patch-diff.githubusercontent.com/raw/coreruleset/coreruleset/pull/2080.patch), using `patch -p1 < 2080.patch`.
 
-`ftw check -d tests -t`
-
-If you see errors like these:
-```
-> ./ftw run -d tests
-1:33PM INF Using config file: .ftw
-1:33PM INF ftw/config: no duration found
-🛠️  Starting tests!
-1:33PM ERR yaml: unmarshal errors:
-  line 44: cannot unmarshal !!int `400` into []int
-  line 98: cannot unmarshal !!int `400` into []int
-  line 229: cannot unmarshal !!int `400` into []int
-```
-
-You need to apply the patch above. Then you can run your tests using:
+Then you can run your tests using:
 
 `ftw run -d tests -t`
 

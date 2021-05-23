@@ -11,6 +11,7 @@ import (
 var (
 	cfgFile string
 	debug   bool
+	trace   bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -34,14 +35,18 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "cfg", "", "override config file (default is $PWD/.ftw.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "c", "override config file (default is $PWD/.ftw.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "", false, "debug output")
+	rootCmd.PersistentFlags().BoolVarP(&trace, "trace", "", false, "trace output: really, really verbose")
 }
 
 func initConfig() {
 	config.Init(cfgFile)
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
+	if trace {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	}
 }

@@ -107,7 +107,7 @@ func (c *Connection) receive() ([]byte, error) {
 
 	// Set a deadline for reading. Read operation will fail if no data
 	// is received after deadline.
-	timeoutDuration := 100 * time.Millisecond
+	timeoutDuration := 1000 * time.Millisecond
 
 	// We assume the response body can be handled in memory without problems
 	// That's why we use ioutil.ReadAll
@@ -123,7 +123,7 @@ func (c *Connection) receive() ([]byte, error) {
 			buf, err = ioutil.ReadAll(c.netConn)
 		}
 	}
-	if err != nil && !strings.Contains(err.Error(), "i/o timeout") {
+	if neterr, ok := err.(net.Error); ok && !neterr.Timeout() {
 		log.Error().Msgf("ftw/http: %s\n", err.Error())
 	} else {
 		err = nil
