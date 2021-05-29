@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"errors"
 	"regexp"
 	"time"
 
@@ -19,7 +18,7 @@ import (
 // testid is the name of the unique test you want to run
 // exclude is a regexp that matches the test name: e.g. "920*", excludes all tests starting with "920"
 // Returns error if some test failed
-func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) error {
+func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) int {
 	var testResult TestResult
 	var stats TestStats
 	var duration time.Duration
@@ -130,11 +129,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 		}
 	}
 
-	if res := printSummary(output, stats); res > 0 {
-		return errors.New("some test failed")
-	}
-
-	return nil
+	return printSummary(output, stats)
 }
 
 func needToSkipTest(include string, exclude string, title string, skip bool) bool {

@@ -1,10 +1,11 @@
 package cmd
 
 import (
+	"os"
+
 	config "github.com/fzipi/go-ftw/config"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +26,7 @@ var rootCmd = &cobra.Command{
 func Execute(version string) {
 	rootCmd.Version = version
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatal().Msgf("Problem executing: %s", err.Error())
+		os.Exit(1)
 	}
 }
 
@@ -35,7 +36,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "c", "override config file (default is $PWD/.ftw.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "override config file (default is $PWD/.ftw.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "", false, "debug output")
 	rootCmd.PersistentFlags().BoolVarP(&trace, "trace", "", false, "trace output: really, really verbose")
 }
