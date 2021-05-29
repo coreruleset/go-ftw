@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
+	"os"
 
 	"github.com/kyokomi/emoji"
 	"github.com/rs/zerolog"
@@ -18,7 +18,7 @@ var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Tests",
 	Long:  `Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 		exclude, _ := cmd.Flags().GetString("exclude")
 		include, _ := cmd.Flags().GetString("include")
 		id, _ := cmd.Flags().GetString("id")
@@ -32,18 +32,18 @@ var runCmd = &cobra.Command{
 		}
 		if id != "" {
 			log.Fatal().Msgf("--id is deprecated in favour of --include|-i")
-			return errors.New("use --include instead")
 		}
 		if exclude != "" && include != "" {
 			log.Fatal().Msgf("You need to choose one: use --include (%s) or --exclude (%s)", include, exclude)
-			return errors.New("choose one between --include or --exclude")
 		}
 		files := fmt.Sprintf("%s/**/*.yaml", dir)
 		tests, err := test.GetTestsFromFiles(files)
+
 		if err != nil {
-			log.Error().Msg(err.Error())
+			log.Fatal().Err(err)
 		}
-		return runner.Run(include, exclude, showTime, quiet, tests)
+
+		os.Exit(runner.Run(include, exclude, showTime, quiet, tests))
 	},
 }
 
