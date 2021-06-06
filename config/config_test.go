@@ -46,6 +46,12 @@ var jsonConfig = `
 {"test": "type"}
 `
 
+func TestInitBadFileConfig(t *testing.T) {
+	filename, _ := utils.CreateTempFileWithContent(jsonConfig, "test-*.yaml")
+	defer os.Remove(filename)
+	Init(filename)
+}
+
 func TestInitConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-*.yaml")
 
@@ -71,12 +77,7 @@ func TestInitConfig(t *testing.T) {
 			t.Errorf("Text doesn't match")
 		}
 	}
-}
 
-func TestInitBadFileConfig(t *testing.T) {
-	filename, _ := utils.CreateTempFileWithContent(jsonConfig, "test-*.yaml")
-	defer os.Remove(filename)
-	Init(filename)
 }
 
 func TestInitBadConfig(t *testing.T) {
@@ -130,5 +131,38 @@ func TestTimeTruncateConfig(t *testing.T) {
 	}
 	if FTWConfig.LogType.TimeTruncate != time.Second {
 		t.Errorf("Failed !")
+	}
+}
+
+func TestImportConfigWithEnv(t *testing.T) {
+	ImportFromString(yamlConfig)
+
+	if FTWConfig.LogType.Name != "apache" {
+		t.Errorf("Failed !")
+	}
+
+	if FTWConfig.LogType.TimeFormat != "ddd MMM DD HH:mm:ss.S YYYY" {
+		t.Errorf("Failed !")
+	}
+}
+
+func TestInitConfigWithEnv(t *testing.T) {
+	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-env-*.yaml")
+
+	// Set some environment so it gets merged with conf
+	os.Setenv("FTW_LOGTYPE_NAME", "kaonf")
+
+	Init(filename)
+
+	if FTWConfig.LogType.Name != "kaonf" {
+		t.Errorf("Failed !")
+	}
+
+	if FTWConfig.LogType.TimeFormat != "ddd MMM DD HH:mm:ss.S YYYY" {
+		t.Errorf("Failed !")
+	}
+
+	if len(FTWConfig.TestOverride.Ignore) == 0 {
+		t.Errorf("Failed! Len must be > 0")
 	}
 }

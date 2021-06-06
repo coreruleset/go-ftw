@@ -1,37 +1,45 @@
 package config
 
 import (
-	"bytes"
+	"strings"
 
+	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/rawbytes"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/viper"
 )
 
 // Init reads data from the config file and/or env vars
 func Init(cfgFile string) {
 	log.Debug().Msgf("ftw/config: executing init")
-	viper.SetConfigType("yaml")
-	if cfgFile != "" {
-		// Use config file from the flag. Assumes the config file is the only one used
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Search config in home directory with name ".ftw" (without extension).
-		// Search also in current directory
-		viper.AddConfigPath(".")
-		viper.SetConfigName(".ftw")
+	// Global koanf instance. Use "." as the key path delimiter. This can be "/" or any character.
+	var k = koanf.New(".")
+	// first check if we had an explicit call with config file
+	if cfgFile == "" {
+		cfgFile = ".ftw.yaml"
 	}
-	viper.SetEnvPrefix("FTW")
-	viper.AutomaticEnv()
-	if err := viper.ReadInConfig(); err == nil {
-		log.Info().Msgf("Using config file: %s\n", viper.ConfigFileUsed())
-	} else {
-		log.Fatal().Msgf("ftw/config: fatal error reading config: %s", err.Error())
+
+	if err := k.Load(file.Provider(cfgFile), yaml.Parser()); err != nil {
+		log.Debug().Msgf("ftw/config: error reading config: %s", err.Error())
 	}
-	err := viper.Unmarshal(&FTWConfig)
+
+	err := k.Load(env.Provider("FTW_", ".", func(s string) string {
+		return strings.ReplaceAll(strings.ToLower(
+			strings.TrimPrefix(s, "FTW_")), "_", ".")
+	}), nil)
+
 	if err != nil {
-		log.Fatal().Msgf("ftw/config: fatal error decoding config: %s", err.Error())
+		log.Debug().Msgf("ftw/config: error while reading env vars: %s", err.Error())
 	}
-	if duration := viper.GetDuration("logtype.timetruncate"); duration != 0 {
+
+	// Unmarshal the whole root module
+	if err := k.UnmarshalWithConf("", &FTWConfig, koanf.UnmarshalConf{Tag: "koanf"}); err != nil {
+		log.Fatal().Msgf("ftw/config: error while unmarshaling config: %s", err.Error())
+	}
+
+	if duration := k.Duration("logtype.timetruncate"); duration != 0 {
 		log.Info().Msgf("ftw/config: will truncate logs to %s", duration)
 	} else {
 		log.Info().Msgf("ftw/config: no duration found")
@@ -40,13 +48,13 @@ func Init(cfgFile string) {
 
 // ImportFromString initializes the configuration from a yaml formatted string. Useful for testing.
 func ImportFromString(conf string) {
-	viper.SetConfigType("yaml")
-
-	if err := viper.ReadConfig(bytes.NewBuffer([]byte(conf))); err != nil {
-		log.Fatal().Msgf("ftw/config: fatal error reading config: %s", err.Error())
+	var k = koanf.New(".")
+	if err := k.Load(rawbytes.Provider([]byte(conf)), yaml.Parser()); err != nil {
+		log.Debug().Msgf("ftw/config: error reading config: %s", err.Error())
 	}
-	err := viper.Unmarshal(&FTWConfig)
-	if err != nil {
-		log.Fatal().Msgf("ftw/config: fatal error decoding config: %s", err.Error())
+
+	// Unmarshal the whole root module
+	if err := k.UnmarshalWithConf("", &FTWConfig, koanf.UnmarshalConf{Tag: "koanf"}); err != nil {
+		log.Fatal().Msgf("ftw/config: error while unmarshaling config: %s", err.Error())
 	}
 }

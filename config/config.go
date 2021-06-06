@@ -9,20 +9,20 @@ var FTWConfig *FTWConfiguration
 
 // FTWConfiguration FTW global Configuration
 type FTWConfiguration struct {
-	LogFile      string
-	LogType      FTWLogType
-	LogTruncate  bool
-	TestOverride FTWTestOverride
+	LogFile      string          `koanf:"logfile"`
+	LogType      FTWLogType      `koanf:"logtype"`
+	LogTruncate  bool            `koanf:"logtruncate"`
+	TestOverride FTWTestOverride `koanf:"testoverride"`
 }
 
 // FTWLogType log readers must implement this one
 // TimeTruncate is a string that represents a golang time, e.g. 'time.Microsecond', 'time.Second', etc.
 // It will be used when comparing times to match logs
 type FTWLogType struct {
-	Name         string
-	TimeRegex    string
-	TimeFormat   string
-	TimeTruncate time.Duration
+	Name         string        `koanf:"name"`
+	TimeRegex    string        `koanf:"timeregex"`
+	TimeFormat   string        `koanf:"timeformat"`
+	TimeTruncate time.Duration `koanf:"timetruncate"`
 }
 
 // FTWTestOverride holds three lists:
@@ -30,7 +30,7 @@ type FTWLogType struct {
 //   ForcePass is for tests you want to pass unconditionally. Test will be executed, and pass even when the test fails. You should add a comment on why you force pass the test
 //   ForceFail is for tests you want to fail unconditionally. Test will be executed, and fail even when the test passes. You should add a comment on why you force fail the test
 type FTWTestOverride struct {
-	Ignore    map[string]string
-	ForcePass map[string]string
-	ForceFail map[string]string
+	Ignore    map[string]string `koanf:"ignore"`
+	ForcePass map[string]string `koanf:"forcepass"`
+	ForceFail map[string]string `koanf:"forcefail"`
 }
