@@ -133,7 +133,7 @@ func (r *Request) AddStandardHeaders(size int) {
 }
 
 // Request will use all the inputs and send a raw http request to the destination
-func (c *Connection) Request(request *Request) (*Connection, error) {
+func (c *Connection) Request(request *Request) error {
 	// Build request first, then connect and send, so timers are accurate
 	data, err := buildRequest(request)
 	if err != nil {
@@ -148,7 +148,7 @@ func (c *Connection) Request(request *Request) (*Connection, error) {
 		log.Error().Msgf("ftw/http: error writing data: %s", err.Error())
 	}
 
-	return c, err
+	return err
 }
 
 // isRaw is a helper that returns true if raw or encoded data

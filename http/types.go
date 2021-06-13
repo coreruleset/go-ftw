@@ -1,18 +1,23 @@
 package http
 
 import (
-	"crypto/tls"
 	"net"
 	"net/http"
 	"time"
 )
 
+// Client is the top level abstraction in http
+type Client struct {
+	Transport *Connection
+	Jar       http.CookieJar
+	Timeout   time.Duration
+}
+
 // Connection is the type used for sending/receiving data
 type Connection struct {
-	netConn  net.Conn
-	tlsConn  *tls.Conn
-	protocol string
-	duration *RoundTripTime
+	connection net.Conn
+	protocol   string
+	duration   *RoundTripTime
 }
 
 // RoundTripTime abstracts the time a transaction takes

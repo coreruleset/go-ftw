@@ -2,46 +2,15 @@
 package http
 
 import (
-	"crypto/tls"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
 )
-
-// NewConnection creates a new Connection based on a Destination
-func NewConnection(d Destination) (*Connection, error) {
-	var netConn net.Conn
-	var tlsConn *tls.Conn
-	var err error
-	var timeout time.Duration
-
-	hostPort := fmt.Sprintf("%s:%d", d.DestAddr, d.Port)
-	timeout = 3 * time.Second
-
-	// Fatal error: dial tcp 127.0.0.1:80: connect: connection refused
-	// strings.HasSuffix(err.String(), "connection refused") {
-	if strings.ToLower(d.Protocol) == "https" {
-		// Commenting InsecureSkipVerify: true.
-		tlsConn, err = tls.Dial("tcp", hostPort, &tls.Config{})
-	} else {
-		netConn, err = net.DialTimeout("tcp", hostPort, timeout)
-	}
-	c := &Connection{
-		netConn:  netConn,
-		tlsConn:  tlsConn,
-		protocol: d.Protocol,
-		duration: NewRoundTripTime(),
-	}
-
-	return c, err
-}
 
 // DestinationFromString create a Destination from String
 func DestinationFromString(urlString string) *Destination {
@@ -79,21 +48,10 @@ func (c *Connection) send(data []byte) (int, error) {
 	// Store times for searching in logs, if necessary
 	c.startTracking()
 
-	switch c.protocol {
-	case "http":
-		if c.netConn != nil {
-			sent, err = c.netConn.Write(data)
-		} else {
-			err = errors.New("ftw/http: http selected but not connected to http")
-		}
-	case "https":
-		if c.tlsConn != nil {
-			sent, err = c.tlsConn.Write(data)
-		} else {
-			err = errors.New("ftw/http: https selected but not connected to https")
-		}
-	default:
-		err = fmt.Errorf("ftw/http: unsupported protocol %s", c.protocol)
+	if c.connection != nil {
+		sent, err = c.connection.Write(data)
+	} else {
+		err = errors.New("ftw/http/send: not connected to server")
 	}
 
 	return sent, err
@@ -111,18 +69,10 @@ func (c *Connection) receive() ([]byte, error) {
 
 	// We assume the response body can be handled in memory without problems
 	// That's why we use ioutil.ReadAll
-	switch c.protocol {
-	case "https":
-		defer c.tlsConn.Close()
-		if err = c.tlsConn.SetReadDeadline(time.Now().Add(timeoutDuration)); err == nil {
-			buf, err = ioutil.ReadAll(c.tlsConn)
-		}
-	default:
-		defer c.netConn.Close()
-		if err = c.netConn.SetReadDeadline(time.Now().Add(timeoutDuration)); err == nil {
-			buf, err = ioutil.ReadAll(c.netConn)
-		}
+	if err = c.connection.SetReadDeadline(time.Now().Add(timeoutDuration)); err == nil {
+		buf, err = ioutil.ReadAll(c.connection)
 	}
+
 	if neterr, ok := err.(net.Error); ok && !neterr.Timeout() {
 		log.Error().Msgf("ftw/http: %s\n", err.Error())
 	} else {
@@ -133,9 +83,3 @@ func (c *Connection) receive() ([]byte, error) {
 
 	return buf, err
 }
-
-// All users of cookiejar should import "golang.org/x/net/publicsuffix"
-// jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-// if err != nil {
-// 	log.Fatal(err)
-// }
