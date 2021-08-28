@@ -6,6 +6,8 @@
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/fzipi/go-ftw)](https://pkg.go.dev/github.com/fzipi/go-ftw)
 [![Release](https://img.shields.io/github/v/release/fzipi/go-ftw.svg?style=flat-square)](https://github.com/fzipi/go-ftw/releases/latest)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/fzipi/go-ftw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/fzipi/go-ftw/alerts/)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=fzipi_go-ftw&metric=coverage)](https://sonarcloud.io/dashboard?id=fzipi_go-ftw)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=fzipi_go-ftw&metric=alert_status)](https://sonarcloud.io/dashboard?id=fzipi_go-ftw)
 
 
 This software should be compatible with the [Python version](https://pypi.org/project/ftw/).
