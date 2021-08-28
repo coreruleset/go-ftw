@@ -33,53 +33,84 @@ var logText = `
 
 var yamlTest = `
 ---
-  meta:
-    author: "tester"
-    enabled: true
-    name: "go-ftw.yaml"
-    description: "Example Test"
-  tests:
+meta:
+  author: "tester"
+  enabled: true
+  name: "gotest-ftw.yaml"
+  description: "Example Test"
+tests:
+  -
+    test_title: "001"
+    description: "access real external site"
+    stages:
+      -
+        stage:
+          input:
+            dest_addr: "httpbin.org"
+            port: 80
+            headers:
+                User-Agent: "ModSecurity CRS 3 Tests"
+                Host: "httpbin.org"
+          output:
+            expect_error: False
+            status: [200]
+  -
+    test_title: "008"
+    stages:
+      -
+        stage:
+          input:
+            dest_addr: TEST_ADDR
+            port: TEST_PORT
+            headers:
+                User-Agent: "ModSecurity CRS 3 Tests"
+                Host: "localhost"
+          output:
+            status: [200]
+  -
+    test_title: "010"
+    stages:
+      -
+        stage:
+          input:
+            dest_addr: TEST_ADDR
+            port: TEST_PORT
+            version: "HTTP/1.1"
+            method: "OTHER"
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Host: "localhost"
+          output:
+            response_contains: "Hello, client"
+  -
+    test_title: "101"
+    description: this tests exceptions
+    stages:
     -
-      test_title: 001
-      stages:
-        -
-          stage:
-            input:
-              dest_addr: "httpbin.org"
-              port: 80
-              headers:
-                  User-Agent: "ModSecurity CRS 3 Tests"
-                  Host: "httpbin.org"
-            output:
-              expect_error: True
+      stage:
+        input:
+          dest_addr: "1.1.1.1"
+          port: 8090
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Host: "none.host"
+        output:
+          expect_error: True
+  -
+    test_title: "102"
+    description: this tests exceptions
+    stages:
     -
-      test_title: 008
-      stages:
-        -
-          stage:
-            input:
-              dest_addr: TEST_ADDR
-              port: TEST_PORT
-              headers:
-                  User-Agent: "ModSecurity CRS 3 Tests"
-                  Host: "localhost"
-            output:
-              status: [200]
-    -
-      test_title: 010
-      stages:
-        -
-          stage:
-            input:
-              dest_addr: TEST_ADDR
-              port: TEST_PORT
-              version: "HTTP/1.1"
-              method: "OTHER"
-              headers:
-                  User-Agent: "ModSecurity CRS 3 Tests"
-                  Host: "localhost"
-            output:
-              response_contains: "Hello, client"
+      stage:
+        input:
+          dest_addr: "1.1.1.1"
+          port: 8090
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Host: "none.host"
+          encoded_request: 'UE9TVCAvaW5kZXguaHRtbCBIVFRQLzEuMQ0KSG9zdDogMTkyLjE2OC4xLjIzDQpVc2VyLUFnZW50OiBjdXJsLzcuNDMuMA0KQWNjZXB0OiAqLyoNCkNvbnRlbnQtTGVuZ3RoOiA2NA0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi94LXd3dy1mb3JtLXVybGVuY29kZWQNCkNvbm5lY3Rpb246IGNsb3NlDQoNCmQ9MTsyOzM7NDs1XG4xO0BTVU0oMSsxKSpjbWR8JyBwb3dlcnNoZWxsIElFWCh3Z2V0IDByLnBlL3ApJ1whQTA7Mw=='
+        output:
+          expect_error: True
 `
 
 // Error checking omitted for brevity
@@ -119,30 +150,44 @@ func TestRun(t *testing.T) {
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
+	} else {
+		fmt.Printf("Using testfile %s\n", filename)
 	}
 
 	tests, _ := test.GetTestsFromFiles(filename)
 
 	t.Run("showtime and execute all", func(t *testing.T) {
-		if res := Run("*", "", false, true, tests); res > 0 {
+		if res := Run("", "", false, true, tests); res > 0 {
+			t.Error("Oops, test run failed!")
+		}
+	})
+
+	t.Run("be verbose and execute all", func(t *testing.T) {
+		if res := Run("0*", "", true, true, tests); res > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("don't showtime and execute all", func(t *testing.T) {
-		if res := Run("*", "", false, false, tests); res > 0 {
+		if res := Run("0*", "", false, false, tests); res > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("execute only test 008 but exclude all", func(t *testing.T) {
-		if res := Run("008", "", false, false, tests); res > 0 {
+		if res := Run("008", "0*", false, false, tests); res > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("exclude test 010", func(t *testing.T) {
 		if res := Run("*", "010", false, false, tests); res > 0 {
+			t.Error("Oops, test run failed!")
+		}
+	})
+
+	t.Run("test exceptions 1", func(t *testing.T) {
+		if res := Run("1*", "0*", false, true, tests); res > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})

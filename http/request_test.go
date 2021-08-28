@@ -37,6 +37,22 @@ User-Agent: ModSecurity CRS 3 Tests
 	return req
 }
 
+func TestGenerateBaseRawRequestForTesting(t *testing.T) {
+	var req *Request
+
+	raw := []byte(`POST / HTTP/1.1
+Connection: close
+Content-Length: 123x
+Content-Type: application/x-www-form-urlencoded
+Host: localhost
+User-Agent: ModSecurity CRS 3 Tests
+`)
+	req = NewRawRequest(raw, false)
+
+	if req.autoCompleteHeaders {
+		t.Fatalf("asdasd")
+	}
+}
 func TestRequestLine(t *testing.T) {
 	rl := &RequestLine{
 		Method:  "UNEXISTENT",
