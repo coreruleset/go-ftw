@@ -16,3 +16,13 @@ func TestCreateTempFile(t *testing.T) {
 		t.Fatalf("Error!")
 	}
 }
+
+func TestCreateBadTempFile(t *testing.T) {
+	filename, err := CreateTempFileWithContent(content, "/dev/null/*")
+	// Remember to clean up the file afterwards
+	defer os.Remove(filename)
+
+	if err == nil {
+		t.Fatalf("Error!")
+	}
+}

@@ -114,6 +114,7 @@ func needToSkipTest(include string, exclude string, title string, skip bool) boo
 	// it needs to be skipped
 	if exclude != "" {
 		if ok, _ := regexp.MatchString(exclude, title); ok {
+			log.Trace().Msgf("ftw/run: %s matches %s, so exclude is true", title, exclude)
 			result = true
 		}
 	}
@@ -121,13 +122,18 @@ func needToSkipTest(include string, exclude string, title string, skip bool) boo
 	// if we need to include tests, but the title does not match
 	// it needs to be skipped
 	if include != "" {
+		log.Trace().Msgf("ftw/run: include is %s", include)
 		if ok, _ := regexp.MatchString(include, title); !ok {
+			log.Trace().Msgf("ftw/run: include false")
 			result = true
+		} else {
+			result = false
 		}
 	}
 
 	// if the test itself is disabled, needs to be skipped
 	if !skip {
+		log.Trace().Msgf("ftw/run: test not enabled")
 		result = true
 	}
 

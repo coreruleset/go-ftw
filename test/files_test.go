@@ -1,6 +1,7 @@
 package test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/fzipi/go-ftw/utils"
@@ -57,6 +58,13 @@ func TestGetTestFromYAML(t *testing.T) {
 		}
 		if ft.Meta.Name != "911100.yaml" {
 			t.Fatalf("Error!")
+		}
+		re := regexp.MustCompile("911100*")
+
+		for _, test := range ft.Tests {
+			if ok := re.MatchString(test.TestTitle); !ok {
+				t.Fatalf("Can't read test title")
+			}
 		}
 	}
 }
