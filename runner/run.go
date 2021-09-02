@@ -143,7 +143,7 @@ func needToSkipTest(include string, exclude string, title string, skip bool) boo
 }
 
 func checkTestSanity(testRequest test.Input) bool {
-	log.Debug().Msgf("ftw/run: checking test sanity")
+	log.Trace().Msgf("ftw/run: checking test sanity")
 
 	return (utils.IsNotEmpty(testRequest.Data) && testRequest.EncodedRequest != "") ||
 		(utils.IsNotEmpty(testRequest.Data) && testRequest.RAWRequest != "") ||
@@ -184,7 +184,7 @@ func checkResult(c *check.FTWCheck, id string, response *http.Response, response
 
 	// Request might return an error, but it could be expected, we check that first
 	if responseError != nil && c.AssertExpectError(responseError) {
-		log.Debug().Msgf("ftw/check: found expected error")
+		log.Trace().Msgf("ftw/check: found expected error")
 		result = Success
 	}
 
@@ -192,22 +192,22 @@ func checkResult(c *check.FTWCheck, id string, response *http.Response, response
 	if responseError == nil {
 		// If we didn't expect an error, check the actual response from the waf
 		if c.AssertStatus(response.Parsed.StatusCode) {
-			log.Debug().Msgf("ftw/check: checking if we expected response with status %d", response.Parsed.StatusCode)
+			log.Debug().Msgf("ftw/check: found expected response with status %d", response.Parsed.StatusCode)
 			result = Success
 		}
 		// Check response
 		if c.AssertResponseContains(response.GetBodyAsString()) {
-			log.Debug().Msgf("ftw/check: checking if response contains \"%s\"", response.GetBodyAsString())
+			log.Debug().Msgf("ftw/check: found response content has \"%s\"", response.GetBodyAsString())
 			result = Success
 		}
 		// Lastly, check logs
 		if c.AssertLogContains() {
-			log.Debug().Msgf("ftw/check: checking if log contains")
+			log.Debug().Msgf("ftw/check: found log with requeste pattern")
 			result = Success
 		}
 		// We assume that the they were already setup, for comparing
 		if c.AssertNoLogContains() {
-			log.Debug().Msgf("ftw/check: checking if log does not contains")
+			log.Debug().Msgf("ftw/check: log does not contain pattern")
 			result = Success
 		}
 	}

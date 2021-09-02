@@ -25,13 +25,13 @@ func (ll *FTWLogLines) Contains(match string) bool {
 
 	result := false
 	for _, line := range lines {
-		log.Debug().Msgf("ftw/waflog: Matching %s in %s", match, line)
+		log.Trace().Msgf("ftw/waflog: Matching %s in %s", match, line)
 		got, err := regexp.Match(match, line)
 		if err != nil {
 			log.Fatal().Msgf("ftw/waflog: bad regexp %s", err.Error())
 		}
 		if got {
-			log.Debug().Msgf("ftw/waflog: Found %s at %s", match, line)
+			log.Trace().Msgf("ftw/waflog: Found %s at %s", match, line)
 			result = true
 			break
 		}
@@ -91,7 +91,7 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 			if err == io.EOF {
 				log.Trace().Msgf("got to the beginning of file")
 			} else {
-				log.Debug().Err(err)
+				log.Trace().Err(err)
 			}
 			break
 		}
