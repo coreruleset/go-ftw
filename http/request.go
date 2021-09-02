@@ -140,7 +140,7 @@ func (c *Connection) Request(request *Request) error {
 		log.Fatal().Msgf("ftw/http: fatal error building request: %s", err.Error())
 	}
 
-	log.Debug().Msgf("ftw/http: sending data:\n%s", data)
+	log.Debug().Msgf("ftw/http: sending data:\n%s\n", data)
 
 	_, err = c.send(data)
 
@@ -182,7 +182,7 @@ func buildRequest(r *Request) ([]byte, error) {
 		}
 
 		if r.WithAutoCompleteHeaders() {
-			log.Debug().Msgf("ftw/http: adding standard headers")
+			log.Trace().Msgf("ftw/http: adding standard headers")
 			r.AddStandardHeaders(len(r.data))
 		}
 

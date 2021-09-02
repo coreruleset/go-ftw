@@ -44,7 +44,7 @@ func (c *Connection) send(data []byte) (int, error) {
 	var err error
 	var sent int
 
-	log.Debug().Msg("ftw/http: sending data")
+	log.Trace().Msg("ftw/http: sending data")
 	// Store times for searching in logs, if necessary
 	c.startTracking()
 
@@ -59,7 +59,7 @@ func (c *Connection) send(data []byte) (int, error) {
 }
 
 func (c *Connection) receive() ([]byte, error) {
-	log.Debug().Msg("ftw/http: receiving data")
+	log.Trace().Msg("ftw/http: receiving data")
 	var err error
 	var buf []byte
 

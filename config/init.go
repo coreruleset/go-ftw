@@ -13,7 +13,7 @@ import (
 
 // Init reads data from the config file and/or env vars
 func Init(cfgFile string) {
-	log.Debug().Msgf("ftw/config: executing init")
+	log.Trace().Msgf("ftw/config: executing init")
 	// Global koanf instance. Use "." as the key path delimiter. This can be "/" or any character.
 	var k = koanf.New(".")
 	// first check if we had an explicit call with config file
@@ -31,7 +31,7 @@ func Init(cfgFile string) {
 	}), nil)
 
 	if err != nil {
-		log.Debug().Msgf("ftw/config: error while reading env vars: %s", err.Error())
+		log.Trace().Msgf("ftw/config: error while reading env vars: %s", err.Error())
 	}
 
 	// Unmarshal the whole root module

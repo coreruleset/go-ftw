@@ -30,7 +30,7 @@ func init() {
 func checkFiles(dir string) {
 	var exit int
 	files := fmt.Sprintf("%s/**/*.yaml", dir)
-	log.Debug().Msgf("ftw/check: checking files using glob pattern: %s", files)
+	log.Trace().Msgf("ftw/check: checking files using glob pattern: %s", files)
 	tests, err := test.GetTestsFromFiles(files)
 	if err != nil {
 		emoji.Printf("ftw/check: :collision: oops, found %s\n", err.Error())
