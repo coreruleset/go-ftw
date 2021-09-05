@@ -25,7 +25,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 
 	printUnlessQuietMode(output, ":rocket:Running go-ftw!\n")
 
-	client := http.NewClient()
+	client := http.NewClient(http.DefaultClientTimeout)
 
 	for _, tests := range ftwtests {
 		changed := true
@@ -63,7 +63,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 					Protocol: testRequest.GetProtocol(),
 				}
 
-				err := client.NewConnection(*dest)
+				err := client.NewConnection(dest)
 
 				if err != nil && !expectedOutput.ExpectError {
 					log.Fatal().Msgf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
@@ -71,9 +71,9 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 					continue
 				}
 
-				req = getRequestFromTest(testRequest)
+				req = getRequestFromTest(dest, testRequest)
 
-				response, err := client.Do(*req)
+				response, err := client.Do(req)
 
 				// Create a new check
 				ftwcheck := check.NewCheck(config.FTWConfig)
@@ -215,7 +215,7 @@ func checkResult(c *check.FTWCheck, id string, response *http.Response, response
 	return result
 }
 
-func getRequestFromTest(testRequest test.Input) *http.Request {
+func getRequestFromTest(d *http.Destination, testRequest test.Input) *http.Request {
 	var req *http.Request
 	// get raw request, if anything
 	raw, err := testRequest.GetRawRequest()
@@ -235,7 +235,7 @@ func getRequestFromTest(testRequest test.Input) *http.Request {
 
 		data := testRequest.ParseData()
 		// create a new request
-		req = http.NewRequest(rline, testRequest.Headers,
+		req = http.NewRequest(d, rline, testRequest.Headers,
 			data, !testRequest.StopMagic)
 
 	}

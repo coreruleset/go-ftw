@@ -34,6 +34,7 @@ func (rl RequestLine) ToString() string {
 // Request represents a request
 // No Defaults represents the previous "stop_magic" behavior
 type Request struct {
+	destination         *Destination
 	requestLine         *RequestLine
 	headers             Header
 	cookies             http.CookieJar
@@ -43,8 +44,9 @@ type Request struct {
 }
 
 // NewRequest creates a new request, an initial request line, and headers
-func NewRequest(reqLine *RequestLine, h Header, data []byte, b bool) *Request {
+func NewRequest(d *Destination, reqLine *RequestLine, h Header, data []byte, b bool) *Request {
 	r := &Request{
+		destination:         d,
 		requestLine:         reqLine,
 		headers:             h.Clone(),
 		cookies:             nil,
@@ -98,21 +100,37 @@ func (r *Request) SetRawData(raw []byte) error {
 }
 
 // Data returns the data
-func (r Request) Data() []byte {
+func (r *Request) Data() []byte {
 	return r.data
 }
 
 // RawData returns the raw data
-func (r Request) RawData() []byte {
+func (r *Request) RawData() []byte {
 	return r.raw
 }
 
 // Headers return request headers
-func (r Request) Headers() Header {
+func (r *Request) Headers() Header {
 	if r.headers == nil {
 		return nil
 	}
 	return r.headers
+}
+
+// Destination returns a url.URL based on the destination of this Request.
+func (r *Request) Destination() *url.URL {
+	dest := fmt.Sprintf("%s://%s:%d%s",
+		r.destination.Protocol,
+		r.destination.DestAddr,
+		r.destination.Port,
+		r.requestLine.URI,
+	)
+	log.Debug().Msg(dest)
+	parsed, err := url.Parse(dest)
+	if err != nil {
+		log.Logger.Panic().Stack().Err(err)
+	}
+	return parsed
 }
 
 // SetHeaders sets the request headers
@@ -133,9 +151,9 @@ func (r *Request) AddStandardHeaders(size int) {
 }
 
 // Request will use all the inputs and send a raw http request to the destination
-func (c *Connection) Request(request *Request) error {
+func (c *Connection) Request(jar http.CookieJar, r *Request) error {
 	// Build request first, then connect and send, so timers are accurate
-	data, err := buildRequest(request)
+	data, err := buildRequest(jar, r)
 	if err != nil {
 		log.Fatal().Msgf("ftw/http: fatal error building request: %s", err.Error())
 	}
@@ -152,12 +170,12 @@ func (c *Connection) Request(request *Request) error {
 }
 
 // isRaw is a helper that returns true if raw or encoded data
-func (r Request) isRaw() bool {
+func (r *Request) isRaw() bool {
 	return utils.IsNotEmpty(r.raw)
 }
 
 // The request should be created with anything we want. We want to actually break HTTP.
-func buildRequest(r *Request) ([]byte, error) {
+func buildRequest(jar http.CookieJar, r *Request) ([]byte, error) {
 	var err error
 	var b bytes.Buffer
 
@@ -169,8 +187,6 @@ func buildRequest(r *Request) ([]byte, error) {
 			return nil, err
 		}
 
-		log.Trace().Msgf("ftw/http: this is data: %q, of len %d", r.data, len(r.data))
-
 		// We need to add the remaining headers, unless "NoDefaults"
 		if utils.IsNotEmpty(r.data) && r.WithAutoCompleteHeaders() {
 			// If there is no Content-Type, then we add one
@@ -180,10 +196,12 @@ func buildRequest(r *Request) ([]byte, error) {
 				log.Info().Msgf("ftw/http: cannot set data to: %q", r.data)
 			}
 		}
+		// We need to change `\n` to `\r\n` before sending
+		data := bytes.ReplaceAll(r.data, []byte("\n"), []byte("\r\n"))
 
 		if r.WithAutoCompleteHeaders() {
 			log.Debug().Msgf("ftw/http: adding standard headers")
-			r.AddStandardHeaders(len(r.data))
+			r.AddStandardHeaders(len(data))
 		}
 
 		err = r.Headers().WriteBytes(&b)
@@ -192,23 +210,25 @@ func buildRequest(r *Request) ([]byte, error) {
 			return nil, err
 		}
 
-		// TODO: handle cookies
-		// if c.Jar != nil {
-		// 	for _, cookie := range c.Jar.Cookies(req.URL) {
-		// 		req.AddCookie(cookie)
-		// 	}
-		// }
+		// Add cookies, if any
+		if jar != nil {
+			for _, cookie := range jar.Cookies(r.Destination()) {
+				fmt.Fprintln(&b, cookie.String())
+			}
+		}
 
 		// After headers, we need one blank line
 		_, err = fmt.Fprintf(&b, "\r\n")
 
 		// Now the body, if anything
-		if utils.IsNotEmpty(r.data) {
-			_, err = fmt.Fprintf(&b, "%s", r.data)
+		if utils.IsNotEmpty(data) {
+			_, err = fmt.Fprintf(&b, "%s\r\n", data)
 		}
 	} else {
 		dumpRawData(&b, r.raw)
 	}
+
+	log.Trace().Msgf("ftw/http: data to send: \n\n== DATA ==\n\n%q\n\n=> len=%d\n\n", b.Bytes(), len(b.Bytes()))
 
 	return b.Bytes(), err
 }

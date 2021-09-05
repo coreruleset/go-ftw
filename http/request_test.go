@@ -9,6 +9,12 @@ import (
 func generateBaseRequestForTesting() *Request {
 	var req *Request
 
+	d := &Destination{
+		DestAddr: "127.0.0.1",
+		Port:     80,
+		Protocol: "http",
+	}
+
 	rl := &RequestLine{
 		Method:  "UNEXISTENT",
 		URI:     "/this/path",
@@ -17,7 +23,7 @@ func generateBaseRequestForTesting() *Request {
 
 	h := Header{"This": "Header", "Connection": "Not-Closed"}
 
-	req = NewRequest(rl, h, []byte("Data"), true)
+	req = NewRequest(d, rl, h, []byte("Data"), true)
 
 	return req
 }

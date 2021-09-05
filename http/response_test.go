@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func generateRequestForTesting(keepalive bool) *Request {
+func generateRequestForTesting(d *Destination, keepalive bool) *Request {
 	var req *Request
 	var connection string
 
@@ -29,12 +29,12 @@ func generateRequestForTesting(keepalive bool) *Request {
 		"Connection": connection,
 	}
 
-	req = NewRequest(rl, h, nil, true)
+	req = NewRequest(d, rl, h, nil, true)
 
 	return req
 }
 
-func generateRequestWithCookiesForTesting() *Request {
+func generateRequestWithCookiesForTesting(d *Destination) *Request {
 	var req *Request
 
 	rl := &RequestLine{
@@ -50,7 +50,7 @@ func generateRequestWithCookiesForTesting() *Request {
 		"Connection": "Keep-Alive",
 	}
 
-	req = NewRequest(rl, h, nil, true)
+	req = NewRequest(d, rl, h, nil, true)
 
 	return req
 }
@@ -83,16 +83,16 @@ func TestResponse(t *testing.T) {
 
 	d := DestinationFromString(server.URL)
 
-	req := generateRequestForTesting(true)
+	req := generateRequestForTesting(d, true)
 
-	client := NewClient()
-	err := client.NewConnection(*d)
+	client := NewClient(DefaultClientTimeout)
+	err := client.NewConnection(d)
 
 	if err != nil {
 		t.Fatalf("Error! %s", err.Error())
 	}
 
-	response, err := client.Do(*req)
+	response, err := client.Do(req)
 
 	if err != nil {
 		t.Logf("Failed !")
@@ -111,16 +111,16 @@ func TestResponseWithCookies(t *testing.T) {
 
 	d := DestinationFromString(server.URL)
 
-	req := generateRequestForTesting(true)
+	req := generateRequestForTesting(d, true)
 
-	client := NewClient()
-	err := client.NewConnection(*d)
+	client := NewClient(DefaultClientTimeout)
+	err := client.NewConnection(d)
 
 	if err != nil {
 		t.Fatalf("Error! %s", err.Error())
 	}
 
-	response, err := client.Do(*req)
+	response, err := client.Do(req)
 
 	if err != nil {
 		t.Logf("Failed !")
@@ -130,9 +130,9 @@ func TestResponseWithCookies(t *testing.T) {
 		t.Errorf("Error!")
 	}
 
-	cookiereq := generateRequestWithCookiesForTesting()
+	cookiereq := generateRequestWithCookiesForTesting(d)
 
-	_, err = client.Do(*cookiereq)
+	_, err = client.Do(cookiereq)
 
 	if err != nil {
 		t.Logf("Failed !")

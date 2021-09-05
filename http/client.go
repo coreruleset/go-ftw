@@ -12,8 +12,13 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-// NewClient initializes the http client, creating the cookiejar
-func NewClient() *Client {
+const (
+	// DefaultClientTimeout is the timeout used by default
+	DefaultClientTimeout = 3 * time.Second
+)
+
+// NewClient initializes the http client, creating the cookiejar. Requires a timeout, with default being 3 seconds.
+func NewClient(timeout time.Duration) *Client {
 	// All users of cookiejar should import "golang.org/x/net/publicsuffix"
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
@@ -22,13 +27,13 @@ func NewClient() *Client {
 	c := &Client{
 		Jar: jar,
 		// default Timeout
-		Timeout: 3 * time.Second,
+		Timeout: timeout,
 	}
 	return c
 }
 
 // NewConnection creates a new Connection based on a Destination
-func (c *Client) NewConnection(d Destination) error {
+func (c *Client) NewConnection(d *Destination) error {
 	var err error
 	var netConn net.Conn
 
@@ -55,10 +60,10 @@ func (c *Client) NewConnection(d Destination) error {
 }
 
 // Do performs the http request roundtrip
-func (c *Client) Do(req Request) (*Response, error) {
+func (c *Client) Do(req *Request) (*Response, error) {
 	var response *Response
 
-	err := c.Transport.Request(&req)
+	err := c.Transport.Request(c.Jar, req)
 
 	if err != nil {
 		log.Error().Msgf("http/client: error sending request: %s\n", err.Error())
