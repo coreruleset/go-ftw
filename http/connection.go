@@ -3,7 +3,7 @@ package http
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/url"
 	"strconv"
@@ -68,9 +68,9 @@ func (c *Connection) receive() ([]byte, error) {
 	timeoutDuration := 1000 * time.Millisecond
 
 	// We assume the response body can be handled in memory without problems
-	// That's why we use ioutil.ReadAll
+	// That's why we use io.ReadAll
 	if err = c.connection.SetReadDeadline(time.Now().Add(timeoutDuration)); err == nil {
-		buf, err = ioutil.ReadAll(c.connection)
+		buf, err = io.ReadAll(c.connection)
 	}
 
 	if neterr, ok := err.(net.Error); ok && !neterr.Timeout() {

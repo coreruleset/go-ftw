@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -92,7 +91,7 @@ func TestInitBadConfig(t *testing.T) {
 
 func TestInitDefaultConfig(t *testing.T) {
 	// For this test we need a local .ftw.yaml file
-	_ = ioutil.WriteFile(".ftw.yaml", []byte(yamlConfig), 0644)
+	_ = os.WriteFile(".ftw.yaml", []byte(yamlConfig), 0644)
 
 	Init("")
 
