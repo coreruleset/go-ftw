@@ -1,7 +1,7 @@
 package test
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/goccy/go-yaml"
 	"github.com/rs/zerolog/log"
@@ -37,12 +37,12 @@ func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 }
 
 func readTest(filename string) (t FTWTest, err error) {
-	yamlFile, err := ioutil.ReadFile(filename)
+	yamlFile, err := os.ReadFile(filename)
 	if err != nil {
 		log.Info().Msgf("yamlFile.Get err   #%v ", err)
 	}
 	err = yaml.Unmarshal(yamlFile, &t)
-
+	t.FileName = filename
 	// Set Defaults
 	return t, err
 }

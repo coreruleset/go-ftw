@@ -28,22 +28,26 @@ type Output struct {
 	ExpectError      bool   `yaml:"expect_error,omitempty"`
 }
 
+// Test is an individual test
+type Test struct {
+	TestTitle       string `yaml:"test_title"`
+	TestDescription string `yaml:"desc,omitempty"`
+	Stages          []struct {
+		Stage struct {
+			Input  Input  `yaml:"input"`
+			Output Output `yaml:"output"`
+		} `yaml:"stage"`
+	} `yaml:"stages"`
+}
+
 // FTWTest is the base type used when unmarshaling
 type FTWTest struct {
-	Meta struct {
+	FileName string
+	Meta     struct {
 		Author      string `yaml:"author,omitempty"`
 		Enabled     bool   `yaml:"enabled,omitempty"`
 		Name        string `yaml:"name,omitempty"`
 		Description string `yaml:"description,omitempty"`
 	} `yaml:"meta"`
-	Tests []struct {
-		TestTitle       string `yaml:"test_title"`
-		TestDescription string `yaml:"desc,omitempty"`
-		Stages          []struct {
-			Stage struct {
-				Input  Input  `yaml:"input"`
-				Output Output `yaml:"output"`
-			} `yaml:"stage"`
-		} `yaml:"stages"`
-	} `yaml:"tests"`
+	Tests []Test `yaml:"tests"`
 }
