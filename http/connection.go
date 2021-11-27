@@ -27,11 +27,13 @@ func DestinationFromString(urlString string) *Destination {
 	return d
 }
 
-func (c *Connection) startTracking() {
+// StartTrackingTime initializes timer
+func (c *Connection) StartTrackingTime() {
 	c.duration.StartTracking()
 }
 
-func (c *Connection) stopTracking() {
+// StopTrackingTime stops timer
+func (c *Connection) StopTrackingTime() {
 	c.duration.StopTracking()
 }
 
@@ -46,7 +48,6 @@ func (c *Connection) send(data []byte) (int, error) {
 
 	log.Trace().Msg("ftw/http: sending data")
 	// Store times for searching in logs, if necessary
-	c.startTracking()
 
 	if c.connection != nil {
 		sent, err = c.connection.Write(data)
@@ -79,7 +80,6 @@ func (c *Connection) receive() ([]byte, error) {
 		err = nil
 	}
 	log.Trace().Msgf("ftw/http: received data - %q", buf)
-	c.stopTracking()
 
 	return buf, err
 }

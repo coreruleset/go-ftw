@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/fzipi/go-ftw/utils"
 
@@ -160,6 +161,7 @@ func (r Request) isRaw() bool {
 func buildRequest(r *Request) ([]byte, error) {
 	var err error
 	var b bytes.Buffer
+	var data []byte
 
 	// Check if we need to create from all fields
 	if !r.isRaw() {
@@ -179,6 +181,16 @@ func buildRequest(r *Request) ([]byte, error) {
 			if err != nil {
 				log.Info().Msgf("ftw/http: cannot set data to: %q", r.data)
 			}
+		}
+
+		// Multipart form data needs to end in \r\n, per RFC (and modsecurity make a scene if not)
+		if ct := r.headers.Value("Content-Type"); strings.HasPrefix(ct, "multipart/form-data") {
+			crlf := []byte("\r\n")
+			lf := []byte("\n")
+			log.Debug().Msgf("ftw/http: with LF only - %d bytes:\n%x\n", len(r.data), r.data)
+			data = bytes.ReplaceAll(r.data, lf, crlf)
+			log.Debug().Msgf("ftw/http: with CRLF - %d bytes:\n%x\n", len(data), data)
+			r.data = data
 		}
 
 		if r.WithAutoCompleteHeaders() {

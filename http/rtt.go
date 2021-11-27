@@ -19,7 +19,8 @@ func (rtt *RoundTripTime) StartTracking() {
 
 // StopTracking sets the finish time to Now
 func (rtt *RoundTripTime) StopTracking() {
-	rtt.end = time.Now()
+	now := time.Now()
+	rtt.end = now.Add(50 * time.Millisecond)
 }
 
 // StartTime returns the time when this round trip started

@@ -77,3 +77,13 @@ func (c *Client) Do(req Request) (*Response, error) {
 func (c *Client) GetRoundTripTime() *RoundTripTime {
 	return c.Transport.GetRoundTripTime()
 }
+
+// StartTrackingTime sets the timer to start transactions. This will be the starting time in logs.
+func (c *Client) StartTrackingTime() {
+	c.Transport.StartTrackingTime()
+}
+
+// StopTrackingTime stops the timer. When looking at logs, we will read up to this one.
+func (c *Client) StopTrackingTime() {
+	c.Transport.StopTrackingTime()
+}
