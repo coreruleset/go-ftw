@@ -10,6 +10,7 @@ package http
 
 import (
 	"bytes"
+	"io"
 	"testing"
 )
 
@@ -47,7 +48,7 @@ var headerWriteTests = []struct {
 	},
 }
 
-func TestHeaderWrite(t *testing.T) {
+func TestHeaderWriteBytes(t *testing.T) {
 	var buf bytes.Buffer
 	for i, test := range headerWriteTests {
 		_ = test.h.WriteBytes(&buf)
@@ -55,6 +56,12 @@ func TestHeaderWrite(t *testing.T) {
 			t.Errorf("#%d:\n got: %q\nwant: %q", i, buf.String(), test.expected)
 		}
 		buf.Reset()
+	}
+}
+
+func TestHeaderWrite(t *testing.T) {
+	for _, test := range headerWriteTests {
+		_ = test.h.Write(io.Discard)
 	}
 }
 
