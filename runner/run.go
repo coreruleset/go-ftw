@@ -73,15 +73,13 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 
 				req = getRequestFromTest(testRequest)
 
+				client.StartTrackingTime()
 				response, err := client.Do(*req)
+				client.StopTrackingTime()
 
 				// Create a new check
 				ftwcheck := check.NewCheck(config.FTWConfig)
-
-				// Logs need a timespan to check
-				startTime := client.GetRoundTripTime().StartTime()
-				endTime := client.GetRoundTripTime().StopTime()
-				ftwcheck.SetRoundTripTime(startTime, endTime)
+				ftwcheck.SetRoundTripTime(client.GetRoundTripTime().StartTime(), client.GetRoundTripTime().StopTime())
 
 				// Set expected test output in check
 				ftwcheck.SetExpectTestOutput(&expectedOutput)
