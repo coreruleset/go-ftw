@@ -7,6 +7,11 @@ import (
 	"strconv"
 )
 
+const (
+	// ContentTypeHeader gives you the string for content type
+	ContentTypeHeader string = "Content-Type"
+)
+
 // Based on https://golang.org/src/net/http/header.go
 
 // Header is a simplified version of headers, where there is only one header per key.

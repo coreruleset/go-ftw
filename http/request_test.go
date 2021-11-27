@@ -22,6 +22,33 @@ func generateBaseRequestForTesting() *Request {
 	return req
 }
 
+func TestMultipartFormDataRequest(t *testing.T) {
+	var req *Request
+
+	rl := &RequestLine{
+		Method:  "POST",
+		URI:     "/post",
+		Version: "HTTP/1.1",
+	}
+
+	h := Header{
+		"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost",
+		"Content-Type": "multipart/form-data; boundary=--------397236876",
+	}
+
+	data := []byte(`----------397236876
+Content-Disposition: form-data; name="fileRap"; filename="te;st.txt"
+Content-Type: text/plain
+
+Some-file-test-here
+----------397236876--`)
+	req = NewRequest(rl, h, data, true)
+
+	if req.isRaw() {
+		t.Error()
+	}
+}
+
 func generateBaseRawRequestForTesting() *Request {
 	var req *Request
 
@@ -89,6 +116,48 @@ func TestRequestNew(t *testing.T) {
 		t.Logf("Success !")
 	} else {
 		t.Errorf("Failed !")
+	}
+
+	if !bytes.Equal(req.Data(), []byte("Data")) {
+		t.Error("Failed to set data")
+	}
+}
+
+func TestWithAutocompleteRequest(t *testing.T) {
+	var req *Request
+
+	rl := &RequestLine{
+		Method:  "POST",
+		URI:     "/post",
+		Version: "HTTP/1.1",
+	}
+
+	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+
+	data := []byte(`test=me&one=two`)
+	req = NewRequest(rl, h, data, true)
+
+	if !req.WithAutoCompleteHeaders() {
+		t.Error("Set Autocomplete headers error ")
+	}
+}
+
+func TestWithoutAutocompleteRequest(t *testing.T) {
+	var req *Request
+
+	rl := &RequestLine{
+		Method:  "POST",
+		URI:     "/path",
+		Version: "1.1",
+	}
+
+	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+
+	data := []byte(`test=me&one=two`)
+	req = NewRequest(rl, h, data, false)
+
+	if req.WithAutoCompleteHeaders() {
+		t.Error("Set Autocomplete headers error ")
 	}
 }
 

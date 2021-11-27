@@ -35,6 +35,31 @@ type FTWConnection interface {
 	receive() ([]byte, error)
 }
 
+// Destination is the host, port and protocol to be used when connecting to a remote host
+type Destination struct {
+	DestAddr string `default:"localhost"`
+	Port     int    `default:"80"`
+	Protocol string `default:"http"`
+}
+
+// RequestLine is the first line in the HTTP request dialog
+type RequestLine struct {
+	Method  string `default:"GET"`
+	Version string `default:"HTTP/1.1"`
+	URI     string `default:"/"`
+}
+
+// Request represents a request
+// No Defaults represents the previous "stop_magic" behavior
+type Request struct {
+	requestLine         *RequestLine
+	headers             Header
+	cookies             http.CookieJar
+	data                []byte
+	raw                 []byte
+	autoCompleteHeaders bool
+}
+
 // Response represents the http response received from the server/waf
 type Response struct {
 	RAW    []byte

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 
@@ -13,34 +12,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Destination is the host, port and protocol to be used when connecting to a remote host
-type Destination struct {
-	DestAddr string `default:"localhost"`
-	Port     int    `default:"80"`
-	Protocol string `default:"http"`
-}
-
-// RequestLine is the first line in the HTTP request dialog
-type RequestLine struct {
-	Method  string `default:"GET"`
-	Version string `default:"HTTP/1.1"`
-	URI     string `default:"/"`
-}
-
 // ToString converts the request line to string for sending it in the wire
 func (rl RequestLine) ToString() string {
 	return fmt.Sprintf("%s %s %s\r\n", rl.Method, rl.URI, rl.Version)
-}
-
-// Request represents a request
-// No Defaults represents the previous "stop_magic" behavior
-type Request struct {
-	requestLine         *RequestLine
-	headers             Header
-	cookies             http.CookieJar
-	data                []byte
-	raw                 []byte
-	autoCompleteHeaders bool
 }
 
 // NewRequest creates a new request, an initial request line, and headers
@@ -133,25 +107,6 @@ func (r *Request) AddStandardHeaders(size int) {
 	r.headers.AddStandard(size)
 }
 
-// Request will use all the inputs and send a raw http request to the destination
-func (c *Connection) Request(request *Request) error {
-	// Build request first, then connect and send, so timers are accurate
-	data, err := buildRequest(request)
-	if err != nil {
-		log.Fatal().Msgf("ftw/http: fatal error building request: %s", err.Error())
-	}
-
-	log.Debug().Msgf("ftw/http: sending data:\n%s\n", data)
-
-	_, err = c.send(data)
-
-	if err != nil {
-		log.Error().Msgf("ftw/http: error writing data: %s", err.Error())
-	}
-
-	return err
-}
-
 // isRaw is a helper that returns true if raw or encoded data
 func (r Request) isRaw() bool {
 	return utils.IsNotEmpty(r.raw)
@@ -176,15 +131,16 @@ func buildRequest(r *Request) ([]byte, error) {
 		// We need to add the remaining headers, unless "NoDefaults"
 		if utils.IsNotEmpty(r.data) && r.WithAutoCompleteHeaders() {
 			// If there is no Content-Type, then we add one
-			r.AddHeader("Content-Type", "application/x-www-form-urlencoded")
+			r.AddHeader(ContentTypeHeader, "application/x-www-form-urlencoded")
 			err := r.SetData(encodeDataParameters(r.headers, r.data))
 			if err != nil {
 				log.Info().Msgf("ftw/http: cannot set data to: %q", r.data)
+				return nil, err
 			}
 		}
 
 		// Multipart form data needs to end in \r\n, per RFC (and modsecurity make a scene if not)
-		if ct := r.headers.Value("Content-Type"); strings.HasPrefix(ct, "multipart/form-data") {
+		if ct := r.headers.Value(ContentTypeHeader); strings.HasPrefix(ct, "multipart/form-data;") {
 			crlf := []byte("\r\n")
 			lf := []byte("\n")
 			log.Debug().Msgf("ftw/http: with LF only - %d bytes:\n%x\n", len(r.data), r.data)
@@ -238,7 +194,7 @@ func emptyQueryValues(values url.Values) bool {
 
 // encodeDataParameters url encode parameters in data
 func encodeDataParameters(h Header, data []byte) []byte {
-	if h.Get("Content-Type") == "application/x-www-form-urlencoded" {
+	if h.Get(ContentTypeHeader) == "application/x-www-form-urlencoded" {
 		if escapedData, _ := url.QueryUnescape(string(data)); escapedData == string(data) {
 			log.Trace().Msgf("ftw/http: parsing data: %q", data)
 			queryString, err := url.ParseQuery(string(data))

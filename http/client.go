@@ -75,7 +75,7 @@ func (c *Client) Do(req Request) (*Response, error) {
 
 // GetRoundTripTime returns the time taken from the initial send till receiving the full response
 func (c *Client) GetRoundTripTime() *RoundTripTime {
-	return c.Transport.GetRoundTripTime()
+	return c.Transport.GetTrackedTime()
 }
 
 // StartTrackingTime sets the timer to start transactions. This will be the starting time in logs.
