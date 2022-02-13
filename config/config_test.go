@@ -9,14 +9,16 @@ import (
 	"github.com/fzipi/go-ftw/utils"
 )
 
-var yamlConfig = `
----
+var yamlConfig = `---
 logfile: 'tests/logs/modsec2-apache/apache2/error.log'
 logtype:
   name: 'apache'
-  timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
+  timeregex: '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
   timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
 testoverride:
+  input:
+    dest_addr: 'httpbin.org'
+    port: '1234'
   ignore:
     '920400-1': 'This test result must be ignored'
 `
@@ -38,7 +40,6 @@ logtype:
   name: nginx
   timetruncate:  1s
   timeformat: 'ddd MMM DD HH:mm:ss'
-
 `
 
 var jsonConfig = `
@@ -68,12 +69,22 @@ func TestInitConfig(t *testing.T) {
 		t.Errorf("Failed! Len must be > 0")
 	}
 
+	if len(FTWConfig.TestOverride.Input) == 0 {
+		t.Errorf("Failed! Input Len must be > 0")
+	}
+
 	for id, text := range FTWConfig.TestOverride.Ignore {
 		if !strings.Contains(id, "920400-1") {
 			t.Errorf("Looks like we could not find item to ignore")
 		}
 		if text != "This test result must be ignored" {
 			t.Errorf("Text doesn't match")
+		}
+	}
+
+	for setting, value := range FTWConfig.TestOverride.Input {
+		if setting == "dest_addr" && value != "httpbin.org" {
+			t.Errorf("Looks like we are not overriding destination!")
 		}
 	}
 

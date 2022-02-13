@@ -1,7 +1,9 @@
 package runner
 
 import (
+	"errors"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/fzipi/go-ftw/check"
@@ -46,7 +48,11 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 			printUnlessQuietMode(output, "\trunning %s: ", t.TestTitle)
 			// Iterate over stages
 			for _, stage := range t.Stages {
-				testRequest := stage.Stage.Input
+				// Apply global overrides initially
+				testRequest, err := applyInputOverride(stage.Stage.Input)
+				if err != nil {
+					log.Debug().Msgf("ftw/run: problem overriding input: %s", err.Error())
+				}
 				expectedOutput := stage.Stage.Output
 
 				// Check sanity first
@@ -63,7 +69,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 					Protocol: testRequest.GetProtocol(),
 				}
 
-				err := client.NewConnection(*dest)
+				err = client.NewConnection(*dest)
 
 				if err != nil && !expectedOutput.ExpectError {
 					log.Fatal().Msgf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
@@ -74,7 +80,9 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 				req = getRequestFromTest(testRequest)
 
 				client.StartTrackingTime()
+
 				response, err := client.Do(*req)
+
 				client.StopTrackingTime()
 
 				// Create a new check
@@ -200,12 +208,10 @@ func checkResult(c *check.FTWCheck, id string, response *http.Response, response
 		}
 		// Lastly, check logs
 		if c.AssertLogContains() {
-			log.Debug().Msgf("ftw/check: found log with requeste pattern")
 			result = Success
 		}
 		// We assume that the they were already setup, for comparing
 		if c.AssertNoLogContains() {
-			log.Debug().Msgf("ftw/check: log does not contain pattern")
 			result = Success
 		}
 	}
@@ -245,4 +251,26 @@ func printUnlessQuietMode(quiet bool, format string, a ...interface{}) {
 	if !quiet {
 		emoji.Printf(format, a...)
 	}
+}
+
+// applyInputOverride will check if config had global overrides and write that into the test.
+func applyInputOverride(testRequest test.Input) (test.Input, error) {
+	var retErr error
+	overrides := config.FTWConfig.TestOverride.Input
+	for setting, value := range overrides {
+		switch setting {
+		case "port":
+			port, err := strconv.Atoi(value)
+			if err != nil {
+				retErr = errors.New("ftw/run: error getting overriden port")
+			}
+			testRequest.Port = &port
+		case "dest_addr":
+			newValue := value
+			testRequest.DestAddr = &newValue
+		default:
+			retErr = errors.New("ftw/run: override setting not implemented yet")
+		}
+	}
+	return testRequest, retErr
 }

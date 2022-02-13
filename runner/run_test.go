@@ -22,6 +22,33 @@ logtype:
   name: 'apache'
   timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
   timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
+  ignore:
+    '920400-1': 'This test result must be ignored'
+`
+
+var yamlConfigOverride = `
+---
+logfile: 'tests/logs/modsec2-apache/apache2/error.log'
+logtype:
+  name: 'apache'
+  timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
+  timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
+testoverride:
+  input:
+    dest_addr: 'httpbin.org'
+    port: '80'
+`
+
+var yamlBrokenConfigOverride = `
+---
+logfile: 'tests/logs/modsec2-apache/apache2/error.log'
+logtype:
+  name: 'apache'
+  timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
+  timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
+testoverride:
+  input:
+    this_does_not_exist: 'test'
 `
 
 var logText = `
@@ -31,12 +58,113 @@ var logText = `
 [Tue Jan 05 02:21:09.647668 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:inbound_anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/RESPONSE-980-CORRELATION.conf"] [line "87"] [id "980130"] [msg "Inbound Anomaly Score Exceeded (Total Inbound Score: 5 - SQLI=0,XSS=0,RFI=0,LFI=0,RCE=0,PHPI=0,HTTP=0,SESS=0): individual paranoia level scores: 3, 2, 0, 0"] [ver "OWASP_CRS/3.3.0"] [tag "event-correlation"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 `
 
-var yamlTest = `
+var yamlTest = `---
+meta:
+  author: "tester"
+  enabled: true
+  name: "gotest-ftw.yaml"
+  description: "Example Test"
+tests:
+  - test_title: "001"
+    description: "access real external site"
+    stages:
+      - stage:
+          input:
+            dest_addr: "httpbin.org"
+            port: 80
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "httpbin.org"
+          output:
+            expect_error: False
+            status: [200]
+  - test_title: "008"
+    stages:
+      - stage:
+          input:
+            dest_addr: TEST_ADDR
+            port: TEST_PORT
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "localhost"
+          output:
+            status: [200]
+  - test_title: "010"
+    stages:
+      - stage:
+          input:
+            dest_addr: TEST_ADDR
+            port: TEST_PORT
+            version: "HTTP/1.1"
+            method: "OTHER"
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "localhost"
+          output:
+            response_contains: "Hello, client"
+  - test_title: "101"
+    description: this tests exceptions
+    stages:
+      - stage:
+          input:
+            dest_addr: "1.1.1.1"
+            port: 8090
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "none.host"
+          output:
+            expect_error: True
+  - test_title: "102"
+    description: this tests exceptions
+    stages:
+      - stage:
+          input:
+            dest_addr: "1.1.1.1"
+            port: 8090
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Host: "none.host"
+              Accept: "*/*"
+            encoded_request: 'UE9TVCAvaW5kZXguaHRtbCBIVFRQLzEuMQ0KSG9zdDogMTkyLjE2OC4xLjIzDQpVc2VyLUFnZW50OiBjdXJsLzcuNDMuMA0KQWNjZXB0OiAqLyoNCkNvbnRlbnQtTGVuZ3RoOiA2NA0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi94LXd3dy1mb3JtLXVybGVuY29kZWQNCkNvbm5lY3Rpb246IGNsb3NlDQoNCmQ9MTsyOzM7NDs1XG4xO0BTVU0oMSsxKSpjbWR8JyBwb3dlcnNoZWxsIElFWCh3Z2V0IDByLnBlL3ApJ1whQTA7Mw=='
+          output:
+            expect_error: True
+`
+
+var yamlTestOverride = `
 ---
 meta:
   author: "tester"
   enabled: true
   name: "gotest-ftw.yaml"
+  description: "Example Override Test"
+tests:
+  -
+    test_title: "001"
+    description: "access real external site"
+    stages:
+      -
+        stage:
+          input:
+            dest_addr: "test.me"
+            port: 8080
+            headers:
+                User-Agent: "ModSecurity CRS 3 Tests"
+                Host: "httpbin.org"
+          output:
+            expect_error: False
+            status: [200]
+`
+
+var yamlDisabledTest = `
+---
+meta:
+  author: "tester"
+  enabled: false
+  name: "we do not care, this test is disabled"
   description: "Example Test"
 tests:
   -
@@ -52,65 +180,40 @@ tests:
                 User-Agent: "ModSecurity CRS 3 Tests"
                 Host: "httpbin.org"
           output:
-            expect_error: False
-            status: [200]
-  -
-    test_title: "008"
-    stages:
-      -
-        stage:
-          input:
-            dest_addr: TEST_ADDR
-            port: TEST_PORT
-            headers:
-                User-Agent: "ModSecurity CRS 3 Tests"
-                Host: "localhost"
-          output:
-            status: [200]
-  -
-    test_title: "010"
-    stages:
-      -
-        stage:
-          input:
-            dest_addr: TEST_ADDR
-            port: TEST_PORT
-            version: "HTTP/1.1"
-            method: "OTHER"
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Host: "localhost"
-          output:
-            response_contains: "Hello, client"
-  -
-    test_title: "101"
-    description: this tests exceptions
-    stages:
-    -
-      stage:
+            status: [1234]
+`
+
+var yamlTestLogs = `---
+meta:
+  author: "tester"
+  enabled: true
+  name: "gotest-ftw.yaml"
+  description: "Example Test"
+tests:
+  - test_title: "200"
+  stages:
+    - stage:
         input:
-          dest_addr: "1.1.1.1"
-          port: 8090
+          dest_addr: "httpbin.org"
+          port: 80
           headers:
             User-Agent: "ModSecurity CRS 3 Tests"
-            Host: "none.host"
+            Accept: "*/*"
+            Host: "localhost"
         output:
-          expect_error: True
-  -
-    test_title: "102"
-    description: this tests exceptions
-    stages:
-    -
-      stage:
+          log_contains: id \"949110\"
+  - test_title: "201"
+  stages:
+    - stage:
         input:
-          dest_addr: "1.1.1.1"
-          port: 8090
+          dest_addr: "httpbin.org"
+          port: 80
           headers:
             User-Agent: "ModSecurity CRS 3 Tests"
-            Host: "none.host"
-          encoded_request: 'UE9TVCAvaW5kZXguaHRtbCBIVFRQLzEuMQ0KSG9zdDogMTkyLjE2OC4xLjIzDQpVc2VyLUFnZW50OiBjdXJsLzcuNDMuMA0KQWNjZXB0OiAqLyoNCkNvbnRlbnQtTGVuZ3RoOiA2NA0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi94LXd3dy1mb3JtLXVybGVuY29kZWQNCkNvbm5lY3Rpb246IGNsb3NlDQoNCmQ9MTsyOzM7NDs1XG4xO0BTVU0oMSsxKSpjbWR8JyBwb3dlcnNoZWxsIElFWCh3Z2V0IDByLnBlL3ApJ1whQTA7Mw=='
+            Accept: "*/*"
+            Host: "localhost"
         output:
-          expect_error: True
+          no_log_contains: ABCDE
 `
 
 // Error checking omitted for brevity
@@ -196,4 +299,96 @@ func TestRun(t *testing.T) {
 	server.Close()
 	os.Remove(logName)
 	os.Remove(filename)
+}
+
+func TestOverrideRun(t *testing.T) {
+	// This is an integration test, and depends on having the waf up for checking logs
+	// We might use it to check for error, so we don't need anything up and running
+	config.ImportFromString(yamlConfigOverride)
+	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
+	config.FTWConfig.LogFile = logName
+
+	filename, err := utils.CreateTempFileWithContent(yamlTestOverride, "goftw-test-*.yaml")
+	if err != nil {
+		t.Fatalf("Failed!: %s\n", err.Error())
+	} else {
+		fmt.Printf("Using testfile %s\n", filename)
+	}
+
+	tests, _ := test.GetTestsFromFiles(filename)
+
+	t.Run("showtime and execute all", func(t *testing.T) {
+		if res := Run("", "", false, true, tests); res > 0 {
+			t.Error("Oops, test run failed!")
+		}
+	})
+}
+
+func TestBrokenOverrideRun(t *testing.T) {
+	// This is an integration test, and depends on having the waf up for checking logs
+	// We might use it to check for error, so we don't need anything up and running
+	config.ImportFromString(yamlBrokenConfigOverride)
+	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
+	config.FTWConfig.LogFile = logName
+
+	filename, err := utils.CreateTempFileWithContent(yamlTestOverride, "goftw-test-*.yaml")
+	if err != nil {
+		t.Fatalf("Failed!: %s\n", err.Error())
+	} else {
+		fmt.Printf("Using testfile %s\n", filename)
+	}
+
+	tests, _ := test.GetTestsFromFiles(filename)
+
+	t.Run("showtime and execute all", func(t *testing.T) {
+		if res := Run("", "", false, true, tests); res > 0 {
+			t.Error("Oops, test run failed!")
+		}
+	})
+}
+
+func TestDisabledRun(t *testing.T) {
+	// This is an integration test, and depends on having the waf up for checking logs
+	// We might use it to check for error, so we don't need anything up and running
+	config.ImportFromString(yamlConfig)
+	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
+	config.FTWConfig.LogFile = logName
+
+	filename, err := utils.CreateTempFileWithContent(yamlDisabledTest, "goftw-test-*.yaml")
+	if err != nil {
+		t.Fatalf("Failed!: %s\n", err.Error())
+	} else {
+		fmt.Printf("Using testfile %s\n", filename)
+	}
+
+	tests, _ := test.GetTestsFromFiles(filename)
+
+	t.Run("showtime and execute all", func(t *testing.T) {
+		if res := Run("", "", false, true, tests); res > 0 {
+			t.Error("Oops, test run failed!")
+		}
+	})
+}
+
+func TestLogsRun(t *testing.T) {
+	// This is an integration test, and depends on having the waf up for checking logs
+	// We might use it to check for error, so we don't need anything up and running
+	config.ImportFromString(yamlConfig)
+	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
+	config.FTWConfig.LogFile = logName
+
+	filename, err := utils.CreateTempFileWithContent(yamlTestLogs, "goftw-test-*.yaml")
+	if err != nil {
+		t.Fatalf("Failed!: %s\n", err.Error())
+	} else {
+		fmt.Printf("Using testfile %s\n", filename)
+	}
+
+	tests, _ := test.GetTestsFromFiles(filename)
+
+	t.Run("showtime and execute all", func(t *testing.T) {
+		if res := Run("", "", false, true, tests); res > 0 {
+			t.Error("Oops, test run failed!")
+		}
+	})
 }
