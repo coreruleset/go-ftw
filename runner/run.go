@@ -48,7 +48,8 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 			// Iterate over stages
 			for _, stage := range t.Stages {
 				// Apply global overrides initially
-				testRequest, err := applyInputOverride(stage.Stage.Input)
+				testRequest := stage.Stage.Input
+				err := applyInputOverride(&testRequest)
 				if err != nil {
 					log.Debug().Msgf("ftw/run: problem overriding input: %s", err.Error())
 				}
@@ -248,23 +249,27 @@ func printUnlessQuietMode(quiet bool, format string, a ...interface{}) {
 }
 
 // applyInputOverride will check if config had global overrides and write that into the test.
-func applyInputOverride(testRequest test.Input) (test.Input, error) {
+func applyInputOverride(testRequest *test.Input) error {
 	var retErr error
 	overrides := config.FTWConfig.TestOverride.Input
-	for setting, value := range overrides {
-		switch setting {
+	for s, v := range overrides {
+		value := v
+		switch s {
 		case "port":
 			port, err := strconv.Atoi(value)
 			if err != nil {
 				retErr = errors.New("ftw/run: error getting overriden port")
 			}
-			testRequest.Port = &port
+			*testRequest.Port = port
 		case "dest_addr":
-			newValue := value
-			testRequest.DestAddr = &newValue
+			oDestAddr := &value
+			testRequest.DestAddr = oDestAddr
+		case "protocol":
+			oProtocol := &value
+			testRequest.Protocol = oProtocol
 		default:
 			retErr = errors.New("ftw/run: override setting not implemented yet")
 		}
 	}
-	return testRequest, retErr
+	return retErr
 }

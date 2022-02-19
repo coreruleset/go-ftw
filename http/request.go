@@ -186,7 +186,8 @@ func buildRequest(r *Request) ([]byte, error) {
 // If the values are empty in the map, then don't encode anythin
 // This keeps the compatibility with the python implementation
 func emptyQueryValues(values url.Values) bool {
-	for _, val := range values {
+	for _, v := range values {
+		val := v
 		if len(val) > 1 {
 			return false
 		}

@@ -70,4 +70,8 @@ func TestAssertNginxLogContainsOK(t *testing.T) {
 	if !c.AssertLogContains() {
 		t.Errorf("Failed !")
 	}
+
+	if c.AssertNoLogContains() {
+		t.Error("No log contains failed")
+	}
 }

@@ -13,8 +13,6 @@ import (
 
 // Contains looks in logfile for regex
 func (ll *FTWLogLines) Contains(match string) bool {
-	log.Trace().Msgf("ftw/waflog: truncating at %s", ll.TimeTruncate)
-	log.Trace().Msgf("ftw/waflog: Looking at file %s, between %s and %s, truncating on %s", ll.FileName, ll.Since, ll.Until, ll.TimeTruncate.String())
 	// this should be a flag
 	lines := ll.getLinesSinceUntil()
 	// if we need to truncate file

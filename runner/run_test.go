@@ -37,6 +37,7 @@ testoverride:
   input:
     dest_addr: 'httpbin.org'
     port: '80'
+    protocol: 'http'
 `
 
 var yamlBrokenConfigOverride = `
@@ -48,6 +49,8 @@ logtype:
   timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
 testoverride:
   input:
+    dest_addr: 'httpbin.org'
+    port: '80'
     this_does_not_exist: 'test'
 `
 
@@ -197,29 +200,29 @@ meta:
   description: "Example Test"
 tests:
   - test_title: "200"
-  stages:
-    - stage:
-        input:
-          dest_addr: "httpbin.org"
-          port: 80
-          headers:
-            User-Agent: "ModSecurity CRS 3 Tests"
-            Accept: "*/*"
-            Host: "localhost"
-        output:
-          log_contains: id \"949110\"
+    stages:
+      - stage:
+          input:
+            dest_addr: TEST_ADDR
+            port: TEST_PORT
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "localhost"
+          output:
+            log_contains: id \"949110\"
   - test_title: "201"
-  stages:
-    - stage:
-        input:
-          dest_addr: "httpbin.org"
-          port: 80
-          headers:
-            User-Agent: "ModSecurity CRS 3 Tests"
-            Accept: "*/*"
-            Host: "localhost"
-        output:
-          no_log_contains: ABCDE
+    stages:
+      - stage:
+          input:
+            dest_addr: TEST_ADDR
+            port: TEST_PORT
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "localhost"
+          output:
+            no_log_contains: ABCDE
 `
 
 var yamlFailedTest = `---
@@ -234,8 +237,8 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: httpbin.org
-            port: 80
+            dest_addr: TEST_ADDR
+            port: TEST_PORT
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
               Accept: "*/*"
@@ -245,10 +248,11 @@ tests:
 `
 
 // Error checking omitted for brevity
-func testServer() (server *httptest.Server) {
+func newTestServer() *httptest.Server {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, client")
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte("Hello, client"))
 	}))
 
 	return ts
@@ -275,10 +279,7 @@ func TestRun(t *testing.T) {
 	config.FTWConfig.LogFile = logName
 
 	// setup test webserver (not a waf)
-	server := testServer()
-
-	// We should inject server.URL now into some tests
-	// d := DestinationFromString(server.URL)
+	server := newTestServer()
 	yamlTestContent := replaceLocalhostWithTestServer(yamlTest, server.URL)
 
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
@@ -291,8 +292,8 @@ func TestRun(t *testing.T) {
 	tests, _ := test.GetTestsFromFiles(filename)
 
 	t.Run("showtime and execute all", func(t *testing.T) {
-		if res := Run("", "", false, true, tests); res > 0 {
-			t.Error("Oops, test run failed!")
+		if res := Run("", "", true, false, tests); res > 0 {
+			t.Errorf("Oops, %d tests failed to run!", res)
 		}
 	})
 
@@ -321,7 +322,7 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("test exceptions 1", func(t *testing.T) {
-		if res := Run("1*", "0*", false, false, tests); res > 0 {
+		if res := Run("1*", "0*", false, true, tests); res > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})
@@ -351,11 +352,15 @@ func TestOverrideRun(t *testing.T) {
 
 	tests, _ := test.GetTestsFromFiles(filename)
 
-	t.Run("showtime and execute all", func(t *testing.T) {
+	t.Run("override and execute all", func(t *testing.T) {
 		if res := Run("", "", false, true, tests); res > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})
+
+	// Clean up
+	os.Remove(logName)
+	os.Remove(filename)
 }
 
 func TestBrokenOverrideRun(t *testing.T) {
@@ -382,6 +387,10 @@ func TestBrokenOverrideRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
+
+	// Clean up
+	os.Remove(logName)
+	os.Remove(filename)
 }
 
 func TestDisabledRun(t *testing.T) {
@@ -408,6 +417,10 @@ func TestDisabledRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
+
+	// Clean up
+	os.Remove(logName)
+	os.Remove(filename)
 }
 
 func TestLogsRun(t *testing.T) {
@@ -434,6 +447,10 @@ func TestLogsRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
+
+	// Clean up
+	os.Remove(logName)
+	os.Remove(filename)
 }
 
 func TestCloudRun(t *testing.T) {
@@ -458,6 +475,9 @@ func TestCloudRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
+
+	// Clean up
+	os.Remove(filename)
 }
 
 func TestFailedTestsRun(t *testing.T) {
@@ -470,7 +490,11 @@ func TestFailedTestsRun(t *testing.T) {
 	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
 	config.FTWConfig.LogFile = logName
 
-	filename, err := utils.CreateTempFileWithContent(yamlFailedTest, "goftw-test-*.yaml")
+	// setup test webserver (not a waf)
+	server := newTestServer()
+	yamlTestContent := replaceLocalhostWithTestServer(yamlFailedTest, server.URL)
+
+	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
@@ -487,4 +511,9 @@ func TestFailedTestsRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
+
+	// Clean up
+	server.Close()
+	os.Remove(logName)
+	os.Remove(filename)
 }

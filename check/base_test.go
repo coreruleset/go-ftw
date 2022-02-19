@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/fzipi/go-ftw/config"
+	"github.com/fzipi/go-ftw/test"
 )
 
 var yamlApacheConfig = `---
@@ -49,6 +50,25 @@ func TestNewCheck(t *testing.T) {
 		if text != "Ignore Me" {
 			t.Errorf("Well, didn't match Ignore Me")
 		}
+	}
+
+	to := test.Output{
+		Status:           []int{200},
+		ResponseContains: "",
+		LogContains:      "nothing",
+		NoLogContains:    "",
+		ExpectError:      true,
+	}
+	c.SetExpectTestOutput(&to)
+
+	if c.expected.ExpectError != true {
+		t.Error("Problem setting expected output")
+	}
+
+	c.SetNoLogContains("nologcontains")
+
+	if c.expected.NoLogContains != "nologcontains" {
+		t.Error("PRoblem setting nologcontains")
 	}
 }
 
@@ -96,4 +116,22 @@ func TestCloudMode(t *testing.T) {
 	if res := sort.SearchInts(cloudStatus, 403); res == 0 {
 		t.Errorf("couldn't find expected 403 status in %#v -> %d", cloudStatus, res)
 	}
+
+	c.SetLogContains("")
+	c.SetNoLogContains("no log contains")
+	// this should override logcontains
+	c.SetCloudMode()
+
+	cloudStatus = c.expected.Status
+	sort.Ints(cloudStatus)
+	found := false
+	for _, n := range cloudStatus {
+		if n == 200 {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("couldn't find expected 200 status\n")
+	}
+
 }
