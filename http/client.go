@@ -38,7 +38,7 @@ func (c *Client) NewConnection(d Destination) error {
 	// strings.HasSuffix(err.String(), "connection refused") {
 	if strings.ToLower(d.Protocol) == "https" {
 		// Commenting InsecureSkipVerify: true.
-		netConn, err = tls.DialWithDialer(&net.Dialer{Timeout: c.Timeout}, "tcp", hostPort, &tls.Config{})
+		netConn, err = tls.DialWithDialer(&net.Dialer{Timeout: c.Timeout}, "tcp", hostPort, &tls.Config{MinVersion: tls.VersionTLS12})
 	} else {
 		netConn, err = net.DialTimeout("tcp", hostPort, c.Timeout)
 	}
