@@ -10,7 +10,7 @@ import (
 // TestResult type are the values that the result of a test can have
 type TestResult int
 
-// Handy contants for test results
+// Handy constants for test results
 const (
 	Success TestResult = iota
 	Failed

@@ -24,8 +24,11 @@ var expectedFailTests = []struct {
 }
 
 func TestAssertResponseErrorOK(t *testing.T) {
-	config.ImportFromString(yamlApacheConfig)
+	err := config.NewConfigFromString(yamlApacheConfig)
 
+	if err != nil {
+		t.Errorf("Failed!")
+	}
 	c := NewCheck(config.FTWConfig)
 	for _, e := range expectedOKTests {
 		c.SetExpectError(e.expected)
@@ -36,7 +39,11 @@ func TestAssertResponseErrorOK(t *testing.T) {
 }
 
 func TestAssertResponseFail(t *testing.T) {
-	config.ImportFromString(yamlApacheConfig)
+	err := config.NewConfigFromString(yamlApacheConfig)
+
+	if err != nil {
+		t.Errorf("Failed!")
+	}
 
 	c := NewCheck(config.FTWConfig)
 

@@ -6,7 +6,6 @@ import (
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/test"
 	"github.com/fzipi/go-ftw/waflog"
-	"github.com/rs/zerolog/log"
 )
 
 // FTWCheck is the base struct for checking test results
@@ -31,9 +30,6 @@ func NewCheck(c *config.FTWConfiguration) *FTWCheck {
 		expected:  &test.Output{},
 		overrides: &c.TestOverride,
 	}
-
-	log.Trace().Msgf("check/base: time will be truncated to %s", check.log.TimeTruncate)
-	log.Trace().Msgf("check/base: logfile will be truncated? %t", check.log.LogTruncate)
 
 	return check
 }
@@ -90,4 +86,23 @@ func (c *FTWCheck) ForcedPass(id string) bool {
 func (c *FTWCheck) ForcedFail(id string) bool {
 	_, ok := c.overrides.ForceFail[id]
 	return ok
+}
+
+// CloudMode returns true if we are running in cloud mode
+func (c *FTWCheck) CloudMode() bool {
+	return c.overrides.Mode == config.CloudMode
+}
+
+// SetCloudMode alters the values for expected logs and status code
+func (c *FTWCheck) SetCloudMode() {
+	var status = c.expected.Status
+
+	if c.expected.LogContains != "" {
+		status = append(status, 403)
+		c.expected.LogContains = ""
+	} else if c.expected.NoLogContains != "" {
+		status = append(status, 200, 404, 405)
+		c.expected.NoLogContains = ""
+	}
+	c.expected.Status = status
 }

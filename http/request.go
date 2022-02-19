@@ -126,13 +126,16 @@ func buildRequest(r *Request) ([]byte, error) {
 			return nil, err
 		}
 
-		log.Trace().Msgf("ftw/http: this is data: %q, of len %d", r.data, len(r.data))
-
 		// We need to add the remaining headers, unless "NoDefaults"
 		if utils.IsNotEmpty(r.data) && r.WithAutoCompleteHeaders() {
 			// If there is no Content-Type, then we add one
 			r.AddHeader(ContentTypeHeader, "application/x-www-form-urlencoded")
-			err := r.SetData(encodeDataParameters(r.headers, r.data))
+			data, err = encodeDataParameters(r.headers, r.data)
+			if err != nil {
+				log.Info().Msgf("ftw/http: cannot encode data to: %q", r.data)
+				return nil, err
+			}
+			err = r.SetData(data)
 			if err != nil {
 				log.Info().Msgf("ftw/http: cannot set data to: %q", r.data)
 				return nil, err
@@ -150,7 +153,6 @@ func buildRequest(r *Request) ([]byte, error) {
 		}
 
 		if r.WithAutoCompleteHeaders() {
-			log.Trace().Msgf("ftw/http: adding standard headers")
 			r.AddStandardHeaders(len(r.data))
 		}
 
@@ -193,29 +195,25 @@ func emptyQueryValues(values url.Values) bool {
 }
 
 // encodeDataParameters url encode parameters in data
-func encodeDataParameters(h Header, data []byte) []byte {
+func encodeDataParameters(h Header, data []byte) ([]byte, error) {
+	var err error
+
 	if h.Get(ContentTypeHeader) == "application/x-www-form-urlencoded" {
 		if escapedData, _ := url.QueryUnescape(string(data)); escapedData == string(data) {
-			log.Trace().Msgf("ftw/http: parsing data: %q", data)
 			queryString, err := url.ParseQuery(string(data))
 			if err != nil || emptyQueryValues(queryString) {
-				log.Trace().Msgf("ftw/http: cannot parse or empty values in query string: %s", data)
-			} else {
-				log.Trace().Msgf("ftw/http: this is the query string parsed: %+v", queryString)
-				encodedData := queryString.Encode()
-				log.Trace().Msgf("ftw/http: encoded data to: %s", encodedData)
-				if encodedData != string(data) {
-					// we need to encode data
-					return []byte(encodedData)
-				}
+				return data, err
+			}
+			encodedData := queryString.Encode()
+			if encodedData != string(data) {
+				// we need to encode data
+				return []byte(encodedData), nil
 			}
 		}
 	}
-	return data
+	return data, err
 }
 
 func dumpRawData(b *bytes.Buffer, raw []byte) {
-	log.Trace().Msgf("ftw/http: using RAW data")
-
 	fmt.Fprintf(b, "%s", raw)
 }

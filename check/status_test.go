@@ -24,7 +24,10 @@ var statusFailTests = []struct {
 }
 
 func TestStatusOK(t *testing.T) {
-	config.ImportFromString(yamlApacheConfig)
+	err := config.NewConfigFromString(yamlApacheConfig)
+	if err != nil {
+		t.Errorf("Failed!")
+	}
 
 	c := NewCheck(config.FTWConfig)
 
@@ -37,7 +40,10 @@ func TestStatusOK(t *testing.T) {
 }
 
 func TestStatusFail(t *testing.T) {
-	config.ImportFromString(yamlApacheConfig)
+	err := config.NewConfigFromString(yamlApacheConfig)
+	if err != nil {
+		t.Errorf("Failed!")
+	}
 
 	c := NewCheck(config.FTWConfig)
 
