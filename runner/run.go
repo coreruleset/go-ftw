@@ -34,7 +34,6 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 		for _, t := range tests.Tests {
 			// if we received a particular testid, skip until we find it
 			if needToSkipTest(include, exclude, t.TestTitle, tests.Meta.Enabled) {
-				log.Trace().Msgf("ftw/run: skipping test %s", t.TestTitle)
 				addResultToStats(Skipped, t.TestTitle, &stats)
 				continue
 			}
@@ -49,7 +48,8 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 			// Iterate over stages
 			for _, stage := range t.Stages {
 				// Apply global overrides initially
-				testRequest, err := applyInputOverride(stage.Stage.Input)
+				testRequest := stage.Stage.Input
+				err := applyInputOverride(&testRequest)
 				if err != nil {
 					log.Debug().Msgf("ftw/run: problem overriding input: %s", err.Error())
 				}
@@ -58,6 +58,15 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 				// Check sanity first
 				if checkTestSanity(testRequest) {
 					log.Fatal().Msgf("ftw/run: bad test: choose between data, encoded_request, or raw_request")
+				}
+
+				// Create a new check
+				ftwcheck := check.NewCheck(config.FTWConfig)
+
+				// Do not even run test if result is overriden. Just use the override.
+				if overriden := overridenTestResult(ftwcheck, t.TestTitle); overriden != Failed {
+					addResultToStats(overriden, t.TestTitle, &stats)
+					continue
 				}
 
 				var req *http.Request
@@ -73,8 +82,6 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 
 				if err != nil && !expectedOutput.ExpectError {
 					log.Fatal().Msgf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
-					addResultToStats(Skipped, t.TestTitle, &stats)
-					continue
 				}
 
 				req = getRequestFromTest(testRequest)
@@ -85,15 +92,13 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 
 				client.StopTrackingTime()
 
-				// Create a new check
-				ftwcheck := check.NewCheck(config.FTWConfig)
 				ftwcheck.SetRoundTripTime(client.GetRoundTripTime().StartTime(), client.GetRoundTripTime().StopTime())
 
 				// Set expected test output in check
 				ftwcheck.SetExpectTestOutput(&expectedOutput)
 
 				// now get the test result based on output
-				testResult = checkResult(ftwcheck, t.TestTitle, response, err)
+				testResult = checkResult(ftwcheck, response, err)
 
 				duration = client.GetRoundTripTime().RoundTripDuration()
 
@@ -113,14 +118,11 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 
 func needToSkipTest(include string, exclude string, title string, skip bool) bool {
 	result := false
-
-	log.Trace().Msgf("ftw/run: need to include \"%s\", and to exclude \"%s\". Test title \"%s\" and skip is %t", include, exclude, title, skip)
-
 	// if we need to exclude tests, and the title matches,
 	// it needs to be skipped
 	if exclude != "" {
-		if ok, _ := regexp.MatchString(exclude, title); ok {
-			log.Trace().Msgf("ftw/run: %s matches %s, so exclude is true", title, exclude)
+		ok, err := regexp.MatchString(exclude, title)
+		if ok && err == nil {
 			result = true
 		}
 	}
@@ -128,29 +130,20 @@ func needToSkipTest(include string, exclude string, title string, skip bool) boo
 	// if we need to include tests, but the title does not match
 	// it needs to be skipped
 	if include != "" {
-		log.Trace().Msgf("ftw/run: include is %s", include)
-		if ok, _ := regexp.MatchString(include, title); !ok {
-			log.Trace().Msgf("ftw/run: include false")
+		ok, err := regexp.MatchString(include, title)
+		if !ok && err == nil {
 			result = true
-		} else {
-			result = false
 		}
 	}
 
 	// if the test itself is disabled, needs to be skipped
 	if !skip {
-		log.Trace().Msgf("ftw/run: test not enabled")
 		result = true
 	}
-
-	log.Trace().Msgf("ftw/run: need to exclude? %t", result)
-
 	return result
 }
 
 func checkTestSanity(testRequest test.Input) bool {
-	log.Trace().Msgf("ftw/run: checking test sanity")
-
 	return (utils.IsNotEmpty(testRequest.Data) && testRequest.EncodedRequest != "") ||
 		(utils.IsNotEmpty(testRequest.Data) && testRequest.RAWRequest != "") ||
 		(testRequest.EncodedRequest != "" && testRequest.RAWRequest != "")
@@ -169,54 +162,56 @@ func displayResult(quiet bool, result TestResult, duration time.Duration) {
 	}
 }
 
-// checkResult has the logic for verifying the result for the test sent
-func checkResult(c *check.FTWCheck, id string, response *http.Response, responseError error) TestResult {
-	var result TestResult
-
-	// Set to failed initially
-	result = Failed
-
+func overridenTestResult(c *check.FTWCheck, id string) TestResult {
 	if c.ForcedIgnore(id) {
-		result = Ignored
+		return Ignored
 	}
 
 	if c.ForcedFail(id) {
-		result = ForceFail
+		return ForceFail
 	}
 
 	if c.ForcedPass(id) {
-		result = ForcePass
+		return ForcePass
 	}
 
+	return Failed
+}
+
+// checkResult has the logic for verifying the result for the test sent
+func checkResult(c *check.FTWCheck, response *http.Response, responseError error) TestResult {
 	// Request might return an error, but it could be expected, we check that first
 	if responseError != nil && c.AssertExpectError(responseError) {
-		log.Trace().Msgf("ftw/check: found expected error")
-		result = Success
+		return Success
 	}
 
 	// If there was no error, perform the remaining checks
-	if responseError == nil {
-		// If we didn't expect an error, check the actual response from the waf
-		if c.AssertStatus(response.Parsed.StatusCode) {
-			log.Debug().Msgf("ftw/check: found expected response with status %d", response.Parsed.StatusCode)
-			result = Success
-		}
-		// Check response
-		if c.AssertResponseContains(response.GetBodyAsString()) {
-			log.Debug().Msgf("ftw/check: found response content has \"%s\"", response.GetBodyAsString())
-			result = Success
-		}
-		// Lastly, check logs
-		if c.AssertLogContains() {
-			result = Success
-		}
-		// We assume that the they were already setup, for comparing
-		if c.AssertNoLogContains() {
-			result = Success
-		}
+	if responseError != nil {
+		return Failed
+	}
+	if c.CloudMode() {
+		// Cloud mode assumes that we cannot read logs. So we rely entirely on status code
+		c.SetCloudMode()
 	}
 
-	return result
+	// If we didn't expect an error, check the actual response from the waf
+	if c.AssertStatus(response.Parsed.StatusCode) {
+		return Success
+	}
+	// Check response
+	if c.AssertResponseContains(response.GetBodyAsString()) {
+		return Success
+	}
+	// Lastly, check logs
+	if c.AssertLogContains() {
+		return Success
+	}
+	// We assume that the they were already setup, for comparing
+	if c.AssertNoLogContains() {
+		return Success
+	}
+
+	return Failed
 }
 
 func getRequestFromTest(testRequest test.Input) *http.Request {
@@ -254,23 +249,27 @@ func printUnlessQuietMode(quiet bool, format string, a ...interface{}) {
 }
 
 // applyInputOverride will check if config had global overrides and write that into the test.
-func applyInputOverride(testRequest test.Input) (test.Input, error) {
+func applyInputOverride(testRequest *test.Input) error {
 	var retErr error
 	overrides := config.FTWConfig.TestOverride.Input
-	for setting, value := range overrides {
-		switch setting {
+	for s, v := range overrides {
+		value := v
+		switch s {
 		case "port":
 			port, err := strconv.Atoi(value)
 			if err != nil {
 				retErr = errors.New("ftw/run: error getting overriden port")
 			}
-			testRequest.Port = &port
+			*testRequest.Port = port
 		case "dest_addr":
-			newValue := value
-			testRequest.DestAddr = &newValue
+			oDestAddr := &value
+			testRequest.DestAddr = oDestAddr
+		case "protocol":
+			oProtocol := &value
+			testRequest.Protocol = oProtocol
 		default:
 			retErr = errors.New("ftw/run: override setting not implemented yet")
 		}
 	}
-	return testRequest, retErr
+	return retErr
 }

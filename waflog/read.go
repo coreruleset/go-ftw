@@ -13,8 +13,6 @@ import (
 
 // Contains looks in logfile for regex
 func (ll *FTWLogLines) Contains(match string) bool {
-	log.Trace().Msgf("ftw/waflog: truncating at %s", ll.TimeTruncate)
-	log.Trace().Msgf("ftw/waflog: Looking at file %s, between %s and %s, truncating on %s", ll.FileName, ll.Since, ll.Until, ll.TimeTruncate.String())
 	// this should be a flag
 	lines := ll.getLinesSinceUntil()
 	// if we need to truncate file
@@ -40,23 +38,16 @@ func (ll *FTWLogLines) Contains(match string) bool {
 }
 
 func isBetweenOrEqual(dt gostradamus.DateTime, start gostradamus.DateTime, end gostradamus.DateTime, duration time.Duration) bool {
-	log.Trace().Msgf("ftw/waflog: truncating to %s", duration)
 	// First check if we need to truncate times
 	dtTime := dt.Time().Truncate(duration)
 	startTime := start.Time().Truncate(duration)
 	endTime := end.Time().Truncate(duration)
 
 	isBetween := dtTime.After(startTime) && dtTime.Before(endTime)
-	log.Trace().Msgf("ftw/waflog: time %s is between %s and %s? %t", dtTime,
-		startTime, endTime, isBetween)
 
 	isEqualStart := dtTime.Equal(startTime)
-	log.Trace().Msgf("ftw/waflog: time %s is equal to %s ? %t", dtTime,
-		startTime, isEqualStart)
 
 	isEqualEnd := dtTime.Equal(endTime)
-	log.Trace().Msgf("ftw/waflog: time %s is equal to %s ? %t", dtTime,
-		startTime, isEqualEnd)
 
 	return isBetween || isEqualStart || isEqualEnd
 }
@@ -88,16 +79,13 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 	for {
 		line, _, err := scanner.LineBytes()
 		if err != nil {
-			if err == io.EOF {
-				log.Trace().Msgf("got to the beginning of file")
-			} else {
+			if err != io.EOF {
 				log.Trace().Err(err)
 			}
 			break
 		}
 		if matchedLine := compiledRegex.FindSubmatch(line); matchedLine != nil {
 			date := matchedLine[1]
-			log.Trace().Msgf("ftw/waflog: matched %s in line %s", date, matchedLine)
 			// well, go doesn't want to have a proper time format, so we need to use gostradamus
 			t, err := gostradamus.ParseInTimezone(string(date), ll.TimeFormat, tzone)
 			if err != nil {
@@ -116,10 +104,6 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 				copy(saneCopy, line)
 				found = append(found, saneCopy)
 				continue
-			} else {
-				log.Trace().Msgf("ftw/waflog: time %s is not between %s and %s", t.Time(),
-					since.Format(ll.TimeFormat),
-					until.Format(ll.TimeFormat))
 			}
 			// if we are before since, we need to stop searching
 			if dt.IsBetween(gostradamus.DateTimeFromTime(time.Time{}).InTimezone(gostradamus.Local()),

@@ -15,6 +15,7 @@ logtype:
   name: 'apache'
   timeregex: '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
   timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
+cloudmode: True
 testoverride:
   input:
     dest_addr: 'httpbin.org'
@@ -46,16 +47,22 @@ var jsonConfig = `
 {"test": "type"}
 `
 
-func TestInitBadFileConfig(t *testing.T) {
+func TestNewConfigBadFileConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(jsonConfig, "test-*.yaml")
 	defer os.Remove(filename)
-	Init(filename)
+	err := NewConfigFromFile(filename)
+	if err != nil {
+		t.Errorf("Failed!")
+	}
 }
 
-func TestInitConfig(t *testing.T) {
+func TestNewConfigConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-*.yaml")
 
-	Init(filename)
+	err := NewConfigFromFile(filename)
+	if err != nil {
+		t.Errorf("Failed!")
+	}
 
 	if FTWConfig.LogType.Name != "apache" {
 		t.Errorf("Failed !")
@@ -90,29 +97,32 @@ func TestInitConfig(t *testing.T) {
 
 }
 
-func TestInitBadConfig(t *testing.T) {
+func TestNewConfigBadConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlBadConfig, "test-*.yaml")
 	defer os.Remove(filename)
-	Init(filename)
+	_ = NewConfigFromFile(filename)
 
 	if FTWConfig == nil {
 		t.Errorf("Failed !")
 	}
 }
 
-func TestInitDefaultConfig(t *testing.T) {
+func TestNewConfigDefaultConfig(t *testing.T) {
 	// For this test we need a local .ftw.yaml file
 	_ = os.WriteFile(".ftw.yaml", []byte(yamlConfig), 0644)
 
-	Init("")
+	_ = NewConfigFromFile("")
 
 	if FTWConfig == nil {
 		t.Errorf("Failed !")
 	}
 }
 
-func TestImportConfig(t *testing.T) {
-	ImportFromString(yamlConfig)
+func TestNewConfigFromString(t *testing.T) {
+	err := NewConfigFromString(yamlConfig)
+	if err != nil {
+		t.Errorf("Failed!")
+	}
 
 	if FTWConfig.LogType.Name != "apache" {
 		t.Errorf("Failed !")
@@ -126,7 +136,10 @@ func TestImportConfig(t *testing.T) {
 func TestTimeTruncateConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlTruncateConfig, "test-*.yaml")
 	defer os.Remove(filename)
-	Init(filename)
+	err := NewConfigFromFile(filename)
+	if err != nil {
+		t.Errorf("Failed!")
+	}
 
 	if FTWConfig.LogType.Name != "nginx" {
 		t.Errorf("Failed !")
@@ -144,8 +157,11 @@ func TestTimeTruncateConfig(t *testing.T) {
 	}
 }
 
-func TestImportConfigWithEnv(t *testing.T) {
-	ImportFromString(yamlConfig)
+func TestNewEnvConfigFromString(t *testing.T) {
+	err := NewConfigFromString(yamlConfig)
+	if err != nil {
+		t.Errorf("Failed!")
+	}
 
 	if FTWConfig.LogType.Name != "apache" {
 		t.Errorf("Failed !")
@@ -156,23 +172,17 @@ func TestImportConfigWithEnv(t *testing.T) {
 	}
 }
 
-func TestInitConfigWithEnv(t *testing.T) {
-	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-env-*.yaml")
-
+func TestNewConfigFromEnv(t *testing.T) {
 	// Set some environment so it gets merged with conf
 	os.Setenv("FTW_LOGTYPE_NAME", "kaonf")
 
-	Init(filename)
+	err := NewConfigFromEnv()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	if FTWConfig.LogType.Name != "kaonf" {
-		t.Errorf("Failed !")
-	}
-
-	if FTWConfig.LogType.TimeFormat != "ddd MMM DD HH:mm:ss.S YYYY" {
-		t.Errorf("Failed !")
-	}
-
-	if len(FTWConfig.TestOverride.Ignore) == 0 {
-		t.Errorf("Failed! Len must be > 0")
+		t.Errorf(FTWConfig.LogType.Name)
 	}
 }

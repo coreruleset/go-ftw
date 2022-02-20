@@ -28,7 +28,6 @@ func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 			log.Info().Msgf(yaml.FormatError(err, true, true))
 			return tests, err
 		}
-		log.Trace().Msgf("ftw/test: reading file %s", test)
 
 		tests = append(tests, t)
 	}

@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"log"
 	"os"
 
-	config "github.com/fzipi/go-ftw/config"
+	"github.com/fzipi/go-ftw/config"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -42,12 +43,18 @@ func init() {
 }
 
 func initConfig() {
-	config.Init(cfgFile)
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if debug {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 	if trace {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	}
+	errFile := config.NewConfigFromFile(cfgFile)
+	if errFile != nil {
+		errEnv := config.NewConfigFromEnv()
+		if errEnv != nil {
+			log.Fatalf("cannot read config from file (%s) nor environment (%s).", errFile.Error(), errEnv.Error())
+		}
 	}
 }
