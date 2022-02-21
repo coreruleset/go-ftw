@@ -14,6 +14,7 @@ var (
 	cfgFile string
 	debug   bool
 	trace   bool
+	cloud   bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -40,6 +41,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "override config file (default is $PWD/.ftw.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "", false, "debug output")
 	rootCmd.PersistentFlags().BoolVarP(&trace, "trace", "", false, "trace output: really, really verbose")
+	rootCmd.PersistentFlags().BoolVarP(&cloud, "cloud", "", false, "cloud mode: rely only in http status code for determining test succes or failure (assumes no logs access)")
 }
 
 func initConfig() {
@@ -56,5 +58,8 @@ func initConfig() {
 		if errEnv != nil {
 			log.Fatalf("cannot read config from file (%s) nor environment (%s).", errFile.Error(), errEnv.Error())
 		}
+	}
+	if cloud {
+		config.FTWConfig.TestOverride.Mode = config.CloudMode
 	}
 }
