@@ -202,8 +202,8 @@ func encodeDataParameters(h Header, data []byte) ([]byte, error) {
 	if h.Get(ContentTypeHeader) == "application/x-www-form-urlencoded" {
 		if escapedData, _ := url.QueryUnescape(string(data)); escapedData == string(data) {
 			queryString, err := url.ParseQuery(string(data))
-			if err != nil || emptyQueryValues(queryString) {
-				return data, err
+			if (err != nil && strings.Contains(err.Error(), "invalid semicolon separator in query")) || emptyQueryValues(queryString) {
+				return data, nil
 			}
 			encodedData := queryString.Encode()
 			if encodedData != string(data) {

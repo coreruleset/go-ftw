@@ -231,7 +231,7 @@ func TestRequestRawData(t *testing.T) {
 	}
 }
 
-func TestRequesSettingDataaWhenThereIsRawData(t *testing.T) {
+func TestRequestSettingDataaWhenThereIsRawData(t *testing.T) {
 	req := generateBaseRawRequestForTesting()
 
 	err := req.SetData([]byte("This is the data now"))
@@ -239,6 +239,30 @@ func TestRequesSettingDataaWhenThereIsRawData(t *testing.T) {
 	if err != nil && strings.Contains(err.Error(), "raw field is already present in this request") {
 		t.Logf("Success !")
 	} else {
+		t.Errorf("Failed !")
+	}
+}
+
+func TestRequestURLParse(t *testing.T) {
+	req := generateBaseRequestForTesting()
+
+	h := req.Headers()
+	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
+	// Test adding semicolons to test parse
+	err := req.SetData([]byte("test=This&test=nothing"))
+	if err != nil {
+		t.Errorf("Failed !")
+	}
+}
+
+func TestRequestURLParseFail(t *testing.T) {
+	req := generateBaseRequestForTesting()
+
+	h := req.Headers()
+	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
+	// Test adding semicolons to test parse
+	err := req.SetData([]byte("test=This&that=but with;;;;;; data now"))
+	if err != nil {
 		t.Errorf("Failed !")
 	}
 }
