@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/fzipi/go-ftw/config"
-	httpftw "github.com/fzipi/go-ftw/http"
+	"github.com/fzipi/go-ftw/ftwhttp"
 	"github.com/fzipi/go-ftw/test"
 	"github.com/fzipi/go-ftw/utils"
 )
@@ -259,9 +259,7 @@ func newTestServer() *httptest.Server {
 }
 
 // replace localhost or 127.0.0.1 in tests with test url
-func replaceLocalhostWithTestServer(yaml string, url string) string {
-	d := httpftw.DestinationFromString(url)
-
+func replaceLocalhostWithTestServer(yaml string, d ftwhttp.Destination) string {
 	destChanged := strings.ReplaceAll(yaml, "TEST_ADDR", d.DestAddr)
 	replacedYaml := strings.ReplaceAll(destChanged, "TEST_PORT", strconv.Itoa(d.Port))
 
@@ -280,7 +278,11 @@ func TestRun(t *testing.T) {
 
 	// setup test webserver (not a waf)
 	server := newTestServer()
-	yamlTestContent := replaceLocalhostWithTestServer(yamlTest, server.URL)
+	d, err := ftwhttp.DestinationFromString(server.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse destination")
+	}
+	yamlTestContent := replaceLocalhostWithTestServer(yamlTest, *d)
 
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
@@ -492,7 +494,11 @@ func TestFailedTestsRun(t *testing.T) {
 
 	// setup test webserver (not a waf)
 	server := newTestServer()
-	yamlTestContent := replaceLocalhostWithTestServer(yamlFailedTest, server.URL)
+	d, err := ftwhttp.DestinationFromString(server.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse destination")
+	}
+	yamlTestContent := replaceLocalhostWithTestServer(yamlFailedTest, *d)
 
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
