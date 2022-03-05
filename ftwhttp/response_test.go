@@ -1,4 +1,4 @@
-package http
+package ftwhttp
 
 import (
 	"fmt"
@@ -81,12 +81,15 @@ func TestResponse(t *testing.T) {
 
 	defer server.Close()
 
-	d := DestinationFromString(server.URL)
+	d, err := DestinationFromString(server.URL)
 
+	if err != nil {
+		t.Error(err)
+	}
 	req := generateRequestForTesting(true)
 
 	client := NewClient()
-	err := client.NewConnection(*d)
+	err = client.NewConnection(*d)
 
 	if err != nil {
 		t.Fatalf("Error! %s", err.Error())
@@ -109,12 +112,14 @@ func TestResponseWithCookies(t *testing.T) {
 
 	defer server.Close()
 
-	d := DestinationFromString(server.URL)
-
+	d, err := DestinationFromString(server.URL)
+	if err != nil {
+		t.Fatalf("Error! %s", err.Error())
+	}
 	req := generateRequestForTesting(true)
 
 	client := NewClient()
-	err := client.NewConnection(*d)
+	err = client.NewConnection(*d)
 
 	if err != nil {
 		t.Fatalf("Error! %s", err.Error())

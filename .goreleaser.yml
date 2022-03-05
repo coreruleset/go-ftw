@@ -30,10 +30,22 @@ snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
+  use: github
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Others
+      order: 999
   filters:
     exclude:
       - '^docs'
       - '^test'
+release:
+  prerelease: auto
 
 nfpms:
   - id: "ftw"
@@ -49,10 +61,10 @@ nfpms:
         file_name_template: "{{ .ProjectName }}-{{ .Version }}.{{ .Arch }}"
       deb:
         file_name_template: "{{ .ProjectName }}-{{ .Version }}_{{ .Arch }}"
-    vendor: 
+    vendor:
     homepage: https://github.com/fzipi/go-ftw
     maintainer: felipe.zipitria@owasp.org
-    description: 
+    description:
       Framework for Testing WAFs - Go version
 
       It uses the OWASP Core Ruleset V3 as a baseline to test rules on a WAF. Each rule from the ruleset is loaded into a YAML file that issues HTTP requests that will trigger these rules. Users can verify the execution of the rule after the tests are issued to make sure the expected response is received from an attack

@@ -4,31 +4,14 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/fzipi/go-ftw/http"
+	"github.com/fzipi/go-ftw/ftwhttp"
 )
-
-/*
-type Input struct {
-	DestAddr       *string     `yaml:"dest_addr,omitempty"`
-	Port           *int        `yaml:"port,omitempty"`
-	Protocol       *string     `yaml:"protocol,omitempty"`
-	URI            *string     `yaml:"uri,omitempty"`
-	Version        *string     `yaml:"version,omitempty"`
-	Headers        http.Header `yaml:"headers,omitempty"`
-	Method         *string     `yaml:"method,omitempty"`
-	Data           string      `yaml:"data,omitempty"`
-	SaveCookie     bool        `yaml:"save_cookie,omitempty"`
-	StopMagic      bool        `yaml:"stop_magic"`
-	EncodedRequest string      `yaml:"encoded_request,omitempty"`
-	RAWRequest     string      `yaml:"raw_request,omitempty"`
-}
-*/
 
 func getTestInputDefaults() *Input {
 	data := "My Data"
 
 	inputDefaults := Input{
-		Headers:    make(http.Header),
+		Headers:    make(ftwhttp.Header),
 		Data:       &data,
 		SaveCookie: false,
 		StopMagic:  false,
@@ -50,7 +33,7 @@ func getTestExampleInput() *Input {
 		Protocol:       &protocol,
 		URI:            &uri,
 		Version:        &version,
-		Headers:        make(http.Header),
+		Headers:        make(ftwhttp.Header),
 		Method:         &method,
 		Data:           nil,
 		EncodedRequest: "TXkgRGF0YQo=",

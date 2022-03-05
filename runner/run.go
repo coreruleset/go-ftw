@@ -8,7 +8,7 @@ import (
 
 	"github.com/fzipi/go-ftw/check"
 	"github.com/fzipi/go-ftw/config"
-	"github.com/fzipi/go-ftw/http"
+	"github.com/fzipi/go-ftw/ftwhttp"
 	"github.com/fzipi/go-ftw/test"
 	"github.com/fzipi/go-ftw/utils"
 
@@ -27,7 +27,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 
 	printUnlessQuietMode(output, ":rocket:Running go-ftw!\n")
 
-	client := http.NewClient()
+	client := ftwhttp.NewClient()
 
 	for _, tests := range ftwtests {
 		changed := true
@@ -69,10 +69,10 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 					continue
 				}
 
-				var req *http.Request
+				var req *ftwhttp.Request
 
 				// Destination is needed for an request
-				dest := &http.Destination{
+				dest := &ftwhttp.Destination{
 					DestAddr: testRequest.GetDestAddr(),
 					Port:     testRequest.GetPort(),
 					Protocol: testRequest.GetProtocol(),
@@ -179,7 +179,7 @@ func overridenTestResult(c *check.FTWCheck, id string) TestResult {
 }
 
 // checkResult has the logic for verifying the result for the test sent
-func checkResult(c *check.FTWCheck, response *http.Response, responseError error) TestResult {
+func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError error) TestResult {
 	// Request might return an error, but it could be expected, we check that first
 	if responseError != nil && c.AssertExpectError(responseError) {
 		return Success
@@ -214,8 +214,8 @@ func checkResult(c *check.FTWCheck, response *http.Response, responseError error
 	return Failed
 }
 
-func getRequestFromTest(testRequest test.Input) *http.Request {
-	var req *http.Request
+func getRequestFromTest(testRequest test.Input) *ftwhttp.Request {
+	var req *ftwhttp.Request
 	// get raw request, if anything
 	raw, err := testRequest.GetRawRequest()
 	if err != nil {
@@ -224,9 +224,9 @@ func getRequestFromTest(testRequest test.Input) *http.Request {
 
 	// If we use raw or encoded request, then we don't use other fields
 	if raw != nil {
-		req = http.NewRawRequest(raw, !testRequest.StopMagic)
+		req = ftwhttp.NewRawRequest(raw, !testRequest.StopMagic)
 	} else {
-		rline := &http.RequestLine{
+		rline := &ftwhttp.RequestLine{
 			Method:  testRequest.GetMethod(),
 			URI:     testRequest.GetURI(),
 			Version: testRequest.GetVersion(),
@@ -234,7 +234,7 @@ func getRequestFromTest(testRequest test.Input) *http.Request {
 
 		data := testRequest.ParseData()
 		// create a new request
-		req = http.NewRequest(rline, testRequest.Headers,
+		req = ftwhttp.NewRequest(rline, testRequest.Headers,
 			data, !testRequest.StopMagic)
 
 	}

@@ -1,5 +1,5 @@
-// Package http provides low level abstractions for sending/receiving raw http messages
-package http
+// Package ftwhttp provides low level abstractions for sending/receiving raw http messages
+package ftwhttp
 
 import (
 	"bufio"
@@ -16,8 +16,11 @@ import (
 )
 
 // DestinationFromString create a Destination from String
-func DestinationFromString(urlString string) *Destination {
-	u, _ := url.Parse(urlString)
+func DestinationFromString(urlString string) (*Destination, error) {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		return nil, err
+	}
 	host, port, _ := net.SplitHostPort(u.Host)
 	p, _ := strconv.Atoi(port)
 
@@ -27,7 +30,7 @@ func DestinationFromString(urlString string) *Destination {
 		Protocol: u.Scheme,
 	}
 
-	return d
+	return d, nil
 }
 
 // StartTrackingTime initializes timer
