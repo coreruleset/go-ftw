@@ -72,7 +72,7 @@ func TestGetTrackedTime(t *testing.T) {
 
 	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
 
-	data := []byte(`test=me&one=two`)
+	data := []byte(`test=me&one=two&one=twice`)
 	req := NewRequest(rl, h, data, true)
 
 	err := c.NewConnection(*d)
