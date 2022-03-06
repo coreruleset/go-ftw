@@ -18,4 +18,6 @@ type FTWLogLines struct {
 	TimeTruncate time.Duration
 	Since        time.Time
 	Until        time.Time
+	StartMarker  string
+	EndMarker    string
 }

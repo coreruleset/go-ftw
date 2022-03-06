@@ -26,6 +26,8 @@ func NewCheck(c *config.FTWConfiguration) *FTWCheck {
 			Until:        time.Now(),
 			TimeTruncate: c.LogType.TimeTruncate,
 			LogTruncate:  c.LogTruncate,
+			StartMarker:  "",
+			EndMarker:    "",
 		},
 		expected:  &test.Output{},
 		overrides: &c.TestOverride,
@@ -105,4 +107,14 @@ func (c *FTWCheck) SetCloudMode() {
 		c.expected.NoLogContains = ""
 	}
 	c.expected.Status = status
+}
+
+// SetStartMarker sets the log line that marks the start of the logs to analyze
+func (c *FTWCheck) SetStartMarker(marker string) {
+	c.log.StartMarker = marker
+}
+
+// SetEndMarker sets the log line that marks the end of the logs to analyze
+func (c *FTWCheck) SetEndMarker(marker string) {
+	c.log.EndMarker = marker
 }

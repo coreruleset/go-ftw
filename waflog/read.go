@@ -1,6 +1,7 @@
 package waflog
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"regexp"
@@ -14,7 +15,7 @@ import (
 // Contains looks in logfile for regex
 func (ll *FTWLogLines) Contains(match string) bool {
 	// this should be a flag
-	lines := ll.getLinesSinceUntil()
+	lines := ll.getMarkedLines()
 	// if we need to truncate file
 	if ll.LogTruncate {
 		ll.truncateLogFile()
@@ -114,6 +115,83 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 
 	}
 	return found
+}
+
+func (ll *FTWLogLines) getMarkedLines() [][]byte {
+	var found [][]byte
+	logfile, err := os.Open(ll.FileName)
+
+	if err != nil {
+		log.Fatal().Msgf("cannot open file %s", ll.FileName)
+	}
+	defer logfile.Close()
+
+	fi, err := logfile.Stat()
+	if err != nil {
+		log.Error().Msgf("cannot read file's size")
+		return found
+	}
+
+	// Lines in modsec logging can be quite large
+	backscannerOptions := &backscanner.Options{
+		ChunkSize: 4096,
+	}
+	scanner := backscanner.NewOptions(logfile, int(fi.Size()), backscannerOptions)
+	endFound := false
+	for {
+		line, _, err := scanner.LineBytes()
+		if err != nil {
+			if err != io.EOF {
+				log.Trace().Err(err)
+			}
+			break
+		}
+		if !endFound && bytes.Equal(line, []byte(ll.EndMarker)) {
+			endFound = true
+		}
+		// TODO: don't convert markers between string and []byte
+		if endFound && bytes.Equal(line, []byte(ll.StartMarker)) {
+			saneCopy := make([]byte, len(line))
+			copy(saneCopy, line)
+			found = append(found, saneCopy)
+		}
+
+	}
+	return found
+}
+
+func (ll *FTWLogLines) CheckLogForMarker(stageId string) (string, bool) {
+	logfile, err := os.Open(ll.FileName)
+
+	if err != nil {
+		log.Fatal().Msgf("cannot open file %s", ll.FileName)
+	}
+	defer logfile.Close()
+
+	fi, err := logfile.Stat()
+	if err != nil {
+		log.Error().Msgf("cannot read file's size")
+		return "", false
+	}
+
+	// Lines in modsec logging can be quite large
+	backscannerOptions := &backscanner.Options{
+		ChunkSize: 4096,
+	}
+	scanner := backscanner.NewOptions(logfile, int(fi.Size()), backscannerOptions)
+	stageIdBytes := []byte(stageId)
+	crsHeaderBytes := []byte("X-CRS-Test")
+	line, _, err := scanner.LineBytes()
+	if err != nil {
+		if err != io.EOF {
+			log.Trace().Err(err)
+		}
+	}
+	if bytes.Contains(line, crsHeaderBytes) && bytes.Contains(line, stageIdBytes) {
+		return string(line), true
+	}
+
+	return "", false
 }
 
 // truncateLogFile
