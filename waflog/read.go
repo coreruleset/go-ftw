@@ -180,13 +180,21 @@ func (ll *FTWLogLines) CheckLogForMarker(stageId string) (string, bool) {
 	}
 	scanner := backscanner.NewOptions(logfile, int(fi.Size()), backscannerOptions)
 	stageIdBytes := []byte(stageId)
-	crsHeaderBytes := []byte("X-CRS-Test")
-	line, _, err := scanner.LineBytes()
+	crsHeaderBytes := []byte("x-crs-test")
+
+	line := []byte{}
+	// find the last non-empty line
+	for err == nil && len(line) == 0 {
+		line, _, err = scanner.LineBytes()
+	}
 	if err != nil {
-		if err != io.EOF {
+		if err == io.EOF {
+			return "", false
+		} else {
 			log.Trace().Err(err)
 		}
 	}
+	line = bytes.ToLower(line)
 	if bytes.Contains(line, crsHeaderBytes) && bytes.Contains(line, stageIdBytes) {
 		return string(line), true
 	}

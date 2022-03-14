@@ -87,7 +87,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 					log.Fatal().Msgf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
 				}
 
-				startMarker := markAndFlush(client, config.FTWConfig, testIndex, stageIndex)
+				startMarker := markAndFlush(client, dest, config.FTWConfig, testIndex, stageIndex)
 				ftwcheck.SetStartMarker(startMarker)
 
 				req = getRequestFromTest(testRequest)
@@ -98,7 +98,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 
 				client.StopTrackingTime()
 
-				endMarker := markAndFlush(client, config.FTWConfig, testIndex, stageIndex)
+				endMarker := markAndFlush(client, dest, config.FTWConfig, testIndex, stageIndex)
 				ftwcheck.SetEndMarker(endMarker)
 
 				ftwcheck.SetRoundTripTime(client.GetRoundTripTime().StartTime(), client.GetRoundTripTime().StopTime())
@@ -125,7 +125,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 	return printSummary(output, stats)
 }
 
-func markAndFlush(client *ftwhttp.Client, ftwConfig *config.FTWConfiguration, testIndex int, stageIndex int) string {
+func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, ftwConfig *config.FTWConfiguration, testIndex int, stageIndex int) string {
 	var req *ftwhttp.Request
 	var logLines = &waflog.FTWLogLines{
 		FileName:     ftwConfig.LogFile,
@@ -146,15 +146,20 @@ func markAndFlush(client *ftwhttp.Client, ftwConfig *config.FTWConfiguration, te
 	stageId := fmt.Sprintf("%d-%d", testIndex, stageIndex)
 	headers := &ftwhttp.Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost", "X-CRS-Test": stageId}
 
-	// create a new request
 	req = ftwhttp.NewRequest(rline, *headers,
 		nil, true)
 
 	for range [20]int{} {
-		_, err := client.Do(*req)
+		err := client.NewConnection(*dest)
 		if err != nil {
-			log.Fatal().Msg("ftw/run: can't connect to destination - unexpected error found. Is your waf running?")
+			log.Fatal().Msgf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
 		}
+
+		_, err = client.Do(*req)
+		if err != nil {
+			log.Fatal().Msgf("ftw/run: failed sending request to %+v - unexpected error found. Is your waf running?", dest)
+		}
+
 		marker, found := logLines.CheckLogForMarker(stageId)
 		if found {
 			return marker

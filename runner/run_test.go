@@ -2,12 +2,14 @@ package runner
 
 import (
 	"fmt"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/ftwhttp"
@@ -248,11 +250,13 @@ tests:
 `
 
 // Error checking omitted for brevity
-func newTestServer() *httptest.Server {
-
+func newTestServer(logFilePath string) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte("Hello, client"))
+
+		logMessage := fmt.Sprintf("%d, request line: %s %s %s, headers: %s", time.Now().UnixMicro(), r.Method, r.RequestURI, r.Proto, r.Header)
+		os.WriteFile(logFilePath, []byte(logMessage), fs.ModeAppend)
 	}))
 
 	return ts
@@ -277,7 +281,8 @@ func TestRun(t *testing.T) {
 	config.FTWConfig.LogFile = logName
 
 	// setup test webserver (not a waf)
-	server := newTestServer()
+	//FIXME: some of these requests will not go to the test server so they won't be logged and we won't be able to check the log
+	server := newTestServer(logName)
 	d, err := ftwhttp.DestinationFromString(server.URL)
 	if err != nil {
 		t.Fatalf("Failed to parse destination")
@@ -561,7 +566,7 @@ func TestFailedTestsRun(t *testing.T) {
 	config.FTWConfig.LogFile = logName
 
 	// setup test webserver (not a waf)
-	server := newTestServer()
+	server := newTestServer(logName)
 	d, err := ftwhttp.DestinationFromString(server.URL)
 	if err != nil {
 		t.Fatalf("Failed to parse destination")
