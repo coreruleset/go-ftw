@@ -1,6 +1,7 @@
 package test
 
 import (
+	"errors"
 	"os"
 
 	"github.com/goccy/go-yaml"
@@ -32,6 +33,9 @@ func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 		tests = append(tests, t)
 	}
 
+	if len(tests) == 0 {
+		return tests, errors.New("No tests found")
+	}
 	return tests, nil
 }
 

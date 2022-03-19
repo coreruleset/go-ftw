@@ -17,41 +17,41 @@ import (
 
 var yamlConfig = `
 ---
-logfile: 'tests/logs/modsec2-apache/apache2/error.log'
+logfile: "tests/logs/modsec2-apache/apache2/error.log"
 logtype:
-  name: 'apache'
+  name: "apache"
   timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
-  timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
+  timeformat: "ddd MMM DD HH:mm:ss.S YYYY"
   ignore:
-    '920400-1': 'This test result must be ignored'
+    "920400-1": "This test result must be ignored"
 `
 
 var yamlConfigOverride = `
 ---
-logfile: 'tests/logs/modsec2-apache/apache2/error.log'
+logfile: "tests/logs/modsec2-apache/apache2/error.log"
 logtype:
-  name: 'apache'
-  timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
-  timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
+  name: "apache"
+  timeregex: '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
+  timeformat: "ddd MMM DD HH:mm:ss.S YYYY"
 testoverride:
   input:
-    dest_addr: 'httpbin.org'
-    port: '80'
-    protocol: 'http'
+    dest_addr: "TEST_ADDR"
+    port: TEST_PORT
+    protocol: "http"
 `
 
 var yamlBrokenConfigOverride = `
 ---
-logfile: 'tests/logs/modsec2-apache/apache2/error.log'
+logfile: "tests/logs/modsec2-apache/apache2/error.log"
 logtype:
-  name: 'apache'
+  name: "apache"
   timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
-  timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
+  timeformat: "ddd MMM DD HH:mm:ss.S YYYY"
 testoverride:
   input:
-    dest_addr: 'httpbin.org'
-    port: '80'
-    this_does_not_exist: 'test'
+    dest_addr: "TEST_ADDR"
+    port: TEST_PORT
+    this_does_not_exist: "test"
 `
 
 var yamlCloudConfig = `
@@ -79,12 +79,12 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: "httpbin.org"
-            port: 80
+            dest_addr: "TEST_ADDR"
+            port: TEST_PORT
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
               Accept: "*/*"
-              Host: "httpbin.org"
+              Host: "TEST_ADDR"
           output:
             expect_error: False
             status: [200]
@@ -92,7 +92,7 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: TEST_ADDR
+            dest_addr: "TEST_ADDR"
             port: TEST_PORT
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
@@ -104,7 +104,7 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: TEST_ADDR
+            dest_addr: "TEST_ADDR"
             port: TEST_PORT
             version: "HTTP/1.1"
             method: "OTHER"
@@ -115,11 +115,11 @@ tests:
           output:
             response_contains: "Hello, client"
   - test_title: "101"
-    description: "this tests exceptions"
+    description: "this tests exceptions (connection timeout)"
     stages:
       - stage:
           input:
-            dest_addr: "1.1.1.1"
+            dest_addr: "TEST_ADDR"
             port: 8090
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
@@ -128,17 +128,17 @@ tests:
           output:
             expect_error: True
   - test_title: "102"
-    description: this tests exceptions
+    description: "this tests exceptions (connection timeout)"
     stages:
       - stage:
           input:
-            dest_addr: "1.1.1.1"
+            dest_addr: "TEST_ADDR"
             port: 8090
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
               Host: "none.host"
               Accept: "*/*"
-            encoded_request: 'UE9TVCAvaW5kZXguaHRtbCBIVFRQLzEuMQ0KSG9zdDogMTkyLjE2OC4xLjIzDQpVc2VyLUFnZW50OiBjdXJsLzcuNDMuMA0KQWNjZXB0OiAqLyoNCkNvbnRlbnQtTGVuZ3RoOiA2NA0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi94LXd3dy1mb3JtLXVybGVuY29kZWQNCkNvbm5lY3Rpb246IGNsb3NlDQoNCmQ9MTsyOzM7NDs1XG4xO0BTVU0oMSsxKSpjbWR8JyBwb3dlcnNoZWxsIElFWCh3Z2V0IDByLnBlL3ApJ1whQTA7Mw=='
+            encoded_request: "UE9TVCAvaW5kZXguaHRtbCBIVFRQLzEuMQ0KSG9zdDogMTkyLjE2OC4xLjIzDQpVc2VyLUFnZW50OiBjdXJsLzcuNDMuMA0KQWNjZXB0OiAqLyoNCkNvbnRlbnQtTGVuZ3RoOiA2NA0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi94LXd3dy1mb3JtLXVybGVuY29kZWQNCkNvbm5lY3Rpb246IGNsb3NlDQoNCmQ9MTsyOzM7NDs1XG4xO0BTVU0oMSsxKSpjbWR8JyBwb3dlcnNoZWxsIElFWCh3Z2V0IDByLnBlL3ApJ1whQTA7Mw=="
           output:
             expect_error: True
 `
@@ -158,11 +158,11 @@ tests:
       -
         stage:
           input:
-            dest_addr: "test.me"
-            port: 8080
+            dest_addr: "TEST_ADDR"
+            port: TEST_PORT
             headers:
                 User-Agent: "ModSecurity CRS 3 Tests"
-                Host: "httpbin.org"
+                Host: "TEST_ADDR"
           output:
             expect_error: False
             status: [200]
@@ -183,11 +183,11 @@ tests:
       -
         stage:
           input:
-            dest_addr: "httpbin.org"
-            port: 80
+            dest_addr: "TEST_ADDR"
+            port: TEST_PORT
             headers:
                 User-Agent: "ModSecurity CRS 3 Tests"
-                Host: "httpbin.org"
+                Host: "TEST_ADDR"
           output:
             status: [1234]
 `
@@ -203,7 +203,7 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: TEST_ADDR
+            dest_addr: "TEST_ADDR"
             port: TEST_PORT
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
@@ -215,7 +215,7 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: TEST_ADDR
+            dest_addr: "TEST_ADDR"
             port: TEST_PORT
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
@@ -237,7 +237,7 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: TEST_ADDR
+            dest_addr: "TEST_ADDR"
             port: TEST_PORT
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
@@ -283,7 +283,6 @@ func TestRun(t *testing.T) {
 		t.Fatalf("Failed to parse destination")
 	}
 	yamlTestContent := replaceLocalhostWithTestServer(yamlTest, *d)
-
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
@@ -291,7 +290,10 @@ func TestRun(t *testing.T) {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
 
-	tests, _ := test.GetTestsFromFiles(filename)
+	tests, err := test.GetTestsFromFiles(filename)
+	if err != nil {
+		t.Error(err)
+	}
 
 	t.Run("showtime and execute all", func(t *testing.T) {
 		if res := Run("", "", true, false, tests); res > 0 {
@@ -338,21 +340,38 @@ func TestRun(t *testing.T) {
 func TestOverrideRun(t *testing.T) {
 	// This is an integration test, and depends on having the waf up for checking logs
 	// We might use it to check for error, so we don't need anything up and running
-	err := config.NewConfigFromString(yamlConfigOverride)
+
+	// setup test webserver (not a waf)
+	server := newTestServer()
+	d, err := ftwhttp.DestinationFromString(server.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse destination")
+	}
+	patchedConfig := replaceLocalhostWithTestServer(yamlConfigOverride, *d)
+	err = config.NewConfigFromString(patchedConfig)
 	if err != nil {
 		t.Errorf("Failed!")
 	}
 	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
 	config.FTWConfig.LogFile = logName
 
-	filename, err := utils.CreateTempFileWithContent(yamlTestOverride, "goftw-test-*.yaml")
+	// replace host and port with values that an be overridden by config
+	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
+	if err != nil {
+		t.Fatalf("Failed to parse fake destination")
+	}
+	yamlTestContent := replaceLocalhostWithTestServer(yamlTestOverride, *fakeDestination)
+	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
 
-	tests, _ := test.GetTestsFromFiles(filename)
+	tests, err := test.GetTestsFromFiles(filename)
+	if err != nil {
+		t.Error(err)
+	}
 
 	t.Run("override and execute all", func(t *testing.T) {
 		if res := Run("", "", false, true, tests); res > 0 {
@@ -368,22 +387,41 @@ func TestOverrideRun(t *testing.T) {
 func TestBrokenOverrideRun(t *testing.T) {
 	// This is an integration test, and depends on having the waf up for checking logs
 	// We might use it to check for error, so we don't need anything up and running
-	err := config.NewConfigFromString(yamlBrokenConfigOverride)
+
+	// setup test webserver (not a waf)
+	server := newTestServer()
+	d, err := ftwhttp.DestinationFromString(server.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse destination")
+	}
+
+	patchedConfig := replaceLocalhostWithTestServer(yamlBrokenConfigOverride, *d)
+	err = config.NewConfigFromString(patchedConfig)
 	if err != nil {
 		t.Errorf("Failed!")
 	}
 	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
 	config.FTWConfig.LogFile = logName
 
-	filename, err := utils.CreateTempFileWithContent(yamlTestOverride, "goftw-test-*.yaml")
+	// replace host and port with values that an be overridden by config
+	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
+	if err != nil {
+		t.Fatalf("Failed to parse fake destination")
+	}
+	yamlTestContent := replaceLocalhostWithTestServer(yamlTestOverride, *fakeDestination)
+	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
 
-	tests, _ := test.GetTestsFromFiles(filename)
+	tests, err := test.GetTestsFromFiles(filename)
+	if err != nil {
+		t.Error(err)
+	}
 
+	// the test should succeed, despite the unknown override property
 	t.Run("showtime and execute all", func(t *testing.T) {
 		if res := Run("", "", false, true, tests); res > 0 {
 			t.Error("Oops, test run failed!")
@@ -396,8 +434,6 @@ func TestBrokenOverrideRun(t *testing.T) {
 }
 
 func TestDisabledRun(t *testing.T) {
-	// This is an integration test, and depends on having the waf up for checking logs
-	// We might use it to check for error, so we don't need anything up and running
 	err := config.NewConfigFromString(yamlConfig)
 	if err != nil {
 		t.Errorf("Failed!")
@@ -405,14 +441,22 @@ func TestDisabledRun(t *testing.T) {
 	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
 	config.FTWConfig.LogFile = logName
 
-	filename, err := utils.CreateTempFileWithContent(yamlDisabledTest, "goftw-test-*.yaml")
+	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
+	if err != nil {
+		t.Fatalf("Failed to parse fake destination")
+	}
+	yamlTestContent := replaceLocalhostWithTestServer(yamlDisabledTest, *fakeDestination)
+	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
 
-	tests, _ := test.GetTestsFromFiles(filename)
+	tests, err := test.GetTestsFromFiles(filename)
+	if err != nil {
+		t.Error(err)
+	}
 
 	t.Run("showtime and execute all", func(t *testing.T) {
 		if res := Run("*", "", false, true, tests); res > 0 {
@@ -428,21 +472,34 @@ func TestDisabledRun(t *testing.T) {
 func TestLogsRun(t *testing.T) {
 	// This is an integration test, and depends on having the waf up for checking logs
 	// We might use it to check for error, so we don't need anything up and running
-	err := config.NewConfigFromString(yamlConfig)
+
+	// setup test webserver (not a waf)
+	server := newTestServer()
+	d, err := ftwhttp.DestinationFromString(server.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse destination")
+	}
+
+	patchedConfig := replaceLocalhostWithTestServer(yamlConfig, *d)
+	err = config.NewConfigFromString(patchedConfig)
 	if err != nil {
 		t.Errorf("Failed!")
 	}
 	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
 	config.FTWConfig.LogFile = logName
 
-	filename, err := utils.CreateTempFileWithContent(yamlTestLogs, "goftw-test-*.yaml")
+	yamlTestContent := replaceLocalhostWithTestServer(yamlTestLogs, *d)
+	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
 
-	tests, _ := test.GetTestsFromFiles(filename)
+	tests, err := test.GetTestsFromFiles(filename)
+	if err != nil {
+		t.Error(err)
+	}
 
 	t.Run("showtime and execute all", func(t *testing.T) {
 		if res := Run("", "", false, true, tests); res > 0 {
@@ -462,15 +519,26 @@ func TestCloudRun(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed!")
 	}
-
-	filename, err := utils.CreateTempFileWithContent(yamlTestLogs, "goftw-test-*.yaml")
+	server := newTestServer()
+	d, err := ftwhttp.DestinationFromString(server.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse destination")
+	}
+	if err != nil {
+		t.Fatalf("Failed to parse fake destination")
+	}
+	yamlTestContent := replaceLocalhostWithTestServer(yamlTestLogs, *d)
+	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
 
-	tests, _ := test.GetTestsFromFiles(filename)
+	tests, err := test.GetTestsFromFiles(filename)
+	if err != nil {
+		t.Error(err)
+	}
 
 	t.Run("showtime and execute all", func(t *testing.T) {
 		if res := Run("", "", false, true, tests); res > 0 {
@@ -499,7 +567,6 @@ func TestFailedTestsRun(t *testing.T) {
 		t.Fatalf("Failed to parse destination")
 	}
 	yamlTestContent := replaceLocalhostWithTestServer(yamlFailedTest, *d)
-
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
