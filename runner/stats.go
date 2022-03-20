@@ -57,7 +57,7 @@ func printSummary(quiet bool, stats TestStats) int {
 	if !quiet {
 		if stats.Run > 0 {
 			emoji.Printf(":plus:run %d total tests in %s\n", stats.Run, stats.RunTime)
-			emoji.Printf(":next_track_button: skept %d tests\n", len(stats.Skipped))
+			emoji.Printf(":next_track_button: skipped %d tests\n", len(stats.Skipped))
 			if len(stats.Ignored) > 0 {
 				emoji.Printf(":index_pointing_up: ignored %d tests\n", len(stats.Ignored))
 			}

@@ -13,6 +13,7 @@ import (
 	"github.com/fzipi/go-ftw/test"
 	"github.com/fzipi/go-ftw/utils"
 	"github.com/fzipi/go-ftw/waflog"
+	"github.com/google/uuid"
 
 	"github.com/kyokomi/emoji"
 	"github.com/rs/zerolog/log"
@@ -31,7 +32,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 
 	client := ftwhttp.NewClient()
 
-	for testIndex, tests := range ftwtests {
+	for _, tests := range ftwtests {
 		changed := true
 		for _, t := range tests.Tests {
 			// if we received a particular testid, skip until we find it
@@ -49,7 +50,8 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 			// can we use goroutines here?
 			printUnlessQuietMode(output, "\trunning %s: ", t.TestTitle)
 			// Iterate over stages
-			for stageIndex, stage := range t.Stages {
+			for _, stage := range t.Stages {
+				stageId := uuid.NewString()
 				// Apply global overrides initially
 				testRequest := stage.Stage.Input
 				err := applyInputOverride(&testRequest)
@@ -81,27 +83,34 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 					Protocol: testRequest.GetProtocol(),
 				}
 
-				err = client.NewConnection(*dest)
-
+				startMarker, err := markAndFlush(client, dest, stageId)
 				if err != nil && !expectedOutput.ExpectError {
-					log.Fatal().Msgf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+					log.Fatal().Caller().Err(err).Msg("Failed to find start marker")
 				}
-
-				startMarker := markAndFlush(client, dest, config.FTWConfig, testIndex, stageIndex)
 				ftwcheck.SetStartMarker(startMarker)
 
 				req = getRequestFromTest(testRequest)
 
+				err = client.NewConnection(*dest)
+
+				if err != nil && !expectedOutput.ExpectError {
+					log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+				}
 				client.StartTrackingTime()
 
 				response, err := client.Do(*req)
 
 				client.StopTrackingTime()
+				if err != nil && !expectedOutput.ExpectError {
+					log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+				}
 
-				endMarker := markAndFlush(client, dest, config.FTWConfig, testIndex, stageIndex)
+				endMarker, err := markAndFlush(client, dest, stageId)
+				if err != nil && !expectedOutput.ExpectError {
+					log.Fatal().Caller().Err(err).Msg("Failed to find end marker")
+
+				}
 				ftwcheck.SetEndMarker(endMarker)
-
-				ftwcheck.SetRoundTripTime(client.GetRoundTripTime().StartTime(), client.GetRoundTripTime().StopTime())
 
 				// Set expected test output in check
 				ftwcheck.SetExpectTestOutput(&expectedOutput)
@@ -125,16 +134,10 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 	return printSummary(output, stats)
 }
 
-func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, ftwConfig *config.FTWConfiguration, testIndex int, stageIndex int) string {
+func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, stageId string) ([]byte, error) {
 	var req *ftwhttp.Request
 	var logLines = &waflog.FTWLogLines{
-		FileName:     ftwConfig.LogFile,
-		TimeRegex:    ftwConfig.LogType.TimeRegex,
-		TimeFormat:   ftwConfig.LogType.TimeFormat,
-		Since:        time.Now(),
-		Until:        time.Now(),
-		TimeTruncate: ftwConfig.LogType.TimeTruncate,
-		LogTruncate:  ftwConfig.LogTruncate,
+		FileName: config.FTWConfig.LogFile,
 	}
 
 	rline := &ftwhttp.RequestLine{
@@ -143,30 +146,34 @@ func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, ftwConfig *
 		Version: "HTTP/1.0",
 	}
 
-	stageId := fmt.Sprintf("%d-%d", testIndex, stageIndex)
-	headers := &ftwhttp.Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost", "X-CRS-Test": stageId}
+	headers := &ftwhttp.Header{
+		"Accept":                             "*/*",
+		"User-Agent":                         "go-ftw test agent",
+		"Host":                               "localhost",
+		config.FTWConfig.LogMarkerHeaderName: stageId,
+	}
 
-	req = ftwhttp.NewRequest(rline, *headers,
-		nil, true)
+	req = ftwhttp.NewRequest(rline, *headers, nil, true)
 
+	// 20 is a very conservative number. The web server should flush its
+	// buffer a lot earlier but we have absolutely no control over that.
 	for range [20]int{} {
 		err := client.NewConnection(*dest)
 		if err != nil {
-			log.Fatal().Msgf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
 		}
 
 		_, err = client.Do(*req)
 		if err != nil {
-			log.Fatal().Msgf("ftw/run: failed sending request to %+v - unexpected error found. Is your waf running?", dest)
+			return nil, fmt.Errorf("ftw/run: failed sending request to %+v - unexpected error found. Is your waf running?", dest)
 		}
 
-		marker, found := logLines.CheckLogForMarker(stageId)
-		if found {
-			return marker
+		marker := logLines.CheckLogForMarker(stageId)
+		if marker != nil {
+			return marker, nil
 		}
 	}
-	log.Fatal().Msgf("Can't find log marker. Am I reading the correct log? Log file: %s", ftwConfig.LogFile)
-	return ""
+	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", logLines.FileName)
 }
 
 func needToSkipTest(include string, exclude string, title string, enabled bool) bool {

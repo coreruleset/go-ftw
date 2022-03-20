@@ -2,14 +2,12 @@ package runner
 
 import (
 	"fmt"
-	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/ftwhttp"
@@ -19,22 +17,13 @@ import (
 
 var yamlConfig = `
 ---
-logfile: "tests/logs/modsec2-apache/apache2/error.log"
-logtype:
-  name: "apache"
-  timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
-  timeformat: "ddd MMM DD HH:mm:ss.S YYYY"
+testoverride:
   ignore:
     "920400-1": "This test result must be ignored"
 `
 
 var yamlConfigOverride = `
 ---
-logfile: "tests/logs/modsec2-apache/apache2/error.log"
-logtype:
-  name: "apache"
-  timeregex: '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
-  timeformat: "ddd MMM DD HH:mm:ss.S YYYY"
 testoverride:
   input:
     dest_addr: "TEST_ADDR"
@@ -44,11 +33,6 @@ testoverride:
 
 var yamlBrokenConfigOverride = `
 ---
-logfile: "tests/logs/modsec2-apache/apache2/error.log"
-logtype:
-  name: "apache"
-  timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
-  timeformat: "ddd MMM DD HH:mm:ss.S YYYY"
 testoverride:
   input:
     dest_addr: "TEST_ADDR"
@@ -250,20 +234,60 @@ tests:
 `
 
 // Error checking omitted for brevity
-func newTestServer(logFilePath string) *httptest.Server {
+func newTestServer(t *testing.T, logLines string) (destination *ftwhttp.Destination, logFilePath string) {
+	// log to the configured file
+	if config.FTWConfig != nil {
+		logFilePath = config.FTWConfig.LogFile
+	}
+	// if no file has been configured, create one and handle cleanup
+	if logFilePath == "" {
+		file, err := os.CreateTemp("", "go-ftw-test-*.log")
+		if err != nil {
+			t.Error(err)
+		}
+		logFilePath = file.Name()
+		t.Cleanup(func() {
+			os.Remove(logFilePath)
+		})
+	}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte("Hello, client"))
 
-		logMessage := fmt.Sprintf("%d, request line: %s %s %s, headers: %s", time.Now().UnixMicro(), r.Method, r.RequestURI, r.Proto, r.Header)
-		os.WriteFile(logFilePath, []byte(logMessage), fs.ModeAppend)
+		// write supplied log lines, emulating the output of the rule engine
+		logMessage := logLines
+		// if the request has the special test header, log the request instead
+		// this emulates the log marker rule
+		if r.Header.Get(config.FTWConfig.LogMarkerHeaderName) != "" {
+			logMessage = fmt.Sprintf("request line: %s %s %s, headers: %s\n", r.Method, r.RequestURI, r.Proto, r.Header)
+		}
+		file, err := os.OpenFile(logFilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
+		if err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
+		defer file.Close()
+
+		_, err = file.WriteString(logMessage)
+		if err != nil {
+			t.Error(err)
+			t.FailNow()
+		}
+
 	}))
 
-	return ts
+	// close server after test
+	t.Cleanup(ts.Close)
+
+	dest, err := ftwhttp.DestinationFromString(ts.URL)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	return dest, logFilePath
 }
 
-// replace localhost or 127.0.0.1 in tests with test url
-func replaceLocalhostWithTestServer(yaml string, d ftwhttp.Destination) string {
+func replaceDestination(yaml string, d ftwhttp.Destination) string {
 	destChanged := strings.ReplaceAll(yaml, "TEST_ADDR", d.DestAddr)
 	replacedYaml := strings.ReplaceAll(destChanged, "TEST_PORT", strconv.Itoa(d.Port))
 
@@ -271,36 +295,31 @@ func replaceLocalhostWithTestServer(yaml string, d ftwhttp.Destination) string {
 }
 
 func TestRun(t *testing.T) {
-	// This is an integration test, and depends on having the waf up for checking logs
-	// We might use it to check for error, so we don't need anything up and running
 	err := config.NewConfigFromString(yamlConfig)
 	if err != nil {
 		t.Errorf("Failed!")
 	}
-	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
-	config.FTWConfig.LogFile = logName
 
 	// setup test webserver (not a waf)
-	//FIXME: some of these requests will not go to the test server so they won't be logged and we won't be able to check the log
-	server := newTestServer(logName)
-	d, err := ftwhttp.DestinationFromString(server.URL)
-	if err != nil {
-		t.Fatalf("Failed to parse destination")
-	}
-	yamlTestContent := replaceLocalhostWithTestServer(yamlTest, *d)
+	dest, logFilePath := newTestServer(t, logText)
+	config.FTWConfig.LogFile = logFilePath
+	yamlTestContent := replaceDestination(yamlTest, *dest)
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
+	t.Cleanup(func() {
+		os.Remove(filename)
+	})
 
 	tests, err := test.GetTestsFromFiles(filename)
 	if err != nil {
 		t.Error(err)
 	}
 
-	t.Run("showtime and execute all", func(t *testing.T) {
+	t.Run("show time and execute all", func(t *testing.T) {
 		if res := Run("", "", true, false, tests); res > 0 {
 			t.Errorf("Oops, %d tests failed to run!", res)
 		}
@@ -312,7 +331,7 @@ func TestRun(t *testing.T) {
 		}
 	})
 
-	t.Run("don't showtime and execute all", func(t *testing.T) {
+	t.Run("don't show time and execute all", func(t *testing.T) {
 		if res := Run("0*", "", false, false, tests); res > 0 {
 			t.Error("Oops, test run failed!")
 		}
@@ -335,43 +354,33 @@ func TestRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
-
-	// Clean up
-	server.Close()
-	os.Remove(logName)
-	os.Remove(filename)
 }
 
 func TestOverrideRun(t *testing.T) {
-	// This is an integration test, and depends on having the waf up for checking logs
-	// We might use it to check for error, so we don't need anything up and running
-
 	// setup test webserver (not a waf)
-	server := newTestServer()
-	d, err := ftwhttp.DestinationFromString(server.URL)
-	if err != nil {
-		t.Fatalf("Failed to parse destination")
-	}
-	patchedConfig := replaceLocalhostWithTestServer(yamlConfigOverride, *d)
-	err = config.NewConfigFromString(patchedConfig)
+	dest, logFilePath := newTestServer(t, logText)
+	patchedConfig := replaceDestination(yamlConfigOverride, *dest)
+	err := config.NewConfigFromString(patchedConfig)
 	if err != nil {
 		t.Errorf("Failed!")
 	}
-	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
-	config.FTWConfig.LogFile = logName
+	config.FTWConfig.LogFile = logFilePath
 
 	// replace host and port with values that an be overridden by config
 	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
 	if err != nil {
 		t.Fatalf("Failed to parse fake destination")
 	}
-	yamlTestContent := replaceLocalhostWithTestServer(yamlTestOverride, *fakeDestination)
+	yamlTestContent := replaceDestination(yamlTestOverride, *fakeDestination)
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
+	t.Cleanup(func() {
+		os.Remove(filename)
+	})
 
 	tests, err := test.GetTestsFromFiles(filename)
 	if err != nil {
@@ -383,43 +392,34 @@ func TestOverrideRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
-
-	// Clean up
-	os.Remove(logName)
-	os.Remove(filename)
 }
 
 func TestBrokenOverrideRun(t *testing.T) {
-	// This is an integration test, and depends on having the waf up for checking logs
-	// We might use it to check for error, so we don't need anything up and running
-
 	// setup test webserver (not a waf)
-	server := newTestServer()
-	d, err := ftwhttp.DestinationFromString(server.URL)
-	if err != nil {
-		t.Fatalf("Failed to parse destination")
-	}
+	dest, logFilePath := newTestServer(t, logText)
 
-	patchedConfig := replaceLocalhostWithTestServer(yamlBrokenConfigOverride, *d)
-	err = config.NewConfigFromString(patchedConfig)
+	patchedConfig := replaceDestination(yamlBrokenConfigOverride, *dest)
+	err := config.NewConfigFromString(patchedConfig)
 	if err != nil {
 		t.Errorf("Failed!")
 	}
-	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
-	config.FTWConfig.LogFile = logName
+	config.FTWConfig.LogFile = logFilePath
 
 	// replace host and port with values that an be overridden by config
 	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
 	if err != nil {
 		t.Fatalf("Failed to parse fake destination")
 	}
-	yamlTestContent := replaceLocalhostWithTestServer(yamlTestOverride, *fakeDestination)
+	yamlTestContent := replaceDestination(yamlTestOverride, *fakeDestination)
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
+	t.Cleanup(func() {
+		os.Remove(filename)
+	})
 
 	tests, err := test.GetTestsFromFiles(filename)
 	if err != nil {
@@ -432,10 +432,6 @@ func TestBrokenOverrideRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
-
-	// Clean up
-	os.Remove(logName)
-	os.Remove(filename)
 }
 
 func TestDisabledRun(t *testing.T) {
@@ -443,20 +439,21 @@ func TestDisabledRun(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed!")
 	}
-	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
-	config.FTWConfig.LogFile = logName
 
 	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
 	if err != nil {
 		t.Fatalf("Failed to parse fake destination")
 	}
-	yamlTestContent := replaceLocalhostWithTestServer(yamlDisabledTest, *fakeDestination)
+	yamlTestContent := replaceDestination(yamlDisabledTest, *fakeDestination)
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
+	t.Cleanup(func() {
+		os.Remove(filename)
+	})
 
 	tests, err := test.GetTestsFromFiles(filename)
 	if err != nil {
@@ -468,38 +465,29 @@ func TestDisabledRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
-
-	// Clean up
-	os.Remove(logName)
-	os.Remove(filename)
 }
 
 func TestLogsRun(t *testing.T) {
-	// This is an integration test, and depends on having the waf up for checking logs
-	// We might use it to check for error, so we don't need anything up and running
-
 	// setup test webserver (not a waf)
-	server := newTestServer()
-	d, err := ftwhttp.DestinationFromString(server.URL)
-	if err != nil {
-		t.Fatalf("Failed to parse destination")
-	}
+	dest, logFilePath := newTestServer(t, logText)
 
-	patchedConfig := replaceLocalhostWithTestServer(yamlConfig, *d)
-	err = config.NewConfigFromString(patchedConfig)
+	patchedConfig := replaceDestination(yamlConfig, *dest)
+	err := config.NewConfigFromString(patchedConfig)
 	if err != nil {
 		t.Errorf("Failed!")
 	}
-	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
-	config.FTWConfig.LogFile = logName
+	config.FTWConfig.LogFile = logFilePath
 
-	yamlTestContent := replaceLocalhostWithTestServer(yamlTestLogs, *d)
+	yamlTestContent := replaceDestination(yamlTestLogs, *dest)
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
+	t.Cleanup(func() {
+		os.Remove(filename)
+	})
 
 	tests, err := test.GetTestsFromFiles(filename)
 	if err != nil {
@@ -511,34 +499,26 @@ func TestLogsRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
-
-	// Clean up
-	os.Remove(logName)
-	os.Remove(filename)
 }
 
 func TestCloudRun(t *testing.T) {
-	// This is an integration test, and depends on having the waf up for checking logs
-	// We might use it to check for error, so we don't need anything up and running
+	t.Skip("The test server currently has no facility to return status codes based on the requirements of a single test case")
 	err := config.NewConfigFromString(yamlCloudConfig)
 	if err != nil {
 		t.Errorf("Failed!")
 	}
-	server := newTestServer()
-	d, err := ftwhttp.DestinationFromString(server.URL)
-	if err != nil {
-		t.Fatalf("Failed to parse destination")
-	}
-	if err != nil {
-		t.Fatalf("Failed to parse fake destination")
-	}
-	yamlTestContent := replaceLocalhostWithTestServer(yamlTestLogs, *d)
+	dest, logFilePath := newTestServer(t, logText)
+	config.FTWConfig.LogFile = logFilePath
+	yamlTestContent := replaceDestination(yamlTestLogs, *dest)
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
 		fmt.Printf("Using testfile %s\n", filename)
 	}
+	t.Cleanup(func() {
+		os.Remove(filename)
+	})
 
 	tests, err := test.GetTestsFromFiles(filename)
 	if err != nil {
@@ -550,29 +530,24 @@ func TestCloudRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
-
-	// Clean up
-	os.Remove(filename)
 }
 
 func TestFailedTestsRun(t *testing.T) {
-	// This is an integration test, and depends on having the waf up for checking logs
-	// We might use it to check for error, so we don't need anything up and running
 	err := config.NewConfigFromString(yamlConfig)
 	if err != nil {
 		t.Errorf("Failed!")
 	}
-	logName, _ := utils.CreateTempFileWithContent(logText, "test-apache-*.log")
-	config.FTWConfig.LogFile = logName
 
 	// setup test webserver (not a waf)
-	server := newTestServer(logName)
-	d, err := ftwhttp.DestinationFromString(server.URL)
-	if err != nil {
-		t.Fatalf("Failed to parse destination")
-	}
-	yamlTestContent := replaceLocalhostWithTestServer(yamlFailedTest, *d)
+	dest, logFilePath := newTestServer(t, logText)
+
+	config.FTWConfig.LogFile = logFilePath
+	yamlTestContent := replaceDestination(yamlFailedTest, *dest)
 	filename, err := utils.CreateTempFileWithContent(yamlTestContent, "goftw-test-*.yaml")
+	t.Cleanup(func() {
+		os.Remove(filename)
+	})
+
 	if err != nil {
 		t.Fatalf("Failed!: %s\n", err.Error())
 	} else {
@@ -589,9 +564,4 @@ func TestFailedTestsRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
-
-	// Clean up
-	server.Close()
-	os.Remove(logName)
-	os.Remove(filename)
 }
