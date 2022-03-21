@@ -2,6 +2,7 @@ package runner
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"time"
@@ -35,6 +36,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 			// if we received a particular testid, skip until we find it
 			if needToSkipTest(include, exclude, t.TestTitle, tests.Meta.Enabled) {
 				addResultToStats(Skipped, t.TestTitle, &stats)
+				printUnlessQuietMode(output, "Skipping test %s\n", t.TestTitle)
 				continue
 			}
 			// this is just for printing once the next text
@@ -116,7 +118,21 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 	return printSummary(output, stats)
 }
 
-func needToSkipTest(include string, exclude string, title string, skip bool) bool {
+func needToSkipTest(include string, exclude string, title string, enabled bool) bool {
+	// skip disabled tests
+	if !enabled {
+		return true
+	}
+
+	// never skip enabled explicit inclusions
+	if include != "" {
+		ok, err := regexp.MatchString(include, title)
+		if ok && err == nil {
+			// inclusion always wins over exclusion
+			return false
+		}
+	}
+
 	result := false
 	// if we need to exclude tests, and the title matches,
 	// it needs to be skipped
@@ -136,10 +152,6 @@ func needToSkipTest(include string, exclude string, title string, skip bool) boo
 		}
 	}
 
-	// if the test itself is disabled, needs to be skipped
-	if !skip {
-		result = true
-	}
 	return result
 }
 
@@ -268,7 +280,7 @@ func applyInputOverride(testRequest *test.Input) error {
 			oProtocol := &value
 			testRequest.Protocol = oProtocol
 		default:
-			retErr = errors.New("ftw/run: override setting not implemented yet")
+			retErr = fmt.Errorf("ftw/run: override of '%s' not implemented yet", s)
 		}
 	}
 	return retErr
