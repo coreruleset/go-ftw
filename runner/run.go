@@ -36,7 +36,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 			// if we received a particular testid, skip until we find it
 			if needToSkipTest(include, exclude, t.TestTitle, tests.Meta.Enabled) {
 				addResultToStats(Skipped, t.TestTitle, &stats)
-				log.Info().Msgf("Skipping test %s", t.TestTitle)
+				printUnlessQuietMode(output, "Skipping test %s\n", t.TestTitle)
 				continue
 			}
 			// this is just for printing once the next text
