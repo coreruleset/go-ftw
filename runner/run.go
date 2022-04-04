@@ -19,119 +19,146 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type testRun struct {
+	Include  string
+	Exclude  string
+	ShowTime bool
+	Output   bool
+	Stats    TestStats
+	Result   TestResult
+	Duration time.Duration
+	Client   *ftwhttp.Client
+}
+
 // Run runs your tests
 // testid is the name of the unique test you want to run
 // exclude is a regexp that matches the test name: e.g. "920*", excludes all tests starting with "920"
 // Returns error if some test failed
-func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) int {
-	var testResult TestResult
-	var stats TestStats
-	var duration time.Duration
-
+func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) testRun {
 	printUnlessQuietMode(output, ":rocket:Running go-ftw!\n")
 
 	client := ftwhttp.NewClient()
-
-	for _, tests := range ftwtests {
-		changed := true
-		for _, t := range tests.Tests {
-			// if we received a particular testid, skip until we find it
-			if needToSkipTest(include, exclude, t.TestTitle, tests.Meta.Enabled) {
-				addResultToStats(Skipped, t.TestTitle, &stats)
-				printUnlessQuietMode(output, "Skipping test %s\n", t.TestTitle)
-				continue
-			}
-			// this is just for printing once the next text
-			if changed {
-				printUnlessQuietMode(output, ":point_right:executing tests in file %s\n", tests.Meta.Name)
-				changed = false
-			}
-
-			// can we use goroutines here?
-			printUnlessQuietMode(output, "\trunning %s: ", t.TestTitle)
-			// Iterate over stages
-			for _, stage := range t.Stages {
-				stageId := uuid.NewString()
-				// Apply global overrides initially
-				testRequest := stage.Stage.Input
-				err := applyInputOverride(&testRequest)
-				if err != nil {
-					log.Debug().Msgf("ftw/run: problem overriding input: %s", err.Error())
-				}
-				expectedOutput := stage.Stage.Output
-
-				// Check sanity first
-				if checkTestSanity(testRequest) {
-					log.Fatal().Msgf("ftw/run: bad test: choose between data, encoded_request, or raw_request")
-				}
-
-				// Create a new check
-				ftwcheck := check.NewCheck(config.FTWConfig)
-
-				// Do not even run test if result is overriden. Just use the override.
-				if overriden := overridenTestResult(ftwcheck, t.TestTitle); overriden != Failed {
-					addResultToStats(overriden, t.TestTitle, &stats)
-					continue
-				}
-
-				var req *ftwhttp.Request
-
-				// Destination is needed for an request
-				dest := &ftwhttp.Destination{
-					DestAddr: testRequest.GetDestAddr(),
-					Port:     testRequest.GetPort(),
-					Protocol: testRequest.GetProtocol(),
-				}
-
-				startMarker, err := markAndFlush(client, dest, stageId)
-				if err != nil && !expectedOutput.ExpectError {
-					log.Fatal().Caller().Err(err).Msg("Failed to find start marker")
-				}
-				ftwcheck.SetStartMarker(startMarker)
-
-				req = getRequestFromTest(testRequest)
-
-				err = client.NewConnection(*dest)
-
-				if err != nil && !expectedOutput.ExpectError {
-					log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
-				}
-				client.StartTrackingTime()
-
-				response, err := client.Do(*req)
-
-				client.StopTrackingTime()
-				if err != nil && !expectedOutput.ExpectError {
-					log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
-				}
-
-				endMarker, err := markAndFlush(client, dest, stageId)
-				if err != nil && !expectedOutput.ExpectError {
-					log.Fatal().Caller().Err(err).Msg("Failed to find end marker")
-
-				}
-				ftwcheck.SetEndMarker(endMarker)
-
-				// Set expected test output in check
-				ftwcheck.SetExpectTestOutput(&expectedOutput)
-
-				// now get the test result based on output
-				testResult = checkResult(ftwcheck, response, err)
-
-				duration = client.GetRoundTripTime().RoundTripDuration()
-
-				addResultToStats(testResult, t.TestTitle, &stats)
-
-				// show the result unless quiet was passed in the command line
-				displayResult(output, testResult, duration)
-
-				stats.Run++
-				stats.RunTime += duration
-			}
-		}
+	currentRun := testRun{
+		Include:  include,
+		Exclude:  exclude,
+		ShowTime: showTime,
+		Output:   output,
+		Client:   client,
 	}
 
-	return printSummary(output, stats)
+	for _, test := range ftwtests {
+		RunTest(&currentRun, test)
+	}
+
+	printSummary(output, currentRun.Stats)
+
+	return currentRun
+}
+
+func RunTest(currentRun *testRun, ftwTest test.FTWTest) {
+	changed := true
+
+	for _, testCase := range ftwTest.Tests {
+		// if we received a particular testid, skip until we find it
+		if needToSkipTest(currentRun.Include, currentRun.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
+			addResultToStats(Skipped, testCase.TestTitle, &currentRun.Stats)
+			printUnlessQuietMode(currentRun.Output, "Skipping test %s\n", testCase.TestTitle)
+			continue
+		}
+		// this is just for printing once the next test
+		if changed {
+			printUnlessQuietMode(currentRun.Output, ":point_right:executing tests in file %s\n", ftwTest.Meta.Name)
+			changed = false
+		}
+
+		// can we use goroutines here?
+		printUnlessQuietMode(currentRun.Output, "\trunning %s: ", testCase.TestTitle)
+		// Iterate over stages
+		for _, stage := range testCase.Stages {
+			RunStage(currentRun, testCase, stage.Stage)
+		}
+	}
+}
+
+func RunStage(currentRun *testRun, testCase test.Test, stage test.Stage) {
+	stageId := uuid.NewString()
+	// Apply global overrides initially
+	testRequest := stage.Input
+	err := applyInputOverride(&testRequest)
+	if err != nil {
+		log.Debug().Msgf("ftw/run: problem overriding input: %s", err.Error())
+	}
+	expectedOutput := stage.Output
+
+	// Check sanity first
+	if checkTestSanity(testRequest) {
+		log.Fatal().Msgf("ftw/run: bad test: choose between data, encoded_request, or raw_request")
+	}
+
+	// Create a new check
+	ftwcheck := check.NewCheck(config.FTWConfig)
+
+	// Do not even run test if result is overriden. Just use the override.
+	if overriden := overridenTestResult(ftwcheck, testCase.TestTitle); overriden != Failed {
+		addResultToStats(overriden, testCase.TestTitle, &currentRun.Stats)
+		return
+	}
+
+	var req *ftwhttp.Request
+
+	// Destination is needed for an request
+	dest := &ftwhttp.Destination{
+		DestAddr: testRequest.GetDestAddr(),
+		Port:     testRequest.GetPort(),
+		Protocol: testRequest.GetProtocol(),
+	}
+
+	startMarker, err := markAndFlush(currentRun.Client, dest, stageId)
+	if err != nil && !expectedOutput.ExpectError {
+		log.Fatal().Caller().Err(err).Msg("Failed to find start marker")
+	}
+	ftwcheck.SetStartMarker(startMarker)
+
+	req = getRequestFromTest(testRequest)
+
+	err = currentRun.Client.NewConnection(*dest)
+
+	if err != nil && !expectedOutput.ExpectError {
+		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+	}
+	currentRun.Client.StartTrackingTime()
+
+	response, err := currentRun.Client.Do(*req)
+
+	currentRun.Client.StopTrackingTime()
+	if err != nil && !expectedOutput.ExpectError {
+		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+	}
+
+	endMarker, err := markAndFlush(currentRun.Client, dest, stageId)
+	if err != nil && !expectedOutput.ExpectError {
+		log.Fatal().Caller().Err(err).Msg("Failed to find end marker")
+
+	}
+	ftwcheck.SetEndMarker(endMarker)
+
+	// Set expected test output in check
+	ftwcheck.SetExpectTestOutput(&expectedOutput)
+
+	// now get the test result based on output
+	testResult := checkResult(ftwcheck, response, err)
+
+	duration := currentRun.Client.GetRoundTripTime().RoundTripDuration()
+
+	addResultToStats(testResult, testCase.TestTitle, &currentRun.Stats)
+
+	currentRun.Result = testResult
+
+	// show the result unless quiet was passed in the command line
+	displayResult(currentRun.Output, testResult, duration)
+
+	currentRun.Stats.Run++
+	currentRun.Stats.RunTime += duration
 }
 
 func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, stageId string) ([]byte, error) {
