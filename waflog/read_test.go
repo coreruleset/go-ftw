@@ -12,10 +12,12 @@ import (
 )
 
 func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
-	config.NewConfigFromEnv()
+	if err := config.NewConfigFromEnv(); err != nil {
+		t.Error(err)
+	}
 
-	stageId := "dead-beaf-deadbeef-deadbeef-dead"
-	markerLine := "X-cRs-TeSt: " + stageId
+	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+	markerLine := "X-cRs-TeSt: " + stageID
 	logLines := `
 [Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 ` + markerLine + `
@@ -33,17 +35,19 @@ func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
 		StartMarker: bytes.ToLower([]byte(markerLine)),
 	}
 
-	marker := ll.CheckLogForMarker(stageId)
+	marker := ll.CheckLogForMarker(stageID)
 	if marker != nil {
 		t.Fatal("unexpectedly found marker")
 	}
 }
 
 func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
-	config.NewConfigFromEnv()
+	if err := config.NewConfigFromEnv(); err != nil {
+		t.Error(err)
+	}
 
-	stageId := "dead-beaf-deadbeef-deadbeef-dead"
-	markerLine := "X-cRs-TeSt: " + stageId
+	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+	markerLine := "X-cRs-TeSt: " + stageID
 	logLines := `
 [Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
@@ -59,7 +63,7 @@ func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
 		FileName: filename,
 	}
 
-	marker := ll.CheckLogForMarker(stageId)
+	marker := ll.CheckLogForMarker(stageID)
 	if marker == nil {
 		t.Fatal("no marker found")
 	}
@@ -69,9 +73,9 @@ func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
 }
 
 func TestReadGetMarkedLines(t *testing.T) {
-	stageId := "dead-beaf-deadbeef-deadbeef-dead"
-	startMarkerLine := "X-cRs-TeSt: " + stageId + " -start"
-	endMarkerLine := "X-cRs-TeSt: " + stageId + " -end"
+	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
+	endMarkerLine := "X-cRs-TeSt: " + stageID + " -end"
 	logLinesOnly :=
 		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
@@ -107,9 +111,9 @@ func TestReadGetMarkedLines(t *testing.T) {
 }
 
 func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
-	stageId := "dead-beaf-deadbeef-deadbeef-dead"
-	startMarkerLine := "X-cRs-TeSt: " + stageId + " -start"
-	endMarkerLine := "X-cRs-TeSt: " + stageId + " -end"
+	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
+	endMarkerLine := "X-cRs-TeSt: " + stageID + " -end"
 	logLinesOnly :=
 		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
@@ -145,9 +149,9 @@ func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
 }
 
 func TestReadGetMarkedLinesWithPrecedingLines(t *testing.T) {
-	stageId := "dead-beaf-deadbeef-deadbeef-dead"
-	startMarkerLine := "X-cRs-TeSt: " + stageId + " -start"
-	endMarkerLine := "X-cRs-TeSt: " + stageId + " -end"
+	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
+	endMarkerLine := "X-cRs-TeSt: " + stageID + " -end"
 	precedingLines :=
 		`[Tue Jan 04 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 	[Tue Jan 04 02:22:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`

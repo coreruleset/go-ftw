@@ -19,26 +19,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type testRun struct {
-	Include  string
-	Exclude  string
-	ShowTime bool
-	Output   bool
-	Stats    TestStats
-	Result   TestResult
-	Duration time.Duration
-	Client   *ftwhttp.Client
-}
-
 // Run runs your tests
 // testid is the name of the unique test you want to run
 // exclude is a regexp that matches the test name: e.g. "920*", excludes all tests starting with "920"
 // Returns error if some test failed
-func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) testRun {
+func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) TestRunContext {
 	printUnlessQuietMode(output, ":rocket:Running go-ftw!\n")
 
 	client := ftwhttp.NewClient()
-	currentRun := testRun{
+	runContext := TestRunContext{
 		Include:  include,
 		Exclude:  exclude,
 		ShowTime: showTime,
@@ -47,41 +36,50 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 	}
 
 	for _, test := range ftwtests {
-		RunTest(&currentRun, test)
+		RunTest(&runContext, test)
 	}
 
-	printSummary(output, currentRun.Stats)
+	printSummary(output, runContext.Stats)
 
-	return currentRun
+	return runContext
 }
 
-func RunTest(currentRun *testRun, ftwTest test.FTWTest) {
+// RunTest runs an individual test.
+// runContext contains information for the current test run
+// ftwTest is the test you want to run
+func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) {
 	changed := true
 
 	for _, testCase := range ftwTest.Tests {
 		// if we received a particular testid, skip until we find it
-		if needToSkipTest(currentRun.Include, currentRun.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
-			addResultToStats(Skipped, testCase.TestTitle, &currentRun.Stats)
-			printUnlessQuietMode(currentRun.Output, "Skipping test %s\n", testCase.TestTitle)
+		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
+			addResultToStats(Skipped, testCase.TestTitle, &runContext.Stats)
+			printUnlessQuietMode(runContext.Output, "Skipping test %s\n", testCase.TestTitle)
 			continue
 		}
 		// this is just for printing once the next test
 		if changed {
-			printUnlessQuietMode(currentRun.Output, ":point_right:executing tests in file %s\n", ftwTest.Meta.Name)
+			printUnlessQuietMode(runContext.Output, ":point_right:executing tests in file %s\n", ftwTest.Meta.Name)
 			changed = false
 		}
 
 		// can we use goroutines here?
-		printUnlessQuietMode(currentRun.Output, "\trunning %s: ", testCase.TestTitle)
+		printUnlessQuietMode(runContext.Output, "\trunning %s: ", testCase.TestTitle)
 		// Iterate over stages
 		for _, stage := range testCase.Stages {
-			RunStage(currentRun, testCase, stage.Stage)
+			ftwCheck := check.NewCheck(config.FTWConfig)
+			RunStage(runContext, ftwCheck, testCase, stage.Stage)
 		}
 	}
 }
 
-func RunStage(currentRun *testRun, testCase test.Test, stage test.Stage) {
-	stageId := uuid.NewString()
+// RunStage runs an individual test stage.
+// runContext contains information for the current test run
+// ftwCheck is the current check utility
+// testCase is the test case the stage belongs to
+// stage is the stage you want to run
+func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase test.Test, stage test.Stage) {
+	stageID := uuid.NewString()
 	// Apply global overrides initially
 	testRequest := stage.Input
 	err := applyInputOverride(&testRequest)
@@ -95,12 +93,9 @@ func RunStage(currentRun *testRun, testCase test.Test, stage test.Stage) {
 		log.Fatal().Msgf("ftw/run: bad test: choose between data, encoded_request, or raw_request")
 	}
 
-	// Create a new check
-	ftwcheck := check.NewCheck(config.FTWConfig)
-
 	// Do not even run test if result is overriden. Just use the override.
-	if overriden := overridenTestResult(ftwcheck, testCase.TestTitle); overriden != Failed {
-		addResultToStats(overriden, testCase.TestTitle, &currentRun.Stats)
+	if overriden := overridenTestResult(ftwCheck, testCase.TestTitle); overriden != Failed {
+		addResultToStats(overriden, testCase.TestTitle, &runContext.Stats)
 		return
 	}
 
@@ -113,55 +108,55 @@ func RunStage(currentRun *testRun, testCase test.Test, stage test.Stage) {
 		Protocol: testRequest.GetProtocol(),
 	}
 
-	startMarker, err := markAndFlush(currentRun.Client, dest, stageId)
+	startMarker, err := markAndFlush(runContext.Client, dest, stageID)
 	if err != nil && !expectedOutput.ExpectError {
 		log.Fatal().Caller().Err(err).Msg("Failed to find start marker")
 	}
-	ftwcheck.SetStartMarker(startMarker)
+	ftwCheck.SetStartMarker(startMarker)
 
 	req = getRequestFromTest(testRequest)
 
-	err = currentRun.Client.NewConnection(*dest)
+	err = runContext.Client.NewConnection(*dest)
 
 	if err != nil && !expectedOutput.ExpectError {
 		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
 	}
-	currentRun.Client.StartTrackingTime()
+	runContext.Client.StartTrackingTime()
 
-	response, err := currentRun.Client.Do(*req)
+	response, err := runContext.Client.Do(*req)
 
-	currentRun.Client.StopTrackingTime()
+	runContext.Client.StopTrackingTime()
 	if err != nil && !expectedOutput.ExpectError {
 		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
 	}
 
-	endMarker, err := markAndFlush(currentRun.Client, dest, stageId)
+	endMarker, err := markAndFlush(runContext.Client, dest, stageID)
 	if err != nil && !expectedOutput.ExpectError {
 		log.Fatal().Caller().Err(err).Msg("Failed to find end marker")
 
 	}
-	ftwcheck.SetEndMarker(endMarker)
+	ftwCheck.SetEndMarker(endMarker)
 
 	// Set expected test output in check
-	ftwcheck.SetExpectTestOutput(&expectedOutput)
+	ftwCheck.SetExpectTestOutput(&expectedOutput)
 
 	// now get the test result based on output
-	testResult := checkResult(ftwcheck, response, err)
+	testResult := checkResult(ftwCheck, response, err)
 
-	duration := currentRun.Client.GetRoundTripTime().RoundTripDuration()
+	duration := runContext.Client.GetRoundTripTime().RoundTripDuration()
 
-	addResultToStats(testResult, testCase.TestTitle, &currentRun.Stats)
+	addResultToStats(testResult, testCase.TestTitle, &runContext.Stats)
 
-	currentRun.Result = testResult
+	runContext.Result = testResult
 
 	// show the result unless quiet was passed in the command line
-	displayResult(currentRun.Output, testResult, duration)
+	displayResult(runContext.Output, testResult, duration)
 
-	currentRun.Stats.Run++
-	currentRun.Stats.RunTime += duration
+	runContext.Stats.Run++
+	runContext.Stats.RunTime += duration
 }
 
-func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, stageId string) ([]byte, error) {
+func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, stageID string) ([]byte, error) {
 	var req *ftwhttp.Request
 	var logLines = &waflog.FTWLogLines{
 		FileName: config.FTWConfig.LogFile,
@@ -177,7 +172,7 @@ func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, stageId str
 		"Accept":                             "*/*",
 		"User-Agent":                         "go-ftw test agent",
 		"Host":                               "localhost",
-		config.FTWConfig.LogMarkerHeaderName: stageId,
+		config.FTWConfig.LogMarkerHeaderName: stageID,
 	}
 
 	req = ftwhttp.NewRequest(rline, *headers, nil, true)
@@ -195,7 +190,7 @@ func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, stageId str
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v - unexpected error found. Is your waf running?", dest)
 		}
 
-		marker := logLines.CheckLogForMarker(stageId)
+		marker := logLines.CheckLogForMarker(stageID)
 		if marker != nil {
 			return marker, nil
 		}

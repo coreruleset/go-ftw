@@ -43,7 +43,8 @@ var runCmd = &cobra.Command{
 			log.Fatal().Err(err)
 		}
 
-		os.Exit(runner.Run(include, exclude, showTime, quiet, tests))
+		currentRun := runner.Run(include, exclude, showTime, quiet, tests)
+		os.Exit(currentRun.Stats.TotalFailed())
 	},
 }
 

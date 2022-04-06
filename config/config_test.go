@@ -126,7 +126,9 @@ func TestNewConfigFromEnv(t *testing.T) {
 }
 
 func TestNewConfigFromEnvHasDefaults(t *testing.T) {
-	NewConfigFromEnv()
+	if err := NewConfigFromEnv(); err != nil {
+		t.Error(err)
+	}
 
 	if FTWConfig.TestOverride.Mode != DefaultMode {
 		t.Errorf("unexpected default value '%s' for testoverride.mode", FTWConfig.TestOverride.Mode)
@@ -140,7 +142,9 @@ func TestNewConfigFromFileHasDefaults(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-*.yaml")
 	defer os.Remove(filename)
 
-	NewConfigFromFile(filename)
+	if err := NewConfigFromFile(filename); err != nil {
+		t.Error(err)
+	}
 
 	if FTWConfig.TestOverride.Mode != DefaultMode {
 		t.Errorf("unexpected default value '%s' for testoverride.mode", FTWConfig.TestOverride.Mode)
@@ -151,7 +155,9 @@ func TestNewConfigFromFileHasDefaults(t *testing.T) {
 }
 
 func TestNewConfigFromStringHasDefaults(t *testing.T) {
-	NewConfigFromString("")
+	if err := NewConfigFromString(""); err != nil {
+		t.Error(err)
+	}
 
 	if FTWConfig.TestOverride.Mode != DefaultMode {
 		t.Errorf("unexpected default value '%s' for testoverride.mode", FTWConfig.TestOverride.Mode)
