@@ -123,10 +123,10 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	}
 	runContext.Client.StartTrackingTime()
 
-	response, err := runContext.Client.Do(*req)
+	response, responseErr := runContext.Client.Do(*req)
 
 	runContext.Client.StopTrackingTime()
-	if err != nil && !expectedOutput.ExpectError {
+	if responseErr != nil && !expectedOutput.ExpectError {
 		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
 	}
 
@@ -141,7 +141,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	ftwCheck.SetExpectTestOutput(&expectedOutput)
 
 	// now get the test result based on output
-	testResult := checkResult(ftwCheck, response, err)
+	testResult := checkResult(ftwCheck, response, responseErr)
 
 	duration := runContext.Client.GetRoundTripTime().RoundTripDuration()
 
@@ -287,12 +287,14 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 	}
 
 	// If we didn't expect an error, check the actual response from the waf
-	if c.AssertStatus(response.Parsed.StatusCode) {
-		return Success
-	}
-	// Check response
-	if c.AssertResponseContains(response.GetBodyAsString()) {
-		return Success
+	if response != nil {
+		if c.AssertStatus(response.Parsed.StatusCode) {
+			return Success
+		}
+		// Check response
+		if c.AssertResponseContains(response.GetBodyAsString()) {
+			return Success
+		}
 	}
 	// Lastly, check logs
 	if c.AssertLogContains() {
