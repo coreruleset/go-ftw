@@ -1,6 +1,8 @@
 package ftwhttp
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestNewClient(t *testing.T) {
 	c := NewClient()
@@ -50,9 +52,6 @@ func TestDoRequest(t *testing.T) {
 	if err == nil {
 		t.Logf("This should return error")
 	}
-	// if resp.Parsed.Status != 301 {
-
-	// }
 }
 
 func TestGetTrackedTime(t *testing.T) {

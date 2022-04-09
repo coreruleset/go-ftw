@@ -14,6 +14,9 @@ import (
 // NewConfigFromFile reads configuration information from the config file if it exists,
 // or uses `.ftw.yaml` as default file
 func NewConfigFromFile(cfgFile string) error {
+	// kaonf merges by default but we never want to merge in this case
+	FTWConfig = nil
+
 	// Global koanf instance. Use "." as the key path delimiter. This can be "/" or any character.
 	var k = koanf.New(".")
 	var err error
@@ -36,12 +39,16 @@ func NewConfigFromFile(cfgFile string) error {
 	// At this point we have loaded our config, now we need to
 	// unmarshal the whole root module
 	err = k.UnmarshalWithConf("", &FTWConfig, koanf.UnmarshalConf{Tag: "koanf"})
+	loadDefaults()
 
 	return err
 }
 
 // NewConfigFromEnv reads configuration information from environment variables that start with `FTW_`
 func NewConfigFromEnv() error {
+	// kaonf merges by default but we never want to merge in this case
+	FTWConfig = nil
+
 	var err error
 	var k = koanf.New(".")
 
@@ -55,12 +62,16 @@ func NewConfigFromEnv() error {
 	}
 	// Unmarshal the whole root module
 	err = k.UnmarshalWithConf("", &FTWConfig, koanf.UnmarshalConf{Tag: "koanf"})
+	loadDefaults()
 
 	return err
 }
 
 // NewConfigFromString initializes the configuration from a yaml formatted string. Useful for testing.
 func NewConfigFromString(conf string) error {
+	// kaonf merges by default but we never want to merge in this case
+	FTWConfig = nil
+
 	var k = koanf.New(".")
 	var err error
 
@@ -71,6 +82,20 @@ func NewConfigFromString(conf string) error {
 
 	// Unmarshal the whole root module
 	err = k.UnmarshalWithConf("", &FTWConfig, koanf.UnmarshalConf{Tag: "koanf"})
+	loadDefaults()
 
 	return err
+}
+
+func loadDefaults() {
+	// Note: kaonf has a way to set defaults. However, kaonf's merge behavior
+	// will overwrite defaults when the associated field is empty in nested
+	// structures (top level would work). That's why we set defaults here
+	// explictly.
+	if FTWConfig.LogMarkerHeaderName == "" {
+		FTWConfig.LogMarkerHeaderName = DefaultLogMarkerHeaderName
+	}
+	if FTWConfig.TestOverride.Mode == "" {
+		FTWConfig.TestOverride.Mode = DefaultMode
+	}
 }

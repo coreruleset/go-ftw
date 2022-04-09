@@ -9,7 +9,9 @@ import (
 	"github.com/yargevad/filepathx"
 )
 
-// GetTestsFromFiles will get the files to be processed. If some file has yaml error, will stop processing and return the error with the partial list of files read.
+// GetTestsFromFiles will get the files to be processed.
+// If some file has yaml error, will stop processing and
+// return the error with the partial list of files read.
 func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 	var tests []FTWTest
 	var err error
@@ -23,29 +25,46 @@ func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 		return tests, err
 	}
 
-	for _, test := range testFiles {
-		t, err := readTest(test)
+	for _, fileName := range testFiles {
+		yamlString, err := readFileContents(fileName)
 		if err != nil {
-			log.Info().Msgf(yaml.FormatError(err, true, true))
+			return tests, err
+		}
+		ftwTest, err := GetTestFromYaml(yamlString)
+		if err != nil {
 			return tests, err
 		}
 
-		tests = append(tests, t)
+		ftwTest.FileName = fileName
+		tests = append(tests, ftwTest)
 	}
 
 	if len(tests) == 0 {
-		return tests, errors.New("No tests found")
+		return tests, errors.New("no tests found")
 	}
 	return tests, nil
 }
 
-func readTest(filename string) (t FTWTest, err error) {
-	yamlFile, err := os.ReadFile(filename)
+// GetTestFromYaml will get the tests to be processed from a YAML string.
+func GetTestFromYaml(testYaml []byte) (ftwTest FTWTest, err error) {
+	ftwTest, err = readTestYaml(testYaml)
 	if err != nil {
-		log.Info().Msgf("yamlFile.Get err   #%v ", err)
+		log.Info().Msgf(yaml.FormatError(err, true, true))
+		return FTWTest{}, err
 	}
-	err = yaml.Unmarshal(yamlFile, &t)
-	t.FileName = filename
-	// Set Defaults
+
+	return ftwTest, nil
+}
+
+func readTestYaml(testYaml []byte) (t FTWTest, err error) {
+	err = yaml.Unmarshal([]byte(testYaml), &t)
 	return t, err
+}
+
+func readFileContents(fileName string) (contents []byte, err error) {
+	contents, err = os.ReadFile(fileName)
+	if err != nil {
+		log.Info().Caller().Err(err).Msgf("Failed to read contents of test file %s", fileName)
+	}
+	return contents, err
 }

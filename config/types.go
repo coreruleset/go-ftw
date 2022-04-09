@@ -1,14 +1,11 @@
 package config
 
-import (
-	"time"
-)
-
 const (
 	// CloudMode is the string that will be used to override the mode of execution to cloud
 	CloudMode string = "cloud"
 	// DefaultMode is the default execution mode
-	DefaultMode string = "default"
+	DefaultMode                string = "default"
+	DefaultLogMarkerHeaderName string = "X-CRS-Test"
 )
 
 // FTWConfig is being exported to be used across the app
@@ -16,20 +13,9 @@ var FTWConfig *FTWConfiguration
 
 // FTWConfiguration FTW global Configuration
 type FTWConfiguration struct {
-	LogFile      string          `koanf:"logfile"`
-	LogType      FTWLogType      `koanf:"logtype"`
-	LogTruncate  bool            `koanf:"logtruncate"`
-	TestOverride FTWTestOverride `koanf:"testoverride"`
-}
-
-// FTWLogType log readers must implement this one
-// TimeTruncate is a string that represents a golang time, e.g. 'time.Microsecond', 'time.Second', etc.
-// It will be used when comparing times to match logs
-type FTWLogType struct {
-	Name         string        `koanf:"name"`
-	TimeRegex    string        `koanf:"timeregex"`
-	TimeFormat   string        `koanf:"timeformat"`
-	TimeTruncate time.Duration `koanf:"timetruncate"`
+	LogFile             string          `koanf:"logfile"`
+	TestOverride        FTWTestOverride `koanf:"testoverride"`
+	LogMarkerHeaderName string          `koanf:"logmarkerheadername"`
 }
 
 // FTWTestOverride holds four lists:

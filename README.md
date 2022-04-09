@@ -12,11 +12,11 @@
 
 This software should be compatible with the [Python version](https://pypi.org/project/ftw/).
 
-I wrote this one to get more insights on the original version, and trying to shed some lights on the internals. There are many assumptions on the inner workings that I needed to dig into the code to know how they worked.
+I wrote this one to get more insights on the original version, and trying to shed some light on the internals. There are many assumptions on the inner workings that I needed to dig into the code to know how they worked.
 
 My goals are:
 - get a compatible `ftw` version, with no dependencies and easy to deploy
-- be CI/CD extremely friendly
+- be extremely CI/CD friendly
 - be fast (if possible)
 - add features like:
   - syntax checking on the test files
@@ -27,39 +27,29 @@ My goals are:
 
 Go to the [releases](https://github.com/fzipi/go-ftw/releases) page and get the one that matches your OS.
 
+If you have Go installed and configured to run Go binaries from your shell you can also run
+```bash
+go install github.com/fzipi/go-ftw@latest
+```
+
 ## Example Usage
 
 To run tests you need:
 1. a WAF (doh!)
 2. a file where the waf stores the logs
-3. a config file, or environment variables, with the information to get the logs and how to parse them (I might embed this for the most commonly used, like Apache/Nginx)
+3. a config file, or environment variables, with the information to get the logs and how to parse them (I might embed this for the most commonly used, like Apache/NGiNX)
 
 By default, _ftw_ would search for a file in `$PWD` with the name `.ftw.yaml`. Example configurations for `apache` and `nginx` below:
 
 ```yaml
 ---
 logfile: '../coreruleset/tests/logs/modsec2-apache/apache2/error.log'
-logtype:
-  name: 'apache'
-  timeregex:  '\[([A-Z][a-z]{2} [A-z][a-z]{2} \d{1,2} \d{1,2}\:\d{1,2}\:\d{1,2}\.\d+? \d{4})\]'
-  timeformat: 'ddd MMM DD HH:mm:ss.S YYYY'
 ```
-
-For nginx, as logs will be to the second, you need to add the amount of time you want to truncate to. This will for example discard anything less than one second:
 
 ```yaml
 ---
 logfile: '../coreruleset/tests/logs/modsec3-nginx/nginx/error.log'
-logtype:
-  name: 'nginx'
-  timeregex:  '(\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})'
-  timeformat: 'YYYY/MM/DD HH:mm:ss'
-  timetruncate: 1s
 ```
-
-Time format specification follows the one used by [gostradamus](https://github.com/bykof/gostradamus#token-table).
-
-If your webserver uses a different time format, please [create an issue](https://github.com/fzipi/go-ftw/issues/new/choose) and we can extend the documentation to cover it.
 
 I normally perform my testing using the [Core Rule Set](https://github.com/coreruleset/coreruleset/).
 
@@ -95,16 +85,15 @@ Global Flags:
 
 ```
 
-After merging [this PR](https://github.com/coreruleset/coreruleset/pull/2080), no changes will be needed. 
-Until that happens, you can get and apply the [patch](https://patch-diff.githubusercontent.com/raw/coreruleset/coreruleset/pull/2080.patch), using `patch -p1 < 2080.patch`.
+Here's an example on how to run your tests:
 
-Then you can run your tests using:
-
-`ftw run -d tests -t`
+```bash
+ftw run -d tests -t
+```
 
 And the result should be similar to:
 
-```
+```bash
 ❯ ./ftw run -d tests -t
 
 🛠️  Starting tests!
@@ -126,14 +115,14 @@ And the result should be similar to:
 	running 944300-328: ✔ passed 5.873305ms
 	running 944300-329: ✔ passed 5.828122ms
 ➕ run 2354 total tests in 18.923445528s
-⏭ skept 7 tests
+⏭ skipped 7 tests
 🎉 All tests successful!
 ```
 Happy testing!
 
 ## Additional features
 
-You can add functions to your tests, to simplify bulk writing, or even read values from the environment while executing. This is because `data:` sections in tests will be parse for Go [text/template](https://golang.org/pkg/text/template/) additional syntax, and with the power of additional [Sprig functions](https://masterminds.github.io/sprig/).
+You can add functions to your tests, to simplify bulk writing, or even read values from the environment while executing. This is because `data:` sections in tests are parsed with Go [text/template](https://golang.org/pkg/text/template/), and also are given the power of additional [Sprig functions](https://masterminds.github.io/sprig/).
 
 This will allow you to write tests like this:
 
@@ -147,7 +136,7 @@ Will be expanded to:
 data: 'foo=%3d++++++++++++++++++++++++++++++++++'
 ```
 
-But also, you can get values from the environment dinamically when the test is run:
+But also, you can get values from the environment dynamically when the test is run:
 
 ```yaml
 data: 'username={{ env "USERNAME" }}
@@ -163,7 +152,7 @@ Other interesting functions you can use are: `randBytes`, `htpasswd`, `encryptAE
 
 ## Overriding test results
 
-Sometimes you have tests that work well in some platform combination, e.g. Apache + modsecurity2, but fail in other, e.g. Nginx + modsecurity3. Taking that into account, you can override test results using the `testoverride` config param. The test will be run, but the _result_ would be overriden, and your comment will be printed out.
+Sometimes you have tests that work well for some platform combinations, e.g. Apache + modsecurity2, but fail for others, e.g. NGiNX + modsecurity3. Taking that into account, you can override test results using the `testoverride` config param. The test will be run, but the _result_ would be overriden, and your comment will be printed out.
 
 Example:
 
@@ -184,11 +173,34 @@ testoverride:
 
 You can combine any of `ignore`, `forcefail` and `forcepass` to make it work for you.
 
-## Truncating logs
+## How log parsing works
+The log output from your WAF is parsed and compared to the expected output.
+The problem with log files is that they aren't updated in real time, e.g. because the
+web server / WAF has an internal buffer, or because there's some `fsync` magic involved).
+To make log parsing consistent and guarantee that we will see output when we need it,
+go-ftw uses "log markers". In essence, unique log entries are written _before_ and _after_
+every test stage. go-ftw can then search for these markers.
 
-Log files can get really big. Searching patterns are performed using reverse text search in the file. Because the test tool is *really* fast, we sometimes see failures in nginx depending on how fast the tests are performed, mainly because log times in nginx are truncated to one second.
+The [container images for Core Rule Set](https://github.com/coreruleset/modsecurity-crs-docker) can be configured to write these marker log lines by setting
+the `CRS_ENABLE_TEST_MARKER` environment variable. If you are testing a different WAF
+you will need to instrument it with the same idea (unless you are using "cloud mode").
+The rule for CRS looks like this:
+```
+# Write the value from the X-CRS-Test header as a marker to the log
+SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
+  "id:999999,\
+  phase:1,\
+  log,\
+  msg:'%{MATCHED_VAR}',\
+  pass,\
+  t:none"
+```
 
-To overcome this, you can use the new config value `logtruncate: True`. This will, as it says, call _truncate_ on the file, actively modifying it between each test. You will need permissions to write the logfile, implying you might need to call the go-ftw binary using sudo.
+The rule looks for an HTTP header named `X-CRS-Test` and writes its value to the log,
+the value being the UUID of a test stage.
+
+You can configure the name of the HTTP header by setting the `logmarkerheadername`
+option in the configuration to a custom value (the value is case insensitive).
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffzipi%2Fgo-ftw.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffzipi%2Fgo-ftw?ref=badge_large)

@@ -18,14 +18,14 @@ func (rl RequestLine) ToString() string {
 }
 
 // NewRequest creates a new request, an initial request line, and headers
-func NewRequest(reqLine *RequestLine, h Header, data []byte, b bool) *Request {
+func NewRequest(reqLine *RequestLine, h Header, data []byte, autocompleteHeaders bool) *Request {
 	r := &Request{
 		requestLine:         reqLine,
 		headers:             h.Clone(),
 		cookies:             nil,
 		data:                data,
 		raw:                 nil,
-		autoCompleteHeaders: b,
+		autoCompleteHeaders: autocompleteHeaders,
 	}
 	return r
 }

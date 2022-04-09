@@ -32,6 +32,10 @@ type TestStats struct {
 	RunTime    time.Duration
 }
 
+func (t *TestStats) TotalFailed() int {
+	return len(t.Failed) + len(t.ForcedFail)
+}
+
 func addResultToStats(result TestResult, title string, stats *TestStats) {
 	switch result {
 	case Success:
@@ -51,31 +55,29 @@ func addResultToStats(result TestResult, title string, stats *TestStats) {
 	}
 }
 
-func printSummary(quiet bool, stats TestStats) int {
-	totalFailed := len(stats.Failed) + len(stats.ForcedFail)
-
-	if !quiet {
-		if stats.Run > 0 {
-			emoji.Printf(":plus:run %d total tests in %s\n", stats.Run, stats.RunTime)
-			emoji.Printf(":next_track_button: skept %d tests\n", len(stats.Skipped))
-			if len(stats.Ignored) > 0 {
-				emoji.Printf(":index_pointing_up: ignored %d tests\n", len(stats.Ignored))
-			}
-			if len(stats.ForcedPass) > 0 {
-				emoji.Printf(":index_pointing_up: forced to pass %d tests\n", len(stats.ForcedPass))
-			}
-			if totalFailed == 0 {
-				emoji.Println(":tada:All tests successful!")
-			} else {
-				emoji.Printf(":thumbs_down:%d test(s) failed to run: %+q\n", len(stats.Failed), stats.Failed)
-				if len(stats.ForcedFail) > 0 {
-					emoji.Printf(":index_pointing_up:%d test(s) were forced to fail: %+q\n", len(stats.ForcedFail), stats.ForcedFail)
-				}
-			}
-		} else {
-			emoji.Println(":person_shrugging:No tests were run")
-		}
+func printSummary(quiet bool, stats TestStats) {
+	if quiet {
+		return
 	}
 
-	return totalFailed
+	if stats.Run > 0 {
+		emoji.Printf(":plus:run %d total tests in %s\n", stats.Run, stats.RunTime)
+		emoji.Printf(":next_track_button: skipped %d tests\n", len(stats.Skipped))
+		if len(stats.Ignored) > 0 {
+			emoji.Printf(":index_pointing_up: ignored %d tests\n", len(stats.Ignored))
+		}
+		if len(stats.ForcedPass) > 0 {
+			emoji.Printf(":index_pointing_up: forced to pass %d tests\n", len(stats.ForcedPass))
+		}
+		if stats.TotalFailed() == 0 {
+			emoji.Println(":tada:All tests successful!")
+		} else {
+			emoji.Printf(":thumbs_down:%d test(s) failed to run: %+q\n", len(stats.Failed), stats.Failed)
+			if len(stats.ForcedFail) > 0 {
+				emoji.Printf(":index_pointing_up:%d test(s) were forced to fail: %+q\n", len(stats.ForcedFail), stats.ForcedFail)
+			}
+		}
+	} else {
+		emoji.Println(":person_shrugging:No tests were run")
+	}
 }

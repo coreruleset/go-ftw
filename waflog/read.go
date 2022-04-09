@@ -1,12 +1,12 @@
 package waflog
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"regexp"
-	"time"
 
-	"github.com/bykof/gostradamus"
+	"github.com/fzipi/go-ftw/config"
 	"github.com/icza/backscanner"
 	"github.com/rs/zerolog/log"
 )
@@ -14,11 +14,7 @@ import (
 // Contains looks in logfile for regex
 func (ll *FTWLogLines) Contains(match string) bool {
 	// this should be a flag
-	lines := ll.getLinesSinceUntil()
-	// if we need to truncate file
-	if ll.LogTruncate {
-		ll.truncateLogFile()
-	}
+	lines := ll.getMarkedLines()
 	log.Trace().Msgf("ftw/waflog: got %d lines", len(lines))
 
 	result := false
@@ -37,45 +33,29 @@ func (ll *FTWLogLines) Contains(match string) bool {
 	return result
 }
 
-func isBetweenOrEqual(dt gostradamus.DateTime, start gostradamus.DateTime, end gostradamus.DateTime, duration time.Duration) bool {
-	// First check if we need to truncate times
-	dtTime := dt.Time().Truncate(duration)
-	startTime := start.Time().Truncate(duration)
-	endTime := end.Time().Truncate(duration)
-
-	isBetween := dtTime.After(startTime) && dtTime.Before(endTime)
-
-	isEqualStart := dtTime.Equal(startTime)
-
-	isEqualEnd := dtTime.Equal(endTime)
-
-	return isBetween || isEqualStart || isEqualEnd
-}
-
-func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
+func (ll *FTWLogLines) getMarkedLines() [][]byte {
 	var found [][]byte
 	logfile, err := os.Open(ll.FileName)
 
 	if err != nil {
-		log.Fatal().Msgf("cannot open file %s", ll.FileName)
+		log.Fatal().Caller().Msgf("cannot open file %s", ll.FileName)
 	}
 	defer logfile.Close()
 
 	fi, err := logfile.Stat()
 	if err != nil {
-		log.Error().Msgf("cannot read file's size")
+		log.Error().Caller().Msgf("cannot read file's size")
 		return found
 	}
-
-	compiledRegex := regexp.MustCompile(ll.TimeRegex)
 
 	// Lines in modsec logging can be quite large
 	backscannerOptions := &backscanner.Options{
 		ChunkSize: 4096,
 	}
 	scanner := backscanner.NewOptions(logfile, int(fi.Size()), backscannerOptions)
-	tzonename := time.Now().Location()
-	tzone := gostradamus.Timezone(tzonename.String())
+	endFound := false
+	// end marker is the *first* marker when reading backwards,
+	// start marker is the *last* marker
 	for {
 		line, _, err := scanner.LineBytes()
 		if err != nil {
@@ -84,43 +64,61 @@ func (ll *FTWLogLines) getLinesSinceUntil() [][]byte {
 			}
 			break
 		}
-		if matchedLine := compiledRegex.FindSubmatch(line); matchedLine != nil {
-			date := matchedLine[1]
-			// well, go doesn't want to have a proper time format, so we need to use gostradamus
-			t, err := gostradamus.ParseInTimezone(string(date), ll.TimeFormat, tzone)
-			if err != nil {
-				log.Error().Msgf("ftw/waflog: error parsing date %s", err.Error())
-				// return with what we got up to now
-				break
-			}
-			// compare dates now
-			// use the same timezone for all
-			dt := t.InTimezone(gostradamus.Local())
-			since := gostradamus.DateTimeFromTime(ll.Since).InTimezone(gostradamus.Local())
-			until := gostradamus.DateTimeFromTime(ll.Until).InTimezone(gostradamus.Local())
-			// Comparision will need to truncate
-			if isBetweenOrEqual(dt, since, until, ll.TimeTruncate) {
-				saneCopy := make([]byte, len(line))
-				copy(saneCopy, line)
-				found = append(found, saneCopy)
-				continue
-			}
-			// if we are before since, we need to stop searching
-			if dt.IsBetween(gostradamus.DateTimeFromTime(time.Time{}).InTimezone(gostradamus.Local()),
-				since) {
-				break
-			}
+		lineLower := bytes.ToLower(line)
+		if !endFound && bytes.Equal(lineLower, ll.EndMarker) {
+			endFound = true
+			continue
+		}
+		if endFound && bytes.Equal(lineLower, ll.StartMarker) {
+			break
 		}
 
+		saneCopy := make([]byte, len(line))
+		copy(saneCopy, line)
+		found = append(found, saneCopy)
 	}
 	return found
 }
 
-// truncateLogFile
-func (ll *FTWLogLines) truncateLogFile() {
-	err := os.Truncate(ll.FileName, 0)
+func (ll *FTWLogLines) CheckLogForMarker(stageId string) []byte {
+	logfile, err := os.Open(ll.FileName)
 
 	if err != nil {
-		log.Fatal().Msgf("ftw/waflong: cannot truncate file %s. Check if you have permissions!", ll.FileName)
+		log.Error().Caller().Err(err).Msg("failed to open file")
+		return nil
 	}
+	defer logfile.Close()
+
+	fi, err := logfile.Stat()
+	if err != nil {
+		log.Error().Caller().Err(err).Msgf("cannot read file's size")
+		return nil
+	}
+
+	// Lines in modsec logging can be quite large
+	backscannerOptions := &backscanner.Options{
+		ChunkSize: 4096,
+	}
+	scanner := backscanner.NewOptions(logfile, int(fi.Size()), backscannerOptions)
+	stageIdBytes := []byte(stageId)
+	crsHeaderBytes := bytes.ToLower([]byte(config.FTWConfig.LogMarkerHeaderName))
+
+	line := []byte{}
+	// find the last non-empty line
+	for err == nil && len(line) == 0 {
+		line, _, err = scanner.LineBytes()
+	}
+	if err != nil {
+		if err == io.EOF {
+			return nil
+		} else {
+			log.Trace().Err(err)
+		}
+	}
+	line = bytes.ToLower(line)
+	if bytes.Contains(line, crsHeaderBytes) && bytes.Contains(line, stageIdBytes) {
+		return line
+	}
+
+	return nil
 }

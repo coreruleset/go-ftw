@@ -1,8 +1,6 @@
 package check
 
 import (
-	"time"
-
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/test"
 	"github.com/fzipi/go-ftw/waflog"
@@ -19,25 +17,15 @@ type FTWCheck struct {
 func NewCheck(c *config.FTWConfiguration) *FTWCheck {
 	check := &FTWCheck{
 		log: &waflog.FTWLogLines{
-			FileName:     c.LogFile,
-			TimeRegex:    c.LogType.TimeRegex,
-			TimeFormat:   c.LogType.TimeFormat,
-			Since:        time.Now(),
-			Until:        time.Now(),
-			TimeTruncate: c.LogType.TimeTruncate,
-			LogTruncate:  c.LogTruncate,
+			FileName:    c.LogFile,
+			StartMarker: nil,
+			EndMarker:   nil,
 		},
 		expected:  &test.Output{},
 		overrides: &c.TestOverride,
 	}
 
 	return check
-}
-
-// SetRoundTripTime sets the time the roundtrip took so we can check logs with it
-func (c *FTWCheck) SetRoundTripTime(since time.Time, until time.Time) {
-	c.log.Since = since
-	c.log.Until = until
 }
 
 // SetExpectTestOutput sets the combined expected output from this test
@@ -105,4 +93,14 @@ func (c *FTWCheck) SetCloudMode() {
 		c.expected.NoLogContains = ""
 	}
 	c.expected.Status = status
+}
+
+// SetStartMarker sets the log line that marks the start of the logs to analyze
+func (c *FTWCheck) SetStartMarker(marker []byte) {
+	c.log.StartMarker = marker
+}
+
+// SetEndMarker sets the log line that marks the end of the logs to analyze
+func (c *FTWCheck) SetEndMarker(marker []byte) {
+	c.log.EndMarker = marker
 }

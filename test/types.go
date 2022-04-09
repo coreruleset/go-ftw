@@ -28,15 +28,17 @@ type Output struct {
 	ExpectError      bool   `yaml:"expect_error,omitempty"`
 }
 
+type Stage struct {
+	Input  Input  `yaml:"input"`
+	Output Output `yaml:"output"`
+}
+
 // Test is an individual test
 type Test struct {
 	TestTitle       string `yaml:"test_title"`
 	TestDescription string `yaml:"desc,omitempty"`
 	Stages          []struct {
-		Stage struct {
-			Input  Input  `yaml:"input"`
-			Output Output `yaml:"output"`
-		} `yaml:"stage"`
+		Stage Stage `yaml:"stage"`
 	} `yaml:"stages"`
 }
 
