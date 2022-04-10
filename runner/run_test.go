@@ -12,6 +12,7 @@ import (
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/ftwhttp"
 	"github.com/fzipi/go-ftw/test"
+	"github.com/fzipi/go-ftw/waflog"
 )
 
 var yamlConfig = `
@@ -298,9 +299,7 @@ func setUpLogFileForTestServer(t *testing.T) (logFilePath string) {
 			t.Error(err)
 		}
 		logFilePath = file.Name()
-		t.Cleanup(func() {
-			os.Remove(logFilePath)
-		})
+		t.Cleanup(func() { os.Remove(logFilePath) })
 	}
 	return logFilePath
 }
@@ -560,6 +559,14 @@ func TestCloudRun(t *testing.T) {
 
 				replaceDestinationInConfiguration(*dest)
 				config.FTWConfig.LogFile = logFilePath
+				logLines := &waflog.FTWLogLines{
+					FileName: logFilePath,
+				}
+				logFile, err := os.Open(logFilePath)
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { logFile.Close() })
 
 				replaceDestinationInTest(&ftwTest, *dest)
 				if err != nil {
@@ -571,6 +578,8 @@ func TestCloudRun(t *testing.T) {
 					ShowTime: false,
 					Output:   true,
 					Client:   ftwhttp.NewClient(),
+					LogLines: logLines,
+					LogFile:  logFile,
 				}
 
 				RunStage(&runContext, ftwCheck, *testCase, *stage)
@@ -585,8 +594,8 @@ func TestCloudRun(t *testing.T) {
 }
 
 func TestFailedTestsRun(t *testing.T) {
-	dest, logFilePath := newTestServer(t, logText)
 	err := config.NewConfigFromString(yamlConfig)
+	dest, logFilePath := newTestServer(t, logText)
 	if err != nil {
 		t.Errorf("Failed!")
 	}

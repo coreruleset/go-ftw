@@ -80,18 +80,16 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 	return found
 }
 
-func (ll *FTWLogLines) CheckLogForMarker(stageId string) []byte {
-	logfile, err := os.Open(ll.FileName)
-
-	if err != nil {
-		log.Error().Caller().Err(err).Msg("failed to open file")
-		return nil
+// CheckLogForMarker reads the log file and searches for a marker line.
+// logFile is the file to search
+// stageID is the ID of the current stage, which is part of the marker line
+func (ll *FTWLogLines) CheckLogForMarker(logFile *os.File, stageID string) []byte {
+	if logFile == nil {
+		log.Fatal().Caller().Msg("No log file supplied")
 	}
-	defer logfile.Close()
-
-	fi, err := logfile.Stat()
+	offset, err := logFile.Seek(0, os.SEEK_END)
 	if err != nil {
-		log.Error().Caller().Err(err).Msgf("cannot read file's size")
+		log.Error().Caller().Err(err).Msgf("failed to seek end of log file")
 		return nil
 	}
 
@@ -99,8 +97,8 @@ func (ll *FTWLogLines) CheckLogForMarker(stageId string) []byte {
 	backscannerOptions := &backscanner.Options{
 		ChunkSize: 4096,
 	}
-	scanner := backscanner.NewOptions(logfile, int(fi.Size()), backscannerOptions)
-	stageIdBytes := []byte(stageId)
+	scanner := backscanner.NewOptions(logFile, int(offset), backscannerOptions)
+	stageIDBytes := []byte(stageID)
 	crsHeaderBytes := bytes.ToLower([]byte(config.FTWConfig.LogMarkerHeaderName))
 
 	line := []byte{}
@@ -111,12 +109,11 @@ func (ll *FTWLogLines) CheckLogForMarker(stageId string) []byte {
 	if err != nil {
 		if err == io.EOF {
 			return nil
-		} else {
-			log.Trace().Err(err)
 		}
+		log.Trace().Err(err)
 	}
 	line = bytes.ToLower(line)
-	if bytes.Contains(line, crsHeaderBytes) && bytes.Contains(line, stageIdBytes) {
+	if bytes.Contains(line, crsHeaderBytes) && bytes.Contains(line, stageIDBytes) {
 		return line
 	}
 

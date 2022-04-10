@@ -3,6 +3,7 @@ package runner
 import (
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -26,6 +27,20 @@ import (
 func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) TestRunContext {
 	printUnlessQuietMode(output, ":rocket:Running go-ftw!\n")
 
+	// TODO: this is a hack, there should only be one instance of FTWLogLines
+	logLines := &waflog.FTWLogLines{
+		FileName: config.FTWConfig.LogFile,
+	}
+	var logFile *os.File
+	if logLines.FileName != "" {
+		var err error
+		logFile, err = os.Open(logLines.FileName)
+		if err != nil {
+			log.Panic().Caller().Err(err).Msg("failed to open file")
+		}
+		defer logFile.Close()
+	}
+
 	client := ftwhttp.NewClient()
 	runContext := TestRunContext{
 		Include:  include,
@@ -33,6 +48,8 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 		ShowTime: showTime,
 		Output:   output,
 		Client:   client,
+		LogLines: logLines,
+		LogFile:  logFile,
 	}
 
 	for _, test := range ftwtests {
@@ -81,6 +98,7 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) {
 // testCase is the test case the stage belongs to
 // stage is the stage you want to run
 func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase test.Test, stage test.Stage) {
+	stageStartTime := time.Now()
 	stageID := uuid.NewString()
 	// Apply global overrides initially
 	testRequest := stage.Input
@@ -110,7 +128,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 		Protocol: testRequest.GetProtocol(),
 	}
 
-	startMarker, err := markAndFlush(runContext.Client, dest, stageID)
+	startMarker, err := markAndFlush(runContext, dest, stageID)
 	if err != nil && !expectedOutput.ExpectError {
 		log.Fatal().Caller().Err(err).Msg("Failed to find start marker")
 	}
@@ -132,7 +150,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
 	}
 
-	endMarker, err := markAndFlush(runContext.Client, dest, stageID)
+	endMarker, err := markAndFlush(runContext, dest, stageID)
 	if err != nil && !expectedOutput.ExpectError {
 		log.Fatal().Caller().Err(err).Msg("Failed to find end marker")
 
@@ -145,29 +163,25 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	// now get the test result based on output
 	testResult := checkResult(ftwCheck, response, responseErr)
 
-	duration := runContext.Client.GetRoundTripTime().RoundTripDuration()
+	roundTripTime := runContext.Client.GetRoundTripTime().RoundTripDuration()
+	stageTime := time.Since(stageStartTime)
 
 	addResultToStats(testResult, testCase.TestTitle, &runContext.Stats)
 
 	runContext.Result = testResult
 
 	// show the result unless quiet was passed in the command line
-	displayResult(runContext.Output, testResult, duration)
+	displayResult(runContext.Output, testResult, roundTripTime, stageTime)
 
 	runContext.Stats.Run++
-	runContext.Stats.RunTime += duration
+	runContext.Stats.RunTime += stageTime
 }
 
-func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, stageID string) ([]byte, error) {
-	var req *ftwhttp.Request
-	var logLines = &waflog.FTWLogLines{
-		FileName: config.FTWConfig.LogFile,
-	}
-
+func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID string) ([]byte, error) {
 	rline := &ftwhttp.RequestLine{
 		Method:  "GET",
 		URI:     "/",
-		Version: "HTTP/1.0",
+		Version: "HTTP/1.1",
 	}
 
 	headers := &ftwhttp.Header{
@@ -177,27 +191,27 @@ func markAndFlush(client *ftwhttp.Client, dest *ftwhttp.Destination, stageID str
 		config.FTWConfig.LogMarkerHeaderName: stageID,
 	}
 
-	req = ftwhttp.NewRequest(rline, *headers, nil, true)
+	req := ftwhttp.NewRequest(rline, *headers, nil, true)
 
 	// 20 is a very conservative number. The web server should flush its
 	// buffer a lot earlier but we have absolutely no control over that.
 	for range [20]int{} {
-		err := client.NewConnection(*dest)
+		err := runContext.Client.NewConnection(*dest)
 		if err != nil {
 			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
 		}
 
-		_, err = client.Do(*req)
+		_, err = runContext.Client.Do(*req)
 		if err != nil {
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v - unexpected error found. Is your waf running?", dest)
 		}
 
-		marker := logLines.CheckLogForMarker(stageID)
+		marker := runContext.LogLines.CheckLogForMarker(runContext.LogFile, stageID)
 		if marker != nil {
 			return marker, nil
 		}
 	}
-	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", logLines.FileName)
+	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.LogLines.FileName)
 }
 
 func needToSkipTest(include string, exclude string, title string, enabled bool) bool {
@@ -243,14 +257,14 @@ func checkTestSanity(testRequest test.Input) bool {
 		(testRequest.EncodedRequest != "" && testRequest.RAWRequest != "")
 }
 
-func displayResult(quiet bool, result TestResult, duration time.Duration) {
+func displayResult(quiet bool, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
 	switch result {
 	case Success:
-		printUnlessQuietMode(quiet, ":check_mark:passed in %s\n", duration)
+		printUnlessQuietMode(quiet, ":check_mark:passed in %s (RTT %s)\n", stageTime, roundTripTime)
 	case Failed:
-		printUnlessQuietMode(quiet, ":collision:failed in %s\n", duration)
+		printUnlessQuietMode(quiet, ":collision:failed in %s (RTT %s)\n", stageTime, roundTripTime)
 	case Ignored:
-		printUnlessQuietMode(quiet, ":equal:test result ignored in %s\n", duration)
+		printUnlessQuietMode(quiet, ":equal:test result ignored in %s (RTT %s)\n", stageTime, roundTripTime)
 	default:
 		// don't print anything if skipped test
 	}

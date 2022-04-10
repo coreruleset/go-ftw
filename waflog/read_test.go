@@ -28,6 +28,11 @@ func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	logFile, err := os.Open(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { logFile.Close() })
 	t.Cleanup(func() { os.Remove(filename) })
 
 	ll := &FTWLogLines{
@@ -35,7 +40,7 @@ func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
 		StartMarker: bytes.ToLower([]byte(markerLine)),
 	}
 
-	marker := ll.CheckLogForMarker(stageID)
+	marker := ll.CheckLogForMarker(logFile, stageID)
 	if marker != nil {
 		t.Fatal("unexpectedly found marker")
 	}
@@ -57,13 +62,18 @@ func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	logFile, err := os.Open(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { logFile.Close() })
 	t.Cleanup(func() { os.Remove(filename) })
 
 	ll := &FTWLogLines{
 		FileName: filename,
 	}
 
-	marker := ll.CheckLogForMarker(stageID)
+	marker := ll.CheckLogForMarker(logFile, stageID)
 	if marker == nil {
 		t.Fatal("no marker found")
 	}
