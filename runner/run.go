@@ -54,7 +54,9 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) {
 		// if we received a particular testid, skip until we find it
 		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
 			addResultToStats(Skipped, testCase.TestTitle, &runContext.Stats)
-			printUnlessQuietMode(runContext.Output, "Skipping test %s\n", testCase.TestTitle)
+			if !ftwTest.Meta.Enabled {
+				printUnlessQuietMode(runContext.Output, "Skipping test %s\n", testCase.TestTitle)
+			}
 			continue
 		}
 		// this is just for printing once the next test
