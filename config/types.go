@@ -1,10 +1,14 @@
 package config
 
+// RunMode represents the mode of the test run
+type RunMode string
+
 const (
-	// CloudMode is the string that will be used to override the mode of execution to cloud
-	CloudMode string = "cloud"
-	// DefaultMode is the default execution mode
-	DefaultMode                string = "default"
+	// CloudRunMode is the string that will be used to override the run mode of execution to cloud
+	CloudRunMode RunMode = "cloud"
+	// DefaultRunMode is the default execution run mode
+	DefaultRunMode RunMode = "default"
+	// DefaultLogMarkerHeaderName is the default log marker header name
 	DefaultLogMarkerHeaderName string = "X-CRS-Test"
 )
 
@@ -16,6 +20,7 @@ type FTWConfiguration struct {
 	LogFile             string          `koanf:"logfile"`
 	TestOverride        FTWTestOverride `koanf:"testoverride"`
 	LogMarkerHeaderName string          `koanf:"logmarkerheadername"`
+	RunMode             RunMode         `koanf:"mode"`
 }
 
 // FTWTestOverride holds four lists:
@@ -28,5 +33,4 @@ type FTWTestOverride struct {
 	Ignore    map[string]string `koanf:"ignore"`
 	ForcePass map[string]string `koanf:"forcepass"`
 	ForceFail map[string]string `koanf:"forcefail"`
-	Mode      string            `koanf:"mode"`
 }

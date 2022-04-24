@@ -12,7 +12,6 @@ import (
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/ftwhttp"
 	"github.com/fzipi/go-ftw/test"
-	"github.com/fzipi/go-ftw/waflog"
 )
 
 var yamlConfig = `
@@ -44,8 +43,7 @@ testoverride:
 
 var yamlCloudConfig = `
 ---
-testoverride:
-  mode: cloud
+mode: cloud
 `
 
 var logText = `
@@ -248,7 +246,7 @@ func newTestServer(t *testing.T, logLines string) (destination *ftwhttp.Destinat
 	logFilePath = setUpLogFileForTestServer(t)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("Hello, client"))
 
 		writeTestServerLog(t, logLines, logFilePath, r)
@@ -266,14 +264,10 @@ func newTestServer(t *testing.T, logLines string) (destination *ftwhttp.Destinat
 }
 
 // Error checking omitted for brevity
-func newTestServerForCloudTest(t *testing.T, responseStatus int, logLines string) (server *httptest.Server, destination *ftwhttp.Destination, logFilePath string) {
-	logFilePath = setUpLogFileForTestServer(t)
-
+func newTestServerForCloudTest(t *testing.T, responseStatus int, logLines string) (server *httptest.Server, destination *ftwhttp.Destination) {
 	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(responseStatus)
 		_, _ = w.Write([]byte("Hello, client"))
-
-		writeTestServerLog(t, logLines, logFilePath, r)
 	}))
 
 	// close server after test
@@ -284,12 +278,12 @@ func newTestServerForCloudTest(t *testing.T, responseStatus int, logLines string
 		t.Error(err)
 		t.FailNow()
 	}
-	return server, dest, logFilePath
+	return server, dest
 }
 
 func setUpLogFileForTestServer(t *testing.T) (logFilePath string) {
 	// log to the configured file
-	if config.FTWConfig != nil {
+	if config.FTWConfig != nil && config.FTWConfig.RunMode == config.DefaultRunMode {
 		logFilePath = config.FTWConfig.LogFile
 	}
 	// if no file has been configured, create one and handle cleanup
@@ -416,7 +410,7 @@ func TestOverrideRun(t *testing.T) {
 	// setup test webserver (not a waf)
 	err := config.NewConfigFromString(yamlConfigOverride)
 	if err != nil {
-		t.Errorf("Failed!")
+		t.Error(err)
 	}
 
 	dest, logFilePath := newTestServer(t, logText)
@@ -555,18 +549,9 @@ func TestCloudRun(t *testing.T) {
 				} else if stage.Output.NoLogContains != "" {
 					responseStatus = 405
 				}
-				server, dest, logFilePath := newTestServerForCloudTest(t, responseStatus, logText)
+				server, dest := newTestServerForCloudTest(t, responseStatus, logText)
 
 				replaceDestinationInConfiguration(*dest)
-				config.FTWConfig.LogFile = logFilePath
-				logLines := &waflog.FTWLogLines{
-					FileName: logFilePath,
-				}
-				logFile, err := os.Open(logFilePath)
-				if err != nil {
-					t.Fatal(err)
-				}
-				t.Cleanup(func() { logFile.Close() })
 
 				replaceDestinationInTest(&ftwTest, *dest)
 				if err != nil {
@@ -578,8 +563,7 @@ func TestCloudRun(t *testing.T) {
 					ShowTime: false,
 					Output:   true,
 					Client:   ftwhttp.NewClient(),
-					LogLines: logLines,
-					LogFile:  logFile,
+					LogLines: nil,
 				}
 
 				RunStage(&runContext, ftwCheck, *testCase, *stage)

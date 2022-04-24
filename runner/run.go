@@ -3,7 +3,6 @@ package runner
 import (
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -27,19 +26,7 @@ import (
 func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) TestRunContext {
 	printUnlessQuietMode(output, ":rocket:Running go-ftw!\n")
 
-	// TODO: this is a hack, there should only be one instance of FTWLogLines
-	logLines := &waflog.FTWLogLines{
-		FileName: config.FTWConfig.LogFile,
-	}
-	var logFile *os.File
-	if logLines.FileName != "" {
-		var err error
-		logFile, err = os.Open(logLines.FileName)
-		if err != nil {
-			log.Panic().Caller().Err(err).Msg("failed to open file")
-		}
-		defer logFile.Close()
-	}
+	logLines := waflog.NewFTWLogLines(waflog.WithLogFile(config.FTWConfig.LogFile))
 
 	client := ftwhttp.NewClient()
 	runContext := TestRunContext{
@@ -49,7 +36,7 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 		Output:   output,
 		Client:   client,
 		LogLines: logLines,
-		LogFile:  logFile,
+		RunMode:  config.FTWConfig.RunMode,
 	}
 
 	for _, test := range ftwtests {
@@ -57,6 +44,8 @@ func Run(include string, exclude string, showTime bool, output bool, ftwtests []
 	}
 
 	printSummary(output, runContext.Stats)
+
+	defer cleanLogs(logLines)
 
 	return runContext
 }
@@ -128,11 +117,13 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 		Protocol: testRequest.GetProtocol(),
 	}
 
-	startMarker, err := markAndFlush(runContext, dest, stageID)
-	if err != nil && !expectedOutput.ExpectError {
-		log.Fatal().Caller().Err(err).Msg("Failed to find start marker")
+	if notRunningInCloudMode(ftwCheck) {
+		startMarker, err := markAndFlush(runContext, dest, stageID)
+		if err != nil && !expectedOutput.ExpectError {
+			log.Fatal().Caller().Err(err).Msg("Failed to find start marker")
+		}
+		ftwCheck.SetStartMarker(startMarker)
 	}
-	ftwCheck.SetStartMarker(startMarker)
 
 	req = getRequestFromTest(testRequest)
 
@@ -150,12 +141,14 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
 	}
 
-	endMarker, err := markAndFlush(runContext, dest, stageID)
-	if err != nil && !expectedOutput.ExpectError {
-		log.Fatal().Caller().Err(err).Msg("Failed to find end marker")
+	if notRunningInCloudMode(ftwCheck) {
+		endMarker, err := markAndFlush(runContext, dest, stageID)
+		if err != nil && !expectedOutput.ExpectError {
+			log.Fatal().Caller().Err(err).Msg("Failed to find end marker")
 
+		}
+		ftwCheck.SetEndMarker(endMarker)
 	}
-	ftwCheck.SetEndMarker(endMarker)
 
 	// Set expected test output in check
 	ftwCheck.SetExpectTestOutput(&expectedOutput)
@@ -206,7 +199,7 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v - unexpected error found. Is your waf running?", dest)
 		}
 
-		marker := runContext.LogLines.CheckLogForMarker(runContext.LogFile, stageID)
+		marker := runContext.LogLines.CheckLogForMarker(stageID)
 		if marker != nil {
 			return marker, nil
 		}
@@ -382,4 +375,14 @@ func applyInputOverride(testRequest *test.Input) error {
 		}
 	}
 	return retErr
+}
+
+func notRunningInCloudMode(c *check.FTWCheck) bool {
+	return !c.CloudMode()
+}
+
+func cleanLogs(logLines *waflog.FTWLogLines) {
+	if err := logLines.Cleanup(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to cleanup log file")
+	}
 }

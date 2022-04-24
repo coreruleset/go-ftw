@@ -95,7 +95,7 @@ func loadDefaults() {
 	if FTWConfig.LogMarkerHeaderName == "" {
 		FTWConfig.LogMarkerHeaderName = DefaultLogMarkerHeaderName
 	}
-	if FTWConfig.TestOverride.Mode == "" {
-		FTWConfig.TestOverride.Mode = DefaultMode
+	if FTWConfig.RunMode == "" {
+		FTWConfig.RunMode = DefaultRunMode
 	}
 }

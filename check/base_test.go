@@ -20,8 +20,7 @@ testoverride:
 `
 
 var yamlCloudConfig = `---
-testoverride:
-  mode: "cloud"
+mode: "cloud"
 `
 
 func TestNewCheck(t *testing.T) {

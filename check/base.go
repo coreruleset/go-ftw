@@ -78,7 +78,7 @@ func (c *FTWCheck) ForcedFail(id string) bool {
 
 // CloudMode returns true if we are running in cloud mode
 func (c *FTWCheck) CloudMode() bool {
-	return c.overrides.Mode == config.CloudMode
+	return config.FTWConfig.RunMode == config.CloudRunMode
 }
 
 // SetCloudMode alters the values for expected logs and status code

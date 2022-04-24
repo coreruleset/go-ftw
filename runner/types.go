@@ -1,9 +1,9 @@
 package runner
 
 import (
-	"os"
 	"time"
 
+	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/ftwhttp"
 	"github.com/fzipi/go-ftw/waflog"
 )
@@ -21,5 +21,5 @@ type TestRunContext struct {
 	Duration time.Duration
 	Client   *ftwhttp.Client
 	LogLines *waflog.FTWLogLines
-	LogFile  *os.File
+	RunMode  config.RunMode
 }

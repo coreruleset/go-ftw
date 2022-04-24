@@ -35,14 +35,12 @@ func (ll *FTWLogLines) Contains(match string) bool {
 
 func (ll *FTWLogLines) getMarkedLines() [][]byte {
 	var found [][]byte
-	logfile, err := os.Open(ll.FileName)
 
-	if err != nil {
-		log.Fatal().Caller().Msgf("cannot open file %s", ll.FileName)
+	if err := ll.openLogFile(); err != nil {
+		log.Error().Caller().Msgf("cannot open log file: %s", err)
 	}
-	defer logfile.Close()
 
-	fi, err := logfile.Stat()
+	fi, err := ll.logFile.Stat()
 	if err != nil {
 		log.Error().Caller().Msgf("cannot read file's size")
 		return found
@@ -52,7 +50,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 	backscannerOptions := &backscanner.Options{
 		ChunkSize: 4096,
 	}
-	scanner := backscanner.NewOptions(logfile, int(fi.Size()), backscannerOptions)
+	scanner := backscanner.NewOptions(ll.logFile, int(fi.Size()), backscannerOptions)
 	endFound := false
 	// end marker is the *first* marker when reading backwards,
 	// start marker is the *last* marker
@@ -83,11 +81,11 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 // CheckLogForMarker reads the log file and searches for a marker line.
 // logFile is the file to search
 // stageID is the ID of the current stage, which is part of the marker line
-func (ll *FTWLogLines) CheckLogForMarker(logFile *os.File, stageID string) []byte {
-	if logFile == nil {
+func (ll *FTWLogLines) CheckLogForMarker(stageID string) []byte {
+	if config.FTWConfig.RunMode == config.DefaultRunMode && ll.logFile == nil {
 		log.Fatal().Caller().Msg("No log file supplied")
 	}
-	offset, err := logFile.Seek(0, os.SEEK_END)
+	offset, err := ll.logFile.Seek(0, os.SEEK_END)
 	if err != nil {
 		log.Error().Caller().Err(err).Msgf("failed to seek end of log file")
 		return nil
@@ -97,7 +95,7 @@ func (ll *FTWLogLines) CheckLogForMarker(logFile *os.File, stageID string) []byt
 	backscannerOptions := &backscanner.Options{
 		ChunkSize: 4096,
 	}
-	scanner := backscanner.NewOptions(logFile, int(offset), backscannerOptions)
+	scanner := backscanner.NewOptions(ll.logFile, int(offset), backscannerOptions)
 	stageIDBytes := []byte(stageID)
 	crsHeaderBytes := bytes.ToLower([]byte(config.FTWConfig.LogMarkerHeaderName))
 
