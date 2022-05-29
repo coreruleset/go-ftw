@@ -10,13 +10,16 @@ import (
 
 var yamlConfig = `---
 logfile: 'tests/logs/modsec2-apache/apache2/error.log'
-cloudmode: True
 testoverride:
   input:
     dest_addr: 'httpbin.org'
     port: '1234'
   ignore:
     '920400-1': 'This test result must be ignored'
+`
+
+var yamlCloudConfig = `---
+mode: 'cloud'
 `
 
 var yamlBadConfig = `
@@ -130,8 +133,8 @@ func TestNewConfigFromEnvHasDefaults(t *testing.T) {
 		t.Error(err)
 	}
 
-	if FTWConfig.TestOverride.Mode != DefaultMode {
-		t.Errorf("unexpected default value '%s' for testoverride.mode", FTWConfig.TestOverride.Mode)
+	if FTWConfig.RunMode != DefaultRunMode {
+		t.Errorf("unexpected default value '%s' for run mode", FTWConfig.RunMode)
 	}
 	if FTWConfig.LogMarkerHeaderName != DefaultLogMarkerHeaderName {
 		t.Errorf("unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
@@ -146,8 +149,8 @@ func TestNewConfigFromFileHasDefaults(t *testing.T) {
 		t.Error(err)
 	}
 
-	if FTWConfig.TestOverride.Mode != DefaultMode {
-		t.Errorf("unexpected default value '%s' for testoverride.mode", FTWConfig.TestOverride.Mode)
+	if FTWConfig.RunMode != DefaultRunMode {
+		t.Errorf("unexpected default value '%s' for run mode", FTWConfig.RunMode)
 	}
 	if FTWConfig.LogMarkerHeaderName != DefaultLogMarkerHeaderName {
 		t.Errorf("unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
@@ -159,10 +162,23 @@ func TestNewConfigFromStringHasDefaults(t *testing.T) {
 		t.Error(err)
 	}
 
-	if FTWConfig.TestOverride.Mode != DefaultMode {
-		t.Errorf("unexpected default value '%s' for testoverride.mode", FTWConfig.TestOverride.Mode)
+	if FTWConfig.RunMode != DefaultRunMode {
+		t.Errorf("unexpected default value '%s' for run mode", FTWConfig.RunMode)
 	}
 	if FTWConfig.LogMarkerHeaderName != DefaultLogMarkerHeaderName {
 		t.Errorf("unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
+	}
+}
+
+func TestNewConfigFromFileRunMode(t *testing.T) {
+	filename, _ := utils.CreateTempFileWithContent(yamlCloudConfig, "test-*.yaml")
+	defer os.Remove(filename)
+
+	if err := NewConfigFromFile(filename); err != nil {
+		t.Error(err)
+	}
+
+	if FTWConfig.RunMode != CloudRunMode {
+		t.Errorf("unexpected value '%s' for run mode, expected '%s;", FTWConfig.RunMode, CloudRunMode)
 	}
 }

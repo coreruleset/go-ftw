@@ -60,6 +60,6 @@ func initConfig() {
 		}
 	}
 	if cloud {
-		config.FTWConfig.TestOverride.Mode = config.CloudMode
+		config.FTWConfig.RunMode = config.CloudRunMode
 	}
 }

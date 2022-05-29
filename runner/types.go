@@ -3,7 +3,9 @@ package runner
 import (
 	"time"
 
+	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/ftwhttp"
+	"github.com/fzipi/go-ftw/waflog"
 )
 
 // TestRunContext carries information about the current test run.
@@ -18,4 +20,6 @@ type TestRunContext struct {
 	Result   TestResult
 	Duration time.Duration
 	Client   *ftwhttp.Client
+	LogLines *waflog.FTWLogLines
+	RunMode  config.RunMode
 }
