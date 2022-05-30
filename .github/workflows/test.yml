@@ -25,8 +25,9 @@ jobs:
           skip-go-install: true
           args: '-coverprofile=coverage.out'
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Upload code coverage
+        uses: actions/upload-artifact@v2
+        with:
+          name: goftw-code-coverage
+          path: coverage.out
+
