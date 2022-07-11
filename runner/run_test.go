@@ -21,6 +21,15 @@ testoverride:
     "920400-1": "This test result must be ignored"
 `
 
+var yamlConfigPortOverride = `
+---
+testoverride:
+  input:
+    dest_addr: "TEST_ADDR"
+    port: %d
+    protocol: "http"
+`
+
 var yamlConfigOverride = `
 ---
 testoverride:
@@ -150,6 +159,30 @@ tests:
             dest_addr: "TEST_ADDR"
 	    # -1 designates port value must be replaced by test setup
             port: -1
+            headers:
+                User-Agent: "ModSecurity CRS 3 Tests"
+                Host: "TEST_ADDR"
+          output:
+            expect_error: False
+            status: [200]
+`
+
+var yamlTestOverrideWithNoPort = `
+---
+meta:
+  author: "tester"
+  enabled: true
+  name: "gotest-ftw.yaml"
+  description: "Example Override Test"
+tests:
+  -
+    test_title: "001"
+    description: "access real external site"
+    stages:
+      -
+        stage:
+          input:
+            dest_addr: "TEST_ADDR"
             headers:
                 User-Agent: "ModSecurity CRS 3 Tests"
                 Host: "TEST_ADDR"
@@ -335,7 +368,7 @@ func replaceDestinationInTest(ftwTest *test.FTWTest, d ftwhttp.Destination) {
 			if input.Headers.Get("Host") == "TEST_ADDR" {
 				input.Headers.Set("Host", d.DestAddr)
 			}
-			if *input.Port == -1 {
+			if input.Port != nil && *input.Port == -1 {
 				input.Port = &d.Port
 			}
 		}
@@ -448,13 +481,47 @@ func TestBrokenOverrideRun(t *testing.T) {
 	replaceDestinationInConfiguration(*dest)
 	config.FTWConfig.LogFile = logFilePath
 
-	// replace host and port with values that an be overridden by config
+	// replace host and port with values that can be overridden by config
 	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
 	if err != nil {
 		t.Fatalf("Failed to parse fake destination")
 	}
 
 	ftwTest, err := test.GetTestFromYaml([]byte(yamlTestOverride))
+	if err != nil {
+		t.Error(err)
+	}
+	replaceDestinationInTest(&ftwTest, *fakeDestination)
+
+	// the test should succeed, despite the unknown override property
+	t.Run("showtime and execute all", func(t *testing.T) {
+		if res := Run("", "", false, true, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
+			t.Error("Oops, test run failed!")
+		}
+	})
+}
+
+func TestBrokenPortOverrideRun(t *testing.T) {
+
+	// TestServer initialized first to retrieve the correct port number
+	dest, logFilePath := newTestServer(t, logText)
+
+	// replace destination port inside the yaml with the retrieved one
+	err := config.NewConfigFromString(fmt.Sprintf(yamlConfigPortOverride, dest.Port))
+	if err != nil {
+		t.Errorf("Failed!")
+	}
+
+	replaceDestinationInConfiguration(*dest)
+	config.FTWConfig.LogFile = logFilePath
+
+	// replace host and port with values that can be overridden by config
+	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
+	if err != nil {
+		t.Fatalf("Failed to parse fake destination")
+	}
+
+	ftwTest, err := test.GetTestFromYaml([]byte(yamlTestOverrideWithNoPort))
 	if err != nil {
 		t.Error(err)
 	}

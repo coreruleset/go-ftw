@@ -363,7 +363,7 @@ func applyInputOverride(testRequest *test.Input) error {
 			if err != nil {
 				retErr = errors.New("ftw/run: error getting overriden port")
 			}
-			*testRequest.Port = port
+			testRequest.Port = &port
 		case "dest_addr":
 			oDestAddr := &value
 			testRequest.DestAddr = oDestAddr
