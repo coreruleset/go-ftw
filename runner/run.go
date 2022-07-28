@@ -61,7 +61,7 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) {
 		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
 			addResultToStats(Skipped, testCase.TestTitle, &runContext.Stats)
 			if !ftwTest.Meta.Enabled {
-				printUnlessQuietMode(runContext.Output, "Skipping test %s\n", testCase.TestTitle)
+				printUnlessQuietMode(runContext.Output, "\tskipping %s\n", testCase.TestTitle)
 			}
 			continue
 		}
@@ -102,9 +102,10 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 		log.Fatal().Msgf("ftw/run: bad test: choose between data, encoded_request, or raw_request")
 	}
 
-	// Do not even run test if result is overriden. Just use the override.
+	// Do not even run test if result is overridden. Just use the override and display the overridden result.
 	if overriden := overridenTestResult(ftwCheck, testCase.TestTitle); overriden != Failed {
 		addResultToStats(overriden, testCase.TestTitle, &runContext.Stats)
+		displayResult(runContext.Output, overriden, time.Duration(0), time.Duration(0))
 		return
 	}
 
@@ -257,7 +258,11 @@ func displayResult(quiet bool, result TestResult, roundTripTime time.Duration, s
 	case Failed:
 		printUnlessQuietMode(quiet, ":collision:failed in %s (RTT %s)\n", stageTime, roundTripTime)
 	case Ignored:
-		printUnlessQuietMode(quiet, ":equal:test result ignored in %s (RTT %s)\n", stageTime, roundTripTime)
+		printUnlessQuietMode(quiet, ":information:test ignored\n")
+	case ForceFail:
+		printUnlessQuietMode(quiet, ":information:test forced to fail\n")
+	case ForcePass:
+		printUnlessQuietMode(quiet, ":information:test forced to pass\n")
 	default:
 		// don't print anything if skipped test
 	}
