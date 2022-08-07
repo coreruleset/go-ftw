@@ -372,6 +372,11 @@ func applyInputOverride(testRequest *test.Input) error {
 		case "dest_addr":
 			oDestAddr := &value
 			testRequest.DestAddr = oDestAddr
+			// Work around "running 920171-1: panic: assignment to entry in nil map"
+			// TODO: maybe create Header map instead?
+			if testRequest.Headers != nil {
+				testRequest.Headers.Set("Host", value)
+			}
 		case "protocol":
 			oProtocol := &value
 			testRequest.Protocol = oProtocol
