@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -53,8 +54,8 @@ func TestNewConfigConfig(t *testing.T) {
 		t.Errorf("Failed! Len must be > 0")
 	}
 
-	if len(FTWConfig.TestOverride.Input) == 0 {
-		t.Errorf("Failed! Input Len must be > 0")
+	if reflect.ValueOf(FTWConfig.TestOverride.Input).IsZero() {
+		t.Errorf("Failed! Input must not be empty")
 	}
 
 	for id, text := range FTWConfig.TestOverride.Ignore {
@@ -66,12 +67,10 @@ func TestNewConfigConfig(t *testing.T) {
 		}
 	}
 
-	for setting, value := range FTWConfig.TestOverride.Input {
-		if setting == "dest_addr" && value != "httpbin.org" {
-			t.Errorf("Looks like we are not overriding destination!")
-		}
+	overrides := FTWConfig.TestOverride.Input
+	if overrides.DestAddr != nil && *overrides.DestAddr != "httpbin.org" {
+		t.Errorf("Looks like we are not overriding destination!")
 	}
-
 }
 
 func TestNewConfigBadConfig(t *testing.T) {

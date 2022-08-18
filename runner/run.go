@@ -1,10 +1,8 @@
 package runner
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/fzipi/go-ftw/check"
@@ -103,9 +101,9 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	}
 
 	// Do not even run test if result is overridden. Just use the override and display the overridden result.
-	if overriden := overridenTestResult(ftwCheck, testCase.TestTitle); overriden != Failed {
-		addResultToStats(overriden, testCase.TestTitle, &runContext.Stats)
-		displayResult(runContext.Output, overriden, time.Duration(0), time.Duration(0))
+	if overridden := overriddenTestResult(ftwCheck, testCase.TestTitle); overridden != Failed {
+		addResultToStats(overridden, testCase.TestTitle, &runContext.Stats)
+		displayResult(runContext.Output, overridden, time.Duration(0), time.Duration(0))
 		return
 	}
 
@@ -268,7 +266,7 @@ func displayResult(quiet bool, result TestResult, roundTripTime time.Duration, s
 	}
 }
 
-func overridenTestResult(c *check.FTWCheck, id string) TestResult {
+func overriddenTestResult(c *check.FTWCheck, id string) TestResult {
 	if c.ForcedIgnore(id) {
 		return Ignored
 	}
@@ -358,28 +356,24 @@ func printUnlessQuietMode(quiet bool, format string, a ...interface{}) {
 
 // applyInputOverride will check if config had global overrides and write that into the test.
 func applyInputOverride(testRequest *test.Input) error {
-	var retErr error
 	overrides := config.FTWConfig.TestOverride.Input
-	for s, v := range overrides {
-		value := v
-		switch s {
-		case "port":
-			port, err := strconv.Atoi(value)
-			if err != nil {
-				retErr = errors.New("ftw/run: error getting overriden port")
-			}
-			testRequest.Port = &port
-		case "dest_addr":
-			oDestAddr := &value
-			testRequest.DestAddr = oDestAddr
-		case "protocol":
-			oProtocol := &value
-			testRequest.Protocol = oProtocol
-		default:
-			retErr = fmt.Errorf("ftw/run: override of '%s' not implemented yet", s)
+	if overrides.Port != nil {
+		testRequest.Port = overrides.Port
+	}
+	if overrides.DestAddr != nil {
+		testRequest.DestAddr = overrides.DestAddr
+		if testRequest.Headers == nil {
+			testRequest.Headers = ftwhttp.Header{}
+		}
+		if testRequest.Headers.Get("Host") == "" {
+			testRequest.Headers.Set("Host", *overrides.DestAddr)
 		}
 	}
-	return retErr
+	if overrides.Protocol != nil {
+		testRequest.Protocol = overrides.Protocol
+	}
+
+	return nil
 }
 
 func notRunningInCloudMode(c *check.FTWCheck) bool {
