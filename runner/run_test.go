@@ -5,13 +5,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/fzipi/go-ftw/check"
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/ftwhttp"
 	"github.com/fzipi/go-ftw/test"
+
+	"github.com/rs/zerolog/log"
 )
 
 var yamlConfig = `
@@ -326,7 +327,10 @@ func setUpLogFileForTestServer(t *testing.T) (logFilePath string) {
 			t.Error(err)
 		}
 		logFilePath = file.Name()
-		t.Cleanup(func() { os.Remove(logFilePath) })
+		t.Cleanup(func() {
+			os.Remove(logFilePath)
+			log.Info().Msgf("Deleting temporary file '%s'", logFilePath)
+		})
 	}
 	return logFilePath
 }
@@ -376,18 +380,21 @@ func replaceDestinationInTest(ftwTest *test.FTWTest, d ftwhttp.Destination) {
 }
 
 func replaceDestinationInConfiguration(dest ftwhttp.Destination) {
-	input := config.FTWConfig.TestOverride.Input
-	for key, value := range input {
-		if key == "dest_addr" && value == "TEST_ADDR" {
-			input[key] = dest.DestAddr
-		}
-		if key == "port" && value == "-1" {
-			input[key] = strconv.FormatInt(int64(dest.Port), 10)
-		}
+	replaceableAddress := "TEST_ADDR"
+	replaceablePort := -1
+
+	input := &config.FTWConfig.TestOverride.Input
+	if input.DestAddr != nil && *input.DestAddr == replaceableAddress {
+		input.DestAddr = &dest.DestAddr
+	}
+	if input.Port != nil && *input.Port == replaceablePort {
+		input.Port = &dest.Port
 	}
 }
 
 func TestRun(t *testing.T) {
+	t.Cleanup(config.Reset)
+
 	err := config.NewConfigFromString(yamlConfig)
 	if err != nil {
 		t.Errorf("Failed!")
@@ -440,6 +447,8 @@ func TestRun(t *testing.T) {
 }
 
 func TestOverrideRun(t *testing.T) {
+	t.Cleanup(config.Reset)
+
 	// setup test webserver (not a waf)
 	err := config.NewConfigFromString(yamlConfigOverride)
 	if err != nil {
@@ -471,6 +480,8 @@ func TestOverrideRun(t *testing.T) {
 }
 
 func TestBrokenOverrideRun(t *testing.T) {
+	t.Cleanup(config.Reset)
+
 	err := config.NewConfigFromString(yamlBrokenConfigOverride)
 	if err != nil {
 		t.Errorf("Failed!")
@@ -502,6 +513,7 @@ func TestBrokenOverrideRun(t *testing.T) {
 }
 
 func TestBrokenPortOverrideRun(t *testing.T) {
+	t.Cleanup(config.Reset)
 
 	// TestServer initialized first to retrieve the correct port number
 	dest, logFilePath := newTestServer(t, logText)
@@ -536,6 +548,8 @@ func TestBrokenPortOverrideRun(t *testing.T) {
 }
 
 func TestDisabledRun(t *testing.T) {
+	t.Cleanup(config.Reset)
+
 	err := config.NewConfigFromString(yamlConfig)
 	if err != nil {
 		t.Errorf("Failed!")
@@ -560,6 +574,8 @@ func TestDisabledRun(t *testing.T) {
 }
 
 func TestLogsRun(t *testing.T) {
+	t.Cleanup(config.Reset)
+
 	// setup test webserver (not a waf)
 	dest, logFilePath := newTestServer(t, logText)
 
@@ -584,6 +600,8 @@ func TestLogsRun(t *testing.T) {
 }
 
 func TestCloudRun(t *testing.T) {
+	t.Cleanup(config.Reset)
+
 	err := config.NewConfigFromString(yamlCloudConfig)
 	if err != nil {
 		t.Errorf("Failed!")
@@ -597,7 +615,7 @@ func TestCloudRun(t *testing.T) {
 	t.Run("don't show time and execute all", func(t *testing.T) {
 		for testCaseIndex, testCaseDummy := range ftwTestDummy.Tests {
 			for stageIndex := range testCaseDummy.Stages {
-				// Read the tests for every stage so we an replace the destination
+				// Read the tests for every stage so we can replace the destination
 				// in each run. The server needs to be configured for each stage
 				// individually.
 				ftwTest, err := test.GetTestFromYaml([]byte(yamlTestLogs))
@@ -645,6 +663,8 @@ func TestCloudRun(t *testing.T) {
 }
 
 func TestFailedTestsRun(t *testing.T) {
+	t.Cleanup(config.Reset)
+
 	err := config.NewConfigFromString(yamlConfig)
 	dest, logFilePath := newTestServer(t, logText)
 	if err != nil {
@@ -664,4 +684,41 @@ func TestFailedTestsRun(t *testing.T) {
 			t.Error("Oops, test run failed!")
 		}
 	})
+}
+
+func TestApplyInputOverrideSetHostFromDestAddr(t *testing.T) {
+	t.Cleanup(config.Reset)
+
+	originalHost := "original.com"
+	overrideHost := "override.com"
+	testInput := test.Input{
+		DestAddr: &originalHost,
+	}
+	config.FTWConfig = &config.FTWConfiguration{
+		TestOverride: config.FTWTestOverride{
+			Input: test.Input{
+				DestAddr: &overrideHost,
+			},
+		},
+	}
+
+	err := applyInputOverride(&testInput)
+	if err != nil {
+		t.Error("Failed to apply input overrides", err)
+	}
+
+	if *testInput.DestAddr != overrideHost {
+		t.Error("`dest_addr` should have been overridden")
+	}
+	if testInput.Headers == nil {
+		t.Error("Header map must exist after overriding `dest_addr`")
+	}
+
+	hostHeader := testInput.Headers.Get("Host")
+	if hostHeader == "" {
+		t.Error("Host header must be set after overriding `dest_addr`")
+	}
+	if hostHeader != overrideHost {
+		t.Error("Host header must be identical to `dest_addr` after overrding `dest_addr`")
+	}
 }
