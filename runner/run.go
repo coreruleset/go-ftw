@@ -129,7 +129,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	err = runContext.Client.NewConnection(*dest)
 
 	if err != nil && !expectedOutput.ExpectError {
-		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v", dest)
 	}
 	runContext.Client.StartTrackingTime()
 
@@ -137,7 +137,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 
 	runContext.Client.StopTrackingTime()
 	if responseErr != nil && !expectedOutput.ExpectError {
-		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+		log.Fatal().Caller().Err(responseErr).Msgf("failed sending request to destination %+v", dest)
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
