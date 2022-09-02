@@ -190,12 +190,12 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	for range [20]int{} {
 		err := runContext.Client.NewConnection(*dest)
 		if err != nil {
-			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v: %w", dest, err)
 		}
 
 		_, err = runContext.Client.Do(*req)
 		if err != nil {
-			return nil, fmt.Errorf("ftw/run: failed sending request to %+v - unexpected error found. Is your waf running?", dest)
+			return nil, fmt.Errorf("ftw/run: failed sending request to %+v: %w", dest, err)
 		}
 
 		marker := runContext.LogLines.CheckLogForMarker(stageID)
