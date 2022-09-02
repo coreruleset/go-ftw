@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/kyokomi/emoji"
 	"github.com/rs/zerolog"
@@ -56,4 +57,5 @@ func init() {
 	runCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
 	runCmd.Flags().BoolP("quiet", "q", false, "do not show test by test, only results")
 	runCmd.Flags().BoolP("time", "t", false, "show time spent per test")
+	runCmd.Flags().Duration("request-timeout", 1*time.Second, "timeout for individual requests during test execution")
 }
