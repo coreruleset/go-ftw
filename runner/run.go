@@ -21,12 +21,16 @@ import (
 // testid is the name of the unique test you want to run
 // exclude is a regexp that matches the test name: e.g. "920*", excludes all tests starting with "920"
 // Returns error if some test failed
-func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) TestRunContext {
+func Run(include string, exclude string, showTime bool, output bool,
+	connectTimeout time.Duration, readTimeout time.Duration, ftwtests []test.FTWTest) TestRunContext {
 	printUnlessQuietMode(output, ":rocket:Running go-ftw!\n")
 
 	logLines := waflog.NewFTWLogLines(waflog.WithLogFile(config.FTWConfig.LogFile))
 
-	client := ftwhttp.NewClient()
+	conf := ftwhttp.NewClientConfig()
+	conf.ConnectTimeout = connectTimeout
+	conf.ReadTimeout = readTimeout
+	client := ftwhttp.NewClient(conf)
 	runContext := TestRunContext{
 		Include:  include,
 		Exclude:  exclude,

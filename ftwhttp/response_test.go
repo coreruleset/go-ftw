@@ -88,7 +88,7 @@ func TestResponse(t *testing.T) {
 	}
 	req := generateRequestForTesting(true)
 
-	client := NewClient()
+	client := NewClient(NewClientConfig())
 	err = client.NewConnection(*d)
 
 	if err != nil {
@@ -98,7 +98,7 @@ func TestResponse(t *testing.T) {
 	response, err := client.Do(*req)
 
 	if err != nil {
-		t.Logf("Failed !")
+		t.Fatal(err)
 	}
 
 	if response.GetBodyAsString() != "Hello, client\n" {
@@ -118,7 +118,7 @@ func TestResponseWithCookies(t *testing.T) {
 	}
 	req := generateRequestForTesting(true)
 
-	client := NewClient()
+	client := NewClient(NewClientConfig())
 	err = client.NewConnection(*d)
 
 	if err != nil {

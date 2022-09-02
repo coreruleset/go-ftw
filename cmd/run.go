@@ -26,6 +26,8 @@ var runCmd = &cobra.Command{
 		dir, _ := cmd.Flags().GetString("dir")
 		showTime, _ := cmd.Flags().GetBool("time")
 		quiet, _ := cmd.Flags().GetBool("quiet")
+		connectTimeout, _ := cmd.Flags().GetDuration("connect-timeout")
+		readTimeout, _ := cmd.Flags().GetDuration("read-timeout")
 		if !quiet {
 			log.Info().Msgf(emoji.Sprintf(":hammer_and_wrench: Starting tests!\n"))
 		} else {
@@ -44,7 +46,7 @@ var runCmd = &cobra.Command{
 			log.Fatal().Err(err)
 		}
 
-		currentRun := runner.Run(include, exclude, showTime, quiet, tests)
+		currentRun := runner.Run(include, exclude, showTime, quiet, connectTimeout, readTimeout, tests)
 		os.Exit(currentRun.Stats.TotalFailed())
 	},
 }
@@ -57,5 +59,6 @@ func init() {
 	runCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
 	runCmd.Flags().BoolP("quiet", "q", false, "do not show test by test, only results")
 	runCmd.Flags().BoolP("time", "t", false, "show time spent per test")
-	runCmd.Flags().Duration("request-timeout", 1*time.Second, "timeout for individual requests during test execution")
+	runCmd.Flags().Duration("connect-timeout", 3*time.Second, "timeout for connecting to endpoints during test execution")
+	runCmd.Flags().Duration("read-timeout", 1*time.Second, "timeout for receiving responses during test execution")
 }

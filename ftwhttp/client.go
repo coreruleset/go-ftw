@@ -3,26 +3,32 @@ package ftwhttp
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/rs/zerolog/log"
+	"golang.org/x/net/publicsuffix"
 	"net"
 	"net/http/cookiejar"
 	"strings"
 	"time"
-
-	"github.com/rs/zerolog/log"
-	"golang.org/x/net/publicsuffix"
 )
 
+// NewClientConfig returns a new ClientConfig with reasonable defaults.
+func NewClientConfig() ClientConfig {
+	return ClientConfig{
+		ConnectTimeout: 3 * time.Second,
+		ReadTimeout:    1 * time.Second,
+	}
+}
+
 // NewClient initializes the http client, creating the cookiejar
-func NewClient() *Client {
+func NewClient(config ClientConfig) *Client {
 	// All users of cookiejar should import "golang.org/x/net/publicsuffix"
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
 		log.Fatal().Err(err)
 	}
 	c := &Client{
-		Jar: jar,
-		// default Timeout
-		Timeout: 3 * time.Second,
+		Jar:    jar,
+		config: config,
 	}
 	return c
 }
@@ -38,16 +44,17 @@ func (c *Client) NewConnection(d Destination) error {
 	// strings.HasSuffix(err.String(), "connection refused") {
 	if strings.ToLower(d.Protocol) == "https" {
 		// Commenting InsecureSkipVerify: true.
-		netConn, err = tls.DialWithDialer(&net.Dialer{Timeout: c.Timeout}, "tcp", hostPort, &tls.Config{MinVersion: tls.VersionTLS12})
+		netConn, err = tls.DialWithDialer(&net.Dialer{Timeout: c.config.ConnectTimeout}, "tcp", hostPort, &tls.Config{MinVersion: tls.VersionTLS12})
 	} else {
-		netConn, err = net.DialTimeout("tcp", hostPort, c.Timeout)
+		netConn, err = net.DialTimeout("tcp", hostPort, c.config.ConnectTimeout)
 	}
 
 	if err == nil {
 		c.Transport = &Connection{
-			connection: netConn,
-			protocol:   d.Protocol,
-			duration:   NewRoundTripTime(),
+			connection:  netConn,
+			protocol:    d.Protocol,
+			readTimeout: c.config.ReadTimeout,
+			duration:    NewRoundTripTime(),
 		}
 	}
 
