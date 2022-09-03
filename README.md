@@ -41,10 +41,10 @@ To run tests you need:
 
 ### YAML Config file
 
-With a configuration file you can alter the test results or just provide neeed paths for files and enabling features. The config file has four basic values:
+With a configuration file you can alter the test results, set paths for your environment, or enable features. The config file has four basic values:
 
 ```yaml
-logfile: <the relative patch to the waf logfile>
+logfile: <the relative path to the WAF logfile>
 logmarkerheadername: <a header name used for log parsing (see "How log parsing works" below)>
 testoverride: <a list of things to override (see "Overriding tests" below)>
 mode: "default" or "cloud" (only change it if you need "cloud")
@@ -54,7 +54,7 @@ By default, _ftw_ would search for a file in `$PWD` with the name `.ftw.yaml`. Y
 
 ### Logfile
 
-Running in default mode implies you have access to a logfile to contrast the WAF behavior with test results. Example configurations for `apache` and `nginx` can be found below:
+Running in default mode implies you have access to a logfile for checking the WAF behavior against test results. Example configurations for `apache` and `nginx` can be found below:
 
 ```yaml
 ---
@@ -70,11 +70,11 @@ logfile: '../coreruleset/tests/logs/modsec3-nginx/nginx/error.log'
 
 I normally perform my testing using the [Core Rule Set](https://github.com/coreruleset/coreruleset/).
 
-You can start the containers from that repo using docker-compose:
+You can start the containers from that repo using `docker compose`:
 
 ```bash
 git clone https://github.com/coreruleset/coreruleset.git
-docker-compose -f tests/docker-compose.yml up -d modsec2-apache
+docker compose -f tests/docker-compose.yml up -d modsec2-apache
 ```
 
 ## Running
@@ -98,7 +98,7 @@ Flags:
   -t, --time             show time spent per test
 
 Global Flags:
-      --cloud           cloud mode: rely only in http status code for determining test succes or failure (assumes no logs access)
+      --cloud           cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)
       --config string   override config file (default is $PWD/.ftw.yaml)
       --debug           debug output
       --trace           trace output: really, really verbose
@@ -144,7 +144,7 @@ Happy testing!
 - templates with the power of Go [text/template](https://golang.org/pkg/text/template/). Add your template to any `data:` sections and enjoy!
 - [Sprig functions](https://masterminds.github.io/sprig/) can be added to templates as well.
 - Override test results.
-- Cloud mode! The new mode will override test results and only base the test result on http status code answers.
+- Cloud mode! This new mode will override test results and rely solely on HTTP status codes for determining success and failure of tests.
 
 With templates and functions you can simplify bulk test writing, or even read values from the environment while executing. This features allow you to write tests like this:
 
@@ -177,8 +177,8 @@ Other interesting functions you can use are: `randBytes`, `htpasswd`, `encryptAE
 Sometimes you have tests that work well for some platform combinations, e.g. Apache + modsecurity2, but fail for others, e.g. NGiNX + modsecurity3. Taking that into account, you can override test results using the `testoverride` config param. The test will be run, but the _result_ would be overriden, and your comment will be printed out.
 
 Tests can be altered using four lists:
-- `input` allows you to override global parameters in tests. An example usage is if you want to change the `dest_addr` of all tests to point to an external IP or host.
-- `ignore` is for tests you want to ignore. It will still execute the test, but ignore the results. You should add a comment on why you ignore the test
+- `input` allows you to override global parameters in tests. An example usage is if you want to change the `dest_addr` of all tests to point to an external IP or host
+- `ignore` is for tests you want to ignore. It will still execute the test, but ignore the result. You should add a comment on why you ignore the test
 - `forcepass` is for tests you want to pass unconditionally. Test will be executed, and pass even when the test fails. You should add a comment on why you force pass the test
 - `forcefail` is for tests you want to fail unconditionally. Test will be executed, and fail even when the test passes. You should add a comment on why you force fail the test
 
@@ -205,11 +205,11 @@ testoverride:
 
 You can combine any of `ignore`, `forcefail` and `forcepass` to make it work for you.
 
-## Cloud mode
+## ☁️ Cloud mode
 
 Most of the tests rely on having access to a logfile to check for success or failure. Sometimes that is not possible, for example, when testing cloud services or servers where you don't have access to logfiles and/or logfiles won't have the information you need to decide if the test was good or bad.
 
-With cloud mode we move the decision on test failure or success to the HTTP status code received after performing the test. The general idea is that you setup your WAF in blocking mode, so anything matching will return a block status (e.g. 403), and if not we expect a 2XX return code.
+With cloud mode, we move the decision on test failure or success to the HTTP status code received after performing the test. The general idea is that you setup your WAF in blocking mode, so anything matching will return a block status (e.g. 403), and if not we expect a 2XX return code.
 
 An example config file for this is:
 ```
