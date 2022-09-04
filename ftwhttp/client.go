@@ -29,6 +29,12 @@ func NewClient() *Client {
 
 // NewConnection creates a new Connection based on a Destination
 func (c *Client) NewConnection(d Destination) error {
+	if c.Transport != nil {
+		if err := c.Transport.connection.Close(); err != nil {
+			return err
+		}
+	}
+
 	var err error
 	var netConn net.Conn
 
