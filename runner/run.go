@@ -17,35 +17,35 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Run runs your tests
-// testid is the name of the unique test you want to run
-// exclude is a regexp that matches the test name: e.g. "920*", excludes all tests starting with "920"
-// Returns error if some test failed
-func Run(include string, exclude string, showTime bool, output bool,
-	connectTimeout time.Duration, readTimeout time.Duration, ftwtests []test.FTWTest) TestRunContext {
-	printUnlessQuietMode(output, ":rocket:Running go-ftw!\n")
+// Run runs your tests with the specified Config. Returns error if some test failed
+func Run(tests []test.FTWTest, c Config) TestRunContext {
+	printUnlessQuietMode(c.Quiet, ":rocket:Running go-ftw!\n")
 
 	logLines := waflog.NewFTWLogLines(waflog.WithLogFile(config.FTWConfig.LogFile))
 
 	conf := ftwhttp.NewClientConfig()
-	conf.ConnectTimeout = connectTimeout
-	conf.ReadTimeout = readTimeout
+	if c.ConnectTimeout != 0 {
+		conf.ConnectTimeout = c.ConnectTimeout
+	}
+	if c.ReadTimeout != 0 {
+		conf.ReadTimeout = c.ReadTimeout
+	}
 	client := ftwhttp.NewClient(conf)
 	runContext := TestRunContext{
-		Include:  include,
-		Exclude:  exclude,
-		ShowTime: showTime,
-		Output:   output,
+		Include:  c.Include,
+		Exclude:  c.Exclude,
+		ShowTime: c.ShowTime,
+		Output:   c.Quiet,
 		Client:   client,
 		LogLines: logLines,
 		RunMode:  config.FTWConfig.RunMode,
 	}
 
-	for _, test := range ftwtests {
+	for _, test := range tests {
 		RunTest(&runContext, test)
 	}
 
-	printSummary(output, runContext.Stats)
+	printSummary(c.Quiet, runContext.Stats)
 
 	defer cleanLogs(logLines)
 
@@ -210,16 +210,15 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.LogLines.FileName)
 }
 
-func needToSkipTest(include string, exclude string, title string, enabled bool) bool {
+func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string, enabled bool) bool {
 	// skip disabled tests
 	if !enabled {
 		return true
 	}
 
 	// never skip enabled explicit inclusions
-	if include != "" {
-		ok, err := regexp.MatchString(include, title)
-		if ok && err == nil {
+	if include != nil {
+		if include.MatchString(title) {
 			// inclusion always wins over exclusion
 			return false
 		}
@@ -228,18 +227,16 @@ func needToSkipTest(include string, exclude string, title string, enabled bool) 
 	result := false
 	// if we need to exclude tests, and the title matches,
 	// it needs to be skipped
-	if exclude != "" {
-		ok, err := regexp.MatchString(exclude, title)
-		if ok && err == nil {
+	if exclude != nil {
+		if exclude.MatchString(title) {
 			result = true
 		}
 	}
 
 	// if we need to include tests, but the title does not match
 	// it needs to be skipped
-	if include != "" {
-		ok, err := regexp.MatchString(include, title)
-		if !ok && err == nil {
+	if include != nil {
+		if !include.MatchString(title) {
 			result = true
 		}
 	}

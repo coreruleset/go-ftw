@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/kyokomi/emoji"
@@ -46,7 +47,24 @@ var runCmd = &cobra.Command{
 			log.Fatal().Err(err)
 		}
 
-		currentRun := runner.Run(include, exclude, showTime, quiet, connectTimeout, readTimeout, tests)
+		var includeRE *regexp.Regexp
+		if include != "" {
+			includeRE = regexp.MustCompile(include)
+		}
+		var excludeRE *regexp.Regexp
+		if exclude != "" {
+			excludeRE = regexp.MustCompile(exclude)
+		}
+
+		currentRun := runner.Run(tests, runner.Config{
+			Include:        includeRE,
+			Exclude:        excludeRE,
+			ShowTime:       showTime,
+			Quiet:          quiet,
+			ConnectTimeout: connectTimeout,
+			ReadTimeout:    readTimeout,
+		})
+
 		os.Exit(currentRun.Stats.TotalFailed())
 	},
 }
