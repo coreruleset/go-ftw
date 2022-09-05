@@ -3,12 +3,13 @@ package ftwhttp
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/rs/zerolog/log"
-	"golang.org/x/net/publicsuffix"
 	"net"
 	"net/http/cookiejar"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog/log"
+	"golang.org/x/net/publicsuffix"
 )
 
 // NewClientConfig returns a new ClientConfig with reasonable defaults.
