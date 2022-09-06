@@ -5,16 +5,16 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/kyokomi/emoji"
+	"github.com/rs/zerolog/log"
+
 	"github.com/fzipi/go-ftw/check"
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/ftwhttp"
 	"github.com/fzipi/go-ftw/test"
 	"github.com/fzipi/go-ftw/utils"
 	"github.com/fzipi/go-ftw/waflog"
-	"github.com/google/uuid"
-
-	"github.com/kyokomi/emoji"
-	"github.com/rs/zerolog/log"
 )
 
 // Run runs your tests with the specified Config. Returns error if some test failed

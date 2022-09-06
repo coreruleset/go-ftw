@@ -3,8 +3,9 @@ package waflog
 import (
 	"os"
 
-	"github.com/fzipi/go-ftw/config"
 	"github.com/rs/zerolog/log"
+
+	"github.com/fzipi/go-ftw/config"
 )
 
 // NewFTWLogLines is the base struct for reading the log file

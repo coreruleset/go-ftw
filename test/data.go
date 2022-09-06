@@ -2,7 +2,6 @@ package test
 
 import (
 	"bytes"
-
 	"text/template"
 
 	"github.com/Masterminds/sprig"
