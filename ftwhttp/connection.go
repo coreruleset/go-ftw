@@ -70,13 +70,9 @@ func (c *Connection) receive() ([]byte, error) {
 	var err error
 	var buf []byte
 
-	// Set a deadline for reading. Read operation will fail if no data
-	// is received after deadline.
-	timeoutDuration := 1000 * time.Millisecond
-
 	// We assume the response body can be handled in memory without problems
 	// That's why we use io.ReadAll
-	if err = c.connection.SetReadDeadline(time.Now().Add(timeoutDuration)); err == nil {
+	if err = c.connection.SetReadDeadline(time.Now().Add(c.readTimeout)); err == nil {
 		buf, err = io.ReadAll(c.connection)
 	}
 

@@ -5,14 +5,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"testing"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/fzipi/go-ftw/check"
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/ftwhttp"
 	"github.com/fzipi/go-ftw/test"
-
-	"github.com/rs/zerolog/log"
 )
 
 var yamlConfig = `
@@ -410,37 +411,54 @@ func TestRun(t *testing.T) {
 	replaceDestinationInTest(&ftwTest, *dest)
 
 	t.Run("show time and execute all", func(t *testing.T) {
-		if res := Run("", "", true, false, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
+		if res := Run([]test.FTWTest{ftwTest}, Config{
+			ShowTime: true,
+			Quiet:    true,
+		}); res.Stats.TotalFailed() > 0 {
 			t.Errorf("Oops, %d tests failed to run!", res.Stats.TotalFailed())
 		}
 	})
 
 	t.Run("be verbose and execute all", func(t *testing.T) {
-		if res := Run("0*", "", true, true, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
+		if res := Run([]test.FTWTest{ftwTest}, Config{
+			Include:  regexp.MustCompile("0*"),
+			ShowTime: true,
+		}); res.Stats.TotalFailed() > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("don't show time and execute all", func(t *testing.T) {
-		if res := Run("0*", "", false, false, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
+		if res := Run([]test.FTWTest{ftwTest}, Config{
+			Include: regexp.MustCompile("0*"),
+		}); res.Stats.TotalFailed() > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("execute only test 008 but exclude all", func(t *testing.T) {
-		if res := Run("008", "0*", false, false, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
+		if res := Run([]test.FTWTest{ftwTest}, Config{
+			Include: regexp.MustCompile("008"),
+			Exclude: regexp.MustCompile("0*"),
+		}); res.Stats.TotalFailed() > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("exclude test 010", func(t *testing.T) {
-		if res := Run("*", "010", false, false, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
+		if res := Run([]test.FTWTest{ftwTest}, Config{
+			Exclude: regexp.MustCompile("010"),
+		}); res.Stats.TotalFailed() > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})
 
 	t.Run("test exceptions 1", func(t *testing.T) {
-		if res := Run("1*", "0*", false, true, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
+		if res := Run([]test.FTWTest{ftwTest}, Config{
+			Include: regexp.MustCompile("1*"),
+			Exclude: regexp.MustCompile("0*"),
+			Quiet:   true,
+		}); res.Stats.TotalFailed() > 0 {
 			t.Error("Oops, test run failed!")
 		}
 	})
@@ -472,11 +490,11 @@ func TestOverrideRun(t *testing.T) {
 	}
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
-	t.Run("override and execute all", func(t *testing.T) {
-		if res := Run("", "", false, true, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
-			t.Error("Oops, test run failed!")
-		}
-	})
+	if res := Run([]test.FTWTest{ftwTest}, Config{
+		Quiet: true,
+	}); res.Stats.TotalFailed() > 0 {
+		t.Error("Oops, test run failed!")
+	}
 }
 
 func TestBrokenOverrideRun(t *testing.T) {
@@ -505,11 +523,11 @@ func TestBrokenOverrideRun(t *testing.T) {
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
 	// the test should succeed, despite the unknown override property
-	t.Run("showtime and execute all", func(t *testing.T) {
-		if res := Run("", "", false, true, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
-			t.Error("Oops, test run failed!")
-		}
-	})
+	if res := Run([]test.FTWTest{ftwTest}, Config{
+		Quiet: true,
+	}); res.Stats.TotalFailed() > 0 {
+		t.Error("Oops, test run failed!")
+	}
 }
 
 func TestBrokenPortOverrideRun(t *testing.T) {
@@ -540,11 +558,11 @@ func TestBrokenPortOverrideRun(t *testing.T) {
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
 	// the test should succeed, despite the unknown override property
-	t.Run("showtime and execute all", func(t *testing.T) {
-		if res := Run("", "", false, true, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
-			t.Error("Oops, test run failed!")
-		}
-	})
+	if res := Run([]test.FTWTest{ftwTest}, Config{
+		Quiet: true,
+	}); res.Stats.TotalFailed() > 0 {
+		t.Error("Oops, test run failed!")
+	}
 }
 
 func TestDisabledRun(t *testing.T) {
@@ -566,11 +584,11 @@ func TestDisabledRun(t *testing.T) {
 	}
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
-	t.Run("showtime and execute all", func(t *testing.T) {
-		if res := Run("*", "", false, true, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
-			t.Error("Oops, test run failed!")
-		}
-	})
+	if res := Run([]test.FTWTest{ftwTest}, Config{
+		Quiet: true,
+	}); res.Stats.TotalFailed() > 0 {
+		t.Error("Oops, test run failed!")
+	}
 }
 
 func TestLogsRun(t *testing.T) {
@@ -592,11 +610,11 @@ func TestLogsRun(t *testing.T) {
 	}
 	replaceDestinationInTest(&ftwTest, *dest)
 
-	t.Run("showtime and execute all", func(t *testing.T) {
-		if res := Run("", "", false, true, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() > 0 {
-			t.Error("Oops, test run failed!")
-		}
-	})
+	if res := Run([]test.FTWTest{ftwTest}, Config{
+		Quiet: true,
+	}); res.Stats.TotalFailed() > 0 {
+		t.Error("Oops, test run failed!")
+	}
 }
 
 func TestCloudRun(t *testing.T) {
@@ -643,11 +661,11 @@ func TestCloudRun(t *testing.T) {
 					t.Error(err)
 				}
 				runContext := TestRunContext{
-					Include:  "",
-					Exclude:  "",
+					Include:  nil,
+					Exclude:  nil,
 					ShowTime: false,
 					Output:   true,
-					Client:   ftwhttp.NewClient(),
+					Client:   ftwhttp.NewClient(ftwhttp.NewClientConfig()),
 					LogLines: nil,
 				}
 
@@ -679,11 +697,9 @@ func TestFailedTestsRun(t *testing.T) {
 	}
 	replaceDestinationInTest(&ftwTest, *dest)
 
-	t.Run("run test that fails", func(t *testing.T) {
-		if res := Run("*", "", false, false, []test.FTWTest{ftwTest}); res.Stats.TotalFailed() != 1 {
-			t.Error("Oops, test run failed!")
-		}
-	})
+	if res := Run([]test.FTWTest{ftwTest}, Config{}); res.Stats.TotalFailed() != 1 {
+		t.Error("Oops, test run failed!")
+	}
 }
 
 func TestApplyInputOverrideSetHostFromDestAddr(t *testing.T) {
