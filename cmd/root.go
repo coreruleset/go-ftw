@@ -4,10 +4,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/fzipi/go-ftw/config"
-
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
+
+	"github.com/fzipi/go-ftw/config"
 )
 
 var (

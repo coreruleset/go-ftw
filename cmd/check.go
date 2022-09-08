@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fzipi/go-ftw/test"
-	"github.com/rs/zerolog/log"
-
 	"github.com/kyokomi/emoji"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+
+	"github.com/fzipi/go-ftw/test"
 )
 
 // checkCmd represents the check command
