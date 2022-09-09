@@ -237,7 +237,7 @@ SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
   "id:999999,\
   phase:1,\
   log,\
-  msg:'%{MATCHED_VAR}',\
+  msg:'X-CRS-Test %{MATCHED_VAR}',\
   pass,\
   t:none"
 ```
