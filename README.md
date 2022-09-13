@@ -88,14 +88,16 @@ Usage:
   ftw run [flags]
 
 Flags:
-  -d, --dir string       recursively find yaml tests in this directory (default ".")
-  -e, --exclude string   exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*").
-                         If you want more permanent exclusion, check the 'testmodify' option in the config file.
-  -h, --help             help for run
-      --id string        (deprecated). Use --include matching your test only.
-  -i, --include string   include only tests matching this Go regexp (e.g. to include only tests beginning with "91", use "91.*").
-  -q, --quiet            do not show test by test, only results
-  -t, --time             show time spent per test
+      --connect-timeout duration   timeout for connecting to endpoints during test execution (default 3s)
+  -d, --dir string                 recursively find yaml tests in this directory (default ".")
+  -e, --exclude string             exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*").
+                                   If you want more permanent exclusion, check the 'testoverride' option in the config file.
+  -h, --help                       help for run
+      --id string                  (deprecated). Use --include matching your test only.
+  -i, --include string             include only tests matching this Go regexp (e.g. to include only tests beginning with "91", use "91.*").
+  -q, --quiet                      do not show test by test, only results
+      --read-timeout duration      timeout for receiving responses during test execution (default 1s)
+  -t, --time                       show time spent per test
 
 Global Flags:
       --cloud           cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)
@@ -174,13 +176,13 @@ Other interesting functions you can use are: `randBytes`, `htpasswd`, `encryptAE
 
 ## Overriding tests
 
-Sometimes you have tests that work well for some platform combinations, e.g. Apache + modsecurity2, but fail for others, e.g. NGiNX + modsecurity3. Taking that into account, you can override test results using the `testoverride` config param. The test will be run, but the _result_ would be overriden, and your comment will be printed out.
+Sometimes you have tests that work well for some platform combinations, e.g. Apache + modsecurity2, but fail for others, e.g. NGiNX + modsecurity3. Taking that into account, you can override test results using the `testoverride` config param. The test will be skipped, and the result forced as configured.
 
 Tests can be altered using four lists:
 - `input` allows you to override global parameters in tests. An example usage is if you want to change the `dest_addr` of all tests to point to an external IP or host
-- `ignore` is for tests you want to ignore. It will still execute the test, but ignore the result. You should add a comment on why you ignore the test
-- `forcepass` is for tests you want to pass unconditionally. Test will be executed, and pass even when the test fails. You should add a comment on why you force pass the test
-- `forcefail` is for tests you want to fail unconditionally. Test will be executed, and fail even when the test passes. You should add a comment on why you force fail the test
+- `ignore` is for tests you want to ignore. You should add a comment on why you ignore the test
+- `forcepass` is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
+- `forcefail` is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
 
 Example using all the lists above:
 
