@@ -1,6 +1,10 @@
 package config
 
-import "github.com/fzipi/go-ftw/test"
+import (
+	"regexp"
+
+	"github.com/fzipi/go-ftw/test"
+)
 
 // RunMode represents the mode of the test run
 type RunMode string
@@ -36,4 +40,11 @@ type FTWTestOverride struct {
 	Ignore    map[string]string `koanf:"ignore"`
 	ForcePass map[string]string `koanf:"forcepass"`
 	ForceFail map[string]string `koanf:"forcefail"`
+}
+
+// During NewCheck, an FTWTestOverrideRE struct is allocated in which IDs inside the maps are considered Regexes
+type FTWTestOverrideRE struct {
+	Ignore    map[string]*regexp.Regexp
+	ForcePass map[string]*regexp.Regexp
+	ForceFail map[string]*regexp.Regexp
 }

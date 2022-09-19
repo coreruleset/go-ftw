@@ -1,6 +1,8 @@
 package check
 
 import (
+	"regexp"
+
 	"github.com/fzipi/go-ftw/config"
 	"github.com/fzipi/go-ftw/test"
 	"github.com/fzipi/go-ftw/waflog"
@@ -8,9 +10,10 @@ import (
 
 // FTWCheck is the base struct for checking test results
 type FTWCheck struct {
-	log       *waflog.FTWLogLines
-	expected  *test.Output
-	overrides *config.FTWTestOverride
+	log         *waflog.FTWLogLines
+	expected    *test.Output
+	overrides   *config.FTWTestOverride
+	overridesRE *config.FTWTestOverrideRE
 }
 
 // NewCheck creates a new FTWCheck, allowing to inject the configuration
@@ -21,11 +24,38 @@ func NewCheck(c *config.FTWConfiguration) *FTWCheck {
 			StartMarker: nil,
 			EndMarker:   nil,
 		},
-		expected:  &test.Output{},
-		overrides: &c.TestOverride,
+		expected:    &test.Output{},
+		overrides:   &c.TestOverride,
+		overridesRE: overridesIntoRegexes(&c.TestOverride),
 	}
 
 	return check
+}
+
+func overridesIntoRegexes(c *config.FTWTestOverride) *config.FTWTestOverrideRE {
+	overridesRE := new(config.FTWTestOverrideRE)
+
+	overridesRE.Ignore = make(map[string]*regexp.Regexp)
+	for id := range c.Ignore {
+		var idRE *regexp.Regexp
+		idRE = regexp.MustCompile(id)
+		overridesRE.Ignore[id] = idRE
+	}
+
+	overridesRE.ForceFail = make(map[string]*regexp.Regexp)
+	for id := range c.ForceFail {
+		var idRE *regexp.Regexp
+		idRE = regexp.MustCompile(id)
+		overridesRE.ForceFail[id] = idRE
+	}
+
+	overridesRE.ForcePass = make(map[string]*regexp.Regexp)
+	for id := range c.ForcePass {
+		var idRE *regexp.Regexp
+		idRE = regexp.MustCompile(id)
+		overridesRE.ForcePass[id] = idRE
+	}
+	return overridesRE
 }
 
 // SetExpectTestOutput sets the combined expected output from this test
@@ -60,18 +90,24 @@ func (c *FTWCheck) SetNoLogContains(contains string) {
 
 // ForcedIgnore check if this id need to be ignored from results
 func (c *FTWCheck) ForcedIgnore(id string) bool {
-	_, ok := c.overrides.Ignore[id]
-	return ok
+	for _, re := range c.overridesRE.Ignore {
+		if re.MatchString(id) {
+			return true
+		}
+	}
+	return false
 }
 
 // ForcedPass check if this id need to be ignored from results
 func (c *FTWCheck) ForcedPass(id string) bool {
+	// TODO regex match
 	_, ok := c.overrides.ForcePass[id]
 	return ok
 }
 
 // ForcedFail check if this id need to be ignored from results
 func (c *FTWCheck) ForcedFail(id string) bool {
+	// TODO regex match
 	_, ok := c.overrides.ForceFail[id]
 	return ok
 }
