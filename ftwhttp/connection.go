@@ -33,21 +33,6 @@ func DestinationFromString(urlString string) (*Destination, error) {
 	return d, nil
 }
 
-// StartTrackingTime initializes timer
-func (c *Connection) StartTrackingTime() {
-	c.duration.StartTracking()
-}
-
-// StopTrackingTime stops timer
-func (c *Connection) StopTrackingTime() {
-	c.duration.StopTracking()
-}
-
-// GetTrackedTime will return the time since the request started and the response was parsed
-func (c *Connection) GetTrackedTime() *RoundTripTime {
-	return c.duration
-}
-
 func (c *Connection) send(data []byte) (int, error) {
 	var err error
 	var sent int

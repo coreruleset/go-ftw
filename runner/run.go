@@ -135,11 +135,11 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	if err != nil && !expectedOutput.ExpectError {
 		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v", dest)
 	}
-	runContext.Client.StartTrackingTime()
 
+	reqStartTime := time.Now()
 	response, responseErr := runContext.Client.Do(*req)
+	roundTripTime := time.Since(reqStartTime)
 
-	runContext.Client.StopTrackingTime()
 	if responseErr != nil && !expectedOutput.ExpectError {
 		log.Fatal().Caller().Err(responseErr).Msgf("failed sending request to destination %+v", dest)
 	}
@@ -159,7 +159,6 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	// now get the test result based on output
 	testResult := checkResult(ftwCheck, response, responseErr)
 
-	roundTripTime := runContext.Client.GetRoundTripTime().RoundTripDuration()
 	stageTime := time.Since(stageStartTime)
 
 	addResultToStats(testResult, testCase.TestTitle, &runContext.Stats)

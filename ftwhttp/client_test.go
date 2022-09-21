@@ -79,11 +79,7 @@ func TestGetTrackedTime(t *testing.T) {
 		t.Logf("This should not error")
 	}
 
-	c.StartTrackingTime()
-
 	resp, err := c.Do(*req)
-
-	c.StopTrackingTime()
 
 	if err != nil {
 		t.Logf("This should not error")
@@ -91,12 +87,6 @@ func TestGetTrackedTime(t *testing.T) {
 
 	if resp.Parsed.StatusCode != 200 {
 		t.Logf("Error in calling website")
-	}
-
-	rtt := c.GetRoundTripTime()
-
-	if rtt.RoundTripDuration() < 0 {
-		t.Logf("Error getting RTT")
 	}
 }
 
@@ -135,11 +125,7 @@ Some-file-test-here
 		t.Logf("This should not error")
 	}
 
-	c.StartTrackingTime()
-
 	resp, err := c.Do(*req)
-
-	c.StopTrackingTime()
 
 	if err != nil {
 		t.Logf("This should not error")
