@@ -71,6 +71,5 @@ type Request struct {
 
 // Response represents the http response received from the server/waf
 type Response struct {
-	RAW    []byte
 	Parsed http.Response
 }
