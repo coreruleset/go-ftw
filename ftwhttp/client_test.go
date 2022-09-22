@@ -150,3 +150,78 @@ Some-file-test-here
 	}
 
 }
+
+func TestNewConnectionCreatesTransport(t *testing.T) {
+	c := NewClient(NewClientConfig())
+	if c.Transport != nil {
+		t.Errorf("Transport not expected to initialized yet")
+	}
+
+	server := testServer()
+	d, err := DestinationFromString(server.URL)
+	if err != nil {
+		t.Errorf("Failed to construct destination from test server")
+	}
+	if err := c.NewConnection(*d); err != nil {
+		t.Errorf("Failed to create new connection")
+	}
+	if c.Transport == nil {
+		t.Errorf("Transport expected to be initialized")
+	}
+	if c.Transport.connection == nil {
+		t.Errorf("Connection expected to be initialized")
+	}
+
+}
+
+func TestNewOrReusedConnectionCreatesTransport(t *testing.T) {
+	c := NewClient(NewClientConfig())
+	if c.Transport != nil {
+		t.Errorf("Transport not expected to initialized yet")
+	}
+
+	server := testServer()
+	d, err := DestinationFromString(server.URL)
+	if err != nil {
+		t.Errorf("Failed to construct destination from test server")
+	}
+	if err := c.NewOrReusedConnection(*d); err != nil {
+		t.Errorf("Failed to create new connection")
+	}
+	if c.Transport == nil {
+		t.Errorf("Transport expected to be initialized")
+	}
+	if c.Transport.connection == nil {
+		t.Errorf("Connection expected to be initialized")
+	}
+}
+
+func TestNewOrReusedConnectionReusesTransport(t *testing.T) {
+	c := NewClient(NewClientConfig())
+	if c.Transport != nil {
+		t.Errorf("Transport not expected to initialized yet")
+	}
+
+	server := testServer()
+	d, err := DestinationFromString(server.URL)
+	if err != nil {
+		t.Errorf("Failed to construct destination from test server")
+	}
+	if err := c.NewOrReusedConnection(*d); err != nil {
+		t.Errorf("Failed to create new connection")
+	}
+	if c.Transport == nil {
+		t.Errorf("Transport expected to be initialized")
+	}
+	if c.Transport.connection == nil {
+		t.Errorf("Connection expected to be initialized")
+	}
+
+	begin := c.Transport.duration.begin
+	if err := c.NewOrReusedConnection(*d); err != nil {
+		t.Errorf("Failed to reuse connection")
+	}
+	if c.Transport.duration.begin != begin {
+		t.Errorf("Transport must not be reinitialized when reusing connection")
+	}
+}
