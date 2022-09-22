@@ -3,6 +3,7 @@ package ftwhttp
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"io"
 	"net"
@@ -104,13 +105,20 @@ func (c *Connection) Response() (*Response, error) {
 		return nil, err
 	}
 
-	reader := *bufio.NewReader(r)
+	buf := &bytes.Buffer{}
+
+	reader := *bufio.NewReader(io.TeeReader(r, buf))
 
 	httpResponse, err := http.ReadResponse(&reader, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	data := buf.Bytes()
+	log.Trace().Msgf("ftw/http: received data - %q", data)
+
 	response := Response{
+		RAW:    data,
 		Parsed: *httpResponse,
 	}
 	return &response, err
