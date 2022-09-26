@@ -80,6 +80,7 @@ func init() {
 	runCmd.Flags().StringP("include", "i", "", "include only tests matching this Go regexp (e.g. to include only tests beginning with \"91\", use \"91.*\").")
 	runCmd.Flags().StringP("id", "", "", "(deprecated). Use --include matching your test only.")
 	runCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
+	runCmd.Flags().StringP("output", "o", "quiet", "output type for ftw tests. quiet is the default.")
 	runCmd.Flags().BoolP("quiet", "q", false, "do not show test by test, only results")
 	runCmd.Flags().BoolP("time", "t", false, "show time spent per test")
 	runCmd.Flags().BoolP("output-failures-only", "", false, "output only the results of failed tests")
