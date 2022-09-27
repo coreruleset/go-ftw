@@ -61,7 +61,6 @@ func (c *Client) NewConnection(d Destination) error {
 			connection:  netConn,
 			protocol:    d.Protocol,
 			readTimeout: c.config.ReadTimeout,
-			duration:    NewRoundTripTime(),
 		}
 	}
 
@@ -85,19 +84,4 @@ func (c *Client) Do(req Request) (*Response, error) {
 	}
 
 	return response, err
-}
-
-// GetRoundTripTime returns the time taken from the initial send till receiving the full response
-func (c *Client) GetRoundTripTime() *RoundTripTime {
-	return c.Transport.GetTrackedTime()
-}
-
-// StartTrackingTime sets the timer to start transactions. This will be the starting time in logs.
-func (c *Client) StartTrackingTime() {
-	c.Transport.StartTrackingTime()
-}
-
-// StopTrackingTime stops the timer. When looking at logs, we will read up to this one.
-func (c *Client) StopTrackingTime() {
-	c.Transport.StopTrackingTime()
 }
