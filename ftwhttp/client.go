@@ -62,13 +62,16 @@ func (c *Client) NewOrReusedConnection(d Destination) error {
 	if c.Transport == nil {
 		return c.NewConnection(d)
 	}
+	if err := c.Transport.connection.Close(); err != nil {
+		return err
+	}
 
 	netConn, err := c.dial(d)
 	if err == nil {
 		c.Transport.connection = netConn
 	}
-	return err
 
+	return err
 }
 
 // dial tries to establish a connection
