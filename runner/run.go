@@ -195,7 +195,7 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	// 20 is a very conservative number. The web server should flush its
 	// buffer a lot earlier but we have absolutely no control over that.
 	for range [20]int{} {
-		err := runContext.Client.NewConnection(*dest)
+		err := runContext.Client.NewOrReusedConnection(*dest)
 		if err != nil {
 			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v: %w", dest, err)
 		}
