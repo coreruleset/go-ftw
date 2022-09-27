@@ -26,6 +26,7 @@ type Connection struct {
 	connection  net.Conn
 	protocol    string
 	readTimeout time.Duration
+	duration    *RoundTripTime
 }
 
 // RoundTripTime abstracts the time a transaction takes
