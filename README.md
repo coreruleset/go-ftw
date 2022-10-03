@@ -185,7 +185,7 @@ Tests can be altered using four lists:
 - `forcefail` is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
 
 The match is performed using Go regexp. You can whether match a specific test or all of them about a specific rule, or file.
-The following is an example using all the lists above: 
+The following is an example using all the lists mentioned above: 
 
 ```yaml
 ...
