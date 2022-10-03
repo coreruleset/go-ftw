@@ -36,36 +36,56 @@ func NewClient(config ClientConfig) *Client {
 
 // NewConnection creates a new Connection based on a Destination
 func (c *Client) NewConnection(d Destination) error {
-	if c.Transport != nil {
+	if c.Transport != nil && c.Transport.connection != nil {
 		if err := c.Transport.connection.Close(); err != nil {
 			return err
 		}
 	}
 
-	var err error
-	var netConn net.Conn
+	c.Transport = &Connection{
+		protocol:    d.Protocol,
+		readTimeout: c.config.ReadTimeout,
+		duration:    NewRoundTripTime(),
+	}
 
+	netConn, err := c.dial(d)
+	if err == nil {
+		c.Transport.connection = netConn
+	}
+
+	return err
+}
+
+// NewOrReusedConnection reuses an existing connection, or creates a new one
+// if no connection has been set up yet
+func (c *Client) NewOrReusedConnection(d Destination) error {
+	if c.Transport == nil {
+		return c.NewConnection(d)
+	}
+	if err := c.Transport.connection.Close(); err != nil {
+		return err
+	}
+
+	netConn, err := c.dial(d)
+	if err == nil {
+		c.Transport.connection = netConn
+	}
+
+	return err
+}
+
+// dial tries to establish a connection
+func (c *Client) dial(d Destination) (net.Conn, error) {
 	hostPort := fmt.Sprintf("%s:%d", d.DestAddr, d.Port)
 
 	// Fatal error: dial tcp 127.0.0.1:80: connect: connection refused
 	// strings.HasSuffix(err.String(), "connection refused") {
 	if strings.ToLower(d.Protocol) == "https" {
 		// Commenting InsecureSkipVerify: true.
-		netConn, err = tls.DialWithDialer(&net.Dialer{Timeout: c.config.ConnectTimeout}, "tcp", hostPort, &tls.Config{MinVersion: tls.VersionTLS12})
-	} else {
-		netConn, err = net.DialTimeout("tcp", hostPort, c.config.ConnectTimeout)
+		return tls.DialWithDialer(&net.Dialer{Timeout: c.config.ConnectTimeout}, "tcp", hostPort, &tls.Config{MinVersion: tls.VersionTLS12})
 	}
 
-	if err == nil {
-		c.Transport = &Connection{
-			connection:  netConn,
-			protocol:    d.Protocol,
-			readTimeout: c.config.ReadTimeout,
-			duration:    NewRoundTripTime(),
-		}
-	}
-
-	return err
+	return net.DialTimeout("tcp", hostPort, c.config.ConnectTimeout)
 }
 
 // Do performs the http request roundtrip
