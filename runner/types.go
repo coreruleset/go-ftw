@@ -4,9 +4,9 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/fzipi/go-ftw/config"
-	"github.com/fzipi/go-ftw/ftwhttp"
-	"github.com/fzipi/go-ftw/waflog"
+	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/ftwhttp"
+	"github.com/coreruleset/go-ftw/waflog"
 )
 
 // Config provides configuration for the test runner.

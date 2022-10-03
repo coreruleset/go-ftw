@@ -1,9 +1,9 @@
 package check
 
 import (
-	"github.com/fzipi/go-ftw/config"
-	"github.com/fzipi/go-ftw/test"
-	"github.com/fzipi/go-ftw/waflog"
+	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/test"
+	"github.com/coreruleset/go-ftw/waflog"
 )
 
 // FTWCheck is the base struct for checking test results

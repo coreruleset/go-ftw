@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/fzipi/go-ftw/config"
+	"github.com/coreruleset/go-ftw/config"
 )
 
 var expectedOKTests = []struct {

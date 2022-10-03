@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/fzipi/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/utils"
 )
 
 var yamlTest = `

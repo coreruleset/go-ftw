@@ -11,8 +11,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/fzipi/go-ftw/runner"
-	"github.com/fzipi/go-ftw/test"
+	"github.com/coreruleset/go-ftw/runner"
+	"github.com/coreruleset/go-ftw/test"
 )
 
 // cleanCmd represents the clean command
