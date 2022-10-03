@@ -25,8 +25,9 @@ var FTWConfig *FTWConfiguration
 type FTWConfiguration struct {
 	LogFile             string          `koanf:"logfile"`
 	TestOverride        FTWTestOverride `koanf:"testoverride"`
-	LogMarkerHeaderName string          `koanf:"logmarkerheadername"`
-	RunMode             RunMode         `koanf:"mode"`
+	TestOverrideRe      FTWTestOverrideRe
+	LogMarkerHeaderName string  `koanf:"logmarkerheadername"`
+	RunMode             RunMode `koanf:"mode"`
 }
 
 // FTWTestOverride holds four lists:
@@ -42,8 +43,8 @@ type FTWTestOverride struct {
 	ForceFail map[string]string `koanf:"forcefail"`
 }
 
-// During NewCheck, an FTWTestOverrideRE struct is allocated in which IDs inside the maps are considered Regexes
-type FTWTestOverrideRE struct {
+// FTWTestOverrideRe hold the lists transformed into regexes
+type FTWTestOverrideRe struct {
 	Ignore    map[string]*regexp.Regexp
 	ForcePass map[string]*regexp.Regexp
 	ForceFail map[string]*regexp.Regexp

@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/knadh/koanf"
@@ -102,5 +103,28 @@ func loadDefaults() {
 	}
 	if FTWConfig.RunMode == "" {
 		FTWConfig.RunMode = DefaultRunMode
+	}
+	overridesIntoRegexes()
+
+}
+
+func overridesIntoRegexes() {
+	FTWConfig.TestOverrideRe.Ignore = make(map[string]*regexp.Regexp)
+	for id := range FTWConfig.TestOverride.Ignore {
+		var idRe *regexp.Regexp
+		idRe = regexp.MustCompile(id)
+		FTWConfig.TestOverrideRe.Ignore[id] = idRe
+	}
+	FTWConfig.TestOverrideRe.ForceFail = make(map[string]*regexp.Regexp)
+	for id := range FTWConfig.TestOverride.ForceFail {
+		var idRe *regexp.Regexp
+		idRe = regexp.MustCompile(id)
+		FTWConfig.TestOverrideRe.ForceFail[id] = idRe
+	}
+	FTWConfig.TestOverrideRe.ForcePass = make(map[string]*regexp.Regexp)
+	for id := range FTWConfig.TestOverride.ForcePass {
+		var idRe *regexp.Regexp
+		idRe = regexp.MustCompile(id)
+		FTWConfig.TestOverrideRe.ForcePass[id] = idRe
 	}
 }
