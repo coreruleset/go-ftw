@@ -111,20 +111,17 @@ func loadDefaults() {
 func overridesIntoRegexes() {
 	FTWConfig.TestOverrideRe.Ignore = make(map[string]*regexp.Regexp)
 	for id := range FTWConfig.TestOverride.Ignore {
-		var idRe *regexp.Regexp
-		idRe = regexp.MustCompile(id)
+		idRe := regexp.MustCompile(id)
 		FTWConfig.TestOverrideRe.Ignore[id] = idRe
 	}
 	FTWConfig.TestOverrideRe.ForceFail = make(map[string]*regexp.Regexp)
 	for id := range FTWConfig.TestOverride.ForceFail {
-		var idRe *regexp.Regexp
-		idRe = regexp.MustCompile(id)
+		idRe := regexp.MustCompile(id)
 		FTWConfig.TestOverrideRe.ForceFail[id] = idRe
 	}
 	FTWConfig.TestOverrideRe.ForcePass = make(map[string]*regexp.Regexp)
 	for id := range FTWConfig.TestOverride.ForcePass {
-		var idRe *regexp.Regexp
-		idRe = regexp.MustCompile(id)
+		idRe := regexp.MustCompile(id)
 		FTWConfig.TestOverrideRe.ForcePass[id] = idRe
 	}
 }
