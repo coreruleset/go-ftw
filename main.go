@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/fzipi/go-ftw/cmd"
+	"github.com/coreruleset/go-ftw/cmd"
 )
 
 // nolint: gochecknoglobals

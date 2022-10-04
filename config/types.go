@@ -1,6 +1,6 @@
 package config
 
-import "github.com/fzipi/go-ftw/test"
+import "github.com/coreruleset/go-ftw/test"
 
 // RunMode represents the mode of the test run
 type RunMode string

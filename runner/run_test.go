@@ -10,10 +10,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/fzipi/go-ftw/check"
-	"github.com/fzipi/go-ftw/config"
-	"github.com/fzipi/go-ftw/ftwhttp"
-	"github.com/fzipi/go-ftw/test"
+	"github.com/coreruleset/go-ftw/check"
+	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/ftwhttp"
+	"github.com/coreruleset/go-ftw/test"
 )
 
 var yamlConfig = `

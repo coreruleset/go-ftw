@@ -9,12 +9,12 @@ import (
 	"github.com/kyokomi/emoji"
 	"github.com/rs/zerolog/log"
 
-	"github.com/fzipi/go-ftw/check"
-	"github.com/fzipi/go-ftw/config"
-	"github.com/fzipi/go-ftw/ftwhttp"
-	"github.com/fzipi/go-ftw/test"
-	"github.com/fzipi/go-ftw/utils"
-	"github.com/fzipi/go-ftw/waflog"
+	"github.com/coreruleset/go-ftw/check"
+	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/ftwhttp"
+	"github.com/coreruleset/go-ftw/test"
+	"github.com/coreruleset/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/waflog"
 )
 
 // Run runs your tests with the specified Config. Returns error if some test failed
