@@ -3,7 +3,7 @@ package check
 import (
 	"testing"
 
-	"github.com/fzipi/go-ftw/config"
+	"github.com/coreruleset/go-ftw/config"
 )
 
 var expectedResponseOKTests = []struct {

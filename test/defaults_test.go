@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/fzipi/go-ftw/ftwhttp"
+	"github.com/coreruleset/go-ftw/ftwhttp"
 )
 
 func getTestInputDefaults() *Input {

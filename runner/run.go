@@ -5,43 +5,47 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/fzipi/go-ftw/check"
-	"github.com/fzipi/go-ftw/config"
-	"github.com/fzipi/go-ftw/ftwhttp"
-	"github.com/fzipi/go-ftw/test"
-	"github.com/fzipi/go-ftw/utils"
-	"github.com/fzipi/go-ftw/waflog"
 	"github.com/google/uuid"
-
 	"github.com/kyokomi/emoji"
 	"github.com/rs/zerolog/log"
+
+	"github.com/coreruleset/go-ftw/check"
+	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/ftwhttp"
+	"github.com/coreruleset/go-ftw/test"
+	"github.com/coreruleset/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/waflog"
 )
 
-// Run runs your tests
-// testid is the name of the unique test you want to run
-// exclude is a regexp that matches the test name: e.g. "920*", excludes all tests starting with "920"
-// Returns error if some test failed
-func Run(include string, exclude string, showTime bool, output bool, ftwtests []test.FTWTest) TestRunContext {
-	printUnlessQuietMode(output, ":rocket:Running go-ftw!\n")
+// Run runs your tests with the specified Config. Returns error if some test failed
+func Run(tests []test.FTWTest, c Config) TestRunContext {
+	printUnlessQuietMode(c.Quiet, ":rocket:Running go-ftw!\n")
 
 	logLines := waflog.NewFTWLogLines(waflog.WithLogFile(config.FTWConfig.LogFile))
 
-	client := ftwhttp.NewClient()
+	conf := ftwhttp.NewClientConfig()
+	if c.ConnectTimeout != 0 {
+		conf.ConnectTimeout = c.ConnectTimeout
+	}
+	if c.ReadTimeout != 0 {
+		conf.ReadTimeout = c.ReadTimeout
+	}
+	client := ftwhttp.NewClient(conf)
 	runContext := TestRunContext{
-		Include:  include,
-		Exclude:  exclude,
-		ShowTime: showTime,
-		Output:   output,
+		Include:  c.Include,
+		Exclude:  c.Exclude,
+		ShowTime: c.ShowTime,
+		Output:   c.Quiet,
 		Client:   client,
 		LogLines: logLines,
 		RunMode:  config.FTWConfig.RunMode,
 	}
 
-	for _, test := range ftwtests {
+	for _, test := range tests {
 		RunTest(&runContext, test)
 	}
 
-	printSummary(output, runContext.Stats)
+	printSummary(c.Quiet, runContext.Stats)
 
 	defer cleanLogs(logLines)
 
@@ -129,7 +133,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	err = runContext.Client.NewConnection(*dest)
 
 	if err != nil && !expectedOutput.ExpectError {
-		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v", dest)
 	}
 	runContext.Client.StartTrackingTime()
 
@@ -137,7 +141,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 
 	runContext.Client.StopTrackingTime()
 	if responseErr != nil && !expectedOutput.ExpectError {
-		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+		log.Fatal().Caller().Err(responseErr).Msgf("failed sending request to destination %+v", dest)
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
@@ -171,8 +175,11 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 
 func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID string) ([]byte, error) {
 	rline := &ftwhttp.RequestLine{
-		Method:  "GET",
-		URI:     "/",
+		Method: "GET",
+		// Use the `/status` endpoint of `httpbin` (http://httpbin.org), if possible,
+		// to minimize the amount of data transferred and in the log.
+		// `httpbin` is used by the CRS test setup.
+		URI:     "/status/200",
 		Version: "HTTP/1.1",
 	}
 
@@ -188,14 +195,14 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	// 20 is a very conservative number. The web server should flush its
 	// buffer a lot earlier but we have absolutely no control over that.
 	for range [20]int{} {
-		err := runContext.Client.NewConnection(*dest)
+		err := runContext.Client.NewOrReusedConnection(*dest)
 		if err != nil {
-			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v - unexpected error found. Is your waf running?", dest)
+			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v: %w", dest, err)
 		}
 
 		_, err = runContext.Client.Do(*req)
 		if err != nil {
-			return nil, fmt.Errorf("ftw/run: failed sending request to %+v - unexpected error found. Is your waf running?", dest)
+			return nil, fmt.Errorf("ftw/run: failed sending request to %+v: %w", dest, err)
 		}
 
 		marker := runContext.LogLines.CheckLogForMarker(stageID)
@@ -206,16 +213,15 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.LogLines.FileName)
 }
 
-func needToSkipTest(include string, exclude string, title string, enabled bool) bool {
+func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string, enabled bool) bool {
 	// skip disabled tests
 	if !enabled {
 		return true
 	}
 
 	// never skip enabled explicit inclusions
-	if include != "" {
-		ok, err := regexp.MatchString(include, title)
-		if ok && err == nil {
+	if include != nil {
+		if include.MatchString(title) {
 			// inclusion always wins over exclusion
 			return false
 		}
@@ -224,18 +230,16 @@ func needToSkipTest(include string, exclude string, title string, enabled bool) 
 	result := false
 	// if we need to exclude tests, and the title matches,
 	// it needs to be skipped
-	if exclude != "" {
-		ok, err := regexp.MatchString(exclude, title)
-		if ok && err == nil {
+	if exclude != nil {
+		if exclude.MatchString(title) {
 			result = true
 		}
 	}
 
 	// if we need to include tests, but the title does not match
 	// it needs to be skipped
-	if include != "" {
-		ok, err := regexp.MatchString(include, title)
-		if !ok && err == nil {
+	if include != nil {
+		if !include.MatchString(title) {
 			result = true
 		}
 	}

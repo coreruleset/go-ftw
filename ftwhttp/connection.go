@@ -65,29 +65,16 @@ func (c *Connection) send(data []byte) (int, error) {
 
 }
 
-func (c *Connection) receive() ([]byte, error) {
+func (c *Connection) receive() (io.Reader, error) {
 	log.Trace().Msg("ftw/http: receiving data")
-	var err error
-	var buf []byte
-
-	// Set a deadline for reading. Read operation will fail if no data
-	// is received after deadline.
-	timeoutDuration := 1000 * time.Millisecond
 
 	// We assume the response body can be handled in memory without problems
 	// That's why we use io.ReadAll
-	if err = c.connection.SetReadDeadline(time.Now().Add(timeoutDuration)); err == nil {
-		buf, err = io.ReadAll(c.connection)
+	if err := c.connection.SetReadDeadline(time.Now().Add(c.readTimeout)); err != nil {
+		return nil, err
 	}
 
-	if neterr, ok := err.(net.Error); ok && !neterr.Timeout() {
-		log.Error().Msgf("ftw/http: %s\n", err.Error())
-	} else {
-		err = nil
-	}
-	log.Trace().Msgf("ftw/http: received data - %q", buf)
-
-	return buf, err
+	return c.connection, nil
 }
 
 // Request will use all the inputs and send a raw http request to the destination
@@ -112,19 +99,24 @@ func (c *Connection) Request(request *Request) error {
 // Response reads the response sent by the WAF and return the corresponding struct
 // It leverages the go stdlib for reading and parsing the response
 func (c *Connection) Response() (*Response, error) {
-	data, err := c.receive()
+	r, err := c.receive()
 
 	if err != nil {
 		return nil, err
 	}
 
-	r := bytes.NewReader(data)
-	reader := *bufio.NewReader(r)
+	buf := &bytes.Buffer{}
+
+	reader := *bufio.NewReader(io.TeeReader(r, buf))
 
 	httpResponse, err := http.ReadResponse(&reader, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	data := buf.Bytes()
+	log.Trace().Msgf("ftw/http: received data - %q", data)
+
 	response := Response{
 		RAW:    data,
 		Parsed: *httpResponse,

@@ -4,8 +4,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/fzipi/go-ftw/config"
-	"github.com/fzipi/go-ftw/test"
+	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/test"
 )
 
 var yamlApacheConfig = `---

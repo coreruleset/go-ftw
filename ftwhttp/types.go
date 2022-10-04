@@ -6,18 +6,27 @@ import (
 	"time"
 )
 
+// ClientConfig provides configuration options for the HTTP client.
+type ClientConfig struct {
+	// ConnectTimeout is the timeout for connecting to a server.
+	ConnectTimeout time.Duration
+	// ReadTimeout is the timeout for reading a response.
+	ReadTimeout time.Duration
+}
+
 // Client is the top level abstraction in http
 type Client struct {
 	Transport *Connection
 	Jar       http.CookieJar
-	Timeout   time.Duration
+	config    ClientConfig
 }
 
 // Connection is the type used for sending/receiving data
 type Connection struct {
-	connection net.Conn
-	protocol   string
-	duration   *RoundTripTime
+	connection  net.Conn
+	protocol    string
+	readTimeout time.Duration
+	duration    *RoundTripTime
 }
 
 // RoundTripTime abstracts the time a transaction takes

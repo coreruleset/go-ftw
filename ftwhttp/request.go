@@ -7,9 +7,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fzipi/go-ftw/utils"
-
 	"github.com/rs/zerolog/log"
+
+	"github.com/coreruleset/go-ftw/utils"
 )
 
 // ToString converts the request line to string for sending it in the wire
