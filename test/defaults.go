@@ -3,7 +3,7 @@ package test
 import (
 	"encoding/base64"
 
-	"github.com/fzipi/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/utils"
 )
 
 // GetMethod returns the proper semantic when the field is empty

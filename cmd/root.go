@@ -4,10 +4,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/fzipi/go-ftw/config"
-
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
+
+	"github.com/coreruleset/go-ftw/config"
 )
 
 var (
@@ -41,7 +41,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "override config file (default is $PWD/.ftw.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "", false, "debug output")
 	rootCmd.PersistentFlags().BoolVarP(&trace, "trace", "", false, "trace output: really, really verbose")
-	rootCmd.PersistentFlags().BoolVarP(&cloud, "cloud", "", false, "cloud mode: rely only in http status code for determining test succes or failure (assumes no logs access)")
+	rootCmd.PersistentFlags().BoolVarP(&cloud, "cloud", "", false, "cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)")
 }
 
 func initConfig() {

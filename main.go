@@ -8,9 +8,10 @@ import (
 	"time"
 	_ "time/tzdata"
 
-	"github.com/fzipi/go-ftw/cmd"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
+	"github.com/coreruleset/go-ftw/cmd"
 )
 
 // nolint: gochecknoglobals

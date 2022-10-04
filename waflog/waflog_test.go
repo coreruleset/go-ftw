@@ -3,7 +3,7 @@ package waflog
 import (
 	"testing"
 
-	"github.com/fzipi/go-ftw/config"
+	"github.com/coreruleset/go-ftw/config"
 )
 
 func TestNewFTWLogLines(t *testing.T) {
