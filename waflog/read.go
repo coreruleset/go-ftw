@@ -9,7 +9,7 @@ import (
 	"github.com/icza/backscanner"
 	"github.com/rs/zerolog/log"
 
-	"github.com/fzipi/go-ftw/config"
+	"github.com/coreruleset/go-ftw/config"
 )
 
 // Contains looks in logfile for regex

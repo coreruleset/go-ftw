@@ -9,7 +9,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/fzipi/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/utils"
 )
 
 // ToString converts the request line to string for sending it in the wire

@@ -5,7 +5,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/fzipi/go-ftw/config"
+	"github.com/coreruleset/go-ftw/config"
 )
 
 // NewFTWLogLines is the base struct for reading the log file

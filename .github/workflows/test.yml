@@ -10,22 +10,21 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.18
+          go-version: ^1.19
+          cache: true
 
       - name: Run Go Tests
-        uses: n8maninger/action-golang-test@v1
-        with:
-          args: '-coverprofile=coverage.out'
+        run: go test -coverprofile=coverage.out ./...
 
       - name: Upload code coverage
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: goftw-code-coverage
           path: coverage.out

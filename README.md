@@ -1,13 +1,13 @@
 # Go-FTW - Framework for Testing WAFs in Go!
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-[![Go Report Card](https://goreportcard.com/badge/github.com/fzipi/go-ftw)](https://goreportcard.com/report/github.com/fzipi/go-ftw)
-[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/fzipi/go-ftw)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/fzipi/go-ftw)](https://pkg.go.dev/github.com/fzipi/go-ftw)
-[![Release](https://img.shields.io/github/v/release/fzipi/go-ftw.svg?style=flat-square)](https://github.com/fzipi/go-ftw/releases/latest)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/fzipi/go-ftw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/fzipi/go-ftw/alerts/)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=fzipi_go-ftw&metric=coverage)](https://sonarcloud.io/dashboard?id=fzipi_go-ftw)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=fzipi_go-ftw&metric=alert_status)](https://sonarcloud.io/dashboard?id=fzipi_go-ftw)
+[![Go Report Card](https://goreportcard.com/badge/github.com/coreruleset/go-ftw)](https://goreportcard.com/report/github.com/coreruleset/go-ftw)
+[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/coreruleset/go-ftw)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/coreruleset/go-ftw)](https://pkg.go.dev/github.com/coreruleset/go-ftw)
+[![Release](https://img.shields.io/github/v/release/coreruleset/go-ftw.svg?style=flat-square)](https://github.com/coreruleset/go-ftw/releases/latest)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/coreruleset/go-ftw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/coreruleset/go-ftw/alerts/)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=coreruleset_go-ftw&metric=coverage)](https://sonarcloud.io/dashboard?id=coreruleset_go-ftw)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=coreruleset_go-ftw&metric=alert_status)](https://sonarcloud.io/dashboard?id=coreruleset_go-ftw)
 
 
 This software should be compatible with the [Python version](https://pypi.org/project/ftw/).
@@ -25,11 +25,11 @@ My goals are:
 
 ## Install
 
-Go to the [releases](https://github.com/fzipi/go-ftw/releases) page and get the one that matches your OS.
+Go to the [releases](https://github.com/coreruleset/go-ftw/releases) page and get the one that matches your OS.
 
 If you have Go installed and configured to run Go binaries from your shell you can also run
 ```bash
-go install github.com/fzipi/go-ftw@latest
+go install github.com/coreruleset/go-ftw@latest
 ```
 
 ## Example Usage
@@ -254,4 +254,4 @@ You can configure the name of the HTTP header by setting the `logmarkerheadernam
 option in the configuration to a custom value (the value is case insensitive).
 
 ## License
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffzipi%2Fgo-ftw.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffzipi%2Fgo-ftw?ref=badge_large)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcoreruleset%2Fgo-ftw.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcoreruleset%2Fgo-ftw?ref=badge_large)

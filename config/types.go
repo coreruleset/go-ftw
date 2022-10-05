@@ -3,7 +3,7 @@ package config
 import (
 	"regexp"
 
-	"github.com/fzipi/go-ftw/test"
+	"github.com/coreruleset/go-ftw/test"
 )
 
 // RunMode represents the mode of the test run

@@ -62,7 +62,7 @@ nfpms:
       deb:
         file_name_template: "{{ .ProjectName }}-{{ .Version }}_{{ .Arch }}"
     vendor:
-    homepage: https://github.com/fzipi/go-ftw
+    homepage: https://github.com/coreruleset/go-ftw
     maintainer: felipe.zipitria@owasp.org
     description:
       Framework for Testing WAFs - Go version

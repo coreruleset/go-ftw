@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
-	"github.com/fzipi/go-ftw/config"
+	"github.com/coreruleset/go-ftw/config"
 )
 
 var (

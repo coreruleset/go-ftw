@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fzipi/go-ftw/config"
-	"github.com/fzipi/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/utils"
 )
 
 func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
