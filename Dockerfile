@@ -1,3 +1,6 @@
-FROM gcr.io/distroless/static-debian11:debug
+FROM alpine:3
+
+RUN apk add --no-cache ca-certificates
+
 ENTRYPOINT ["/ftw"]
 COPY ftw /
