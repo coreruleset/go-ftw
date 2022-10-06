@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/coreruleset/go-ftw/ftwhttp"
+	"github.com/stretchr/testify/assert"
 )
 
 func getTestInputDefaults() *Input {
@@ -75,75 +76,51 @@ User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; SV1; .NET CLR 2.0
 func TestBasicGetters(t *testing.T) {
 	input := getTestExampleInput()
 
-	if dest := input.GetDestAddr(); dest != "192.168.0.1" {
-		t.Fatalf("Error!")
-	}
-
-	if method := input.GetMethod(); method != "REPORT" {
-		t.Fatalf("Error!")
-	}
-
-	if version := input.GetVersion(); version != "HTTP/1.1" {
-		t.Fatalf("Error!")
-	}
-
-	if port := input.GetPort(); port != 8080 {
-		t.Fatalf("Error!")
-	}
-
-	if val := input.GetProtocol(); val != "http" {
-		t.Fatalf("Error!")
-	}
-
-	if val := input.GetURI(); val != "/test" {
-		t.Fatalf("Error!")
-	}
-
-	if request, _ := input.GetRawRequest(); !bytes.Equal(request, []byte("My Data\n")) {
-		t.Fatalf("Error!")
-	}
+	dest := input.GetDestAddr()
+	assert.Equal(t, "192.168.0.1", dest)
+	method := input.GetMethod()
+	assert.Equal(t, "REPORT", method)
+	version := input.GetVersion()
+	assert.Equal(t, "HTTP/1.1", version)
+	port := input.GetPort()
+	assert.Equal(t, 8080, port)
+	proto := input.GetProtocol()
+	assert.Equal(t, "http", proto)
+	uri := input.GetURI()
+	assert.Equal(t, "/test", uri)
+	request, _ := input.GetRawRequest()
+	assert.Equal(t, []byte("My Data\n"), request)
 }
 
 func TestDefaultGetters(t *testing.T) {
 	inputDefaults := getTestInputDefaults()
 
-	if val := inputDefaults.GetDestAddr(); val != "localhost" {
-		t.Fatalf("Error!")
-	}
+	val := inputDefaults.GetDestAddr()
+	assert.Equal(t, "localhost", val)
 
-	if val := inputDefaults.GetMethod(); val != "GET" {
-		t.Fatalf("Error!")
-	}
+	val = inputDefaults.GetMethod()
+	assert.Equal(t, "GET", val)
 
-	if val := inputDefaults.GetVersion(); val != "HTTP/1.1" {
-		t.Fatalf("Error!")
-	}
+	val = inputDefaults.GetVersion()
+	assert.Equal(t, "HTTP/1.1", val)
 
-	if val := inputDefaults.GetPort(); val != 80 {
-		t.Fatalf("Error!")
-	}
+	port := inputDefaults.GetPort()
+	assert.Equal(t, 80, port)
 
-	if val := inputDefaults.GetProtocol(); val != "http" {
-		t.Fatalf("Error!")
-	}
+	val = inputDefaults.GetProtocol()
+	assert.Equal(t, "http", val)
 
-	if val := inputDefaults.GetURI(); val != "/" {
-		t.Fatalf("Error!")
-	}
+	val = inputDefaults.GetURI()
+	assert.Equal(t, "/", val)
 
-	if !bytes.Equal([]byte(*inputDefaults.Data), []byte("My Data")) {
-		t.Fatalf("Error!")
-	}
+	assert.Equal(t, []byte("My Data"), []byte(*inputDefaults.Data))
 }
 
 func TestRaw(t *testing.T) {
 	raw := getRawInput()
 
-	if raw.StopMagic != true {
-		t.Fatalf("Error!")
-	}
+	assert.True(t, raw.StopMagic)
 
-	if request, _ := raw.GetRawRequest(); bytes.Index(request, []byte("Acunetix")) == 2 {
-		t.Fatalf("Error!")
-	}
+	request, _ := raw.GetRawRequest()
+	assert.NotEqual(t, 2, bytes.Index(request, []byte("Acunetix")))
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/coreruleset/go-ftw/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 var yamlTest = `
@@ -53,21 +54,14 @@ func TestGetTestFromYAML(t *testing.T) {
 	tests, _ := GetTestsFromFiles(filename)
 
 	for _, ft := range tests {
-		if ft.FileName != filename {
-			t.Fatalf("Error!")
-		}
-		if ft.Meta.Author != "tester" {
-			t.Fatalf("Error!")
-		}
-		if ft.Meta.Name != "911100.yaml" {
-			t.Fatalf("Error!")
-		}
+		assert.Equal(t, filename, ft.FileName)
+		assert.Equal(t, "tester", ft.Meta.Author)
+		assert.Equal(t, "911100.yaml", ft.Meta.Name)
+
 		re := regexp.MustCompile("911100*")
 
 		for _, test := range ft.Tests {
-			if ok := re.MatchString(test.TestTitle); !ok {
-				t.Fatalf("Can't read test title")
-			}
+			assert.True(t, re.MatchString(test.TestTitle), "Can't read test title")
 		}
 	}
 }
@@ -76,7 +70,5 @@ func TestGetFromBadYAML(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(wrongYamlTest, "test-yaml-*")
 	_, err := GetTestsFromFiles(filename)
 
-	if err == nil {
-		t.Fatalf("Error!")
-	}
+	assert.NotNil(t, err, "reading yaml should fail")
 }

@@ -3,13 +3,14 @@ package waflog
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/coreruleset/go-ftw/config"
 )
 
 func TestNewFTWLogLines(t *testing.T) {
-	if err := config.NewConfigFromEnv(); err != nil {
-		t.Error(err)
-	}
+	err := config.NewConfigFromEnv()
+	assert.NoError(t, err)
 
 	ll := NewFTWLogLines()
 	// Loop through each option
@@ -22,17 +23,9 @@ func TestNewFTWLogLines(t *testing.T) {
 		// *House as the argument
 		opt(ll)
 	}
-	if ll.StartMarker == nil {
-		t.Errorf("Failed! StartMarker must be set")
-	}
-	if ll.EndMarker == nil {
-		t.Errorf("Failed! EndMarker must be set")
-	}
-	if ll.FileName != "test" {
-		t.Errorf("Failed! FileName must be set")
-	}
-
-	if err := ll.Cleanup(); err != nil {
-		t.Error(err)
-	}
+	assert.NotNil(t, ll.StartMarker, "Failed! StartMarker must be set")
+	assert.NotNil(t, ll.EndMarker, "Failed! EndMarker must be set")
+	assert.Equal(t, "test", ll.FileName, "Failed! FileName must be set")
+	err = ll.Cleanup()
+	assert.NoError(t, err)
 }

@@ -2,84 +2,51 @@ package utils
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIsEmpty(t *testing.T) {
 	data := ""
-
-	if IsEmpty(data) {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
+	assert.True(t, IsEmpty(data))
 }
 
 func TestIsEmptyStringPointer(t *testing.T) {
 	var empty *string = nil
-
-	if !IsEmpty(empty) {
-		t.Errorf("Failed !")
-	}
+	assert.True(t, IsEmpty(empty))
 }
 
 func TestIsEmptyByte(t *testing.T) {
 	data := []byte{}
-
-	if IsEmpty(data) {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
+	assert.True(t, IsEmpty(data))
 }
 
 func TestIsNotEmpty(t *testing.T) {
 	data := "Not Empty"
-
-	if IsNotEmpty(data) {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
+	assert.True(t, IsNotEmpty(data))
 }
 
 func TestIsNotEmptyByte(t *testing.T) {
 	data := []byte("Not Empty")
-
-	if IsNotEmpty(data) {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
+	assert.True(t, IsNotEmpty(data))
 }
 
 func TestStringPEmpty(t *testing.T) {
 	var s *string
-
-	if !IsEmpty(s) {
-		t.Errorf("Failed")
-	}
+	assert.True(t, IsEmpty(s))
 }
 
 func TestStringPNotEmpty(t *testing.T) {
 	s := string("Empty")
-
-	if !IsNotEmpty(&s) {
-		t.Errorf("Failed")
-	}
+	assert.True(t, IsNotEmpty(&s))
 }
 
 func TestAnythingNotEmpty(t *testing.T) {
 	data := make([]int, 1, 2)
-
-	if IsEmpty(data) {
-		t.Errorf("Failed !")
-	}
+	assert.False(t, IsEmpty(data))
 }
 
 func TestAnythingEmpty(t *testing.T) {
 	data := make([]int, 1, 2)
-
-	if IsNotEmpty(data) {
-		t.Errorf("Failed !")
-	}
+	assert.False(t, IsNotEmpty(data), "[]int is not implemented so it should return false")
 }
