@@ -2,14 +2,14 @@ package ftwhttp
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewClient(t *testing.T) {
 	c := NewClient(NewClientConfig())
 
-	if c.Jar == nil {
-		t.Logf("Error creating Client")
-	}
+	assert.NotNil(t, c.Jar, "Error creating Client")
 }
 
 func TestConnectDestinationHTTPS(t *testing.T) {
@@ -22,13 +22,8 @@ func TestConnectDestinationHTTPS(t *testing.T) {
 	c := NewClient(NewClientConfig())
 
 	err := c.NewConnection(*d)
-	if err != nil {
-		t.Logf("This should not error")
-	}
-
-	if c.Transport.protocol != "https" {
-		t.Logf("Error connecting to example.com using https")
-	}
+	assert.NoError(t, err, "This should not error")
+	assert.Equal(t, "https", c.Transport.protocol, "Error connecting to example.com using https")
 }
 
 func TestDoRequest(t *testing.T) {
@@ -43,15 +38,11 @@ func TestDoRequest(t *testing.T) {
 	req := generateBaseRequestForTesting()
 
 	err := c.NewConnection(*d)
-	if err != nil {
-		t.Logf("This should not error")
-	}
+	assert.NoError(t, err, "This should not error")
 
 	_, err = c.Do(*req)
 
-	if err == nil {
-		t.Logf("This should return error")
-	}
+	assert.Error(t, err, "This should return error")
 }
 
 func TestGetTrackedTime(t *testing.T) {
@@ -75,9 +66,7 @@ func TestGetTrackedTime(t *testing.T) {
 	req := NewRequest(rl, h, data, true)
 
 	err := c.NewConnection(*d)
-	if err != nil {
-		t.Logf("This should not error")
-	}
+	assert.NoError(t, err, "This should not error")
 
 	c.StartTrackingTime()
 
@@ -85,19 +74,13 @@ func TestGetTrackedTime(t *testing.T) {
 
 	c.StopTrackingTime()
 
-	if err != nil {
-		t.Logf("This should not error")
-	}
+	assert.NoError(t, err, "This should not error")
 
-	if resp.Parsed.StatusCode != 200 {
-		t.Logf("Error in calling website")
-	}
+	assert.Equal(t, 200, resp.Parsed.StatusCode, "Error in calling website")
 
 	rtt := c.GetRoundTripTime()
 
-	if rtt.RoundTripDuration() < 0 {
-		t.Logf("Error getting RTT")
-	}
+	assert.GreaterOrEqual(t, int(rtt.RoundTripDuration()), 0, "Error getting RTT")
 }
 
 func TestClientMultipartFormDataRequest(t *testing.T) {
@@ -130,10 +113,7 @@ Some-file-test-here
 	req := NewRequest(rl, h, data, true)
 
 	err := c.NewConnection(*d)
-
-	if err != nil {
-		t.Logf("This should not error")
-	}
+	assert.NoError(t, err, "This should not error")
 
 	c.StartTrackingTime()
 
@@ -141,87 +121,55 @@ Some-file-test-here
 
 	c.StopTrackingTime()
 
-	if err != nil {
-		t.Logf("This should not error")
-	}
-
-	if resp.Parsed.StatusCode != 200 {
-		t.Logf("Error in calling website")
-	}
+	assert.NoError(t, err, "This should not error")
+	assert.Equal(t, 200, resp.Parsed.StatusCode, "Error in calling website")
 
 }
 
 func TestNewConnectionCreatesTransport(t *testing.T) {
 	c := NewClient(NewClientConfig())
-	if c.Transport != nil {
-		t.Errorf("Transport not expected to initialized yet")
-	}
+	assert.Nil(t, c.Transport, "Transport not expected to initialized yet")
 
 	server := testServer()
 	d, err := DestinationFromString(server.URL)
-	if err != nil {
-		t.Errorf("Failed to construct destination from test server")
-	}
-	if err := c.NewConnection(*d); err != nil {
-		t.Errorf("Failed to create new connection")
-	}
-	if c.Transport == nil {
-		t.Errorf("Transport expected to be initialized")
-	}
-	if c.Transport.connection == nil {
-		t.Errorf("Connection expected to be initialized")
-	}
+	assert.NoError(t, err, "Failed to construct destination from test server")
 
+	err = c.NewConnection(*d)
+	assert.NoError(t, err, "Failed to create new connection")
+	assert.NotNil(t, c.Transport, "Transport expected to be initialized")
+	assert.NotNil(t, c.Transport.connection, "Connection expected to be initialized")
 }
 
 func TestNewOrReusedConnectionCreatesTransport(t *testing.T) {
 	c := NewClient(NewClientConfig())
-	if c.Transport != nil {
-		t.Errorf("Transport not expected to initialized yet")
-	}
+	assert.Nil(t, c.Transport, "Transport not expected to initialized yet")
 
 	server := testServer()
 	d, err := DestinationFromString(server.URL)
-	if err != nil {
-		t.Errorf("Failed to construct destination from test server")
-	}
-	if err := c.NewOrReusedConnection(*d); err != nil {
-		t.Errorf("Failed to create new connection")
-	}
-	if c.Transport == nil {
-		t.Errorf("Transport expected to be initialized")
-	}
-	if c.Transport.connection == nil {
-		t.Errorf("Connection expected to be initialized")
-	}
+	assert.NoError(t, err, "Failed to construct destination from test server")
+
+	err = c.NewOrReusedConnection(*d)
+	assert.NoError(t, err, "Failed to create new or to reuse connection")
+	assert.NotNil(t, c.Transport, "Transport expected to be initialized")
+	assert.NotNil(t, c.Transport.connection, "Connection expected to be initialized")
 }
 
 func TestNewOrReusedConnectionReusesTransport(t *testing.T) {
 	c := NewClient(NewClientConfig())
-	if c.Transport != nil {
-		t.Errorf("Transport not expected to initialized yet")
-	}
+	assert.Nil(t, c.Transport, "Transport not expected to initialized yet")
 
 	server := testServer()
 	d, err := DestinationFromString(server.URL)
-	if err != nil {
-		t.Errorf("Failed to construct destination from test server")
-	}
-	if err := c.NewOrReusedConnection(*d); err != nil {
-		t.Errorf("Failed to create new connection")
-	}
-	if c.Transport == nil {
-		t.Errorf("Transport expected to be initialized")
-	}
-	if c.Transport.connection == nil {
-		t.Errorf("Connection expected to be initialized")
-	}
+	assert.NoError(t, err, "Failed to construct destination from test server")
+
+	err = c.NewOrReusedConnection(*d)
+	assert.NoError(t, err, "Failed to create new or to reuse connection")
+	assert.NotNil(t, c.Transport, "Transport expected to be initialized")
+	assert.NotNil(t, c.Transport.connection, "Connection expected to be initialized")
 
 	begin := c.Transport.duration.begin
-	if err := c.NewOrReusedConnection(*d); err != nil {
-		t.Errorf("Failed to reuse connection")
-	}
-	if c.Transport.duration.begin != begin {
-		t.Errorf("Transport must not be reinitialized when reusing connection")
-	}
+	err = c.NewOrReusedConnection(*d)
+	assert.NoError(t, err, "Failed to reuse connection")
+
+	assert.Equal(t, begin, c.Transport.duration.begin, "Transport must not be reinitialized when reusing connection")
 }

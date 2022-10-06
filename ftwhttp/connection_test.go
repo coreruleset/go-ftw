@@ -1,6 +1,10 @@
 package ftwhttp
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestDestinationFromString(t *testing.T) {
 
@@ -19,7 +23,5 @@ func TestMultipleRequestTypes(t *testing.T) {
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, true)
 
-	if !req.WithAutoCompleteHeaders() {
-		t.Error("Set Autocomplete headers error ")
-	}
+	assert.True(t, req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
 }
