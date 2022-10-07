@@ -22,10 +22,3 @@ jobs:
 
       - name: Run Go Tests
         run: go test -coverprofile=coverage.out ./...
-
-      - name: Upload code coverage
-        uses: actions/upload-artifact@v3
-        with:
-          name: goftw-code-coverage
-          path: coverage.out
-
