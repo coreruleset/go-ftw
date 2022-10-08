@@ -184,7 +184,7 @@ Tests can be altered using four lists:
 - `forcepass` is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
 - `forcefail` is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
 
-The match is performed using Go regexp. You can whether match a specific test or all of them about a specific rule, or file.
+Each list is populated by regular expressions (see https://pkg.go.dev/regexp), which match against test IDs.
 The following is an example using all the lists mentioned above: 
 
 ```yaml
