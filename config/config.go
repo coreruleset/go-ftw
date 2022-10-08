@@ -2,7 +2,6 @@ package config
 
 import (
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/knadh/koanf"
@@ -40,6 +39,9 @@ func NewConfigFromFile(cfgFile string) error {
 	// At this point we have loaded our config, now we need to
 	// unmarshal the whole root module
 	err = k.UnmarshalWithConf("", &FTWConfig, koanf.UnmarshalConf{Tag: "koanf"})
+	if err != nil {
+		return err
+	}
 	loadDefaults()
 
 	return err
@@ -104,24 +106,5 @@ func loadDefaults() {
 	if FTWConfig.RunMode == "" {
 		FTWConfig.RunMode = DefaultRunMode
 	}
-	overridesIntoRegexes()
 
-}
-
-func overridesIntoRegexes() {
-	FTWConfig.TestOverrideRe.Ignore = make(map[string]*regexp.Regexp)
-	for id := range FTWConfig.TestOverride.Ignore {
-		idRe := regexp.MustCompile(id)
-		FTWConfig.TestOverrideRe.Ignore[id] = idRe
-	}
-	FTWConfig.TestOverrideRe.ForceFail = make(map[string]*regexp.Regexp)
-	for id := range FTWConfig.TestOverride.ForceFail {
-		idRe := regexp.MustCompile(id)
-		FTWConfig.TestOverrideRe.ForceFail[id] = idRe
-	}
-	FTWConfig.TestOverrideRe.ForcePass = make(map[string]*regexp.Regexp)
-	for id := range FTWConfig.TestOverride.ForcePass {
-		idRe := regexp.MustCompile(id)
-		FTWConfig.TestOverrideRe.ForcePass[id] = idRe
-	}
 }

@@ -1,6 +1,8 @@
 package check
 
 import (
+	"regexp"
+
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/waflog"
@@ -8,10 +10,9 @@ import (
 
 // FTWCheck is the base struct for checking test results
 type FTWCheck struct {
-	log         *waflog.FTWLogLines
-	expected    *test.Output
-	overrides   *config.FTWTestOverride
-	overridesRe *config.FTWTestOverrideRe
+	log       *waflog.FTWLogLines
+	expected  *test.Output
+	overrides *config.FTWTestOverride
 }
 
 // NewCheck creates a new FTWCheck, allowing to inject the configuration
@@ -22,9 +23,8 @@ func NewCheck(c *config.FTWConfiguration) *FTWCheck {
 			StartMarker: nil,
 			EndMarker:   nil,
 		},
-		expected:    &test.Output{},
-		overrides:   &c.TestOverride,
-		overridesRe: &c.TestOverrideRe,
+		expected:  &test.Output{},
+		overrides: &c.TestOverride,
 	}
 
 	return check
@@ -62,8 +62,8 @@ func (c *FTWCheck) SetNoLogContains(contains string) {
 
 // ForcedIgnore check if this id need to be ignored from results
 func (c *FTWCheck) ForcedIgnore(id string) bool {
-	for _, re := range c.overridesRe.Ignore {
-		if re.MatchString(id) {
+	for re, _ := range c.overrides.Ignore {
+		if (*regexp.Regexp)(re).MatchString(id) {
 			return true
 		}
 	}
@@ -72,8 +72,8 @@ func (c *FTWCheck) ForcedIgnore(id string) bool {
 
 // ForcedPass check if this id need to be ignored from results
 func (c *FTWCheck) ForcedPass(id string) bool {
-	for _, re := range c.overridesRe.ForcePass {
-		if re.MatchString(id) {
+	for re, _ := range c.overrides.ForcePass {
+		if (*regexp.Regexp)(re).MatchString(id) {
 			return true
 		}
 	}
@@ -82,8 +82,8 @@ func (c *FTWCheck) ForcedPass(id string) bool {
 
 // ForcedFail check if this id need to be ignored from results
 func (c *FTWCheck) ForcedFail(id string) bool {
-	for _, re := range c.overridesRe.ForceFail {
-		if re.MatchString(id) {
+	for re, _ := range c.overrides.ForceFail {
+		if (*regexp.Regexp)(re).MatchString(id) {
 			return true
 		}
 	}

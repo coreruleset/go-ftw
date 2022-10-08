@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -16,7 +17,7 @@ testoverride:
     dest_addr: 'httpbin.org'
     port: '1234'
   ignore:
-    '920400-1': 'This test result must be ignored'
+    '920400-1$': 'This test must be ignored'
 `
 
 var yamlCloudConfig = `---
@@ -47,7 +48,7 @@ func TestNewConfigConfig(t *testing.T) {
 
 	err := NewConfigFromFile(filename)
 	if err != nil {
-		t.Errorf("Failed!")
+		t.Errorf("Failed: %v", err)
 	}
 
 	if len(FTWConfig.TestOverride.Ignore) == 0 {
@@ -59,10 +60,10 @@ func TestNewConfigConfig(t *testing.T) {
 	}
 
 	for id, text := range FTWConfig.TestOverride.Ignore {
-		if !strings.Contains(id, "920400-1") {
+		if !strings.Contains((*regexp.Regexp)(id).String(), "920400-1$") {
 			t.Errorf("Looks like we could not find item to ignore")
 		}
-		if text != "This test result must be ignored" {
+		if text != "This test must be ignored" {
 			t.Errorf("Text doesn't match")
 		}
 	}

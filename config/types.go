@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"regexp"
 
 	"github.com/coreruleset/go-ftw/test"
@@ -25,9 +26,8 @@ var FTWConfig *FTWConfiguration
 type FTWConfiguration struct {
 	LogFile             string          `koanf:"logfile"`
 	TestOverride        FTWTestOverride `koanf:"testoverride"`
-	TestOverrideRe      FTWTestOverrideRe
-	LogMarkerHeaderName string  `koanf:"logmarkerheadername"`
-	RunMode             RunMode `koanf:"mode"`
+	LogMarkerHeaderName string          `koanf:"logmarkerheadername"`
+	RunMode             RunMode         `koanf:"mode"`
 }
 
 // FTWTestOverride holds four lists:
@@ -37,15 +37,20 @@ type FTWConfiguration struct {
 //	ForcePass is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
 //	ForceFail is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
 type FTWTestOverride struct {
-	Input     test.Input        `koanf:"input"`
-	Ignore    map[string]string `koanf:"ignore"`
-	ForcePass map[string]string `koanf:"forcepass"`
-	ForceFail map[string]string `koanf:"forcefail"`
+	Input     test.Input            `koanf:"input"`
+	Ignore    map[*FTWRegexp]string `koanf:"ignore"`
+	ForcePass map[*FTWRegexp]string `koanf:"forcepass"`
+	ForceFail map[*FTWRegexp]string `koanf:"forcefail"`
 }
 
-// FTWTestOverrideRe hold the lists transformed into regexes
-type FTWTestOverrideRe struct {
-	Ignore    map[string]*regexp.Regexp
-	ForcePass map[string]*regexp.Regexp
-	ForceFail map[string]*regexp.Regexp
+type FTWRegexp regexp.Regexp
+
+func (r *FTWRegexp) UnmarshalText(b []byte) error {
+	fmt.Println("Unmarshalling!")
+	re, err := regexp.Compile(string(b))
+	if err != nil {
+		return fmt.Errorf("invalid regexp: %w", err)
+	}
+	*r = FTWRegexp(*re)
+	return nil
 }
