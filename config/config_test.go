@@ -3,7 +3,6 @@ package config
 import (
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

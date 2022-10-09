@@ -185,9 +185,8 @@ func TestRequestSettingRawDataWhenThereIsData(t *testing.T) {
 	err := req.SetRawData([]byte("This is the data now"))
 
 	expectedError := errors.New("ftw/http: data field is already present in this request")
-	if assert.Error(t, err) {
-		assert.Equal(t, expectedError, err)
-	}
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
 }
 
 func TestRequestRawData(t *testing.T) {
@@ -204,9 +203,8 @@ func TestRequestSettingDataaWhenThereIsRawData(t *testing.T) {
 
 	err := req.SetData([]byte("This is the data now"))
 	expectedError := errors.New("ftw/http: raw field is already present in this request")
-	if assert.Error(t, err) {
-		assert.Equal(t, expectedError, err)
-	}
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
 }
 
 func TestRequestURLParse(t *testing.T) {

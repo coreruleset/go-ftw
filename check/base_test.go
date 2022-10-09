@@ -48,7 +48,7 @@ func TestNewCheck(t *testing.T) {
 
 	c.SetNoLogContains("nologcontains")
 
-	assert.Equal(t, c.expected.NoLogContains, "nologcontains", "PRoblem setting nologcontains")
+	assert.Equal(t, c.expected.NoLogContains, "nologcontains", "Problem setting nologcontains")
 }
 
 func TestForced(t *testing.T) {
