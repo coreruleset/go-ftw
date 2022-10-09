@@ -27,13 +27,13 @@ func TestAssertLogContainsOK(t *testing.T) {
 	c := NewCheck(config.FTWConfig)
 
 	c.SetLogContains(`id "920300"`)
-	assert.True(t, c.AssertLogContains(), "did not found expected content")
+	assert.True(t, c.AssertLogContains(), "did not find expected content 'id \"920300\"'")
 	c.SetLogContains(`SOMETHING`)
 	assert.False(t, c.AssertLogContains(), "found something that is not there")
 
 	c.SetNoLogContains("SOMETHING")
 	assert.True(t, c.AssertNoLogContains(), "found something that is not there")
 	c.SetNoLogContains(`id "920300"`)
-	assert.False(t, c.AssertNoLogContains(), "did not found expected content")
+	assert.False(t, c.AssertNoLogContains(), "did not find expected content")
 
 }

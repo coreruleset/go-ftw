@@ -127,7 +127,7 @@ func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
 		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
 	}
 
-	assert.Equal(t, len(foundLines), 6, "found unexpected number of log lines")
+	assert.Len(t, foundLines, 6, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
 		assert.Equalf(t, foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
@@ -166,7 +166,7 @@ func TestReadGetMarkedLinesWithPrecedingLines(t *testing.T) {
 		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
 	}
 
-	assert.Equal(t, len(foundLines), 4, "found unexpected number of log lines")
+	assert.Len(t, foundLines, 4, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
 		assert.Equalf(t, foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))

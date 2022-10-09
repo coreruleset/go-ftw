@@ -29,7 +29,7 @@ func TestAssertResponseTextErrorOK(t *testing.T) {
 	c := NewCheck(config.FTWConfig)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)
-		assert.True(t, c.AssertResponseContains(e.response), "response not expected")
+		assert.Truef(t, c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
 	}
 }
 
@@ -40,6 +40,6 @@ func TestAssertResponseTextFailOK(t *testing.T) {
 	c := NewCheck(config.FTWConfig)
 	for _, e := range expectedResponseFailTests {
 		c.SetExpectResponse(e.expected)
-		assert.False(t, c.AssertResponseContains(e.response), "response shouldn't contain text")
+		assert.Falsef(t, c.AssertResponseContains(e.response), "response shouldn't contain text %v", e.response)
 	}
 }

@@ -48,10 +48,10 @@ func TestNewConfigConfig(t *testing.T) {
 	err := NewConfigFromFile(filename)
 	assert.NoError(t, err)
 	assert.Greater(t, len(FTWConfig.TestOverride.Ignore), 0, "Failed! Len must be > 0")
-	assert.False(t, reflect.ValueOf(FTWConfig.TestOverride.Input).IsZero(), "Failed! Input must not be empty")
+	assert.NotEmpty(t, reflect.ValueOf(FTWConfig.TestOverride.Input), "Failed! Input must not be empty")
 
 	for id, text := range FTWConfig.TestOverride.Ignore {
-		assert.True(t, strings.Contains(id, "920400-1"), "Looks like we could not find item to ignore")
+		assert.Contains(t, id, "920400-1", "Looks like we could not find item to ignore")
 		assert.Equal(t, "This test result must be ignored", text, "Text doesn't match")
 	}
 
