@@ -12,6 +12,8 @@ import (
 	"bytes"
 	"io"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var headerWriteTests = []struct {
@@ -52,9 +54,7 @@ func TestHeaderWriteBytes(t *testing.T) {
 	var buf bytes.Buffer
 	for i, test := range headerWriteTests {
 		_ = test.h.WriteBytes(&buf)
-		if buf.String() != test.expected {
-			t.Errorf("#%d:\n got: %q\nwant: %q", i, buf.String(), test.expected)
-		}
+		assert.Equalf(t, test.expected, buf.String(), "#%d:\n got: %q\nwant: %q", i, buf.String(), test.expected)
 		buf.Reset()
 	}
 }
@@ -71,10 +71,7 @@ func TestHeaderSetGet(t *testing.T) {
 	}
 	h.Add("Other", "Value")
 	value := h.Get("Other")
-	if value != "Value" {
-		t.Errorf("got: %s, want: %s\n", value, "Value")
-	}
-
+	assert.Equalf(t, "Value", value, "got: %s, want: %s\n", value, "Value")
 }
 
 func TestHeaderClone(t *testing.T) {
@@ -86,9 +83,7 @@ func TestHeaderClone(t *testing.T) {
 
 	value := clone.Get("Custom")
 
-	if value != "Value" {
-		t.Errorf("got: %s, want: %s\n", value, "Value")
-	}
+	assert.Equalf(t, "Value", value, "got: %s, want: %s\n", value, "Value")
 
 }
 

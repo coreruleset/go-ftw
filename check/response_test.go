@@ -3,6 +3,8 @@ package check
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/coreruleset/go-ftw/config"
 )
 
@@ -22,29 +24,22 @@ var expectedResponseFailTests = []struct {
 
 func TestAssertResponseTextErrorOK(t *testing.T) {
 	err := config.NewConfigFromString(yamlApacheConfig)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Errorf("Failed!")
-	}
 	c := NewCheck(config.FTWConfig)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)
-		if !c.AssertResponseContains(e.response) {
-			t.Errorf("Failed !")
-		}
+		assert.Truef(t, c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
 	}
 }
 
 func TestAssertResponseTextFailOK(t *testing.T) {
 	err := config.NewConfigFromString(yamlApacheConfig)
-	if err != nil {
-		t.Errorf("Failed!")
-	}
+	assert.NoError(t, err)
+
 	c := NewCheck(config.FTWConfig)
 	for _, e := range expectedResponseFailTests {
 		c.SetExpectResponse(e.expected)
-		if c.AssertResponseContains(e.response) {
-			t.Errorf("Failed !")
-		}
+		assert.Falsef(t, c.AssertResponseContains(e.response), "response shouldn't contain text %v", e.response)
 	}
 }

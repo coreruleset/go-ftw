@@ -1,8 +1,9 @@
 package test
 
 import (
-	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/goccy/go-yaml"
 )
@@ -25,12 +26,8 @@ uri: "/"
 `
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
-
-	if err == nil && input.StopMagic == true {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
+	assert.NoError(t, err)
+	assert.True(t, input.StopMagic)
 }
 
 func TestGetPartialDataFromYAML(t *testing.T) {
@@ -50,12 +47,8 @@ uri: "/"
 `
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
-
-	if err == nil && *input.Version == "" {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
+	assert.NoError(t, err)
+	assert.Empty(t, *input.Version)
 }
 
 func TestDataTemplateFromYAML(t *testing.T) {
@@ -77,13 +70,7 @@ uri: "/"
 	var data []byte
 	err := yaml.Unmarshal([]byte(yamlString), &input)
 
-	if err != nil {
-		t.Fatalf("Failed !")
-	}
-
-	if data = input.ParseData(); bytes.Equal(data, []byte(repeatTestSprig)) {
-		t.Logf("Success !")
-	} else {
-		t.Fatalf("Failed: %s", data)
-	}
+	assert.NoError(t, err)
+	data = input.ParseData()
+	assert.Equal(t, []byte(repeatTestSprig), data)
 }

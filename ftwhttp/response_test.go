@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func generateRequestForTesting(keepalive bool) *Request {
@@ -82,29 +84,18 @@ func TestResponse(t *testing.T) {
 	defer server.Close()
 
 	d, err := DestinationFromString(server.URL)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Error(err)
-	}
 	req := generateRequestForTesting(true)
 
 	client := NewClient(NewClientConfig())
 	err = client.NewConnection(*d)
-
-	if err != nil {
-		t.Fatalf("Error! %s", err.Error())
-	}
+	assert.NoError(t, err)
 
 	response, err := client.Do(*req)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if response.GetBodyAsString() != "Hello, client\n" {
-		t.Errorf("Error!")
-	}
-
+	assert.Equal(t, "Hello, client\n", response.GetBodyAsString())
 }
 
 func TestResponseWithCookies(t *testing.T) {
@@ -113,33 +104,23 @@ func TestResponseWithCookies(t *testing.T) {
 	defer server.Close()
 
 	d, err := DestinationFromString(server.URL)
-	if err != nil {
-		t.Fatalf("Error! %s", err.Error())
-	}
+	assert.NoError(t, err)
 	req := generateRequestForTesting(true)
 
 	client := NewClient(NewClientConfig())
 	err = client.NewConnection(*d)
 
-	if err != nil {
-		t.Fatalf("Error! %s", err.Error())
-	}
+	assert.NoError(t, err)
 
 	response, err := client.Do(*req)
 
-	if err != nil {
-		t.Logf("Failed !")
-	}
+	assert.NoError(t, err)
 
-	if response.GetBodyAsString() != "Setting Cookies!\n" {
-		t.Errorf("Error!")
-	}
+	assert.Equal(t, "Setting Cookies!\n", response.GetBodyAsString())
 
 	cookiereq := generateRequestWithCookiesForTesting()
 
 	_, err = client.Do(*cookiereq)
 
-	if err != nil {
-		t.Logf("Failed !")
-	}
+	assert.NoError(t, err)
 }
