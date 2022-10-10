@@ -1,9 +1,10 @@
 package ftwhttp
 
 import (
-	"bytes"
-	"strings"
+	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func generateBaseRequestForTesting() *Request {
@@ -44,9 +45,7 @@ Some-file-test-here
 ----------397236876--`)
 	req = NewRequest(rl, h, data, true)
 
-	if req.isRaw() {
-		t.Error()
-	}
+	assert.False(t, req.isRaw())
 }
 
 func generateBaseRawRequestForTesting() *Request {
@@ -76,9 +75,7 @@ User-Agent: ModSecurity CRS 3 Tests
 `)
 	req = NewRawRequest(raw, false)
 
-	if req.autoCompleteHeaders {
-		t.Fatalf("asdasd")
-	}
+	assert.False(t, req.autoCompleteHeaders)
 }
 func TestRequestLine(t *testing.T) {
 	rl := &RequestLine{
@@ -89,9 +86,7 @@ func TestRequestLine(t *testing.T) {
 
 	s := rl.ToString()
 
-	if s != "UNEXISTENT /this/path 1.4\r\n" {
-		t.Fatalf("Failed!")
-	}
+	assert.Equal(t, "UNEXISTENT /this/path 1.4\r\n", s)
 }
 
 func TestDestination(t *testing.T) {
@@ -101,26 +96,17 @@ func TestDestination(t *testing.T) {
 		Protocol: "https",
 	}
 
-	if d.DestAddr == "192.168.1.1" && d.Port == 443 && d.Protocol == "https" {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
+	assert.Equal(t, "192.168.1.1", d.DestAddr)
+	assert.Equal(t, 443, d.Port)
+	assert.Equal(t, "https", d.Protocol)
 }
 
 func TestRequestNew(t *testing.T) {
 	req := generateBaseRequestForTesting()
 
 	head := req.Headers()
-	if head.Get("This") == "Header" {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
-
-	if !bytes.Equal(req.Data(), []byte("Data")) {
-		t.Error("Failed to set data")
-	}
+	assert.Equal(t, "Header", head.Get("This"))
+	assert.Equal(t, []byte("Data"), req.Data(), "Failed to set data")
 }
 
 func TestWithAutocompleteRequest(t *testing.T) {
@@ -137,9 +123,7 @@ func TestWithAutocompleteRequest(t *testing.T) {
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, true)
 
-	if !req.WithAutoCompleteHeaders() {
-		t.Error("Set Autocomplete headers error ")
-	}
+	assert.True(t, req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
 }
 
 func TestWithoutAutocompleteRequest(t *testing.T) {
@@ -156,9 +140,7 @@ func TestWithoutAutocompleteRequest(t *testing.T) {
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, false)
 
-	if req.WithAutoCompleteHeaders() {
-		t.Error("Set Autocomplete headers error ")
-	}
+	assert.False(t, req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
 }
 
 func TestRequestHeadersSet(t *testing.T) {
@@ -174,13 +156,10 @@ func TestRequestHeadersSet(t *testing.T) {
 	}
 
 	req.AddHeader("X-New-Header2", "Value")
-
-	if req.headers.Get("X-New-Header2") != "Value" {
-		t.Errorf("Failed !")
-	}
+	head := req.Headers()
+	assert.Equal(t, "Value", head.Get("X-New-Header2"))
 
 	req.AddStandardHeaders(5)
-
 }
 
 func TestRequestAutoCompleteHeaders(t *testing.T) {
@@ -188,11 +167,7 @@ func TestRequestAutoCompleteHeaders(t *testing.T) {
 
 	req.SetAutoCompleteHeaders(true)
 
-	if req.WithAutoCompleteHeaders() == true {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
+	assert.True(t, req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
 }
 
 func TestRequestData(t *testing.T) {
@@ -200,9 +175,8 @@ func TestRequestData(t *testing.T) {
 
 	err := req.SetData([]byte("This is the data now"))
 
-	if err != nil && !bytes.Equal(req.Data(), []byte("This is the data now")) {
-		t.Errorf("Failed !")
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("This is the data now"), req.Data(), "failed to set data")
 }
 
 func TestRequestSettingRawDataWhenThereIsData(t *testing.T) {
@@ -210,37 +184,27 @@ func TestRequestSettingRawDataWhenThereIsData(t *testing.T) {
 
 	err := req.SetRawData([]byte("This is the data now"))
 
-	if err != nil && strings.Contains(err.Error(), "data field is already present in this request") {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed %s !", err.Error())
-	}
+	expectedError := errors.New("ftw/http: data field is already present in this request")
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
 }
 
 func TestRequestRawData(t *testing.T) {
 	req := generateBaseRawRequestForTesting()
 
-	if err := req.SetRawData([]byte("This is the RAW data now")); err != nil {
-		t.Errorf("Failed !")
-	}
+	err := req.SetRawData([]byte("This is the RAW data now"))
+	assert.NoError(t, err)
 
-	if bytes.Equal(req.RawData(), []byte("This is the RAW data now")) {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
+	assert.Equal(t, []byte("This is the RAW data now"), req.RawData())
 }
 
 func TestRequestSettingDataaWhenThereIsRawData(t *testing.T) {
 	req := generateBaseRawRequestForTesting()
 
 	err := req.SetData([]byte("This is the data now"))
-
-	if err != nil && strings.Contains(err.Error(), "raw field is already present in this request") {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
+	expectedError := errors.New("ftw/http: raw field is already present in this request")
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
 }
 
 func TestRequestURLParse(t *testing.T) {
@@ -250,9 +214,7 @@ func TestRequestURLParse(t *testing.T) {
 	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
 	// Test adding semicolons to test parse
 	err := req.SetData([]byte("test=This&test=nothing"))
-	if err != nil {
-		t.Errorf("Failed !")
-	}
+	assert.NoError(t, err)
 }
 
 func TestRequestURLParseFail(t *testing.T) {
@@ -262,7 +224,5 @@ func TestRequestURLParseFail(t *testing.T) {
 	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
 	// Test adding semicolons to test parse
 	err := req.SetData([]byte("test=This&that=but with;;;;;; data now"))
-	if err != nil {
-		t.Errorf("Failed !")
-	}
+	assert.NoError(t, err)
 }
