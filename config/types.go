@@ -54,3 +54,7 @@ func (r *FTWRegexp) UnmarshalText(b []byte) error {
 	*r = FTWRegexp(*re)
 	return nil
 }
+
+func (r *FTWRegexp) MatchString(s string) bool {
+	return (*regexp.Regexp)(r).MatchString(s)
+}
