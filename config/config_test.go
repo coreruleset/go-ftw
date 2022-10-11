@@ -2,9 +2,9 @@ package config
 
 import (
 	"os"
-	"reflect"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/coreruleset/go-ftw/utils"
 )
@@ -37,40 +37,24 @@ func TestNewConfigBadFileConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(jsonConfig, "test-*.yaml")
 	defer os.Remove(filename)
 	err := NewConfigFromFile(filename)
-	if err != nil {
-		t.Errorf("Failed!")
-	}
+	assert.NoError(t, err)
 }
 
 func TestNewConfigConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-*.yaml")
 
 	err := NewConfigFromFile(filename)
-	if err != nil {
-		t.Errorf("Failed!")
-	}
-
-	if len(FTWConfig.TestOverride.Ignore) == 0 {
-		t.Errorf("Failed! Len must be > 0")
-	}
-
-	if reflect.ValueOf(FTWConfig.TestOverride.Input).IsZero() {
-		t.Errorf("Failed! Input must not be empty")
-	}
+	assert.NoError(t, err)
+	assert.NotEmpty(t, FTWConfig.TestOverride.Input, "Ignore list must not be empty")
 
 	for id, text := range FTWConfig.TestOverride.Ignore {
-		if !strings.Contains(id, "920400-1") {
-			t.Errorf("Looks like we could not find item to ignore")
-		}
-		if text != "This test result must be ignored" {
-			t.Errorf("Text doesn't match")
-		}
+		assert.Contains(t, id, "920400-1", "Looks like we could not find item to ignore")
+		assert.Equal(t, "This test result must be ignored", text, "Text doesn't match")
 	}
 
 	overrides := FTWConfig.TestOverride.Input
-	if overrides.DestAddr != nil && *overrides.DestAddr != "httpbin.org" {
-		t.Errorf("Looks like we are not overriding destination!")
-	}
+	assert.NotNil(t, overrides.DestAddr, "Looks like we are not overriding destination address")
+	assert.Equal(t, "httpbin.org", *overrides.DestAddr, "Looks like we are not overriding destination address")
 }
 
 func TestNewConfigBadConfig(t *testing.T) {
@@ -78,9 +62,7 @@ func TestNewConfigBadConfig(t *testing.T) {
 	defer os.Remove(filename)
 	_ = NewConfigFromFile(filename)
 
-	if FTWConfig == nil {
-		t.Errorf("Failed !")
-	}
+	assert.NotNil(t, FTWConfig)
 }
 
 func TestNewConfigDefaultConfig(t *testing.T) {
@@ -93,23 +75,17 @@ func TestNewConfigDefaultConfig(t *testing.T) {
 
 	_ = NewConfigFromFile("")
 
-	if FTWConfig == nil {
-		t.Errorf("Failed !")
-	}
+	assert.NotNil(t, FTWConfig)
 }
 
 func TestNewConfigFromString(t *testing.T) {
 	err := NewConfigFromString(yamlConfig)
-	if err != nil {
-		t.Errorf("Failed!")
-	}
+	assert.NoError(t, err)
 }
 
 func TestNewEnvConfigFromString(t *testing.T) {
 	err := NewConfigFromString(yamlConfig)
-	if err != nil {
-		t.Errorf("Failed!")
-	}
+	assert.NoError(t, err)
 }
 
 func TestNewConfigFromEnv(t *testing.T) {
@@ -117,67 +93,52 @@ func TestNewConfigFromEnv(t *testing.T) {
 	os.Setenv("FTW_LOGFILE", "kaonf")
 
 	err := NewConfigFromEnv()
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Error(err)
-	}
-
-	if FTWConfig.LogFile != "kaonf" {
-		t.Errorf(FTWConfig.LogFile)
-	}
+	assert.Equal(t, "kaonf", FTWConfig.LogFile)
 }
 
 func TestNewConfigFromEnvHasDefaults(t *testing.T) {
-	if err := NewConfigFromEnv(); err != nil {
-		t.Error(err)
-	}
+	err := NewConfigFromEnv()
+	assert.NoError(t, err)
 
-	if FTWConfig.RunMode != DefaultRunMode {
-		t.Errorf("unexpected default value '%s' for run mode", FTWConfig.RunMode)
-	}
-	if FTWConfig.LogMarkerHeaderName != DefaultLogMarkerHeaderName {
-		t.Errorf("unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
-	}
+	assert.Equalf(t, DefaultRunMode, FTWConfig.RunMode,
+		"unexpected default value '%s' for run mode", FTWConfig.RunMode)
+	assert.Equalf(t, DefaultLogMarkerHeaderName, FTWConfig.LogMarkerHeaderName,
+		"unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
+
 }
 
 func TestNewConfigFromFileHasDefaults(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-*.yaml")
 	defer os.Remove(filename)
 
-	if err := NewConfigFromFile(filename); err != nil {
-		t.Error(err)
-	}
+	err := NewConfigFromFile(filename)
+	assert.NoError(t, err)
 
-	if FTWConfig.RunMode != DefaultRunMode {
-		t.Errorf("unexpected default value '%s' for run mode", FTWConfig.RunMode)
-	}
-	if FTWConfig.LogMarkerHeaderName != DefaultLogMarkerHeaderName {
-		t.Errorf("unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
-	}
+	assert.Equalf(t, DefaultRunMode, FTWConfig.RunMode,
+		"unexpected default value '%s' for run mode", FTWConfig.RunMode)
+	assert.Equalf(t, DefaultLogMarkerHeaderName, FTWConfig.LogMarkerHeaderName,
+		"unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
 }
 
 func TestNewConfigFromStringHasDefaults(t *testing.T) {
-	if err := NewConfigFromString(""); err != nil {
-		t.Error(err)
-	}
+	err := NewConfigFromString("")
+	assert.NoError(t, err)
 
-	if FTWConfig.RunMode != DefaultRunMode {
-		t.Errorf("unexpected default value '%s' for run mode", FTWConfig.RunMode)
-	}
-	if FTWConfig.LogMarkerHeaderName != DefaultLogMarkerHeaderName {
-		t.Errorf("unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
-	}
+	assert.Equalf(t, DefaultRunMode, FTWConfig.RunMode,
+		"unexpected default value '%s' for run mode", FTWConfig.RunMode)
+	assert.Equalf(t, DefaultLogMarkerHeaderName, FTWConfig.LogMarkerHeaderName,
+		"unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
 }
 
 func TestNewConfigFromFileRunMode(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlCloudConfig, "test-*.yaml")
 	defer os.Remove(filename)
 
-	if err := NewConfigFromFile(filename); err != nil {
-		t.Error(err)
-	}
+	err := NewConfigFromFile(filename)
+	assert.NoError(t, err)
 
-	if FTWConfig.RunMode != CloudRunMode {
-		t.Errorf("unexpected value '%s' for run mode, expected '%s;", FTWConfig.RunMode, CloudRunMode)
-	}
+	assert.Equalf(t, CloudRunMode, FTWConfig.RunMode,
+		"unexpected value '%s' for run mode, expected '%s;", FTWConfig.RunMode, CloudRunMode)
 }

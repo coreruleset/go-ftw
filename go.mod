@@ -11,6 +11,7 @@ require (
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/rs/zerolog v1.22.0
 	github.com/spf13/cobra v1.1.3
+	github.com/stretchr/testify v1.5.1
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 )
@@ -18,6 +19,7 @@ require (
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.11.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
@@ -29,8 +31,8 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/pelletier/go-toml v1.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.5.1 // indirect
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a // indirect
 	golang.org/x/sys v0.0.0-20210514084401-e8d321eab015 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect

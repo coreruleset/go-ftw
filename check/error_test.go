@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/coreruleset/go-ftw/config"
 )
 
@@ -25,32 +27,23 @@ var expectedFailTests = []struct {
 
 func TestAssertResponseErrorOK(t *testing.T) {
 	err := config.NewConfigFromString(yamlApacheConfig)
+	assert.NoError(t, err)
 
-	if err != nil {
-		t.Errorf("Failed!")
-	}
 	c := NewCheck(config.FTWConfig)
 	for _, e := range expectedOKTests {
 		c.SetExpectError(e.expected)
-		if c.AssertExpectError(e.err) != e.expected {
-			t.Errorf("Failed !")
-		}
+		assert.Equal(t, e.expected, c.AssertExpectError(e.err))
 	}
 }
 
 func TestAssertResponseFail(t *testing.T) {
 	err := config.NewConfigFromString(yamlApacheConfig)
-
-	if err != nil {
-		t.Errorf("Failed!")
-	}
+	assert.NoError(t, err)
 
 	c := NewCheck(config.FTWConfig)
 
 	for _, e := range expectedFailTests {
 		c.SetExpectError(e.expected)
-		if c.AssertExpectError(e.err) && e.expected {
-			t.Errorf("Failed !")
-		}
+		assert.False(t, c.AssertExpectError(e.err))
 	}
 }

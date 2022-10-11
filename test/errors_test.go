@@ -3,6 +3,8 @@ package test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/coreruleset/go-ftw/utils"
 )
 
@@ -48,8 +50,6 @@ func TestGetLinesFromTestName(t *testing.T) {
 
 	for _, ft := range tests {
 		line, _ := ft.GetLinesFromTest("911100-2")
-		if line != 22 {
-			t.Errorf("Not getting the proper line.")
-		}
+		assert.Equal(t, 22, line, "Not getting the proper line.")
 	}
 }

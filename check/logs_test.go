@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/utils"
 )
@@ -16,9 +18,8 @@ var logText = `[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 1396834345
 
 func TestAssertLogContainsOK(t *testing.T) {
 	err := config.NewConfigFromString(yamlApacheConfig)
-	if err != nil {
-		t.Errorf("Failed!")
-	}
+	assert.NoError(t, err)
+
 	logName, _ := utils.CreateTempFileWithContent(logText, "test-*.log")
 	defer os.Remove(logName)
 	config.FTWConfig.LogFile = logName
@@ -26,14 +27,13 @@ func TestAssertLogContainsOK(t *testing.T) {
 	c := NewCheck(config.FTWConfig)
 
 	c.SetLogContains(`id "920300"`)
+	assert.True(t, c.AssertLogContains(), "did not find expected content 'id \"920300\"'")
+	c.SetLogContains(`SOMETHING`)
+	assert.False(t, c.AssertLogContains(), "found something that is not there")
 
-	// c.SetNoLogContains(`Something that is not there`)
+	c.SetNoLogContains("SOMETHING")
+	assert.True(t, c.AssertNoLogContains(), "found something that is not there")
+	c.SetNoLogContains(`id "920300"`)
+	assert.False(t, c.AssertNoLogContains(), "did not find expected content")
 
-	if !c.AssertLogContains() {
-		t.Errorf("Failed !")
-	}
-
-	// if !c.AssertNoLogContains() {
-	// 	t.Errorf("Failed !")
-	// }
 }
