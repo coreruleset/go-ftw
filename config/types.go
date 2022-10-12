@@ -46,7 +46,6 @@ type FTWTestOverride struct {
 type FTWRegexp regexp.Regexp
 
 func (r *FTWRegexp) UnmarshalText(b []byte) error {
-	fmt.Println("Unmarshalling!")
 	re, err := regexp.Compile(string(b))
 	if err != nil {
 		return fmt.Errorf("invalid regexp: %w", err)

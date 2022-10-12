@@ -14,7 +14,7 @@ import (
 // NewConfigFromFile reads configuration information from the config file if it exists,
 // or uses `.ftw.yaml` as default file
 func NewConfigFromFile(cfgFile string) error {
-	// kaonf merges by default, but we never want to merge in this case
+	// koanf merges by default, but we never want to merge in this case
 	Reset()
 
 	// Global koanf instance. Use "." as the key path delimiter. This can be "/" or any character.
@@ -49,7 +49,7 @@ func NewConfigFromFile(cfgFile string) error {
 
 // NewConfigFromEnv reads configuration information from environment variables that start with `FTW_`
 func NewConfigFromEnv() error {
-	// kaonf merges by default, but we never want to merge in this case
+	// koanf merges by default, but we never want to merge in this case
 	Reset()
 
 	var err error
@@ -72,7 +72,7 @@ func NewConfigFromEnv() error {
 
 // NewConfigFromString initializes the configuration from a yaml formatted string. Useful for testing.
 func NewConfigFromString(conf string) error {
-	// kaonf merges by default, but we never want to merge in this case
+	// koanf merges by default, but we never want to merge in this case
 	Reset()
 
 	var k = koanf.New(".")
@@ -96,7 +96,7 @@ func Reset() {
 }
 
 func loadDefaults() {
-	// Note: kaonf has a way to set defaults. However, kaonf's merge behavior
+	// Note: koanf has a way to set defaults. However, koanf's merge behavior
 	// will overwrite defaults when the associated field is empty in nested
 	// structures (top level would work). That's why we set defaults here
 	// explictly.
