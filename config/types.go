@@ -1,6 +1,11 @@
 package config
 
-import "github.com/coreruleset/go-ftw/test"
+import (
+	"fmt"
+	"regexp"
+
+	"github.com/coreruleset/go-ftw/test"
+)
 
 // RunMode represents the mode of the test run
 type RunMode string
@@ -32,8 +37,23 @@ type FTWConfiguration struct {
 //	ForcePass is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
 //	ForceFail is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
 type FTWTestOverride struct {
-	Input     test.Input        `koanf:"input"`
-	Ignore    map[string]string `koanf:"ignore"`
-	ForcePass map[string]string `koanf:"forcepass"`
-	ForceFail map[string]string `koanf:"forcefail"`
+	Input     test.Input            `koanf:"input"`
+	Ignore    map[*FTWRegexp]string `koanf:"ignore"`
+	ForcePass map[*FTWRegexp]string `koanf:"forcepass"`
+	ForceFail map[*FTWRegexp]string `koanf:"forcefail"`
+}
+
+type FTWRegexp regexp.Regexp
+
+func (r *FTWRegexp) UnmarshalText(b []byte) error {
+	re, err := regexp.Compile(string(b))
+	if err != nil {
+		return fmt.Errorf("invalid regexp: %w", err)
+	}
+	*r = FTWRegexp(*re)
+	return nil
+}
+
+func (r *FTWRegexp) MatchString(s string) bool {
+	return (*regexp.Regexp)(r).MatchString(s)
 }

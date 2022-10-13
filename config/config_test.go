@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ testoverride:
     dest_addr: 'httpbin.org'
     port: '1234'
   ignore:
-    '920400-1': 'This test result must be ignored'
+    '920400-1$': 'This test must be ignored'
 `
 
 var yamlCloudConfig = `---
@@ -44,12 +45,13 @@ func TestNewConfigConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-*.yaml")
 
 	err := NewConfigFromFile(filename)
+
 	assert.NoError(t, err)
 	assert.NotEmpty(t, FTWConfig.TestOverride.Input, "Ignore list must not be empty")
 
 	for id, text := range FTWConfig.TestOverride.Ignore {
-		assert.Contains(t, id, "920400-1", "Looks like we could not find item to ignore")
-		assert.Equal(t, "This test result must be ignored", text, "Text doesn't match")
+		assert.Contains(t, (*regexp.Regexp)(id).String(), "920400-1$", "Looks like we could not find item to ignore")
+		assert.Equal(t, "This test must be ignored", text, "Text doesn't match")
 	}
 
 	overrides := FTWConfig.TestOverride.Input
@@ -90,12 +92,12 @@ func TestNewEnvConfigFromString(t *testing.T) {
 
 func TestNewConfigFromEnv(t *testing.T) {
 	// Set some environment so it gets merged with conf
-	os.Setenv("FTW_LOGFILE", "kaonf")
+	os.Setenv("FTW_LOGFILE", "koanf")
 
 	err := NewConfigFromEnv()
 	assert.NoError(t, err)
 
-	assert.Equal(t, "kaonf", FTWConfig.LogFile)
+	assert.Equal(t, "koanf", FTWConfig.LogFile)
 }
 
 func TestNewConfigFromEnvHasDefaults(t *testing.T) {

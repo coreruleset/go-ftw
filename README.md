@@ -184,7 +184,8 @@ Tests can be altered using four lists:
 - `forcepass` is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
 - `forcefail` is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
 
-Example using all the lists above:
+Each list is populated by regular expressions (see https://pkg.go.dev/regexp), which match against test IDs.
+The following is an example using all the lists mentioned above: 
 
 ```yaml
 ...
@@ -195,14 +196,16 @@ testoverride:
     protocol: "http"
   ignore:
     # text comes from our friends at https://github.com/digitalwave/ftwrunner
-    '941190-3': 'known MSC bug - PR #2023 (Cookie without value)'
-    '941330-1': 'know MSC bug - #2148 (double escape)'
-    '942480-2': 'known MSC bug - PR #2023 (Cookie without value)'
-    '944100-11': 'known MSC bug - PR #2045, ISSUE #2146'
+    '941190-3$': 'known MSC bug - PR #2023 (Cookie without value)'
+    '941330-1$': 'know MSC bug - #2148 (double escape)'
+    '942480-2$': 'known MSC bug - PR #2023 (Cookie without value)'
+    '944100-11$': 'known MSC bug - PR #2045, ISSUE #2146'
+    '^920': 'All the tests about Protocol Attack (rules starting with "920") will be ignored'
   forcefail:
-    '123456-01': 'I want this test to fail, even if passing'
+    '123456-01$': 'I want this specific test to fail, even if passing'
   forcepass:
-    '123456-02': 'This test will always pass'
+    '123456-02$': 'This test will always pass'
+    '123457-.*': 'All the tests about rule 123457 will always pass'
 ```
 
 You can combine any of `ignore`, `forcefail` and `forcepass` to make it work for you.

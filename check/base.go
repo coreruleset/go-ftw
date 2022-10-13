@@ -60,20 +60,32 @@ func (c *FTWCheck) SetNoLogContains(contains string) {
 
 // ForcedIgnore check if this id need to be ignored from results
 func (c *FTWCheck) ForcedIgnore(id string) bool {
-	_, ok := c.overrides.Ignore[id]
-	return ok
+	for re, _ := range c.overrides.Ignore {
+		if re.MatchString(id) {
+			return true
+		}
+	}
+	return false
 }
 
 // ForcedPass check if this id need to be ignored from results
 func (c *FTWCheck) ForcedPass(id string) bool {
-	_, ok := c.overrides.ForcePass[id]
-	return ok
+	for re, _ := range c.overrides.ForcePass {
+		if re.MatchString(id) {
+			return true
+		}
+	}
+	return false
 }
 
 // ForcedFail check if this id need to be ignored from results
 func (c *FTWCheck) ForcedFail(id string) bool {
-	_, ok := c.overrides.ForceFail[id]
-	return ok
+	for re, _ := range c.overrides.ForceFail {
+		if re.MatchString(id) {
+			return true
+		}
+	}
+	return false
 }
 
 // CloudMode returns true if we are running in cloud mode
