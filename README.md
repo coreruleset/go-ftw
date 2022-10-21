@@ -52,20 +52,6 @@ mode: "default" or "cloud" (only change it if you need "cloud")
 
 By default, _ftw_ would search for a file in `$PWD` with the name `.ftw.yaml`. You can pass the `--config <config file name>` to point it to a different file.
 
-### Logfile
-
-Running in default mode implies you have access to a logfile for checking the WAF behavior against test results. Example configurations for `apache` and `nginx` can be found below:
-
-```yaml
----
-logfile: '../coreruleset/tests/logs/modsec2-apache/apache2/error.log'
-```
-
-```yaml
----
-logfile: '../coreruleset/tests/logs/modsec3-nginx/nginx/error.log'
-```
-
 ### WAF Server
 
 I normally perform my testing using the [Core Rule Set](https://github.com/coreruleset/coreruleset/).
@@ -74,7 +60,22 @@ You can start the containers from that repo using `docker compose`:
 
 ```bash
 git clone https://github.com/coreruleset/coreruleset.git
+cd coreruleset
 docker compose -f tests/docker-compose.yml up -d modsec2-apache
+```
+
+### Logfile
+
+Running in default mode implies you have access to a logfile for checking the WAF behavior against test results. For this example, assuming you are in the base directory of the coreruleset repository, these are the configurations for `apache` and `nginx`:
+
+```yaml
+---
+logfile: 'tests/logs/modsec2-apache/error.log'
+```
+
+```yaml
+---
+logfile: 'tests/logs/modsec3-nginx/error.log'
 ```
 
 ## Running
@@ -185,7 +186,7 @@ Tests can be altered using four lists:
 - `forcefail` is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
 
 Each list is populated by regular expressions (see https://pkg.go.dev/regexp), which match against test IDs.
-The following is an example using all the lists mentioned above: 
+The following is an example using all the lists mentioned above:
 
 ```yaml
 ...
