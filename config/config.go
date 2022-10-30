@@ -27,6 +27,20 @@ func NewConfigFromFile(cfgFile string) error {
 	}
 
 	_, err = os.Stat(cfgFile)
+	if err != nil { // file does not exist, so we try the home folder
+
+        var home string
+
+		home, err = os.UserHomeDir()
+	    if err != nil { // home folder could not be retrieved
+		    return err
+	    }
+
+        cfgFile = home + "/.ftw.yaml"
+
+	}
+
+	_, err = os.Stat(cfgFile)
 	if err != nil { // file exists, so we read it looking for config values
 		return err
 	}
