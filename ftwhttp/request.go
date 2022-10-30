@@ -183,33 +183,17 @@ func buildRequest(r *Request) ([]byte, error) {
 	return b.Bytes(), err
 }
 
-// If the values are empty in the map, then don't encode anythin
-// This keeps the compatibility with the python implementation
-func emptyQueryValues(values url.Values) bool {
-	for _, v := range values {
-		val := v
-		if len(val) > 1 {
-			return false
-		}
-	}
-	return true
-}
-
 // encodeDataParameters url encode parameters in data
 func encodeDataParameters(h Header, data []byte) ([]byte, error) {
 	var err error
 
 	if h.Get(ContentTypeHeader) == "application/x-www-form-urlencoded" {
-		if escapedData, _ := url.QueryUnescape(string(data)); escapedData == string(data) {
-			queryString, err := url.ParseQuery(string(data))
-			if (err != nil && strings.Contains(err.Error(), "invalid semicolon separator in query")) || emptyQueryValues(queryString) {
-				return data, nil
+		if escapedData, err := url.QueryUnescape(string(data)); escapedData == string(data) {
+			if err != nil {
+				return nil, errors.New("Failed")
 			}
-			encodedData := queryString.Encode()
-			if encodedData != string(data) {
-				// we need to encode data
-				return []byte(encodedData), nil
-			}
+			queryString := url.QueryEscape(string(data))
+			return []byte(queryString), nil
 		}
 	}
 	return data, err
