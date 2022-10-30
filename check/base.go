@@ -60,7 +60,7 @@ func (c *FTWCheck) SetNoLogContains(contains string) {
 
 // ForcedIgnore check if this id need to be ignored from results
 func (c *FTWCheck) ForcedIgnore(id string) bool {
-	for re, _ := range c.overrides.Ignore {
+	for re := range c.overrides.Ignore {
 		if re.MatchString(id) {
 			return true
 		}
@@ -70,7 +70,7 @@ func (c *FTWCheck) ForcedIgnore(id string) bool {
 
 // ForcedPass check if this id need to be ignored from results
 func (c *FTWCheck) ForcedPass(id string) bool {
-	for re, _ := range c.overrides.ForcePass {
+	for re := range c.overrides.ForcePass {
 		if re.MatchString(id) {
 			return true
 		}
@@ -80,7 +80,7 @@ func (c *FTWCheck) ForcedPass(id string) bool {
 
 // ForcedFail check if this id need to be ignored from results
 func (c *FTWCheck) ForcedFail(id string) bool {
-	for re, _ := range c.overrides.ForceFail {
+	for re := range c.overrides.ForceFail {
 		if re.MatchString(id) {
 			return true
 		}
