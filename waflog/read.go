@@ -83,9 +83,6 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 // logFile is the file to search
 // stageID is the ID of the current stage, which is part of the marker line
 func (ll *FTWLogLines) CheckLogForMarker(stageID string) []byte {
-	if config.FTWConfig.RunMode == config.DefaultRunMode && ll.logFile == nil {
-		log.Fatal().Caller().Msg("No log file supplied")
-	}
 	offset, err := ll.logFile.Seek(0, os.SEEK_END)
 	if err != nil {
 		log.Error().Caller().Err(err).Msgf("failed to seek end of log file")

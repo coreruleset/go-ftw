@@ -56,7 +56,7 @@ var runCmd = &cobra.Command{
 			excludeRE = regexp.MustCompile(exclude)
 		}
 
-		currentRun := runner.Run(tests, runner.Config{
+		currentRun, err := runner.Run(tests, runner.Config{
 			Include:        includeRE,
 			Exclude:        excludeRE,
 			ShowTime:       showTime,
@@ -64,6 +64,9 @@ var runCmd = &cobra.Command{
 			ConnectTimeout: connectTimeout,
 			ReadTimeout:    readTimeout,
 		})
+		if err != nil {
+			log.Fatal().Err(err)
+		}
 
 		os.Exit(currentRun.Stats.TotalFailed())
 	},

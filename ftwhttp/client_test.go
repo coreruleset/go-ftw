@@ -7,7 +7,8 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	c := NewClient(NewClientConfig())
+	c, err := NewClient(NewClientConfig())
+	assert.NoError(t, err)
 
 	assert.NotNil(t, c.Jar, "Error creating Client")
 }
@@ -19,9 +20,10 @@ func TestConnectDestinationHTTPS(t *testing.T) {
 		Protocol: "https",
 	}
 
-	c := NewClient(NewClientConfig())
+	c, err := NewClient(NewClientConfig())
+	assert.NoError(t, err)
 
-	err := c.NewConnection(*d)
+	err = c.NewConnection(*d)
 	assert.NoError(t, err, "This should not error")
 	assert.Equal(t, "https", c.Transport.protocol, "Error connecting to example.com using https")
 }
@@ -33,11 +35,12 @@ func TestDoRequest(t *testing.T) {
 		Protocol: "https",
 	}
 
-	c := NewClient(NewClientConfig())
+	c, err := NewClient(NewClientConfig())
+	assert.NoError(t, err)
 
 	req := generateBaseRequestForTesting()
 
-	err := c.NewConnection(*d)
+	err = c.NewConnection(*d)
 	assert.NoError(t, err, "This should not error")
 
 	_, err = c.Do(*req)
@@ -52,7 +55,8 @@ func TestGetTrackedTime(t *testing.T) {
 		Protocol: "https",
 	}
 
-	c := NewClient(NewClientConfig())
+	c, err := NewClient(NewClientConfig())
+	assert.NoError(t, err)
 
 	rl := &RequestLine{
 		Method:  "POST",
@@ -65,7 +69,7 @@ func TestGetTrackedTime(t *testing.T) {
 	data := []byte(`test=me&one=two&one=twice`)
 	req := NewRequest(rl, h, data, true)
 
-	err := c.NewConnection(*d)
+	err = c.NewConnection(*d)
 	assert.NoError(t, err, "This should not error")
 
 	c.StartTrackingTime()
@@ -90,7 +94,8 @@ func TestClientMultipartFormDataRequest(t *testing.T) {
 		Protocol: "https",
 	}
 
-	c := NewClient(NewClientConfig())
+	c, err := NewClient(NewClientConfig())
+	assert.NoError(t, err)
 
 	rl := &RequestLine{
 		Method:  "POST",
@@ -112,7 +117,7 @@ Some-file-test-here
 
 	req := NewRequest(rl, h, data, true)
 
-	err := c.NewConnection(*d)
+	err = c.NewConnection(*d)
 	assert.NoError(t, err, "This should not error")
 
 	c.StartTrackingTime()
@@ -127,7 +132,8 @@ Some-file-test-here
 }
 
 func TestNewConnectionCreatesTransport(t *testing.T) {
-	c := NewClient(NewClientConfig())
+	c, err := NewClient(NewClientConfig())
+	assert.NoError(t, err)
 	assert.Nil(t, c.Transport, "Transport not expected to initialized yet")
 
 	server := testServer()
@@ -141,7 +147,8 @@ func TestNewConnectionCreatesTransport(t *testing.T) {
 }
 
 func TestNewOrReusedConnectionCreatesTransport(t *testing.T) {
-	c := NewClient(NewClientConfig())
+	c, err := NewClient(NewClientConfig())
+	assert.NoError(t, err)
 	assert.Nil(t, c.Transport, "Transport not expected to initialized yet")
 
 	server := testServer()
@@ -155,7 +162,8 @@ func TestNewOrReusedConnectionCreatesTransport(t *testing.T) {
 }
 
 func TestNewOrReusedConnectionReusesTransport(t *testing.T) {
-	c := NewClient(NewClientConfig())
+	c, err := NewClient(NewClientConfig())
+	assert.NoError(t, err)
 	assert.Nil(t, c.Transport, "Transport not expected to initialized yet")
 
 	server := testServer()
