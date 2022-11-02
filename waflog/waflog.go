@@ -1,15 +1,17 @@
 package waflog
 
 import (
+	"errors"
+	"fmt"
 	"os"
-
-	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/config"
 )
 
+var errNoLogFile = errors.New("no log file supplied")
+
 // NewFTWLogLines is the base struct for reading the log file
-func NewFTWLogLines(opts ...FTWLogOption) *FTWLogLines {
+func NewFTWLogLines(opts ...FTWLogOption) (*FTWLogLines, error) {
 	ll := &FTWLogLines{
 		logFile:     nil,
 		FileName:    config.FTWConfig.LogFile,
@@ -25,10 +27,14 @@ func NewFTWLogLines(opts ...FTWLogOption) *FTWLogLines {
 	}
 
 	if err := ll.openLogFile(); err != nil {
-		log.Error().Caller().Msgf("cannot open log file: %s", err)
+		return nil, fmt.Errorf("cannot open log file: %w", err)
 	}
 
-	return ll
+	if config.FTWConfig.RunMode == config.DefaultRunMode && ll.logFile == nil {
+		return nil, errNoLogFile
+	}
+
+	return ll, nil
 }
 
 // WithStartMarker sets the start marker for the log file

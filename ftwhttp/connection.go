@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -82,7 +83,7 @@ func (c *Connection) Request(request *Request) error {
 	// Build request first, then connect and send, so timers are accurate
 	data, err := buildRequest(request)
 	if err != nil {
-		log.Fatal().Msgf("ftw/http: fatal error building request: %s", err.Error())
+		return fmt.Errorf("ftw/http: fatal error building request: %w", err)
 	}
 
 	log.Debug().Msgf("ftw/http: sending data:\n%s\n", data)
