@@ -417,49 +417,55 @@ func TestRun(t *testing.T) {
 	replaceDestinationInTest(&ftwTest, *dest)
 
 	t.Run("show time and execute all", func(t *testing.T) {
-		res := Run([]test.FTWTest{ftwTest}, Config{
+		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			ShowTime: true,
 			Quiet:    true,
 		})
+		assert.NoError(t, err)
 		assert.Equalf(t, res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
 	})
 
 	t.Run("be verbose and execute all", func(t *testing.T) {
-		res := Run([]test.FTWTest{ftwTest}, Config{
+		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			Include:  regexp.MustCompile("0*"),
 			ShowTime: true,
 		})
+		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "verbose and execute all failed")
 	})
 
 	t.Run("don't show time and execute all", func(t *testing.T) {
-		res := Run([]test.FTWTest{ftwTest}, Config{
+		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			Include: regexp.MustCompile("0*"),
 		})
+		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "do not show time and execute all failed")
 	})
 
 	t.Run("execute only test 008 but exclude all", func(t *testing.T) {
-		res := Run([]test.FTWTest{ftwTest}, Config{
+		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			Include: regexp.MustCompile("008"),
 			Exclude: regexp.MustCompile("0*"),
 		})
+		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "do not show time and execute all failed")
 	})
 
 	t.Run("exclude test 010", func(t *testing.T) {
-		res := Run([]test.FTWTest{ftwTest}, Config{
+		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			Exclude: regexp.MustCompile("010"),
 		})
+		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "failed to exclude test")
 	})
 
 	t.Run("test exceptions 1", func(t *testing.T) {
-		res := Run([]test.FTWTest{ftwTest}, Config{
+		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			Include: regexp.MustCompile("1*"),
 			Exclude: regexp.MustCompile("0*"),
 			Quiet:   true,
 		})
+		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "failed to test exceptions")
 	})
 }
@@ -487,9 +493,10 @@ func TestOverrideRun(t *testing.T) {
 
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
-	res := Run([]test.FTWTest{ftwTest}, Config{
+	res, err := Run([]test.FTWTest{ftwTest}, Config{
 		Quiet: true,
 	})
+	assert.NoError(t, err)
 	assert.LessOrEqual(t, 0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
@@ -516,9 +523,10 @@ func TestBrokenOverrideRun(t *testing.T) {
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
 	// the test should succeed, despite the unknown override property
-	res := Run([]test.FTWTest{ftwTest}, Config{
+	res, err := Run([]test.FTWTest{ftwTest}, Config{
 		Quiet: true,
 	})
+	assert.NoError(t, err)
 	assert.LessOrEqual(t, 0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
@@ -547,16 +555,17 @@ func TestBrokenPortOverrideRun(t *testing.T) {
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
 	// the test should succeed, despite the unknown override property
-	res := Run([]test.FTWTest{ftwTest}, Config{
+	res, err := Run([]test.FTWTest{ftwTest}, Config{
 		Quiet: true,
 	})
+	assert.NoError(t, err)
 	assert.LessOrEqual(t, 0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func TestDisabledRun(t *testing.T) {
 	t.Cleanup(config.Reset)
 
-	err := config.NewConfigFromString(yamlConfig)
+	err := config.NewConfigFromString(yamlCloudConfig)
 	assert.NoError(t, err)
 
 	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
@@ -568,9 +577,10 @@ func TestDisabledRun(t *testing.T) {
 	assert.NoError(t, err)
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
-	res := Run([]test.FTWTest{ftwTest}, Config{
+	res, err := Run([]test.FTWTest{ftwTest}, Config{
 		Quiet: true,
 	})
+	assert.NoError(t, err)
 	assert.LessOrEqual(t, 0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
@@ -589,9 +599,10 @@ func TestLogsRun(t *testing.T) {
 	assert.NoError(t, err)
 	replaceDestinationInTest(&ftwTest, *dest)
 
-	res := Run([]test.FTWTest{ftwTest}, Config{
+	res, err := Run([]test.FTWTest{ftwTest}, Config{
 		Quiet: true,
 	})
+	assert.NoError(t, err)
 	assert.LessOrEqual(t, 0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
@@ -630,12 +641,14 @@ func TestCloudRun(t *testing.T) {
 
 				replaceDestinationInTest(&ftwTest, *dest)
 				assert.NoError(t, err)
+				client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
+				assert.NoError(t, err)
 				runContext := TestRunContext{
 					Include:  nil,
 					Exclude:  nil,
 					ShowTime: false,
 					Output:   true,
-					Client:   ftwhttp.NewClient(ftwhttp.NewClientConfig()),
+					Client:   client,
 					LogLines: nil,
 				}
 
@@ -662,7 +675,8 @@ func TestFailedTestsRun(t *testing.T) {
 	assert.NoError(t, err)
 	replaceDestinationInTest(&ftwTest, *dest)
 
-	res := Run([]test.FTWTest{ftwTest}, Config{})
+	res, err := Run([]test.FTWTest{ftwTest}, Config{})
+	assert.NoError(t, err)
 	assert.Equal(t, 1, res.Stats.TotalFailed())
 }
 
@@ -709,6 +723,7 @@ func TestIgnoredTestsRun(t *testing.T) {
 
 	replaceDestinationInTest(&ftwTest, *dest)
 
-	res := Run([]test.FTWTest{ftwTest}, Config{})
+	res, err := Run([]test.FTWTest{ftwTest}, Config{})
+	assert.NoError(t, err)
 	assert.Equal(t, res.Stats.TotalFailed(), 1, "Oops, test run failed!")
 }

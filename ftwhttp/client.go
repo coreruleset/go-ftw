@@ -21,17 +21,17 @@ func NewClientConfig() ClientConfig {
 }
 
 // NewClient initializes the http client, creating the cookiejar
-func NewClient(config ClientConfig) *Client {
+func NewClient(config ClientConfig) (*Client, error) {
 	// All users of cookiejar should import "golang.org/x/net/publicsuffix"
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
-		log.Fatal().Err(err)
+		return nil, err
 	}
 	c := &Client{
 		Jar:    jar,
 		config: config,
 	}
-	return c
+	return c, nil
 }
 
 // NewConnection creates a new Connection based on a Destination

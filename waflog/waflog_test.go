@@ -12,7 +12,8 @@ func TestNewFTWLogLines(t *testing.T) {
 	err := config.NewConfigFromEnv()
 	assert.NoError(t, err)
 
-	ll := NewFTWLogLines()
+	// Don't call NewFTWLogLines to avoid opening the file.
+	ll := &FTWLogLines{}
 	// Loop through each option
 	for _, opt := range []FTWLogOption{
 		WithStartMarker([]byte("#")),

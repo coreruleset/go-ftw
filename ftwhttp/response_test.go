@@ -88,7 +88,8 @@ func TestResponse(t *testing.T) {
 
 	req := generateRequestForTesting(true)
 
-	client := NewClient(NewClientConfig())
+	client, err := NewClient(NewClientConfig())
+	assert.NoError(t, err)
 	err = client.NewConnection(*d)
 	assert.NoError(t, err)
 
@@ -107,7 +108,8 @@ func TestResponseWithCookies(t *testing.T) {
 	assert.NoError(t, err)
 	req := generateRequestForTesting(true)
 
-	client := NewClient(NewClientConfig())
+	client, err := NewClient(NewClientConfig())
+	assert.NoError(t, err)
 	err = client.NewConnection(*d)
 
 	assert.NoError(t, err)
