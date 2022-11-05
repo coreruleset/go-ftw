@@ -31,7 +31,8 @@ func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
 	config.FTWConfig.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
-	ll := NewFTWLogLines(WithStartMarker(bytes.ToLower([]byte(markerLine))))
+	ll, err := NewFTWLogLines(WithStartMarker(bytes.ToLower([]byte(markerLine))))
+	assert.NoError(t, err)
 
 	marker := ll.CheckLogForMarker(stageID)
 	assert.Nil(t, marker, "unexpectedly found marker")
@@ -54,7 +55,8 @@ func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
 	config.FTWConfig.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
-	ll := NewFTWLogLines(WithStartMarker(bytes.ToLower([]byte(markerLine))))
+	ll, err := NewFTWLogLines(WithStartMarker(bytes.ToLower([]byte(markerLine))))
+	assert.NoError(t, err)
 
 	marker := ll.CheckLogForMarker(stageID)
 	assert.NotNil(t, marker, "no marker found")
@@ -80,9 +82,10 @@ func TestReadGetMarkedLines(t *testing.T) {
 	config.FTWConfig.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
-	ll := NewFTWLogLines(
+	ll, err := NewFTWLogLines(
 		WithStartMarker(bytes.ToLower([]byte(startMarkerLine))),
 		WithEndMarker(bytes.ToLower([]byte(endMarkerLine))))
+	assert.NoError(t, err)
 
 	foundLines := ll.getMarkedLines()
 	// logs are scanned backwards
@@ -116,9 +119,10 @@ func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
 	config.FTWConfig.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
-	ll := NewFTWLogLines(
+	ll, err := NewFTWLogLines(
 		WithStartMarker(bytes.ToLower([]byte(startMarkerLine))),
 		WithEndMarker(bytes.ToLower([]byte(endMarkerLine))))
+	assert.NoError(t, err)
 
 	foundLines := ll.getMarkedLines()
 	// logs are scanned backwards
@@ -155,9 +159,10 @@ func TestReadGetMarkedLinesWithPrecedingLines(t *testing.T) {
 	config.FTWConfig.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
-	ll := NewFTWLogLines(
+	ll, err := NewFTWLogLines(
 		WithStartMarker(bytes.ToLower([]byte(startMarkerLine))),
 		WithEndMarker(bytes.ToLower([]byte(endMarkerLine))))
+	assert.NoError(t, err)
 
 	foundLines := ll.getMarkedLines()
 	// logs are scanned backwards

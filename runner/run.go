@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"time"
@@ -17,11 +18,16 @@ import (
 	"github.com/coreruleset/go-ftw/waflog"
 )
 
+var errBadTestRequest = errors.New("ftw/run: bad test: choose between data, encoded_request, or raw_request")
+
 // Run runs your tests with the specified Config. Returns error if some test failed
-func Run(tests []test.FTWTest, c Config) TestRunContext {
+func Run(tests []test.FTWTest, c Config) (TestRunContext, error) {
 	printUnlessQuietMode(c.Quiet, ":rocket:Running go-ftw!\n")
 
-	logLines := waflog.NewFTWLogLines(waflog.WithLogFile(config.FTWConfig.LogFile))
+	logLines, err := waflog.NewFTWLogLines(waflog.WithLogFile(config.FTWConfig.LogFile))
+	if err != nil {
+		return TestRunContext{}, err
+	}
 
 	conf := ftwhttp.NewClientConfig()
 	if c.ConnectTimeout != 0 {
@@ -30,7 +36,10 @@ func Run(tests []test.FTWTest, c Config) TestRunContext {
 	if c.ReadTimeout != 0 {
 		conf.ReadTimeout = c.ReadTimeout
 	}
-	client := ftwhttp.NewClient(conf)
+	client, err := ftwhttp.NewClient(conf)
+	if err != nil {
+		return TestRunContext{}, err
+	}
 	runContext := TestRunContext{
 		Include:  c.Include,
 		Exclude:  c.Exclude,
@@ -41,21 +50,23 @@ func Run(tests []test.FTWTest, c Config) TestRunContext {
 		RunMode:  config.FTWConfig.RunMode,
 	}
 
-	for _, test := range tests {
-		RunTest(&runContext, test)
+	for _, tc := range tests {
+		if err := RunTest(&runContext, tc); err != nil {
+			return TestRunContext{}, err
+		}
 	}
 
 	printSummary(c.Quiet, runContext.Stats)
 
 	defer cleanLogs(logLines)
 
-	return runContext
+	return runContext, nil
 }
 
 // RunTest runs an individual test.
 // runContext contains information for the current test run
 // ftwTest is the test you want to run
-func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) {
+func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 	changed := true
 
 	for _, testCase := range ftwTest.Tests {
@@ -78,9 +89,13 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) {
 		// Iterate over stages
 		for _, stage := range testCase.Stages {
 			ftwCheck := check.NewCheck(config.FTWConfig)
-			RunStage(runContext, ftwCheck, testCase, stage.Stage)
+			if err := RunStage(runContext, ftwCheck, testCase, stage.Stage); err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
 }
 
 // RunStage runs an individual test stage.
@@ -88,7 +103,7 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) {
 // ftwCheck is the current check utility
 // testCase is the test case the stage belongs to
 // stage is the stage you want to run
-func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase test.Test, stage test.Stage) {
+func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase test.Test, stage test.Stage) error {
 	stageStartTime := time.Now()
 	stageID := uuid.NewString()
 	// Apply global overrides initially
@@ -101,14 +116,14 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 
 	// Check sanity first
 	if checkTestSanity(testRequest) {
-		log.Fatal().Msgf("ftw/run: bad test: choose between data, encoded_request, or raw_request")
+		return errBadTestRequest
 	}
 
 	// Do not even run test if result is overridden. Just use the override and display the overridden result.
 	if overridden := overriddenTestResult(ftwCheck, testCase.TestTitle); overridden != Failed {
 		addResultToStats(overridden, testCase.TestTitle, &runContext.Stats)
 		displayResult(runContext.Output, overridden, time.Duration(0), time.Duration(0))
-		return
+		return nil
 	}
 
 	var req *ftwhttp.Request
@@ -123,7 +138,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	if notRunningInCloudMode(ftwCheck) {
 		startMarker, err := markAndFlush(runContext, dest, stageID)
 		if err != nil && !expectedOutput.ExpectError {
-			log.Fatal().Caller().Err(err).Msg("Failed to find start marker")
+			return fmt.Errorf("failed to find start marker: %w", err)
 		}
 		ftwCheck.SetStartMarker(startMarker)
 	}
@@ -133,7 +148,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	err = runContext.Client.NewConnection(*dest)
 
 	if err != nil && !expectedOutput.ExpectError {
-		log.Fatal().Caller().Err(err).Msgf("can't connect to destination %+v", dest)
+		return fmt.Errorf("can't connect to destination %+v: %w", dest, err)
 	}
 	runContext.Client.StartTrackingTime()
 
@@ -141,13 +156,13 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 
 	runContext.Client.StopTrackingTime()
 	if responseErr != nil && !expectedOutput.ExpectError {
-		log.Fatal().Caller().Err(responseErr).Msgf("failed sending request to destination %+v", dest)
+		return fmt.Errorf("failed sending request to destination %+v: %w", dest, responseErr)
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
 		endMarker, err := markAndFlush(runContext, dest, stageID)
 		if err != nil && !expectedOutput.ExpectError {
-			log.Fatal().Caller().Err(err).Msg("Failed to find end marker")
+			return fmt.Errorf("failed to find end marker: %w", err)
 
 		}
 		ftwCheck.SetEndMarker(endMarker)
@@ -171,6 +186,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 
 	runContext.Stats.Run++
 	runContext.Stats.RunTime += stageTime
+
+	return nil
 }
 
 func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID string) ([]byte, error) {
@@ -386,6 +403,6 @@ func notRunningInCloudMode(c *check.FTWCheck) bool {
 
 func cleanLogs(logLines *waflog.FTWLogLines) {
 	if err := logLines.Cleanup(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to cleanup log file")
+		log.Error().Err(err).Msg("Failed to cleanup log file")
 	}
 }
