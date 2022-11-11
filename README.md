@@ -274,7 +274,7 @@ The rule for CRS looks like this:
 ```
 # Write the value from the X-CRS-Test header as a marker to the log
 SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
-  "id:900910,\
+  "id:999999,\
   pass,\
   phase:1,\
   log,\
