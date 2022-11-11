@@ -652,7 +652,8 @@ func TestCloudRun(t *testing.T) {
 					LogLines: nil,
 				}
 
-				RunStage(&runContext, ftwCheck, *testCase, *stage)
+				err = RunStage(&runContext, ftwCheck, *testCase, *stage)
+				assert.NoError(t, err)
 				assert.LessOrEqual(t, 0, runContext.Stats.TotalFailed(), "Oops, test run failed!")
 
 				server.Close()

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kyokomi/emoji"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
@@ -33,10 +32,9 @@ func checkFiles(dir string) {
 	log.Trace().Msgf("ftw/check: checking files using glob pattern: %s", files)
 	tests, err := test.GetTestsFromFiles(files)
 	if err != nil {
-		emoji.Printf("ftw/check: :collision: oops, found %s\n", err.Error())
 		exit = 1
 	} else {
-		emoji.Printf("ftw/check: checked %d files, everything looks good!\n", len(tests))
+		fmt.Printf("ftw/check: checked %d files, everything looks good!\n", len(tests))
 		exit = 0
 	}
 	os.Exit(exit)
