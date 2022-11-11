@@ -192,6 +192,7 @@ func encodeDataParameters(h Header, data []byte) ([]byte, error) {
 	var err error
 
 	if h.Get(ContentTypeHeader) == "application/x-www-form-urlencoded" {
+		// Best effort attempt to determine if the data is already escaped by seeing if unescaping has any effect.
 		if escapedData, err := url.QueryUnescape(string(data)); escapedData == string(data) {
 			if err != nil {
 				return nil, errors.New("Failed")
