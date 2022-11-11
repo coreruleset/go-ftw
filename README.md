@@ -40,7 +40,7 @@ In order to run the tests, you need to prepare the following:
 
 1. Active WAF
 2. Log where the WAF writes the alert messages
-3. go-ftw config file `.ftw.yaml` in the local folder or in your home folder (see section "YAML Config file" for more information.
+3. go-ftw config file `.ftw.yaml` in the local folder or in your home folder (see [YAML Config file](https://github.com/coreruleset/go-ftw#yaml-config-file) for more information).
 4. At least one unit test in (go)-ftw's yaml format.
 
 ### YAML Config file
