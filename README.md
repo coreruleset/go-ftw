@@ -50,7 +50,7 @@ With the configuration set paths for your environment, enable and disabled featu
 The config file has four basic values:
 
 * `logfile` : path to WAF log with alert messages, relative of absolute
-* `logmarkerheadername` : name of a HTTP header used for marking log messages, usually `X-CRS-TEST` (see section "How log parsing works" below)
+* `logmarkerheadername` : name of a HTTP header used for marking log messages, usually `X-CRS-TEST` (see [How log parsing works](https://github.com/coreruleset/go-ftw#how-log-parsing-works) below)
 * `testoverride` : a list of things to override (see "Overriding tests" below)>
 * `mode` : "default" or "cloud" (only change it if you need "cloud")
 ```
