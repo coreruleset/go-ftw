@@ -185,6 +185,10 @@ func buildRequest(r *Request) ([]byte, error) {
 
 // encodeDataParameters url encode parameters in data
 func encodeDataParameters(h Header, data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+
 	var err error
 
 	if h.Get(ContentTypeHeader) == "application/x-www-form-urlencoded" {
@@ -192,8 +196,40 @@ func encodeDataParameters(h Header, data []byte) ([]byte, error) {
 			if err != nil {
 				return nil, errors.New("Failed")
 			}
-			queryString := url.QueryEscape(string(data))
-			return []byte(queryString), nil
+
+			// CRS tests include form parameters as key=value pairs with unencoded key/values, so we encode them.
+			// If we were to encode the entire string, the equals sign would be encoded as well
+			escaped := bytes.Buffer{}
+			remaining := data
+			for len(remaining) > 0 {
+				ampIndex := bytes.IndexByte(remaining, '&')
+				var token []byte
+				if ampIndex == -1 {
+					token = remaining
+					remaining = nil
+				} else {
+					token = remaining[:ampIndex]
+					remaining = remaining[ampIndex+1:]
+				}
+
+				eqIndex := bytes.IndexByte(token, '=')
+				if eqIndex == -1 {
+					escaped.WriteString(url.QueryEscape(string(token)))
+					escaped.WriteByte('&')
+					continue
+				}
+
+				key := token[:eqIndex]
+				value := token[eqIndex+1:]
+				escaped.WriteString(url.QueryEscape(string(key)))
+				escaped.WriteByte('=')
+				escaped.WriteString(url.QueryEscape(string(value)))
+				escaped.WriteByte('&')
+			}
+
+			// Strip trailing &
+			queryString := escaped.Bytes()[:escaped.Len()-1]
+			return queryString, nil
 		}
 	}
 	return data, err
