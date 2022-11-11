@@ -55,7 +55,7 @@ The config file has four basic values:
 * `mode` : "default" or "cloud" (only change it if you need "cloud")
 ```
 
-__Example__:
+__Example with absolute logfile__:
 
 ```yaml
 logfile: /apache/logs/error.log
@@ -64,6 +64,21 @@ testoverride:
 mode: "default"
 ```
 
+__Example with relative logfile__:
+
+```yaml
+logfile: ../logs/error.log
+logmarkerheadername: X-CRS-TEST
+testoverride:
+mode: "default"
+
+__Example with minimal definitions__:
+
+```yaml
+logfile: ../logs/error.log
+logmarkerheadername:
+testoverride:
+mode:
 
 By default, _go-ftw_ looks for a file in `$PWD` / local folder with the name `.ftw.yaml`. If this can not be found, it will look in the user's HOME folder. You can pass the `--config <config file name>` to point it to a different file.
 
