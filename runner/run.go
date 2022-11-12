@@ -41,13 +41,14 @@ func Run(tests []test.FTWTest, c Config) (TestRunContext, error) {
 		return TestRunContext{}, err
 	}
 	runContext := TestRunContext{
-		Include:  c.Include,
-		Exclude:  c.Exclude,
-		ShowTime: c.ShowTime,
-		Output:   c.Quiet,
-		Client:   client,
-		LogLines: logLines,
-		RunMode:  config.FTWConfig.RunMode,
+		Include:        c.Include,
+		Exclude:        c.Exclude,
+		ShowTime:       c.ShowTime,
+		Output:         c.Quiet,
+		ShowOnlyFailed: c.ShowOnlyFailed,
+		Client:         client,
+		LogLines:       logLines,
+		RunMode:        config.FTWConfig.RunMode,
 	}
 
 	for _, tc := range tests {
@@ -74,18 +75,18 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
 			addResultToStats(Skipped, testCase.TestTitle, &runContext.Stats)
 			if !ftwTest.Meta.Enabled {
-				printUnlessQuietMode(runContext.Output, "\tskipping %s\n", testCase.TestTitle)
+				printUnlessQuietMode(runContext.Output || runContext.ShowOnlyFailed, "\tskipping %s - (enabled: false) in file.\n", testCase.TestTitle)
 			}
 			continue
 		}
 		// this is just for printing once the next test
 		if changed {
-			printUnlessQuietMode(runContext.Output, ":point_right:executing tests in file %s\n", ftwTest.Meta.Name)
+			printUnlessQuietMode(runContext.Output || runContext.ShowOnlyFailed, ":point_right:executing tests in file %s\n", ftwTest.Meta.Name)
 			changed = false
 		}
 
 		// can we use goroutines here?
-		printUnlessQuietMode(runContext.Output, "\trunning %s: ", testCase.TestTitle)
+		printUnlessQuietMode(runContext.Output || runContext.ShowOnlyFailed, "\trunning %s: ", testCase.TestTitle)
 		// Iterate over stages
 		for _, stage := range testCase.Stages {
 			ftwCheck := check.NewCheck(config.FTWConfig)
@@ -122,7 +123,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	// Do not even run test if result is overridden. Just use the override and display the overridden result.
 	if overridden := overriddenTestResult(ftwCheck, testCase.TestTitle); overridden != Failed {
 		addResultToStats(overridden, testCase.TestTitle, &runContext.Stats)
-		displayResult(runContext.Output, overridden, time.Duration(0), time.Duration(0))
+		displayResult(runContext, overridden, time.Duration(0), time.Duration(0))
 		return nil
 	}
 
@@ -182,7 +183,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	runContext.Result = testResult
 
 	// show the result unless quiet was passed in the command line
-	displayResult(runContext.Output, testResult, roundTripTime, stageTime)
+	displayResult(runContext, testResult, roundTripTime, stageTime)
 
 	runContext.Stats.Run++
 	runContext.Stats.RunTime += stageTime
@@ -270,18 +271,19 @@ func checkTestSanity(testRequest test.Input) bool {
 		(testRequest.EncodedRequest != "" && testRequest.RAWRequest != "")
 }
 
-func displayResult(quiet bool, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
+func displayResult(runContext *TestRunContext, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
+	// if the test fails, and we only want failed tests as output, print and return
 	switch result {
 	case Success:
-		printUnlessQuietMode(quiet, ":check_mark:passed in %s (RTT %s)\n", stageTime, roundTripTime)
+		printUnlessQuietMode(runContext.Output || runContext.ShowOnlyFailed, ":check_mark:passed in %s (RTT %s)\n", stageTime, roundTripTime)
 	case Failed:
-		printUnlessQuietMode(quiet, ":collision:failed in %s (RTT %s)\n", stageTime, roundTripTime)
+		printUnlessQuietMode(runContext.Output, ":collision:failed in %s (RTT %s)\n", stageTime, roundTripTime)
 	case Ignored:
-		printUnlessQuietMode(quiet, ":information:test ignored\n")
+		printUnlessQuietMode(runContext.Output || runContext.ShowOnlyFailed, ":information:test ignored\n")
 	case ForceFail:
-		printUnlessQuietMode(quiet, ":information:test forced to fail\n")
+		printUnlessQuietMode(runContext.Output, ":information:test forced to fail\n")
 	case ForcePass:
-		printUnlessQuietMode(quiet, ":information:test forced to pass\n")
+		printUnlessQuietMode(runContext.Output || runContext.ShowOnlyFailed, ":information:test forced to pass\n")
 	default:
 		// don't print anything if skipped test
 	}

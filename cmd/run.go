@@ -26,6 +26,7 @@ var runCmd = &cobra.Command{
 		id, _ := cmd.Flags().GetString("id")
 		dir, _ := cmd.Flags().GetString("dir")
 		showTime, _ := cmd.Flags().GetBool("time")
+		showOnlyFailed, _ := cmd.Flags().GetBool("output-failures-only")
 		quiet, _ := cmd.Flags().GetBool("quiet")
 		connectTimeout, _ := cmd.Flags().GetDuration("connect-timeout")
 		readTimeout, _ := cmd.Flags().GetDuration("read-timeout")
@@ -61,6 +62,7 @@ var runCmd = &cobra.Command{
 			Exclude:        excludeRE,
 			ShowTime:       showTime,
 			Quiet:          quiet,
+			ShowOnlyFailed: showOnlyFailed,
 			ConnectTimeout: connectTimeout,
 			ReadTimeout:    readTimeout,
 		})
@@ -80,6 +82,7 @@ func init() {
 	runCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
 	runCmd.Flags().BoolP("quiet", "q", false, "do not show test by test, only results")
 	runCmd.Flags().BoolP("time", "t", false, "show time spent per test")
+	runCmd.Flags().BoolP("output-failures-only", "", false, "output only the result of failed tests")
 	runCmd.Flags().Duration("connect-timeout", 3*time.Second, "timeout for connecting to endpoints during test execution")
 	runCmd.Flags().Duration("read-timeout", 1*time.Second, "timeout for receiving responses during test execution")
 }

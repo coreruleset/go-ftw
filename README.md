@@ -112,7 +112,7 @@ logfile: 'tests/logs/modsec3-nginx/error.log'
 
 This is the help for the `run` command:
 ```bash
-❯ ftw run -h
+❯ ./ftw run --help
 Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.
 
 Usage:
@@ -121,11 +121,12 @@ Usage:
 Flags:
       --connect-timeout duration   timeout for connecting to endpoints during test execution (default 3s)
   -d, --dir string                 recursively find yaml tests in this directory (default ".")
-  -e, --exclude string             exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*").
+  -e, --exclude string             exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*"). 
                                    If you want more permanent exclusion, check the 'testoverride' option in the config file.
   -h, --help                       help for run
       --id string                  (deprecated). Use --include matching your test only.
   -i, --include string             include only tests matching this Go regexp (e.g. to include only tests beginning with "91", use "91.*").
+      --output-failures-only       output only the result of failed tests
   -q, --quiet                      do not show test by test, only results
       --read-timeout duration      timeout for receiving responses during test execution (default 1s)
   -t, --time                       show time spent per test
@@ -135,6 +136,7 @@ Global Flags:
       --config string   override config file (default is $PWD/.ftw.yaml)
       --debug           debug output
       --trace           trace output: really, really verbose
+
 ```
 
 Here's an example on how to run your tests recursively in the folder `tests`:
