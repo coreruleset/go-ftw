@@ -228,23 +228,59 @@ func TestRequestURLParseFail(t *testing.T) {
 }
 
 func TestRequestEncodesPostData(t *testing.T) {
-	req := generateBaseRequestForTesting()
-
-	h := req.Headers()
-	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
-	// Test adding semicolons to test parse
-	err := req.SetData([]byte(`c4= ;c3=t;c2=a;c1=c;a1=/;a2=e;a3=t;a4=c;a5=/;a6=p;a7=a;a8=s;a9=s;a10=w;a11=d;$c1$c2$c3$c4$a1$a2$a3$a4$a5$a6$a7$a8$a9$a10$a11`))
-	if err != nil {
-		t.Errorf("Failed !")
+	tests := []struct {
+		raw     string
+		encoded string
+	}{
+		{
+			raw:     "",
+			encoded: "",
+		},
+		{
+			raw:     "hello=world",
+			encoded: "hello=world",
+		},
+		{
+			raw:     "foo bar",
+			encoded: "foo+bar",
+		},
+		{
+			raw:     "name=panda&food=bamboo",
+			encoded: "name=panda&food=bamboo",
+		},
+		{
+			// Test adding semicolons to test parse
+			raw:     `c4= ;c3=t;c2=a;c1=c;a1=/;a2=e;a3=t;a4=c;a5=/;a6=p;a7=a;a8=s;a9=s;a10=w;a11=d;$c1$c2$c3$c4$a1$a2$a3$a4$a5$a6$a7$a8$a9$a10$a11`,
+			encoded: "c4=+%3Bc3%3Dt%3Bc2%3Da%3Bc1%3Dc%3Ba1%3D%2F%3Ba2%3De%3Ba3%3Dt%3Ba4%3Dc%3Ba5%3D%2F%3Ba6%3Dp%3Ba7%3Da%3Ba8%3Ds%3Ba9%3Ds%3Ba10%3Dw%3Ba11%3Dd%3B%24c1%24c2%24c3%24c4%24a1%24a2%24a3%24a4%24a5%24a6%24a7%24a8%24a9%24a10%24a11",
+		},
+		{
+			// Already encoded
+			raw:     "foo+bar",
+			encoded: "foo+bar",
+		},
 	}
-	result, err := encodeDataParameters(h, req.Data())
-	if err != nil {
-		t.Errorf("Failed to encode %s", req.Data())
-	}
 
-	expected := "c4%3D+%3Bc3%3Dt%3Bc2%3Da%3Bc1%3Dc%3Ba1%3D%2F%3Ba2%3De%3Ba3%3Dt%3Ba4%3Dc%3Ba5%3D%2F%3Ba6%3Dp%3Ba7%3Da%3Ba8%3Ds%3Ba9%3Ds%3Ba10%3Dw%3Ba11%3Dd%3B%24c1%24c2%24c3%24c4%24a1%24a2%24a3%24a4%24a5%24a6%24a7%24a8%24a9%24a10%24a11"
-	actual := string(result)
-	if actual != expected {
-		t.Error("Unexpected URL encoded payload")
+	for _, tc := range tests {
+		tt := tc
+		t.Run(tt.raw, func(t *testing.T) {
+			req := generateBaseRequestForTesting()
+
+			h := req.Headers()
+			h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
+			err := req.SetData([]byte(tt.raw))
+			if err != nil {
+				t.Errorf("Failed !")
+			}
+			result, err := encodeDataParameters(h, req.Data())
+			if err != nil {
+				t.Errorf("Failed to encode %s", req.Data())
+			}
+
+			expected := tt.encoded
+			actual := string(result)
+			if actual != expected {
+				t.Errorf("Unexpected URL encoded payload, expected %s, got %s", expected, actual)
+			}
+		})
 	}
 }
