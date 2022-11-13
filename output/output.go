@@ -1,4 +1,4 @@
-// Package output provides an interface for outputting test results in different formats.
+// Package output provides an interface for showing test results in different formats.
 package output
 
 import (
@@ -11,8 +11,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Type is a string representing the types of outputs this application has. Each different
-// output will print in a different way, suitable for the defined type.
+// Type is a string representing the types of output this application has. Each output
+// type will be used for printing in a different way, compatible with the type they represent.
 type Type string
 
 const (
