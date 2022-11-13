@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/test"
 )
 
@@ -25,11 +24,10 @@ var FTWConfig *FTWConfiguration
 
 // FTWConfiguration FTW global Configuration
 type FTWConfiguration struct {
-	LogFile             string            `koanf:"logfile"`
-	TestOverride        FTWTestOverride   `koanf:"testoverride"`
-	LogMarkerHeaderName string            `koanf:"logmarkerheadername"`
-	RunMode             RunMode           `koanf:"mode"`
-	OutputType          output.OutputType `koanf:"output"`
+	LogFile             string          `koanf:"logfile"`
+	TestOverride        FTWTestOverride `koanf:"testoverride"`
+	LogMarkerHeaderName string          `koanf:"logmarkerheadername"`
+	RunMode             RunMode         `koanf:"mode"`
 }
 
 // FTWTestOverride holds four lists:

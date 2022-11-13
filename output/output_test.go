@@ -16,7 +16,7 @@ var format string = `This is the %s`
 // CircleCI
 // Jenkins
 var outputTest = []struct {
-	oType    OutputType
+	oType    Type
 	expected string
 }{
 	{Quiet, ""},
@@ -31,20 +31,8 @@ func TestOutput(t *testing.T) {
 	for i, test := range outputTest {
 		o := NewOutput(test.oType, &b)
 
-		if err := o.Notice(format, testString); err != nil {
-			t.Fatalf("Error!")
+		if err := o.Printf(format, testString); err != nil {
+			t.Fatalf("Error! in test %d", i)
 		}
-
-		if err := o.Err(format, testString); err != nil {
-			t.Fatalf("Error!, in test %d val is %s and expected %s", i, testString, test.expected)
-		}
-
-		if err := o.Warn(format, testString); err != nil {
-			t.Fatalf("Error!, in test %d val is %s and expected %s", i, testString, test.expected)
-		}
-
-		// if res := b.String(); strings.Compare(test.expected, res) != 0 {
-		// 	t.Fatalf("Test %d failed: %s != %s", i, res, test.expected)
-		// }
 	}
 }

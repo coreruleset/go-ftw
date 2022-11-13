@@ -29,14 +29,14 @@ func NewConfigFromFile(cfgFile string) error {
 	_, err = os.Stat(cfgFile)
 	if err != nil { // file does not exist, so we try the home folder
 
-        var home string
+		var home string
 
 		home, err = os.UserHomeDir()
-	    if err != nil { // home folder could not be retrieved
-		    return err
-	    }
+		if err != nil { // home folder could not be retrieved
+			return err
+		}
 
-        cfgFile = home + "/.ftw.yaml"
+		cfgFile = home + "/.ftw.yaml"
 
 	}
 
@@ -113,7 +113,7 @@ func loadDefaults() {
 	// Note: koanf has a way to set defaults. However, koanf's merge behavior
 	// will overwrite defaults when the associated field is empty in nested
 	// structures (top level would work). That's why we set defaults here
-	// explictly.
+	// explicitly.
 	if FTWConfig.LogMarkerHeaderName == "" {
 		FTWConfig.LogMarkerHeaderName = DefaultLogMarkerHeaderName
 	}

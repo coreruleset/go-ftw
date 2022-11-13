@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"github.com/coreruleset/go-ftw/output"
 	"regexp"
 	"time"
 
@@ -17,10 +18,10 @@ type Config struct {
 	Exclude *regexp.Regexp
 	// ShowTime determines whether to show the time taken to run each test.
 	ShowTime bool
-	// Quiet determines whether to output informational messages.
-	Quiet bool
 	// ShowOnlyFailed will only output information related to failed tests
 	ShowOnlyFailed bool
+	// Output determines the type of output the user wants.
+	Output output.Type
 	// ConnectTimeout is the timeout for connecting to endpoints during test execution.
 	ConnectTimeout time.Duration
 	// ReadTimeout is the timeout for receiving responses during test execution.
@@ -28,15 +29,15 @@ type Config struct {
 }
 
 // TestRunContext carries information about the current test run.
-// This includes both configuration information as well as statistics
+// This includes configuration information as well as statistics
 // and results.
 type TestRunContext struct {
 	Include        *regexp.Regexp
 	Exclude        *regexp.Regexp
 	ShowTime       bool
-	Output         bool
 	ShowOnlyFailed bool
-	Stats          TestStats
+	Output         *output.Output
+	Stats          *RunStats
 	Result         TestResult
 	Duration       time.Duration
 	Client         *ftwhttp.Client
