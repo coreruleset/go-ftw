@@ -2,6 +2,7 @@ package runner
 
 import (
 	"fmt"
+	"github.com/coreruleset/go-ftw/output"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -312,7 +313,7 @@ func newTestServer(t *testing.T, logLines string) (destination *ftwhttp.Destinat
 }
 
 // Error checking omitted for brevity
-func newTestServerForCloudTest(t *testing.T, responseStatus int, logLines string) (server *httptest.Server, destination *ftwhttp.Destination) {
+func newTestServerForCloudTest(t *testing.T, responseStatus int) (server *httptest.Server, destination *ftwhttp.Destination) {
 	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(responseStatus)
 		_, _ = w.Write([]byte("Hello, client"))
@@ -340,7 +341,7 @@ func setUpLogFileForTestServer(t *testing.T) (logFilePath string) {
 		assert.NoError(t, err)
 		logFilePath = file.Name()
 		t.Cleanup(func() {
-			os.Remove(logFilePath)
+			_ = os.Remove(logFilePath)
 			log.Info().Msgf("Deleting temporary file '%s'", logFilePath)
 		})
 	}
@@ -408,6 +409,8 @@ func TestRun(t *testing.T) {
 	err := config.NewConfigFromString(yamlConfig)
 	assert.NoError(t, err)
 
+	out := output.New("normal", os.Stdout)
+
 	// setup test webserver (not a waf)
 	dest, logFilePath := newTestServer(t, logText)
 	config.FTWConfig.LogFile = logFilePath
@@ -419,8 +422,8 @@ func TestRun(t *testing.T) {
 	t.Run("show time and execute all", func(t *testing.T) {
 		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			ShowTime: true,
-			Quiet:    true,
-		})
+			Output:   output.Quiet,
+		}, out)
 		assert.NoError(t, err)
 		assert.Equalf(t, res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
 	})
@@ -429,7 +432,7 @@ func TestRun(t *testing.T) {
 		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			Include:  regexp.MustCompile("0*"),
 			ShowTime: true,
-		})
+		}, out)
 		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "verbose and execute all failed")
 	})
@@ -437,7 +440,7 @@ func TestRun(t *testing.T) {
 	t.Run("don't show time and execute all", func(t *testing.T) {
 		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			Include: regexp.MustCompile("0*"),
-		})
+		}, out)
 		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "do not show time and execute all failed")
 	})
@@ -446,7 +449,7 @@ func TestRun(t *testing.T) {
 		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			Include: regexp.MustCompile("008"),
 			Exclude: regexp.MustCompile("0*"),
-		})
+		}, out)
 		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "do not show time and execute all failed")
 	})
@@ -454,7 +457,7 @@ func TestRun(t *testing.T) {
 	t.Run("exclude test 010", func(t *testing.T) {
 		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			Exclude: regexp.MustCompile("010"),
-		})
+		}, out)
 		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "failed to exclude test")
 	})
@@ -463,8 +466,8 @@ func TestRun(t *testing.T) {
 		res, err := Run([]test.FTWTest{ftwTest}, Config{
 			Include: regexp.MustCompile("1*"),
 			Exclude: regexp.MustCompile("0*"),
-			Quiet:   true,
-		})
+			Output:  output.Quiet,
+		}, out)
 		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "failed to test exceptions")
 	})
@@ -476,6 +479,8 @@ func TestOverrideRun(t *testing.T) {
 	// setup test webserver (not a waf)
 	err := config.NewConfigFromString(yamlConfigOverride)
 	assert.NoError(t, err)
+
+	out := output.New("normal", os.Stdout)
 
 	dest, logFilePath := newTestServer(t, logText)
 
@@ -494,8 +499,8 @@ func TestOverrideRun(t *testing.T) {
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
 	res, err := Run([]test.FTWTest{ftwTest}, Config{
-		Quiet: true,
-	})
+		Output: output.Quiet,
+	}, out)
 	assert.NoError(t, err)
 	assert.LessOrEqual(t, 0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
@@ -505,6 +510,8 @@ func TestBrokenOverrideRun(t *testing.T) {
 
 	err := config.NewConfigFromString(yamlBrokenConfigOverride)
 	assert.NoError(t, err)
+
+	out := output.New("normal", os.Stdout)
 
 	dest, logFilePath := newTestServer(t, logText)
 
@@ -523,9 +530,7 @@ func TestBrokenOverrideRun(t *testing.T) {
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
 	// the test should succeed, despite the unknown override property
-	res, err := Run([]test.FTWTest{ftwTest}, Config{
-		Quiet: true,
-	})
+	res, err := Run([]test.FTWTest{ftwTest}, Config{}, out)
 	assert.NoError(t, err)
 	assert.LessOrEqual(t, 0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
@@ -539,6 +544,8 @@ func TestBrokenPortOverrideRun(t *testing.T) {
 	// replace destination port inside the yaml with the retrieved one
 	err := config.NewConfigFromString(fmt.Sprintf(yamlConfigPortOverride, dest.Port))
 	assert.NoError(t, err)
+
+	out := output.New("normal", os.Stdout)
 
 	replaceDestinationInConfiguration(*dest)
 	config.FTWConfig.LogFile = logFilePath
@@ -555,9 +562,7 @@ func TestBrokenPortOverrideRun(t *testing.T) {
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
 	// the test should succeed, despite the unknown override property
-	res, err := Run([]test.FTWTest{ftwTest}, Config{
-		Quiet: true,
-	})
+	res, err := Run([]test.FTWTest{ftwTest}, Config{}, out)
 	assert.NoError(t, err)
 	assert.LessOrEqual(t, 0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
@@ -567,6 +572,7 @@ func TestDisabledRun(t *testing.T) {
 
 	err := config.NewConfigFromString(yamlCloudConfig)
 	assert.NoError(t, err)
+	out := output.New("normal", os.Stdout)
 
 	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
 	if err != nil {
@@ -577,9 +583,7 @@ func TestDisabledRun(t *testing.T) {
 	assert.NoError(t, err)
 	replaceDestinationInTest(&ftwTest, *fakeDestination)
 
-	res, err := Run([]test.FTWTest{ftwTest}, Config{
-		Quiet: true,
-	})
+	res, err := Run([]test.FTWTest{ftwTest}, Config{}, out)
 	assert.NoError(t, err)
 	assert.LessOrEqual(t, 0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
@@ -595,13 +599,13 @@ func TestLogsRun(t *testing.T) {
 	replaceDestinationInConfiguration(*dest)
 	config.FTWConfig.LogFile = logFilePath
 
+	out := output.New("normal", os.Stdout)
+
 	ftwTest, err := test.GetTestFromYaml([]byte(yamlTestLogs))
 	assert.NoError(t, err)
 	replaceDestinationInTest(&ftwTest, *dest)
 
-	res, err := Run([]test.FTWTest{ftwTest}, Config{
-		Quiet: true,
-	})
+	res, err := Run([]test.FTWTest{ftwTest}, Config{}, out)
 	assert.NoError(t, err)
 	assert.LessOrEqual(t, 0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
@@ -611,6 +615,8 @@ func TestCloudRun(t *testing.T) {
 
 	err := config.NewConfigFromString(yamlCloudConfig)
 	assert.NoError(t, err)
+	out := output.New("normal", os.Stdout)
+	stats := NewRunStats()
 
 	ftwTestDummy, err := test.GetTestFromYaml([]byte(yamlTestLogs))
 	assert.NoError(t, err)
@@ -618,7 +624,7 @@ func TestCloudRun(t *testing.T) {
 	t.Run("don't show time and execute all", func(t *testing.T) {
 		for testCaseIndex, testCaseDummy := range ftwTestDummy.Tests {
 			for stageIndex := range testCaseDummy.Stages {
-				// Read the tests for every stage so we can replace the destination
+				// Read the tests for every stage, so we can replace the destination
 				// in each run. The server needs to be configured for each stage
 				// individually.
 				ftwTest, err := test.GetTestFromYaml([]byte(yamlTestLogs))
@@ -635,7 +641,7 @@ func TestCloudRun(t *testing.T) {
 				} else if stage.Output.NoLogContains != "" {
 					responseStatus = 405
 				}
-				server, dest := newTestServerForCloudTest(t, responseStatus, logText)
+				server, dest := newTestServerForCloudTest(t, responseStatus)
 
 				replaceDestinationInConfiguration(*dest)
 
@@ -647,7 +653,8 @@ func TestCloudRun(t *testing.T) {
 					Include:  nil,
 					Exclude:  nil,
 					ShowTime: false,
-					Output:   true,
+					Stats:    stats,
+					Output:   out,
 					Client:   client,
 					LogLines: nil,
 				}
@@ -669,6 +676,7 @@ func TestFailedTestsRun(t *testing.T) {
 	assert.NoError(t, err)
 	dest, logFilePath := newTestServer(t, logText)
 
+	out := output.New("normal", os.Stdout)
 	replaceDestinationInConfiguration(*dest)
 	config.FTWConfig.LogFile = logFilePath
 
@@ -676,7 +684,7 @@ func TestFailedTestsRun(t *testing.T) {
 	assert.NoError(t, err)
 	replaceDestinationInTest(&ftwTest, *dest)
 
-	res, err := Run([]test.FTWTest{ftwTest}, Config{})
+	res, err := Run([]test.FTWTest{ftwTest}, Config{}, out)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, res.Stats.TotalFailed())
 }
@@ -716,6 +724,8 @@ func TestIgnoredTestsRun(t *testing.T) {
 	dest, logFilePath := newTestServer(t, logText)
 	assert.NoError(t, err)
 
+	out := output.New("normal", os.Stdout)
+
 	replaceDestinationInConfiguration(*dest)
 	config.FTWConfig.LogFile = logFilePath
 
@@ -724,7 +734,7 @@ func TestIgnoredTestsRun(t *testing.T) {
 
 	replaceDestinationInTest(&ftwTest, *dest)
 
-	res, err := Run([]test.FTWTest{ftwTest}, Config{})
+	res, err := Run([]test.FTWTest{ftwTest}, Config{}, out)
 	assert.NoError(t, err)
 	assert.Equal(t, res.Stats.TotalFailed(), 1, "Oops, test run failed!")
 }

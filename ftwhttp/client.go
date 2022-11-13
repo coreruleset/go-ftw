@@ -88,7 +88,7 @@ func (c *Client) dial(d Destination) (net.Conn, error) {
 	return net.DialTimeout("tcp", hostPort, c.config.ConnectTimeout)
 }
 
-// Do performs the http request roundtrip
+// Do perform the http request round trip.
 func (c *Client) Do(req Request) (*Response, error) {
 	var response *Response
 
