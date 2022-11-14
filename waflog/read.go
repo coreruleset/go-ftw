@@ -102,15 +102,22 @@ func (ll *FTWLogLines) CheckLogForMarker(stageID string) []byte {
 	for err == nil && len(line) == 0 {
 		line, _, err = scanner.LineBytes()
 	}
-	if err != nil {
-		if err == io.EOF {
-			return nil
+
+	// Try to find the marker in the last and the next to last
+	// line. Some errors in httpd will be printed **after** the
+	// ModSecurity output (e.g. 404 with filesystem lookup).
+	for i := 1; i >= 0; i-- {
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			log.Trace().Err(err).Msg("found EOF while looking for log marker")
 		}
-		log.Trace().Err(err)
-	}
-	line = bytes.ToLower(line)
-	if bytes.Contains(line, crsHeaderBytes) && bytes.Contains(line, stageIDBytes) {
-		return line
+		line = bytes.ToLower(line)
+		if bytes.Contains(line, crsHeaderBytes) && bytes.Contains(line, stageIDBytes) {
+			return line
+		}
+		line, _, err = scanner.LineBytes()
 	}
 
 	return nil
