@@ -3,6 +3,7 @@ package runner
 import (
 	"errors"
 	"fmt"
+	"github.com/coreruleset/go-ftw/catalog"
 	"regexp"
 	"time"
 
@@ -22,7 +23,7 @@ var errBadTestRequest = errors.New("ftw/run: bad test: choose between data, enco
 
 // Run runs your tests with the specified Config. Returns error if some test failed
 func Run(tests []test.FTWTest, c Config, out *output.Output) (TestRunContext, error) {
-	out.Println(":rocket:Running go-ftw!")
+	out.Println("%s", catalog.Message("** Running go-ftw!"))
 
 	stats := NewRunStats()
 

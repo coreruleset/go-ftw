@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-var testString string = "test"
+var testString = "test"
 
-var format string = `This is the %s`
+var format = `This is the %s`
 
 // TODO:
 // GitHub
@@ -16,13 +16,13 @@ var format string = `This is the %s`
 // CircleCI
 // Jenkins
 var outputTest = []struct {
-	oType    Type
+	oType    string
 	expected string
 }{
-	{Quiet, ""},
-	{GitHub, "This is the test"},
-	{Normal, "⚠️ with emoji: This is the test"},
-	{JSON, `{"level":"notice","message":"This is the test"}`},
+	{"quiet", ""},
+	{"github", "This is the test"},
+	{"normal", "⚠️ with emoji: This is the test"},
+	{"json", `{"level":"notice","message":"This is the test"}`},
 }
 
 func TestOutput(t *testing.T) {
@@ -33,6 +33,17 @@ func TestOutput(t *testing.T) {
 
 		if err := o.Printf(format, testString); err != nil {
 			t.Fatalf("Error! in test %d", i)
+		}
+	}
+}
+
+func TestValidTypes(t *testing.T) {
+	vt := ValidTypes()
+	for _, test := range outputTest {
+		for _, ttype := range vt {
+			if test.oType == ttype {
+				continue
+			}
 		}
 	}
 }

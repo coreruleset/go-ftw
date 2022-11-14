@@ -20,6 +20,7 @@ const (
 	Quiet  Type = "quiet"
 	GitHub Type = "github"
 	JSON   Type = "json"
+	Plain  Type = "plain" // when people (or terminals) don't want/support emojis
 )
 
 type Output struct {
@@ -28,6 +29,10 @@ type Output struct {
 	showOnlyFailures bool
 }
 
+// ValidTypes returns an array of the valid output types.
+func ValidTypes() []Type {
+	return []Type{Normal, Quiet, GitHub, JSON, Plain}
+}
 func (o *Output) Type() Type {
 	return o.oType
 }
@@ -56,6 +61,8 @@ func (o *Output) Printf(format string, a ...interface{}) error {
 		if err != nil {
 			return err
 		}
+	case Plain:
+		s = fmt.Sprintf(format, a...)
 	default:
 		s = emoji.Sprintf(format, a...)
 	}
@@ -69,35 +76,24 @@ func (o *Output) RawPrint(s string) {
 
 // NewOutput returns a new output with the proper output format for that CI
 func NewOutput(o string, w io.Writer) *Output {
-	var out *Output
 	log.Trace().Msgf("ftw/output: creating output %s\n", o)
+	out := &Output{
+		oType: Normal,
+		w:     w,
+	}
 	switch strings.ToLower(o) {
 	case "quiet":
-		out = &Output{
-			oType: Quiet,
-			w:     w,
-		}
+		out.oType = Quiet
 	case "github":
-		out = &Output{
-			oType: GitHub,
-			w:     w,
-		}
+		out.oType = GitHub
 	case "json":
-		out = &Output{
-			oType: JSON,
-			w:     w,
-		}
+		out.oType = JSON
+	case "plain":
+		out.oType = Plain
 	case "normal":
-		out = &Output{
-			oType: Normal,
-			w:     w,
-		}
+		break
 	default:
 		log.Info().Msgf("ftw/output: unknown type \"%s\". Using normal output.\n", o)
-		out = &Output{
-			oType: Normal,
-			w:     w,
-		}
 	}
 	return out
 }
