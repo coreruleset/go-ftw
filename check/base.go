@@ -1,6 +1,8 @@
 package check
 
 import (
+	"bytes"
+
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/waflog"
@@ -109,10 +111,10 @@ func (c *FTWCheck) SetCloudMode() {
 
 // SetStartMarker sets the log line that marks the start of the logs to analyze
 func (c *FTWCheck) SetStartMarker(marker []byte) {
-	c.log.StartMarker = marker
+	c.log.StartMarker = bytes.ToLower(marker)
 }
 
 // SetEndMarker sets the log line that marks the end of the logs to analyze
 func (c *FTWCheck) SetEndMarker(marker []byte) {
-	c.log.EndMarker = marker
+	c.log.EndMarker = bytes.ToLower(marker)
 }
