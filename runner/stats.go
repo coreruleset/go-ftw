@@ -36,7 +36,7 @@ type RunStats struct {
 	ForcedFail []string `json:"forced-fail"`
 	// RunTime maps the time taken to run each test.
 	RunTime map[string]time.Duration `json:"runtime"`
-	// TotalTime is the total duration for the whole run.
+	// TotalTime is the duration over all runs, the sum of all individual run times.
 	TotalTime time.Duration
 }
 
@@ -84,28 +84,28 @@ func (stats *RunStats) addResultToStats(result TestResult, title string, testTim
 
 func (stats *RunStats) printSummary(out *output.Output) {
 	if stats.Run > 0 {
-		if out.Type() == "json" {
+		if out.IsJson() {
 			b, _ := json.Marshal(stats)
 			out.RawPrint(string(b))
 		} else {
-			out.Printf(":plus:run %d total tests in %s\n", stats.Run, stats.TotalTime)
-			out.Printf(":next_track_button: skipped %d tests\n", len(stats.Skipped))
+			out.Println(out.Message("+ run %d total tests in %s"), stats.Run, stats.TotalTime)
+			out.Println(out.Message(">> skipped %d tests"), len(stats.Skipped))
 			if len(stats.Ignored) > 0 {
-				out.Printf(":index_pointing_up: ignored %d tests\n", len(stats.Ignored))
+				out.Println(out.Message("- ignored %d tests"), len(stats.Ignored))
 			}
 			if len(stats.ForcedPass) > 0 {
-				out.Printf(":index_pointing_up: forced to pass %d tests\n", len(stats.ForcedPass))
+				out.Println(out.Message("- forced to pass %d tests"), len(stats.ForcedPass))
 			}
 			if stats.TotalFailed() == 0 {
-				out.Printf(":tada:All tests successful!")
+				out.Println(out.Message("\\o/ All tests successful!"))
 			} else {
-				out.Printf(":thumbs_down:%d test(s) failed to run: %+q\n", len(stats.Failed), stats.Failed)
+				out.Println(out.Message("- %d test(s) failed to run: %+q"), len(stats.Failed), stats.Failed)
 				if len(stats.ForcedFail) > 0 {
-					out.Printf(":index_pointing_up:%d test(s) were forced to fail: %+q\n", len(stats.ForcedFail), stats.ForcedFail)
+					out.Println(out.Message("-  %d test(s) were forced to fail: %+q"), len(stats.ForcedFail), stats.ForcedFail)
 				}
 			}
 		}
 	} else {
-		out.Printf(":person_shrugging:No tests were run")
+		out.Println(out.Message("¯\\_(ツ)_/¯ No tests were run"))
 	}
 }

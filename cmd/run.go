@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/coreruleset/go-ftw/catalog"
 	"github.com/coreruleset/go-ftw/output"
 	"os"
 	"regexp"
@@ -58,7 +57,7 @@ var runCmd = &cobra.Command{
 
 		//TODO: pass --file parameter to change this file
 		out := output.NewOutput(wantedOutput, os.Stdout)
-		_ = out.Println("%s", catalog.Message("** Starting tests!"))
+		_ = out.Println("%s", out.Message("** Starting tests!"))
 
 		currentRun, err := runner.Run(tests, runner.Config{
 			Include:        includeRE,

@@ -3,7 +3,6 @@ package runner
 import (
 	"errors"
 	"fmt"
-	"github.com/coreruleset/go-ftw/catalog"
 	"regexp"
 	"time"
 
@@ -23,7 +22,7 @@ var errBadTestRequest = errors.New("ftw/run: bad test: choose between data, enco
 
 // Run runs your tests with the specified Config. Returns error if some test failed
 func Run(tests []test.FTWTest, c Config, out *output.Output) (TestRunContext, error) {
-	out.Println("%s", catalog.Message("** Running go-ftw!"))
+	out.Println("%s", out.Message("** Running go-ftw!"))
 
 	stats := NewRunStats()
 
@@ -79,13 +78,13 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
 			runContext.Stats.addResultToStats(Skipped, testCase.TestTitle, 0)
 			if !ftwTest.Meta.Enabled && !runContext.ShowOnlyFailed {
-				runContext.Output.Println("\tskipping %s - (enabled: false) in file.\n", testCase.TestTitle)
+				runContext.Output.Println("\tskipping %s - (enabled: false) in file.", testCase.TestTitle)
 			}
 			continue
 		}
 		// this is just for printing once the next test
 		if changed && !runContext.ShowOnlyFailed {
-			runContext.Output.Println(":point_right:executing tests in file %s", ftwTest.Meta.Name)
+			runContext.Output.Println(runContext.Output.Message("=> executing tests in file %s"), ftwTest.Meta.Name)
 			changed = false
 		}
 
@@ -280,19 +279,19 @@ func displayResult(rc *TestRunContext, result TestResult, roundTripTime time.Dur
 	switch result {
 	case Success:
 		if !rc.ShowOnlyFailed {
-			rc.Output.Println(":check_mark:passed in %s (RTT %s)", stageTime, roundTripTime)
+			rc.Output.Println(rc.Output.Message("+ passed in %s (RTT %s)"), stageTime, roundTripTime)
 		}
 	case Failed:
-		rc.Output.Println(":collision:failed in %s (RTT %s)", stageTime, roundTripTime)
+		rc.Output.Println(rc.Output.Message("- failed in %s (RTT %s)"), stageTime, roundTripTime)
 	case Ignored:
 		if !rc.ShowOnlyFailed {
-			rc.Output.Println(":information:test ignored")
+			rc.Output.Println(rc.Output.Message(":information:test ignored"))
 		}
 	case ForceFail:
-		rc.Output.Println(":information:test forced to fail")
+		rc.Output.Println(rc.Output.Message(":information:test forced to fail"))
 	case ForcePass:
 		if !rc.ShowOnlyFailed {
-			rc.Output.Println(":information:test forced to pass")
+			rc.Output.Println(rc.Output.Message(":information:test forced to pass"))
 		}
 	default:
 		// don't print anything if skipped test

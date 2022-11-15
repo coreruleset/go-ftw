@@ -409,7 +409,7 @@ func TestRun(t *testing.T) {
 	err := config.NewConfigFromString(yamlConfig)
 	assert.NoError(t, err)
 
-	out := output.New("normal", os.Stdout)
+	out := output.NewOutput("normal", os.Stdout)
 
 	// setup test webserver (not a waf)
 	dest, logFilePath := newTestServer(t, logText)
@@ -480,7 +480,7 @@ func TestOverrideRun(t *testing.T) {
 	err := config.NewConfigFromString(yamlConfigOverride)
 	assert.NoError(t, err)
 
-	out := output.New("normal", os.Stdout)
+	out := output.NewOutput("normal", os.Stdout)
 
 	dest, logFilePath := newTestServer(t, logText)
 
@@ -511,7 +511,7 @@ func TestBrokenOverrideRun(t *testing.T) {
 	err := config.NewConfigFromString(yamlBrokenConfigOverride)
 	assert.NoError(t, err)
 
-	out := output.New("normal", os.Stdout)
+	out := output.NewOutput("normal", os.Stdout)
 
 	dest, logFilePath := newTestServer(t, logText)
 
@@ -545,7 +545,7 @@ func TestBrokenPortOverrideRun(t *testing.T) {
 	err := config.NewConfigFromString(fmt.Sprintf(yamlConfigPortOverride, dest.Port))
 	assert.NoError(t, err)
 
-	out := output.New("normal", os.Stdout)
+	out := output.NewOutput("normal", os.Stdout)
 
 	replaceDestinationInConfiguration(*dest)
 	config.FTWConfig.LogFile = logFilePath
@@ -572,7 +572,7 @@ func TestDisabledRun(t *testing.T) {
 
 	err := config.NewConfigFromString(yamlCloudConfig)
 	assert.NoError(t, err)
-	out := output.New("normal", os.Stdout)
+	out := output.NewOutput("normal", os.Stdout)
 
 	fakeDestination, err := ftwhttp.DestinationFromString("http://example.com:1234")
 	if err != nil {
@@ -599,7 +599,7 @@ func TestLogsRun(t *testing.T) {
 	replaceDestinationInConfiguration(*dest)
 	config.FTWConfig.LogFile = logFilePath
 
-	out := output.New("normal", os.Stdout)
+	out := output.NewOutput("normal", os.Stdout)
 
 	ftwTest, err := test.GetTestFromYaml([]byte(yamlTestLogs))
 	assert.NoError(t, err)
@@ -615,7 +615,7 @@ func TestCloudRun(t *testing.T) {
 
 	err := config.NewConfigFromString(yamlCloudConfig)
 	assert.NoError(t, err)
-	out := output.New("normal", os.Stdout)
+	out := output.NewOutput("normal", os.Stdout)
 	stats := NewRunStats()
 
 	ftwTestDummy, err := test.GetTestFromYaml([]byte(yamlTestLogs))
@@ -676,7 +676,7 @@ func TestFailedTestsRun(t *testing.T) {
 	assert.NoError(t, err)
 	dest, logFilePath := newTestServer(t, logText)
 
-	out := output.New("normal", os.Stdout)
+	out := output.NewOutput("normal", os.Stdout)
 	replaceDestinationInConfiguration(*dest)
 	config.FTWConfig.LogFile = logFilePath
 
@@ -724,7 +724,7 @@ func TestIgnoredTestsRun(t *testing.T) {
 	dest, logFilePath := newTestServer(t, logText)
 	assert.NoError(t, err)
 
-	out := output.New("normal", os.Stdout)
+	out := output.NewOutput("normal", os.Stdout)
 
 	replaceDestinationInConfiguration(*dest)
 	config.FTWConfig.LogFile = logFilePath

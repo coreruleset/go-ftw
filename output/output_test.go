@@ -36,14 +36,3 @@ func TestOutput(t *testing.T) {
 		}
 	}
 }
-
-func TestValidTypes(t *testing.T) {
-	vt := ValidTypes()
-	for _, test := range outputTest {
-		for _, ttype := range vt {
-			if test.oType == ttype {
-				continue
-			}
-		}
-	}
-}
