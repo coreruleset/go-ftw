@@ -216,6 +216,7 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 
 	// 20 is a very conservative number. The web server should flush its
 	// buffer a lot earlier, but we have absolutely no control over that.
+	readLimit := 500
 	for range [20]int{} {
 		err := runContext.Client.NewOrReusedConnection(*dest)
 		if err != nil {
@@ -227,9 +228,12 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v: %w", dest, err)
 		}
 
-		marker := runContext.LogLines.CheckLogForMarker(stageID)
+		marker, aborted := runContext.LogLines.CheckLogForMarker(stageID, readLimit)
 		if marker != nil {
 			return marker, nil
+		}
+		if aborted {
+			return nil, fmt.Errorf("failed to find log marker within %d lines", readLimit)
 		}
 	}
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.LogLines.FileName)
