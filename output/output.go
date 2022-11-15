@@ -2,7 +2,6 @@
 package output
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
@@ -23,18 +22,38 @@ const (
 	Plain  Type = "plain" // when people (or terminals) don't want/support emojis
 )
 
+type catalog map[string]string
+
+// this catalog is used to translate text from basic terminals to enhanced ones that support emoji, just
+// because we are fancy. If we are not using a normal output, then just use the key from this map.
+var normalCatalog = catalog{
+	"* Starting tests!":                     ":hammer_and_wrench: Starting tests!",
+	"** Running go-ftw!":                    ":rocket:Running go-ftw!",
+	"=> executing tests in file %s":         ":point_right:executing tests in file %s",
+	"+ passed in %s (RTT %s)":               ":check_mark:passed in %s (RTT %s)",
+	"- failed in %s (RTT %s)":               ":collision:failed in %s (RTT %s)",
+	"= test ignored":                        ":information:test ignored",
+	"= test forced to fail":                 ":information:test forced to fail",
+	"= test forced to pass":                 ":information:test forced to pass",
+	"¯\\_(ツ)_/¯ No tests were run":          ":person_shrugging:No tests were run",
+	"+ run %d total tests in %s":            ":plus:run %d total tests in %s",
+	">> skipped %d tests":                   ":next_track_button: skipped %d tests",
+	"^ ignored %d tests":                    ":index_pointing_up: ignored %d tests",
+	"^ forced to pass %d tests":             ":index_pointing_up: forced to pass %d tests",
+	"\\o/ All tests successful!":            ":tada:All tests successful!",
+	"- %d test(s) failed to run: %+q":       ":thumbs_down:%d test(s) failed to run: %+q",
+	"- %d test(s) were forced to fail: %+q": ":index_pointing_up:%d test(s) were forced to fail: %+q",
+}
+
 type Output struct {
-	oType            Type
-	w                io.Writer
-	showOnlyFailures bool
+	OutputType Type
+	cat        catalog
+	w          io.Writer
 }
 
 // ValidTypes returns an array of the valid output types.
 func ValidTypes() []Type {
 	return []Type{Normal, Quiet, GitHub, JSON, Plain}
-}
-func (o *Output) Type() Type {
-	return o.oType
 }
 
 func (o *Output) Println(format string, a ...interface{}) error {
@@ -44,23 +63,15 @@ func (o *Output) Println(format string, a ...interface{}) error {
 
 func (o *Output) Printf(format string, a ...interface{}) error {
 	var s string
-	switch o.oType {
+	switch o.OutputType {
 	case Normal:
 		s = emoji.Sprintf(format, a...)
-	case Quiet:
+	case Quiet, JSON:
 		// don't print anything
 		return nil
 	case GitHub:
 		s = fmt.Sprintf(format, a...)
 		s = fmt.Sprintf("::notice file={name},line={line},endLine={endLine},title={title}::{%s}", s)
-	case JSON:
-		s = fmt.Sprintf(format, a...)
-		s = "{\"level\": \"notice\", \"message\":\"" + s + "\"}"
-		b, err := json.Marshal(s)
-		s = string(b)
-		if err != nil {
-			return err
-		}
 	case Plain:
 		s = fmt.Sprintf(format, a...)
 	default:
@@ -78,22 +89,48 @@ func (o *Output) RawPrint(s string) {
 func NewOutput(o string, w io.Writer) *Output {
 	log.Trace().Msgf("ftw/output: creating output %s\n", o)
 	out := &Output{
-		oType: Normal,
-		w:     w,
+		OutputType: Normal,
+		w:          w,
 	}
 	switch strings.ToLower(o) {
 	case "quiet":
-		out.oType = Quiet
+		out.OutputType = Quiet
 	case "github":
-		out.oType = GitHub
+		out.OutputType = GitHub
 	case "json":
-		out.oType = JSON
+		out.OutputType = JSON
 	case "plain":
-		out.oType = Plain
+		out.OutputType = Plain
 	case "normal":
 		break
 	default:
 		log.Info().Msgf("ftw/output: unknown type \"%s\". Using normal output.\n", o)
 	}
 	return out
+}
+
+// Message predefined messages that might have differoTypes depending on the output type.
+// All message in catalogs, where the text in the message is used as a key to get the corresponding text.
+func (o *Output) Message(key string) string {
+	var found bool
+	var text string
+	switch o.OutputType {
+	case Normal:
+		text, found = normalCatalog[key]
+		if !found {
+			text = ""
+		}
+	default:
+		text, found = normalCatalog[key]
+		if found {
+			text = key
+		} else {
+			text = ""
+		}
+	}
+	return text
+}
+
+func (o *Output) IsJson() bool {
+	return o.OutputType == JSON
 }
