@@ -42,16 +42,28 @@ func Run(tests []test.FTWTest, c Config, out *output.Output) (TestRunContext, er
 	if err != nil {
 		return TestRunContext{}, err
 	}
+	// TODO: These defaults shouldn't be initialized here but config intialization
+	// needs to be cleaned up properly first (e.g., with a `NewConfig()` function)
+	maxMarkerRetries := c.MaxMarkerRetries
+	maxMarkerLogLines := c.MaxMarkerLogLines
+	if maxMarkerRetries == 0 {
+		maxMarkerRetries = 20
+	}
+	if maxMarkerLogLines == 0 {
+		maxMarkerLogLines = 500
+	}
 	runContext := TestRunContext{
-		Include:        c.Include,
-		Exclude:        c.Exclude,
-		ShowTime:       c.ShowTime,
-		Output:         out,
-		ShowOnlyFailed: c.ShowOnlyFailed,
-		Stats:          stats,
-		Client:         client,
-		LogLines:       logLines,
-		RunMode:        config.FTWConfig.RunMode,
+		Include:           c.Include,
+		Exclude:           c.Exclude,
+		ShowTime:          c.ShowTime,
+		Output:            out,
+		ShowOnlyFailed:    c.ShowOnlyFailed,
+		MaxMarkerRetries:  maxMarkerRetries,
+		MaxMarkerLogLines: maxMarkerLogLines,
+		Stats:             stats,
+		Client:            client,
+		LogLines:          logLines,
+		RunMode:           config.FTWConfig.RunMode,
 	}
 
 	for _, tc := range tests {
@@ -214,10 +226,7 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 
 	req := ftwhttp.NewRequest(rline, *headers, nil, true)
 
-	// 20 is a very conservative number. The web server should flush its
-	// buffer a lot earlier, but we have absolutely no control over that.
-	readLimit := 500
-	for range [20]int{} {
+	for i := runContext.MaxMarkerRetries; i > 0; i-- {
 		err := runContext.Client.NewOrReusedConnection(*dest)
 		if err != nil {
 			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v: %w", dest, err)
@@ -228,12 +237,9 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v: %w", dest, err)
 		}
 
-		marker, aborted := runContext.LogLines.CheckLogForMarker(stageID, readLimit)
+		marker := runContext.LogLines.CheckLogForMarker(stageID, runContext.MaxMarkerLogLines)
 		if marker != nil {
 			return marker, nil
-		}
-		if aborted {
-			return nil, fmt.Errorf("failed to find log marker within %d lines", readLimit)
 		}
 	}
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.LogLines.FileName)

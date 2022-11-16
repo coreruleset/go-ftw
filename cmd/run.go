@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/coreruleset/go-ftw/output"
 	"os"
 	"regexp"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
+	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/runner"
 	"github.com/coreruleset/go-ftw/test"
 )
@@ -29,6 +29,8 @@ var runCmd = &cobra.Command{
 		wantedOutput, _ := cmd.Flags().GetString("output")
 		connectTimeout, _ := cmd.Flags().GetDuration("connect-timeout")
 		readTimeout, _ := cmd.Flags().GetDuration("read-timeout")
+		maxMarkerRetries, _ := cmd.Flags().GetInt("max-marker-retries")
+		maxMarkerLogLines, _ := cmd.Flags().GetInt("max-marker-log-lines")
 
 		if wantedOutput == "" {
 			wantedOutput = "normal"
@@ -60,12 +62,14 @@ var runCmd = &cobra.Command{
 		_ = out.Println("%s", out.Message("** Starting tests!"))
 
 		currentRun, err := runner.Run(tests, runner.Config{
-			Include:        includeRE,
-			Exclude:        excludeRE,
-			ShowTime:       showTime,
-			ShowOnlyFailed: showOnlyFailed,
-			ConnectTimeout: connectTimeout,
-			ReadTimeout:    readTimeout,
+			Include:           includeRE,
+			Exclude:           excludeRE,
+			ShowTime:          showTime,
+			ShowOnlyFailed:    showOnlyFailed,
+			ConnectTimeout:    connectTimeout,
+			ReadTimeout:       readTimeout,
+			MaxMarkerRetries:  maxMarkerRetries,
+			MaxMarkerLogLines: maxMarkerLogLines,
 		}, out)
 		if err != nil {
 			log.Fatal().Err(err)
@@ -86,4 +90,6 @@ func init() {
 	runCmd.Flags().BoolP("show-failures-only", "", false, "shows only the results of failed tests")
 	runCmd.Flags().Duration("connect-timeout", 3*time.Second, "timeout for connecting to endpoints during test execution")
 	runCmd.Flags().Duration("read-timeout", 1*time.Second, "timeout for receiving responses during test execution")
+	runCmd.Flags().Int("max-marker-retries", 20, "maximum number of times the search for log markers will be repeated; each time an additional request is sent to the web server, eventually forcing the log to be flushed")
+	runCmd.Flags().Int("max-marker-log-lines", 500, "maximum number of lines to search for a marker before aborting")
 }
