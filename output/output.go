@@ -85,7 +85,7 @@ func (o *Output) RawPrint(s string) {
 	_, _ = fmt.Fprintf(o.w, "%s", s)
 }
 
-// NewOutput returns a new output with the proper output format for that CI
+// NewOutput returns a new output with the proper output format for the selected output type
 func NewOutput(o string, w io.Writer) *Output {
 	log.Trace().Msgf("ftw/output: creating output %s\n", o)
 	out := &Output{
@@ -109,7 +109,7 @@ func NewOutput(o string, w io.Writer) *Output {
 	return out
 }
 
-// Message predefined messages that might have differoTypes depending on the output type.
+// Message predefined messages that might have different types depending on the output type.
 // All message in catalogs, where the text in the message is used as a key to get the corresponding text.
 func (o *Output) Message(key string) string {
 	var found bool
