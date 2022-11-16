@@ -34,9 +34,8 @@ func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
 	ll, err := NewFTWLogLines(WithStartMarker([]byte(markerLine)))
 	assert.NoError(t, err)
 
-	marker, aborted := ll.CheckLogForMarker(stageID, 100)
+	marker := ll.CheckLogForMarker(stageID, 100)
 	assert.Equal(t, string(marker), strings.ToLower(markerLine), "unexpectedly found marker")
-	assert.False(t, aborted)
 }
 
 func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
@@ -59,11 +58,10 @@ func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
 	ll, err := NewFTWLogLines(WithStartMarker([]byte(markerLine)))
 	assert.NoError(t, err)
 
-	marker, aborted := ll.CheckLogForMarker(stageID, 100)
+	marker := ll.CheckLogForMarker(stageID, 100)
 	assert.NotNil(t, marker, "no marker found")
 
 	assert.Equal(t, marker, bytes.ToLower([]byte(markerLine)), "found unexpected marker")
-	assert.False(t, aborted)
 }
 
 func TestReadGetMarkedLines(t *testing.T) {
@@ -346,7 +344,6 @@ func TestFTWLogLines_CheckForLogMarkerIn404(t *testing.T) {
 		StartMarker: bytes.ToLower([]byte(markerLine)),
 		EndMarker:   bytes.ToLower([]byte(markerLine)),
 	}
-	foundMarker, aborted := ll.CheckLogForMarker(stageID, 100)
+	foundMarker := ll.CheckLogForMarker(stageID, 100)
 	assert.Equal(t, strings.ToLower(markerLine), strings.ToLower(string(foundMarker)))
-	assert.False(t, aborted)
 }

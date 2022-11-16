@@ -1,9 +1,10 @@
 package runner
 
 import (
-	"github.com/coreruleset/go-ftw/output"
 	"regexp"
 	"time"
+
+	"github.com/coreruleset/go-ftw/output"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
@@ -26,21 +27,27 @@ type Config struct {
 	ConnectTimeout time.Duration
 	// ReadTimeout is the timeout for receiving responses during test execution.
 	ReadTimeout time.Duration
+	// MaxMarkerRetries is the maximum number of times the search for log markers will be repeated; each time an additional request is sent to the web server, eventually forcing the log to be flushed
+	MaxMarkerRetries int
+	// MaxMarkerLogLines is the maximum number of lines to search for a marker before aborting
+	MaxMarkerLogLines int
 }
 
 // TestRunContext carries information about the current test run.
 // This includes configuration information as well as statistics
 // and results.
 type TestRunContext struct {
-	Include        *regexp.Regexp
-	Exclude        *regexp.Regexp
-	ShowTime       bool
-	ShowOnlyFailed bool
-	Output         *output.Output
-	Stats          *RunStats
-	Result         TestResult
-	Duration       time.Duration
-	Client         *ftwhttp.Client
-	LogLines       *waflog.FTWLogLines
-	RunMode        config.RunMode
+	Include           *regexp.Regexp
+	Exclude           *regexp.Regexp
+	ShowTime          bool
+	ShowOnlyFailed    bool
+	MaxMarkerRetries  int
+	MaxMarkerLogLines int
+	Output            *output.Output
+	Stats             *RunStats
+	Result            TestResult
+	Duration          time.Duration
+	Client            *ftwhttp.Client
+	LogLines          *waflog.FTWLogLines
+	RunMode           config.RunMode
 }
