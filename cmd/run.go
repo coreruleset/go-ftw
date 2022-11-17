@@ -6,11 +6,10 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/kyokomi/emoji"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
+	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/runner"
 	"github.com/coreruleset/go-ftw/test"
 )
@@ -26,13 +25,15 @@ var runCmd = &cobra.Command{
 		id, _ := cmd.Flags().GetString("id")
 		dir, _ := cmd.Flags().GetString("dir")
 		showTime, _ := cmd.Flags().GetBool("time")
-		quiet, _ := cmd.Flags().GetBool("quiet")
+		showOnlyFailed, _ := cmd.Flags().GetBool("show-failures-only")
+		wantedOutput, _ := cmd.Flags().GetString("output")
 		connectTimeout, _ := cmd.Flags().GetDuration("connect-timeout")
 		readTimeout, _ := cmd.Flags().GetDuration("read-timeout")
-		if !quiet {
-			log.Info().Msgf(emoji.Sprintf(":hammer_and_wrench: Starting tests!\n"))
-		} else {
-			zerolog.SetGlobalLevel(zerolog.Disabled)
+		maxMarkerRetries, _ := cmd.Flags().GetInt("max-marker-retries")
+		maxMarkerLogLines, _ := cmd.Flags().GetInt("max-marker-log-lines")
+
+		if wantedOutput == "" {
+			wantedOutput = "normal"
 		}
 		if id != "" {
 			log.Fatal().Msgf("--id is deprecated in favour of --include|-i")
@@ -56,14 +57,20 @@ var runCmd = &cobra.Command{
 			excludeRE = regexp.MustCompile(exclude)
 		}
 
+		//TODO: pass --file parameter to change this file
+		out := output.NewOutput(wantedOutput, os.Stdout)
+		_ = out.Println("%s", out.Message("** Starting tests!"))
+
 		currentRun, err := runner.Run(tests, runner.Config{
-			Include:        includeRE,
-			Exclude:        excludeRE,
-			ShowTime:       showTime,
-			Quiet:          quiet,
-			ConnectTimeout: connectTimeout,
-			ReadTimeout:    readTimeout,
-		})
+			Include:           includeRE,
+			Exclude:           excludeRE,
+			ShowTime:          showTime,
+			ShowOnlyFailed:    showOnlyFailed,
+			ConnectTimeout:    connectTimeout,
+			ReadTimeout:       readTimeout,
+			MaxMarkerRetries:  maxMarkerRetries,
+			MaxMarkerLogLines: maxMarkerLogLines,
+		}, out)
 		if err != nil {
 			log.Fatal().Err(err)
 		}
@@ -78,8 +85,11 @@ func init() {
 	runCmd.Flags().StringP("include", "i", "", "include only tests matching this Go regexp (e.g. to include only tests beginning with \"91\", use \"91.*\").")
 	runCmd.Flags().StringP("id", "", "", "(deprecated). Use --include matching your test only.")
 	runCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
-	runCmd.Flags().BoolP("quiet", "q", false, "do not show test by test, only results")
+	runCmd.Flags().StringP("output", "o", "normal", "output type for ftw tests. \"normal\" is the default.")
 	runCmd.Flags().BoolP("time", "t", false, "show time spent per test")
+	runCmd.Flags().BoolP("show-failures-only", "", false, "shows only the results of failed tests")
 	runCmd.Flags().Duration("connect-timeout", 3*time.Second, "timeout for connecting to endpoints during test execution")
 	runCmd.Flags().Duration("read-timeout", 1*time.Second, "timeout for receiving responses during test execution")
+	runCmd.Flags().Int("max-marker-retries", 20, "maximum number of times the search for log markers will be repeated.\nEach time an additional request is sent to the web server, eventually forcing the log to be flushed")
+	runCmd.Flags().Int("max-marker-log-lines", 500, "maximum number of lines to search for a marker before aborting")
 }

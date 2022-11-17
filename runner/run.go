@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kyokomi/emoji"
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
+	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/utils"
 	"github.com/coreruleset/go-ftw/waflog"
@@ -21,8 +21,10 @@ import (
 var errBadTestRequest = errors.New("ftw/run: bad test: choose between data, encoded_request, or raw_request")
 
 // Run runs your tests with the specified Config. Returns error if some test failed
-func Run(tests []test.FTWTest, c Config) (TestRunContext, error) {
-	printUnlessQuietMode(c.Quiet, ":rocket:Running go-ftw!\n")
+func Run(tests []test.FTWTest, c Config, out *output.Output) (TestRunContext, error) {
+	out.Println("%s", out.Message("** Running go-ftw!"))
+
+	stats := NewRunStats()
 
 	logLines, err := waflog.NewFTWLogLines(waflog.WithLogFile(config.FTWConfig.LogFile))
 	if err != nil {
@@ -40,14 +42,28 @@ func Run(tests []test.FTWTest, c Config) (TestRunContext, error) {
 	if err != nil {
 		return TestRunContext{}, err
 	}
+	// TODO: These defaults shouldn't be initialized here but config intialization
+	// needs to be cleaned up properly first (e.g., with a `NewConfig()` function)
+	maxMarkerRetries := c.MaxMarkerRetries
+	maxMarkerLogLines := c.MaxMarkerLogLines
+	if maxMarkerRetries == 0 {
+		maxMarkerRetries = 20
+	}
+	if maxMarkerLogLines == 0 {
+		maxMarkerLogLines = 500
+	}
 	runContext := TestRunContext{
-		Include:  c.Include,
-		Exclude:  c.Exclude,
-		ShowTime: c.ShowTime,
-		Output:   c.Quiet,
-		Client:   client,
-		LogLines: logLines,
-		RunMode:  config.FTWConfig.RunMode,
+		Include:           c.Include,
+		Exclude:           c.Exclude,
+		ShowTime:          c.ShowTime,
+		Output:            out,
+		ShowOnlyFailed:    c.ShowOnlyFailed,
+		MaxMarkerRetries:  maxMarkerRetries,
+		MaxMarkerLogLines: maxMarkerLogLines,
+		Stats:             stats,
+		Client:            client,
+		LogLines:          logLines,
+		RunMode:           config.FTWConfig.RunMode,
 	}
 
 	for _, tc := range tests {
@@ -56,7 +72,7 @@ func Run(tests []test.FTWTest, c Config) (TestRunContext, error) {
 		}
 	}
 
-	printSummary(c.Quiet, runContext.Stats)
+	runContext.Stats.printSummary(out)
 
 	defer cleanLogs(logLines)
 
@@ -72,20 +88,21 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 	for _, testCase := range ftwTest.Tests {
 		// if we received a particular testid, skip until we find it
 		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
-			addResultToStats(Skipped, testCase.TestTitle, &runContext.Stats)
-			if !ftwTest.Meta.Enabled {
-				printUnlessQuietMode(runContext.Output, "\tskipping %s\n", testCase.TestTitle)
+			runContext.Stats.addResultToStats(Skipped, testCase.TestTitle, 0)
+			if !ftwTest.Meta.Enabled && !runContext.ShowOnlyFailed {
+				runContext.Output.Println("\tskipping %s - (enabled: false) in file.", testCase.TestTitle)
 			}
 			continue
 		}
 		// this is just for printing once the next test
-		if changed {
-			printUnlessQuietMode(runContext.Output, ":point_right:executing tests in file %s\n", ftwTest.Meta.Name)
+		if changed && !runContext.ShowOnlyFailed {
+			runContext.Output.Println(runContext.Output.Message("=> executing tests in file %s"), ftwTest.Meta.Name)
 			changed = false
 		}
 
-		// can we use goroutines here?
-		printUnlessQuietMode(runContext.Output, "\trunning %s: ", testCase.TestTitle)
+		if !runContext.ShowOnlyFailed {
+			runContext.Output.Printf("\trunning %s: ", testCase.TestTitle)
+		}
 		// Iterate over stages
 		for _, stage := range testCase.Stages {
 			ftwCheck := check.NewCheck(config.FTWConfig)
@@ -121,14 +138,14 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 
 	// Do not even run test if result is overridden. Just use the override and display the overridden result.
 	if overridden := overriddenTestResult(ftwCheck, testCase.TestTitle); overridden != Failed {
-		addResultToStats(overridden, testCase.TestTitle, &runContext.Stats)
-		displayResult(runContext.Output, overridden, time.Duration(0), time.Duration(0))
+		runContext.Stats.addResultToStats(overridden, testCase.TestTitle, 0)
+		displayResult(runContext, overridden, time.Duration(0), time.Duration(0))
 		return nil
 	}
 
 	var req *ftwhttp.Request
 
-	// Destination is needed for an request
+	// Destination is needed for a request
 	dest := &ftwhttp.Destination{
 		DestAddr: testRequest.GetDestAddr(),
 		Port:     testRequest.GetPort(),
@@ -177,15 +194,15 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	roundTripTime := runContext.Client.GetRoundTripTime().RoundTripDuration()
 	stageTime := time.Since(stageStartTime)
 
-	addResultToStats(testResult, testCase.TestTitle, &runContext.Stats)
+	runContext.Stats.addResultToStats(testResult, testCase.TestTitle, stageTime)
 
 	runContext.Result = testResult
 
 	// show the result unless quiet was passed in the command line
-	displayResult(runContext.Output, testResult, roundTripTime, stageTime)
+	displayResult(runContext, testResult, roundTripTime, stageTime)
 
 	runContext.Stats.Run++
-	runContext.Stats.RunTime += stageTime
+	runContext.Stats.TotalTime += stageTime
 
 	return nil
 }
@@ -209,9 +226,7 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 
 	req := ftwhttp.NewRequest(rline, *headers, nil, true)
 
-	// 20 is a very conservative number. The web server should flush its
-	// buffer a lot earlier but we have absolutely no control over that.
-	for range [20]int{} {
+	for i := runContext.MaxMarkerRetries; i > 0; i-- {
 		err := runContext.Client.NewOrReusedConnection(*dest)
 		if err != nil {
 			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v: %w", dest, err)
@@ -222,7 +237,7 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v: %w", dest, err)
 		}
 
-		marker := runContext.LogLines.CheckLogForMarker(stageID)
+		marker := runContext.LogLines.CheckLogForMarker(stageID, runContext.MaxMarkerLogLines)
 		if marker != nil {
 			return marker, nil
 		}
@@ -270,18 +285,24 @@ func checkTestSanity(testRequest test.Input) bool {
 		(testRequest.EncodedRequest != "" && testRequest.RAWRequest != "")
 }
 
-func displayResult(quiet bool, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
+func displayResult(rc *TestRunContext, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
 	switch result {
 	case Success:
-		printUnlessQuietMode(quiet, ":check_mark:passed in %s (RTT %s)\n", stageTime, roundTripTime)
+		if !rc.ShowOnlyFailed {
+			rc.Output.Println(rc.Output.Message("+ passed in %s (RTT %s)"), stageTime, roundTripTime)
+		}
 	case Failed:
-		printUnlessQuietMode(quiet, ":collision:failed in %s (RTT %s)\n", stageTime, roundTripTime)
+		rc.Output.Println(rc.Output.Message("- failed in %s (RTT %s)"), stageTime, roundTripTime)
 	case Ignored:
-		printUnlessQuietMode(quiet, ":information:test ignored\n")
+		if !rc.ShowOnlyFailed {
+			rc.Output.Println(rc.Output.Message(":information:test ignored"))
+		}
 	case ForceFail:
-		printUnlessQuietMode(quiet, ":information:test forced to fail\n")
+		rc.Output.Println(rc.Output.Message(":information:test forced to fail"))
 	case ForcePass:
-		printUnlessQuietMode(quiet, ":information:test forced to pass\n")
+		if !rc.ShowOnlyFailed {
+			rc.Output.Println(rc.Output.Message(":information:test forced to pass"))
+		}
 	default:
 		// don't print anything if skipped test
 	}
@@ -333,7 +354,7 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 	if c.AssertLogContains() {
 		return Success
 	}
-	// We assume that the they were already setup, for comparing
+	// We assume that they were already setup, for comparing
 	if c.AssertNoLogContains() {
 		return Success
 	}
@@ -366,13 +387,6 @@ func getRequestFromTest(testRequest test.Input) *ftwhttp.Request {
 
 	}
 	return req
-}
-
-// We want to have output unless we are in quiet mode
-func printUnlessQuietMode(quiet bool, format string, a ...interface{}) {
-	if !quiet {
-		emoji.Printf(format, a...)
-	}
 }
 
 // applyInputOverride will check if config had global overrides and write that into the test.

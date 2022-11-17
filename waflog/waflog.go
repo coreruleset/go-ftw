@@ -1,6 +1,7 @@
 package waflog
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -40,14 +41,14 @@ func NewFTWLogLines(opts ...FTWLogOption) (*FTWLogLines, error) {
 // WithStartMarker sets the start marker for the log file
 func WithStartMarker(marker []byte) FTWLogOption {
 	return func(ll *FTWLogLines) {
-		ll.StartMarker = marker
+		ll.StartMarker = bytes.ToLower(marker)
 	}
 }
 
 // WithEndMarker sets the end marker for the log file
 func WithEndMarker(marker []byte) FTWLogOption {
 	return func(ll *FTWLogLines) {
-		ll.EndMarker = marker
+		ll.EndMarker = bytes.ToLower(marker)
 	}
 }
 

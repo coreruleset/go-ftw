@@ -34,23 +34,53 @@ go install github.com/coreruleset/go-ftw@latest
 
 ## Example Usage
 
-To run tests you need:
-1. a WAF (doh!)
-2. a file where the waf stores the logs
-3. a config file, or environment variables, with the information to get the logs and how to parse them (I might embed this for the most commonly used, like Apache/NGiNX), and additional options described next.
+The go-ftw is designed to run Web Application Firewall (WAF) unit tests. The primary focus is the [OWASP ModSecurity Core Rule Set](https://github.com/coreruleset/coreruleset).
+
+In order to run the tests, you need to prepare the following:
+
+1. Active WAF
+2. Log where the WAF writes the alert messages
+3. go-ftw config file `.ftw.yaml` in the local folder or in your home folder (see [YAML Config file](https://github.com/coreruleset/go-ftw#yaml-config-file) for more information).
+4. At least one unit test in (go)-ftw's yaml format.
 
 ### YAML Config file
 
-With a configuration file you can alter the test results, set paths for your environment, or enable features. The config file has four basic values:
+With the configuration set paths for your environment, enable and disabled features and you can also use it to alter the test results.
 
-```yaml
-logfile: <the relative path to the WAF logfile>
-logmarkerheadername: <a header name used for log parsing (see "How log parsing works" below)>
-testoverride: <a list of things to override (see "Overriding tests" below)>
-mode: "default" or "cloud" (only change it if you need "cloud")
+The config file has four basic values:
+
+* `logfile` : path to WAF log with alert messages, relative of absolute
+* `logmarkerheadername` : name of a HTTP header used for marking log messages, usually `X-CRS-TEST` (see [How log parsing works](https://github.com/coreruleset/go-ftw#how-log-parsing-works) below)
+* `testoverride` : a list of things to override (see "Overriding tests" below)>
+* `mode` : "default" or "cloud" (only change it if you need "cloud")
 ```
 
-By default, _ftw_ would search for a file in `$PWD` with the name `.ftw.yaml`. You can pass the `--config <config file name>` to point it to a different file.
+__Example with absolute logfile__:
+
+```yaml
+logfile: /apache/logs/error.log
+logmarkerheadername: X-CRS-TEST
+testoverride:
+mode: "default"
+```
+
+__Example with relative logfile__:
+
+```yaml
+logfile: ../logs/error.log
+logmarkerheadername: X-CRS-TEST
+testoverride:
+mode: "default"
+
+__Example with minimal definitions__:
+
+```yaml
+logfile: ../logs/error.log
+logmarkerheadername:
+testoverride:
+mode:
+
+By default, _go-ftw_ looks for a file in `$PWD` / local folder with the name `.ftw.yaml`. If this can not be found, it will look in the user's HOME folder. You can pass the `--config <config file name>` to point it to a different file.
 
 ### WAF Server
 
@@ -82,8 +112,8 @@ logfile: 'tests/logs/modsec3-nginx/error.log'
 
 This is the help for the `run` command:
 ```bash
-❯ ftw run -h
-Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.
+./ftw run --help
+ Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.
 
 Usage:
   ftw run [flags]
@@ -91,11 +121,15 @@ Usage:
 Flags:
       --connect-timeout duration   timeout for connecting to endpoints during test execution (default 3s)
   -d, --dir string                 recursively find yaml tests in this directory (default ".")
-  -e, --exclude string             exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*").
+  -e, --exclude string             exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*"). 
                                    If you want more permanent exclusion, check the 'testoverride' option in the config file.
   -h, --help                       help for run
       --id string                  (deprecated). Use --include matching your test only.
   -i, --include string             include only tests matching this Go regexp (e.g. to include only tests beginning with "91", use "91.*").
+      --max-marker-log-lines int   maximum number of lines to search for a marker before aborting (default 500)
+      --max-marker-retries int     maximum number of times the search for log markers will be repeated.
+                                   Each time an additional request is sent to the web server, eventually forcing the log to be flushed (default 20)
+      --output-failures-only       output only the results of failed tests
   -q, --quiet                      do not show test by test, only results
       --read-timeout duration      timeout for receiving responses during test execution (default 1s)
   -t, --time                       show time spent per test
@@ -107,7 +141,7 @@ Global Flags:
       --trace           trace output: really, really verbose
 ```
 
-Here's an example on how to run your tests:
+Here's an example on how to run your tests recursively in the folder `tests`:
 
 ```bash
 ftw run -d tests -t
@@ -147,7 +181,7 @@ Happy testing!
 - templates with the power of Go [text/template](https://golang.org/pkg/text/template/). Add your template to any `data:` sections and enjoy!
 - [Sprig functions](https://masterminds.github.io/sprig/) can be added to templates as well.
 - Override test results.
-- Cloud mode! This new mode will override test results and rely solely on HTTP status codes for determining success and failure of tests.
+- Cloud mode! This new mode will ignore log files and rely solely on the HTTP status codes of the requests for determining success and failure of tests.
 
 With templates and functions you can simplify bulk test writing, or even read values from the environment while executing. This features allow you to write tests like this:
 
@@ -226,33 +260,34 @@ mode: 'cloud'
 Or you can just run: `./ftw run --cloud`
 
 ## How log parsing works
-The log output from your WAF is parsed and compared to the expected output.
-The problem with log files is that they aren't updated in real time, e.g. because the
-web server / WAF has an internal buffer, or because there's some `fsync` magic involved).
-To make log parsing consistent and guarantee that we will see output when we need it,
-go-ftw uses "log markers". In essence, unique log entries are written _before_ and _after_
-every test stage. go-ftw can then search for these markers.
+
+The WAF's log file with the alert messages is parsed and compared to the expected output defined in the unit test under `log_contains` or `no_log_contains`.
+
+The problem with log files is that `go-ftw` is very, very fast and the log files are not updated in real time. Frequently, the
+web server / WAF is not syncing the file fast enough. That results in a situation where `go-ftw` won't find the log messages it has triggered.
+
+To make log parsing consistent and guarantee that we will see output when we need it, `go-ftw` will send a request that is meant to write a marker into the log file before the individual test and another marker after the individual test.
+
+If `go-ftw` does not see the finishing marker after executing the request, it will send the marker request again until the webserver is forced to write the log file to the disk and the marker can be found.
 
 The [container images for Core Rule Set](https://github.com/coreruleset/modsecurity-crs-docker) can be configured to write these marker log lines by setting
-the `CRS_ENABLE_TEST_MARKER` environment variable. If you are testing a different WAF
-you will need to instrument it with the same idea (unless you are using "cloud mode").
+the `CRS_ENABLE_TEST_MARKER` environment variable. If you are testing a different test setup, you will need to instrument it with a rule that generated the marker in the log file via a rule alert (unless you are using "cloud mode").
+
 The rule for CRS looks like this:
+
 ```
 # Write the value from the X-CRS-Test header as a marker to the log
 SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
   "id:999999,\
+  pass,\
   phase:1,\
   log,\
-  msg:'X-CRS-Test %{MATCHED_VAR}',\
-  pass,\
-  t:none"
+  msg:'X-CRS-Test %{MATCHED_VAR}'"
 ```
 
-The rule looks for an HTTP header named `X-CRS-Test` and writes its value to the log,
-the value being the UUID of a test stage.
+The rule looks for an HTTP header named `X-CRS-Test` and writes its value to the log, the value being the UUID of a test stage. If the header is not existing, rule is being ignored and no marker is being written.
 
-You can configure the name of the HTTP header by setting the `logmarkerheadername`
-option in the configuration to a custom value (the value is case insensitive).
+You can configure the name of the HTTP header by setting the `logmarkerheadername` option in the configuration to a custom value (the value is case insensitive).
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcoreruleset%2Fgo-ftw.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcoreruleset%2Fgo-ftw?ref=badge_large)

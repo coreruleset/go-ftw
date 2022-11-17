@@ -2,6 +2,7 @@ package waflog
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"regexp"
@@ -80,16 +81,16 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 }
 
 // CheckLogForMarker reads the log file and searches for a marker line.
-// logFile is the file to search
 // stageID is the ID of the current stage, which is part of the marker line
-func (ll *FTWLogLines) CheckLogForMarker(stageID string) []byte {
+// readLimit is the maximum numbers of lines to check
+func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit int) []byte {
 	offset, err := ll.logFile.Seek(0, os.SEEK_END)
 	if err != nil {
 		log.Error().Caller().Err(err).Msgf("failed to seek end of log file")
 		return nil
 	}
 
-	// Lines in modsec logging can be quite large
+	// Lines in logging can be quite large
 	backscannerOptions := &backscanner.Options{
 		ChunkSize: 4096,
 	}
@@ -97,21 +98,38 @@ func (ll *FTWLogLines) CheckLogForMarker(stageID string) []byte {
 	stageIDBytes := []byte(stageID)
 	crsHeaderBytes := bytes.ToLower([]byte(config.FTWConfig.LogMarkerHeaderName))
 
-	line := []byte{}
-	// find the last non-empty line
-	for err == nil && len(line) == 0 {
-		line, _, err = scanner.LineBytes()
-	}
-	if err != nil {
-		if err == io.EOF {
+	var line []byte
+	lineCounter := 0
+	// Look for the header until EOF or `readLimit` lines at most
+	for {
+		if lineCounter > readLimit {
+			log.Debug().Msg("aborting search for marker")
 			return nil
 		}
-		log.Trace().Err(err)
+		lineCounter++
+
+		line, _, err = scanner.LineBytes()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				log.Trace().Err(err).Msg("found EOF while looking for log marker")
+				return nil
+			} else {
+				log.Error().Err(err).Msg("failed to inspect next log line for marker")
+				return nil
+			}
+		}
+
+		line = bytes.ToLower(line)
+		if bytes.Contains(line, crsHeaderBytes) {
+			break
+		}
 	}
-	line = bytes.ToLower(line)
-	if bytes.Contains(line, crsHeaderBytes) && bytes.Contains(line, stageIDBytes) {
+
+	// Found the header, now the line should also match the stage ID
+	if bytes.Contains(line, stageIDBytes) {
 		return line
 	}
 
+	log.Debug().Msgf("found unexpected marker line while looking for %s: %s", stageID, line)
 	return nil
 }
