@@ -45,7 +45,7 @@ In order to run the tests, you need to prepare the following:
 
 ### YAML Config file
 
-With the configuration set paths for your environment, enable and disabled features and you can also use it to alter the test results.
+With the configuration set paths for your environment, enable and disable features and you can also use it to alter the test results.
 
 The config file has four basic values:
 
@@ -53,7 +53,6 @@ The config file has four basic values:
 * `logmarkerheadername` : name of a HTTP header used for marking log messages, usually `X-CRS-TEST` (see [How log parsing works](https://github.com/coreruleset/go-ftw#how-log-parsing-works) below)
 * `testoverride` : a list of things to override (see "Overriding tests" below)>
 * `mode` : "default" or "cloud" (only change it if you need "cloud")
-```
 
 __Example with absolute logfile__:
 
@@ -71,6 +70,7 @@ logfile: ../logs/error.log
 logmarkerheadername: X-CRS-TEST
 testoverride:
 mode: "default"
+```
 
 __Example with minimal definitions__:
 
@@ -79,6 +79,7 @@ logfile: ../logs/error.log
 logmarkerheadername:
 testoverride:
 mode:
+```
 
 By default, _go-ftw_ looks for a file in `$PWD` / local folder with the name `.ftw.yaml`. If this can not be found, it will look in the user's HOME folder. You can pass the `--config <config file name>` to point it to a different file.
 
@@ -183,7 +184,7 @@ Happy testing!
 - Override test results.
 - Cloud mode! This new mode will ignore log files and rely solely on the HTTP status codes of the requests for determining success and failure of tests.
 
-With templates and functions you can simplify bulk test writing, or even read values from the environment while executing. This features allow you to write tests like this:
+With templates and functions you can simplify bulk test writing, or even read values from the environment while executing. These features allow you to write tests like this:
 
 ```yaml
 data: 'foo=%3d{{ "+" | repeat 34 }}'
