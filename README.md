@@ -114,7 +114,7 @@ logfile: 'tests/logs/modsec3-nginx/error.log'
 This is the help for the `run` command:
 ```bash
 ./ftw run --help
- Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.
+Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.
 
 Usage:
   ftw run [flags]
@@ -122,7 +122,7 @@ Usage:
 Flags:
       --connect-timeout duration   timeout for connecting to endpoints during test execution (default 3s)
   -d, --dir string                 recursively find yaml tests in this directory (default ".")
-  -e, --exclude string             exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*"). 
+  -e, --exclude string             exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*").
                                    If you want more permanent exclusion, check the 'testoverride' option in the config file.
   -h, --help                       help for run
       --id string                  (deprecated). Use --include matching your test only.
@@ -130,9 +130,9 @@ Flags:
       --max-marker-log-lines int   maximum number of lines to search for a marker before aborting (default 500)
       --max-marker-retries int     maximum number of times the search for log markers will be repeated.
                                    Each time an additional request is sent to the web server, eventually forcing the log to be flushed (default 20)
-      --output-failures-only       output only the results of failed tests
-  -q, --quiet                      do not show test by test, only results
+  -o, --output string              output type for ftw tests. "normal" is the default. (default "normal")
       --read-timeout duration      timeout for receiving responses during test execution (default 1s)
+      --show-failures-only         shows only the results of failed tests
   -t, --time                       show time spent per test
 
 Global Flags:
@@ -176,6 +176,84 @@ And the result should be similar to:
 🎉 All tests successful!
 ```
 Happy testing!
+
+## Output
+
+Now you can choose how the output of the test session is shown by passing the `-o` flag. The default output is `-o normal`,
+and it will show the emojis in all the supported terminals. If yours doesn't support emojis, or you want a plain format,
+you can use `-o plain`:
+```shell
+./ftw run -d tests -o plain -i 932240
+
+** Running go-ftw!
+	skipping 920360-1 - (enabled: false) in file.
+	skipping 920370-1 - (enabled: false) in file.
+	skipping 920380-1 - (enabled: false) in file.
+	skipping 920390-1 - (enabled: false) in file.
+=> executing tests in file 932240.yaml
+	running 932240-1: + passed in 39.928201ms (RTT 67.096865ms)
+	running 932240-2: + passed in 29.299056ms (RTT 65.650821ms)
+	running 932240-3: + passed in 30.426324ms (RTT 63.173202ms)
+	running 932240-4: + passed in 29.111381ms (RTT 66.593728ms)
+	running 932240-5: + passed in 30.627351ms (RTT 67.101436ms)
+	running 932240-6: + passed in 40.735442ms (RTT 79.628474ms)
++ run 6 total tests in 200.127755ms
+>> skipped 3322 tests
+\o/ All tests successful!
+```
+
+To support automation for processing the test results, there is also a new JSON output available using `-o json`:
+```json
+{
+  "run": 8,
+  "success": [
+    "911100-1",
+    "911100-2",
+    "911100-3",
+    "911100-4",
+    "911100-5",
+    "911100-6",
+    "911100-7",
+    "911100-8"
+  ],
+  "failed": null,
+  "skipped": [
+    "913100-1",
+    "913100-2",
+    "913100-3",
+    ...
+    "980170-2"
+  ],
+  "ignored": null,
+  "forced-pass": null,
+  "forced-fail": null,
+  "runtime": {
+    "911100-1": 20631077,
+    "911100-2": 14112617,
+    "911100-3": 14524897,
+    "911100-4": 14699391,
+    "911100-5": 16137499,
+    "911100-6": 16589660,
+    "911100-7": 16741235,
+    "911100-8": 20658905
+  },
+  "TotalTime": 134095281
+}
+```
+
+Then it is easy to use your `jq` skils to get the information you want.
+
+The list of supported outputs is:
+- "normal"
+- "quiet"
+- "github"
+- "json"
+- "plain"
+
+#### Only show failures
+
+If you are only interested to see when tests fail, there is a new flag `--show-only-failures` that does exactly that.
+This is helpful when running in CI/CD systems like GHA to get shorter outputs.
 
 ## Additional features
 
