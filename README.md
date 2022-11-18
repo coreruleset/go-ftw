@@ -45,11 +45,11 @@ In order to run the tests, you need to prepare the following:
 
 ### YAML Config file
 
-With the configuration set paths for your environment, enable and disable features and you can also use it to alter the test results.
+With the configuration, you can set paths for your environment, enable and disable features and you can also use it to alter the test results.
 
 The config file has four basic values:
 
-* `logfile` : path to WAF log with alert messages, relative of absolute
+* `logfile` : path to WAF log with alert messages, relative or absolute
 * `logmarkerheadername` : name of a HTTP header used for marking log messages, usually `X-CRS-TEST` (see [How log parsing works](https://github.com/coreruleset/go-ftw#how-log-parsing-works) below)
 * `testoverride` : a list of things to override (see "Overriding tests" below)>
 * `mode` : "default" or "cloud" (only change it if you need "cloud")
@@ -184,7 +184,7 @@ Happy testing!
 - Override test results.
 - Cloud mode! This new mode will ignore log files and rely solely on the HTTP status codes of the requests for determining success and failure of tests.
 
-With templates and functions you can simplify bulk test writing, or even read values from the environment while executing. These features allow you to write tests like this:
+With templates and functions, you can simplify bulk test writing, or even read values from the environment while executing. These features allow you to write tests like this:
 
 ```yaml
 data: 'foo=%3d{{ "+" | repeat 34 }}'
@@ -202,7 +202,7 @@ But also, you can get values from the environment dynamically when the test is r
 data: 'username={{ env "USERNAME" }}
 ```
 
-Will give you, as you expect, the username running the tests
+Will give you, as you expect, the username running the tests:
 
 ```yaml
 data: 'username=fzipi
