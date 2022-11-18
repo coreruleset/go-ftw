@@ -130,7 +130,7 @@ Flags:
       --max-marker-log-lines int   maximum number of lines to search for a marker before aborting (default 500)
       --max-marker-retries int     maximum number of times the search for log markers will be repeated.
                                    Each time an additional request is sent to the web server, eventually forcing the log to be flushed (default 20)
-  -o, --output string              output type for ftw tests. "normal" is the default. (default "normal")
+  -o, --output string              output type for ftw tests (default "normal")
       --read-timeout duration      timeout for receiving responses during test execution (default 1s)
       --show-failures-only         shows only the results of failed tests
   -t, --time                       show time spent per test
