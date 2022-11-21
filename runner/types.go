@@ -4,10 +4,9 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/coreruleset/go-ftw/output"
-
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
+	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/waflog"
 )
 

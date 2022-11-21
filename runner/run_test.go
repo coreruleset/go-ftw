@@ -2,20 +2,19 @@ package runner
 
 import (
 	"fmt"
-	"github.com/coreruleset/go-ftw/output"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"regexp"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/rs/zerolog/log"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
+	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/test"
 )
 

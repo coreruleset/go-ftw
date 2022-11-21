@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/coreruleset/go-ftw/output"
 	"github.com/rs/zerolog/log"
+
+	"github.com/coreruleset/go-ftw/output"
 )
 
 // TestResult type are the values that the result of a test can have

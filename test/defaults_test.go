@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/coreruleset/go-ftw/ftwhttp"
 )
 
 func getTestInputDefaults() *Input {

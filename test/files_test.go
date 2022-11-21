@@ -4,8 +4,9 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/coreruleset/go-ftw/utils"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/coreruleset/go-ftw/utils"
 )
 
 var yamlTest = `
