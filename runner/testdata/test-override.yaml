@@ -1,0 +1,21 @@
+---
+meta:
+  author: "tester"
+  enabled: true
+  name: "gotest-ftw.yaml"
+  description: "Example Override Test"
+tests:
+  - test_title: "001"
+    description: "access real external site"
+    stages:
+      - stage:
+          input:
+            dest_addr: "TEST_ADDR"
+            # -1 designates port value must be replaced by test setup
+            port: -1
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Host: "TEST_ADDR"
+          output:
+            expect_error: False
+            status: [200]

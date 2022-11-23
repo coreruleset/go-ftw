@@ -1,0 +1,7 @@
+---
+testoverride:
+  input:
+    dest_addr: "TEST_ADDR"
+    # -1 designates port value must be replaced by test setup
+    port: -1
+    this_does_not_exist: "test"

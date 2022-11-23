@@ -1,0 +1,4 @@
+---
+testoverride:
+  ignore:
+    "920400-1": "This test result must be ignored"
