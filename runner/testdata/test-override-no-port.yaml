@@ -1,0 +1,19 @@
+---
+meta:
+  author: "tester"
+  enabled: true
+  name: "gotest-ftw.yaml"
+  description: "Example Override Test"
+tests:
+  - test_title: "001"
+    description: "access real external site"
+    stages:
+      - stage:
+          input:
+            dest_addr: "TEST_ADDR"
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Host: "TEST_ADDR"
+          output:
+            expect_error: False
+            status: [200]

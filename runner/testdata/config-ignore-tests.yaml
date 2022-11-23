@@ -1,0 +1,8 @@
+---
+testoverride:
+  ignore:
+    "001": "This test result must be ignored"
+  forcefail:
+    "008": "This test should pass, but it is going to fail"
+  forcepass:
+    "099": "This test failed, but it shall pass!"

@@ -1,0 +1,33 @@
+---
+meta:
+  author: "tester"
+  enabled: true
+  name: "gotest-ftw.yaml"
+  description: "Example Test"
+tests:
+  - test_title: "200"
+    stages:
+      - stage:
+          input:
+            dest_addr: "TEST_ADDR"
+            # -1 designates port value must be replaced by test setup
+            port: -1
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "localhost"
+          output:
+            log_contains: id \"949110\"
+  - test_title: "201"
+    stages:
+      - stage:
+          input:
+            dest_addr: "TEST_ADDR"
+            # -1 designates port value must be replaced by test setup
+            port: -1
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "localhost"
+          output:
+            no_log_contains: ABCDE

@@ -1,0 +1,6 @@
+---
+testoverride:
+  input:
+    dest_addr: "TEST_ADDR"
+    port: %d
+    protocol: "http"
