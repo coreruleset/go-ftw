@@ -11,15 +11,35 @@ import (
 	"github.com/knadh/koanf/providers/rawbytes"
 )
 
+// NewConfig creates a new configuration with the passed parameters
+func NewConfig(logFile string, overrides FTWTestOverride, logMarkerHeaderName string, runMode RunMode) *FTWConfiguration {
+	cfg := &FTWConfiguration{
+		LogFile:             logFile,
+		TestOverride:        overrides,
+		LogMarkerHeaderName: logMarkerHeaderName,
+		RunMode:             runMode,
+	}
+	return cfg
+}
+
+// NewDefaultConfig initializes the configuration with default values
+func NewDefaultConfig() *FTWConfiguration {
+	cfg := &FTWConfiguration{
+		LogFile:             "",
+		TestOverride:        FTWTestOverride{},
+		LogMarkerHeaderName: DefaultLogMarkerHeaderName,
+		RunMode:             DefaultRunMode,
+	}
+	return cfg
+}
+
 // NewConfigFromFile reads configuration information from the config file if it exists,
 // or uses `.ftw.yaml` as default file
-func NewConfigFromFile(cfgFile string) error {
-	// koanf merges by default, but we never want to merge in this case
-	Reset()
-
+func NewConfigFromFile(cfgFile string) (*FTWConfiguration, error) {
 	// Global koanf instance. Use "." as the key path delimiter. This can be "/" or any character.
 	var k = koanf.New(".")
 	var err error
+	cfg := NewDefaultConfig()
 
 	// first check if we had an explicit call with config file
 	if cfgFile == "" {
@@ -33,7 +53,7 @@ func NewConfigFromFile(cfgFile string) error {
 
 		home, err = os.UserHomeDir()
 		if err != nil { // home folder could not be retrieved
-			return err
+			return nil, err
 		}
 
 		cfgFile = home + "/.ftw.yaml"
@@ -42,32 +62,30 @@ func NewConfigFromFile(cfgFile string) error {
 
 	_, err = os.Stat(cfgFile)
 	if err != nil { // file exists, so we read it looking for config values
-		return err
+		return nil, err
 	}
 
 	err = k.Load(file.Provider(cfgFile), yaml.Parser())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// At this point we have loaded our config, now we need to
 	// unmarshal the whole root module
-	err = k.UnmarshalWithConf("", &FTWConfig, koanf.UnmarshalConf{Tag: "koanf"})
+	err = k.UnmarshalWithConf("", cfg, koanf.UnmarshalConf{Tag: "koanf"})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	loadDefaults()
 
-	return err
+	return cfg, err
 }
 
 // NewConfigFromEnv reads configuration information from environment variables that start with `FTW_`
-func NewConfigFromEnv() error {
+func NewConfigFromEnv() (*FTWConfiguration, error) {
 	// koanf merges by default, but we never want to merge in this case
-	Reset()
-
 	var err error
 	var k = koanf.New(".")
+	cfg := NewDefaultConfig()
 
 	err = k.Load(env.Provider("FTW_", ".", func(s string) string {
 		return strings.ReplaceAll(strings.ToLower(
@@ -75,50 +93,28 @@ func NewConfigFromEnv() error {
 	}), nil)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Unmarshal the whole root module
-	err = k.UnmarshalWithConf("", &FTWConfig, koanf.UnmarshalConf{Tag: "koanf"})
-	loadDefaults()
+	err = k.UnmarshalWithConf("", cfg, koanf.UnmarshalConf{Tag: "koanf"})
 
-	return err
+	return cfg, err
 }
 
 // NewConfigFromString initializes the configuration from a yaml formatted string. Useful for testing.
-func NewConfigFromString(conf string) error {
+func NewConfigFromString(conf string) (*FTWConfiguration, error) {
 	// koanf merges by default, but we never want to merge in this case
-	Reset()
-
 	var k = koanf.New(".")
 	var err error
+	cfg := NewDefaultConfig()
 
 	err = k.Load(rawbytes.Provider([]byte(conf)), yaml.Parser())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Unmarshal the whole root module
-	err = k.UnmarshalWithConf("", &FTWConfig, koanf.UnmarshalConf{Tag: "koanf"})
-	loadDefaults()
+	err = k.UnmarshalWithConf("", cfg, koanf.UnmarshalConf{Tag: "koanf"})
 
-	return err
-}
-
-// Reset configuration to uninitialized state
-func Reset() {
-	FTWConfig = nil
-}
-
-func loadDefaults() {
-	// Note: koanf has a way to set defaults. However, koanf's merge behavior
-	// will overwrite defaults when the associated field is empty in nested
-	// structures (top level would work). That's why we set defaults here
-	// explicitly.
-	if FTWConfig.LogMarkerHeaderName == "" {
-		FTWConfig.LogMarkerHeaderName = DefaultLogMarkerHeaderName
-	}
-	if FTWConfig.RunMode == "" {
-		FTWConfig.RunMode = DefaultRunMode
-	}
-
+	return cfg, err
 }

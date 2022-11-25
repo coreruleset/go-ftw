@@ -14,8 +14,9 @@ import (
 )
 
 func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
-	err := config.NewConfigFromEnv()
+	cfg, err := config.NewConfigFromEnv()
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := "X-cRs-TeSt: " + stageID
@@ -28,7 +29,7 @@ func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
 	assert.NoError(t, err)
 
-	config.FTWConfig.LogFile = filename
+	cfg.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
 	ll, err := NewFTWLogLines(WithStartMarker([]byte(markerLine)))
@@ -39,8 +40,9 @@ func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
 }
 
 func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
-	err := config.NewConfigFromEnv()
+	cfg, err := config.NewConfigFromEnv()
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := "X-cRs-TeSt: " + stageID
@@ -52,7 +54,7 @@ func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
 	assert.NoError(t, err)
 
-	config.FTWConfig.LogFile = filename
+	cfg.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
 	ll, err := NewFTWLogLines(WithStartMarker([]byte(markerLine)))
@@ -65,8 +67,9 @@ func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
 }
 
 func TestReadGetMarkedLines(t *testing.T) {
-	err := config.NewConfigFromEnv()
+	cfg, err := config.NewConfigFromEnv()
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
@@ -79,7 +82,7 @@ func TestReadGetMarkedLines(t *testing.T) {
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
 	assert.NoError(t, err)
 
-	config.FTWConfig.LogFile = filename
+	cfg.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
 	ll, err := NewFTWLogLines(
@@ -102,8 +105,9 @@ func TestReadGetMarkedLines(t *testing.T) {
 }
 
 func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
-	err := config.NewConfigFromEnv()
+	cfg, err := config.NewConfigFromEnv()
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
@@ -116,7 +120,7 @@ func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
 	assert.NoError(t, err)
 
-	config.FTWConfig.LogFile = filename
+	cfg.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
 	ll, err := NewFTWLogLines(
@@ -139,8 +143,9 @@ func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
 }
 
 func TestReadGetMarkedLinesWithPrecedingLines(t *testing.T) {
-	err := config.NewConfigFromEnv()
+	cfg, err := config.NewConfigFromEnv()
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
@@ -156,7 +161,7 @@ func TestReadGetMarkedLinesWithPrecedingLines(t *testing.T) {
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
 	assert.NoError(t, err)
 
-	config.FTWConfig.LogFile = filename
+	cfg.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
 	ll, err := NewFTWLogLines(
@@ -179,8 +184,9 @@ func TestReadGetMarkedLinesWithPrecedingLines(t *testing.T) {
 }
 
 func TestFTWLogLines_Contains(t *testing.T) {
-	err := config.NewConfigFromEnv()
+	cfg, err := config.NewConfigFromEnv()
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := "X-cRs-TeSt: " + stageID
@@ -192,7 +198,7 @@ func TestFTWLogLines_Contains(t *testing.T) {
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
 	assert.NoError(t, err)
 
-	config.FTWConfig.LogFile = filename
+	cfg.LogFile = filename
 	log, err := os.Open(filename)
 	assert.NoError(t, err)
 
@@ -240,8 +246,8 @@ func TestFTWLogLines_Contains(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ll := &FTWLogLines{
+				cfg:         cfg,
 				logFile:     tt.fields.logFile,
-				FileName:    tt.fields.FileName,
 				StartMarker: bytes.ToLower(tt.fields.StartMarker),
 				EndMarker:   bytes.ToLower(tt.fields.EndMarker),
 			}
@@ -252,8 +258,9 @@ func TestFTWLogLines_Contains(t *testing.T) {
 }
 
 func TestFTWLogLines_ContainsIn404(t *testing.T) {
-	err := config.NewConfigFromEnv()
+	cfg, err := config.NewConfigFromEnv()
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := fmt.Sprint(`[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
@@ -266,7 +273,7 @@ func TestFTWLogLines_ContainsIn404(t *testing.T) {
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
 	assert.NoError(t, err)
 
-	config.FTWConfig.LogFile = filename
+	cfg.LogFile = filename
 	log, err := os.Open(filename)
 	assert.NoError(t, err)
 
@@ -306,8 +313,8 @@ func TestFTWLogLines_ContainsIn404(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ll := &FTWLogLines{
+				cfg:         cfg,
 				logFile:     tt.fields.logFile,
-				FileName:    tt.fields.FileName,
 				StartMarker: bytes.ToLower(tt.fields.StartMarker),
 				EndMarker:   bytes.ToLower(tt.fields.EndMarker),
 			}
@@ -318,8 +325,9 @@ func TestFTWLogLines_ContainsIn404(t *testing.T) {
 }
 
 func TestFTWLogLines_CheckForLogMarkerIn404(t *testing.T) {
-	err := config.NewConfigFromEnv()
+	cfg, err := config.NewConfigFromEnv()
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := fmt.Sprint(`[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
@@ -332,15 +340,15 @@ func TestFTWLogLines_CheckForLogMarkerIn404(t *testing.T) {
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
 	assert.NoError(t, err)
 
-	config.FTWConfig.LogFile = filename
+	cfg.LogFile = filename
 	log, err := os.Open(filename)
 	assert.NoError(t, err)
 
 	t.Cleanup(func() { os.Remove(filename) })
 
 	ll := &FTWLogLines{
+		cfg:         cfg,
 		logFile:     log,
-		FileName:    filename,
 		StartMarker: bytes.ToLower([]byte(markerLine)),
 		EndMarker:   bytes.ToLower([]byte(markerLine)),
 	}

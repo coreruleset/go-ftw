@@ -19,9 +19,6 @@ const (
 	DefaultLogMarkerHeaderName string = "X-CRS-Test"
 )
 
-// FTWConfig is being exported to be used across the app
-var FTWConfig *FTWConfiguration
-
 // FTWConfiguration FTW global Configuration
 type FTWConfiguration struct {
 	LogFile             string          `koanf:"logfile"`

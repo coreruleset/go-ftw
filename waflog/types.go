@@ -1,12 +1,15 @@
 // Package waflog encapsulates getting logs from a WAF to compare with expected results
 package waflog
 
-import "os"
+import (
+	"github.com/coreruleset/go-ftw/config"
+	"os"
+)
 
 // FTWLogLines represents the filename to search for logs in a certain timespan
 type FTWLogLines struct {
+	cfg         *config.FTWConfiguration
 	logFile     *os.File
-	FileName    string
 	StartMarker []byte
 	EndMarker   []byte
 }

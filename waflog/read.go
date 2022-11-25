@@ -4,13 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"os"
 	"regexp"
 
 	"github.com/icza/backscanner"
 	"github.com/rs/zerolog/log"
-
-	"github.com/coreruleset/go-ftw/config"
 )
 
 // Contains looks in logfile for regex
@@ -84,7 +81,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 // stageID is the ID of the current stage, which is part of the marker line
 // readLimit is the maximum numbers of lines to check
 func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit int) []byte {
-	offset, err := ll.logFile.Seek(0, os.SEEK_END)
+	offset, err := ll.logFile.Seek(0, io.SeekEnd)
 	if err != nil {
 		log.Error().Caller().Err(err).Msgf("failed to seek end of log file")
 		return nil
@@ -96,7 +93,7 @@ func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit int) []byte {
 	}
 	scanner := backscanner.NewOptions(ll.logFile, int(offset), backscannerOptions)
 	stageIDBytes := []byte(stageID)
-	crsHeaderBytes := bytes.ToLower([]byte(config.FTWConfig.LogMarkerHeaderName))
+	crsHeaderBytes := bytes.ToLower([]byte(ll.cfg.LogMarkerHeaderName))
 
 	var line []byte
 	lineCounter := 0

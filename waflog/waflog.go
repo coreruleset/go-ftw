@@ -14,8 +14,8 @@ var errNoLogFile = errors.New("no log file supplied")
 // NewFTWLogLines is the base struct for reading the log file
 func NewFTWLogLines(opts ...FTWLogOption) (*FTWLogLines, error) {
 	ll := &FTWLogLines{
+		cfg:         nil,
 		logFile:     nil,
-		FileName:    config.FTWConfig.LogFile,
 		StartMarker: nil,
 		EndMarker:   nil,
 	}
@@ -27,11 +27,14 @@ func NewFTWLogLines(opts ...FTWLogOption) (*FTWLogLines, error) {
 		opt(ll)
 	}
 
+	if ll.cfg == nil {
+		return nil, errors.New("no global config")
+	}
 	if err := ll.openLogFile(); err != nil {
 		return nil, fmt.Errorf("cannot open log file: %w", err)
 	}
 
-	if config.FTWConfig.RunMode == config.DefaultRunMode && ll.logFile == nil {
+	if ll.cfg.RunMode == config.DefaultRunMode && ll.logFile == nil {
 		return nil, errNoLogFile
 	}
 
@@ -53,9 +56,9 @@ func WithEndMarker(marker []byte) FTWLogOption {
 }
 
 // WithLogFile sets the log file to read
-func WithLogFile(fileName string) FTWLogOption {
+func WithConfig(cfg *config.FTWConfiguration) FTWLogOption {
 	return func(ll *FTWLogLines) {
-		ll.FileName = fileName
+		ll.cfg = cfg
 	}
 }
 
@@ -69,10 +72,10 @@ func (ll *FTWLogLines) Cleanup() error {
 
 func (ll *FTWLogLines) openLogFile() error {
 	// Using a log file is not required in cloud mode
-	if config.FTWConfig.RunMode == config.DefaultRunMode {
-		if ll.FileName != "" && ll.logFile == nil {
+	if ll.cfg.RunMode == config.DefaultRunMode {
+		if ll.cfg.LogFile != "" && ll.logFile == nil {
 			var err error
-			ll.logFile, err = os.Open(ll.FileName)
+			ll.logFile, err = os.Open(ll.cfg.LogFile)
 			return err
 		}
 	}
