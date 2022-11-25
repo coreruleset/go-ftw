@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -19,7 +20,8 @@ var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Tests",
 	Long:  `Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
 		exclude, _ := cmd.Flags().GetString("exclude")
 		include, _ := cmd.Flags().GetString("include")
 		id, _ := cmd.Flags().GetString("id")
@@ -46,6 +48,7 @@ var runCmd = &cobra.Command{
 
 		if err != nil {
 			log.Fatal().Err(err)
+			return err
 		}
 
 		var includeRE *regexp.Regexp
@@ -71,11 +74,16 @@ var runCmd = &cobra.Command{
 			MaxMarkerRetries:  maxMarkerRetries,
 			MaxMarkerLogLines: maxMarkerLogLines,
 		}, out)
+
 		if err != nil {
 			log.Fatal().Err(err)
+			return err
 		}
-
-		os.Exit(currentRun.Stats.TotalFailed())
+		if currentRun.Stats.TotalFailed() > 0 {
+			errText := fmt.Errorf("failed %d tests", currentRun.Stats.TotalFailed())
+			err = errors.New(errText.Error())
+		}
+		return err
 	},
 }
 

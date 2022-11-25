@@ -21,14 +21,12 @@ import (
 var errBadTestRequest = errors.New("ftw/run: bad test: choose between data, encoded_request, or raw_request")
 
 // Run runs your tests with the specified Config.
-func Run(tests []test.FTWTest, c Config, out *output.Output) (TestRunContext, error) {
+func Run(tests []test.FTWTest, c Config, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
-
-	stats := NewRunStats()
 
 	logLines, err := waflog.NewFTWLogLines(waflog.WithLogFile(config.FTWConfig.LogFile))
 	if err != nil {
-		return TestRunContext{}, err
+		return &TestRunContext{}, err
 	}
 
 	conf := ftwhttp.NewClientConfig()
@@ -40,7 +38,7 @@ func Run(tests []test.FTWTest, c Config, out *output.Output) (TestRunContext, er
 	}
 	client, err := ftwhttp.NewClient(conf)
 	if err != nil {
-		return TestRunContext{}, err
+		return &TestRunContext{}, err
 	}
 	// TODO: These defaults shouldn't be initialized here but config intialization
 	// needs to be cleaned up properly first (e.g., with a `NewConfig()` function)
@@ -60,7 +58,7 @@ func Run(tests []test.FTWTest, c Config, out *output.Output) (TestRunContext, er
 		ShowOnlyFailed:    c.ShowOnlyFailed,
 		MaxMarkerRetries:  maxMarkerRetries,
 		MaxMarkerLogLines: maxMarkerLogLines,
-		Stats:             stats,
+		Stats:             NewRunStats(),
 		Client:            client,
 		LogLines:          logLines,
 		RunMode:           config.FTWConfig.RunMode,
@@ -68,7 +66,7 @@ func Run(tests []test.FTWTest, c Config, out *output.Output) (TestRunContext, er
 
 	for _, tc := range tests {
 		if err := RunTest(&runContext, tc); err != nil {
-			return TestRunContext{}, err
+			return &TestRunContext{}, err
 		}
 	}
 
@@ -76,7 +74,7 @@ func Run(tests []test.FTWTest, c Config, out *output.Output) (TestRunContext, er
 
 	defer cleanLogs(logLines)
 
-	return runContext, nil
+	return &runContext, nil
 }
 
 // RunTest runs an individual test.
