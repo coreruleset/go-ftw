@@ -20,7 +20,7 @@ import (
 
 var errBadTestRequest = errors.New("ftw/run: bad test: choose between data, encoded_request, or raw_request")
 
-// Run runs your tests with the specified Config. Returns error if some test failed
+// Run runs your tests with the specified Config.
 func Run(tests []test.FTWTest, c Config, out *output.Output) (TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
 
