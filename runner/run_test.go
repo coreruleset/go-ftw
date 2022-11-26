@@ -202,7 +202,7 @@ func (s *runTestSuite) newTestServer(logLines string) (destination *ftwhttp.Dest
 	}))
 
 	dest, err := ftwhttp.DestinationFromString((s.ts).URL)
-	s.NoError(err, "cannot get destination from string")
+	s.Require().NoError(err, "cannot get destination from string"))
 
 	return dest
 }
