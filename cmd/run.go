@@ -38,10 +38,12 @@ var runCmd = &cobra.Command{
 			wantedOutput = "normal"
 		}
 		if id != "" {
-			log.Fatal().Msgf("--id is deprecated in favour of --include|-i")
+			cmd.SilenceUsage = false
+			return errors.New("--id is deprecated in favour of --include|-i")
 		}
 		if exclude != "" && include != "" {
-			log.Fatal().Msgf("You need to choose one: use --include (%s) or --exclude (%s)", include, exclude)
+			cmd.SilenceUsage = false
+			return fmt.Errorf("You need to choose one: use --include (%s) or --exclude (%s)", include, exclude)
 		}
 		files := fmt.Sprintf("%s/**/*.yaml", dir)
 		tests, err := test.GetTestsFromFiles(files)
@@ -80,10 +82,9 @@ var runCmd = &cobra.Command{
 			return err
 		}
 		if currentRun.Stats.TotalFailed() > 0 {
-			errText := fmt.Errorf("failed %d tests", currentRun.Stats.TotalFailed())
-			err = errors.New(errText.Error())
+			return fmt.Errorf("failed %d tests", currentRun.Stats.TotalFailed())
 		}
-		return err
+		return nil
 	},
 }
 
