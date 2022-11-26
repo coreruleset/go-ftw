@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	"github.com/coreruleset/go-ftw/output"
@@ -49,7 +48,6 @@ var runCmd = &cobra.Command{
 		tests, err := test.GetTestsFromFiles(files)
 
 		if err != nil {
-			log.Fatal().Err(err)
 			return err
 		}
 
@@ -78,7 +76,6 @@ var runCmd = &cobra.Command{
 		}, out)
 
 		if err != nil {
-			log.Fatal().Err(err)
 			return err
 		}
 		if currentRun.Stats.TotalFailed() > 0 {
