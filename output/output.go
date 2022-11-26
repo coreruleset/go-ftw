@@ -90,6 +90,7 @@ func NewOutput(o string, w io.Writer) *Output {
 	log.Trace().Msgf("ftw/output: creating output %s\n", o)
 	out := &Output{
 		OutputType: Normal,
+		cat:        normalCatalog,
 		w:          w,
 	}
 	switch strings.ToLower(o) {
@@ -100,6 +101,7 @@ func NewOutput(o string, w io.Writer) *Output {
 	case "json":
 		out.OutputType = JSON
 	case "plain":
+		out.cat = createPlainCatalog(normalCatalog)
 		out.OutputType = Plain
 	case "normal":
 		break
@@ -112,25 +114,21 @@ func NewOutput(o string, w io.Writer) *Output {
 // Message predefined messages that might have different types depending on the output type.
 // All message in catalogs, where the text in the message is used as a key to get the corresponding text.
 func (o *Output) Message(key string) string {
-	var found bool
-	var text string
-	switch o.OutputType {
-	case Normal:
-		text, found = normalCatalog[key]
-		if !found {
-			text = ""
-		}
-	default:
-		text, found = normalCatalog[key]
-		if found {
-			text = key
-		} else {
-			text = ""
-		}
+	text, found := o.cat[key]
+	if !found {
+		text = ""
 	}
 	return text
 }
 
 func (o *Output) IsJson() bool {
 	return o.OutputType == JSON
+}
+
+func createPlainCatalog(c catalog) catalog {
+	plainCatalog := catalog{}
+	for k := range c {
+		plainCatalog[k] = k
+	}
+	return plainCatalog
 }

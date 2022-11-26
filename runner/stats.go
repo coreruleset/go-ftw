@@ -44,12 +44,12 @@ type RunStats struct {
 func NewRunStats() *RunStats {
 	return &RunStats{
 		Run:        0,
-		Success:    nil,
-		Failed:     nil,
-		Skipped:    nil,
-		Ignored:    nil,
-		ForcedPass: nil,
-		ForcedFail: nil,
+		Success:    []string{},
+		Failed:     []string{},
+		Skipped:    []string{},
+		Ignored:    []string{},
+		ForcedPass: []string{},
+		ForcedFail: []string{},
 		RunTime:    make(map[string]time.Duration),
 		TotalTime:  0,
 	}

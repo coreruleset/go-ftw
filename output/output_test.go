@@ -36,3 +36,31 @@ func TestOutput(t *testing.T) {
 		}
 	}
 }
+
+func TestNormalCatalogOutput(t *testing.T) {
+	var b bytes.Buffer
+
+	normal := NewOutput("normal", &b)
+	for _, v := range normalCatalog {
+		normal.RawPrint(v)
+		if b.String() != v {
+			t.Error("output is not equal")
+		}
+		// reset buffer
+		b.Reset()
+	}
+}
+
+func TestPlainCatalogOutput(t *testing.T) {
+	var b bytes.Buffer
+
+	normal := NewOutput("normal", &b)
+	for _, v := range createPlainCatalog(normalCatalog) {
+		normal.RawPrint(v)
+		if b.String() != v {
+			t.Error("plain output is not equal")
+		}
+		// reset buffer
+		b.Reset()
+	}
+}

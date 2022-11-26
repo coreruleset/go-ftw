@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	"github.com/coreruleset/go-ftw/output"
@@ -19,7 +19,8 @@ var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Tests",
 	Long:  `Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.SilenceUsage = true
 		exclude, _ := cmd.Flags().GetString("exclude")
 		include, _ := cmd.Flags().GetString("include")
 		id, _ := cmd.Flags().GetString("id")
@@ -36,16 +37,18 @@ var runCmd = &cobra.Command{
 			wantedOutput = "normal"
 		}
 		if id != "" {
-			log.Fatal().Msgf("--id is deprecated in favour of --include|-i")
+			cmd.SilenceUsage = false
+			return errors.New("--id is deprecated in favour of --include|-i")
 		}
 		if exclude != "" && include != "" {
-			log.Fatal().Msgf("You need to choose one: use --include (%s) or --exclude (%s)", include, exclude)
+			cmd.SilenceUsage = false
+			return fmt.Errorf("You need to choose one: use --include (%s) or --exclude (%s)", include, exclude)
 		}
 		files := fmt.Sprintf("%s/**/*.yaml", dir)
 		tests, err := test.GetTestsFromFiles(files)
 
 		if err != nil {
-			log.Fatal().Err(err)
+			return err
 		}
 
 		var includeRE *regexp.Regexp
@@ -71,11 +74,14 @@ var runCmd = &cobra.Command{
 			MaxMarkerRetries:  maxMarkerRetries,
 			MaxMarkerLogLines: maxMarkerLogLines,
 		}, out)
-		if err != nil {
-			log.Fatal().Err(err)
-		}
 
-		os.Exit(currentRun.Stats.TotalFailed())
+		if err != nil {
+			return err
+		}
+		if currentRun.Stats.TotalFailed() > 0 {
+			return fmt.Errorf("failed %d tests", currentRun.Stats.TotalFailed())
+		}
+		return nil
 	},
 }
 
