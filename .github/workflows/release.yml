@@ -41,5 +41,6 @@ jobs:
           version: latest
           args: release --rm-dist
         env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
