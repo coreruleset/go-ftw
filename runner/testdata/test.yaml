@@ -10,13 +10,13 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: "{{ .test_addr }}"
+            dest_addr: "{{ .TestAddr }}"
             # -1 designates port value must be replaced by test setup
-            port: -1
+            port: {{ .TestPort }}
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
               Accept: "*/*"
-              Host: "{{ .test_addr }}"
+              Host: "{{ .TestAddr }}"
           output:
             expect_error: False
             status: [200]
@@ -25,9 +25,9 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: "{{ .test_addr }}"
+            dest_addr: "{{ .TestAddr }}"
             # -1 designates port value must be replaced by test setup
-            port: -1
+            port: {{ .TestPort }}
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
               Accept: "*/*"
@@ -40,7 +40,7 @@ tests:
           input:
             dest_addr: "{{ .test_addr }}"
             # -1 designates port value must be replaced by test setup
-            port: -1
+            port: {{ .TestPort }}
             version: "HTTP/1.1"
             method: "OTHER"
             headers:
@@ -54,7 +54,7 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: "{{ .test_addr }}"
+            dest_addr: "{{ .TestAddr }}"
             port: 8090
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
@@ -67,7 +67,7 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: "{{ .test_addr }}"
+            dest_addr: "{{ .TestAddr }}"
             port: 8090
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"

@@ -1,6 +1,6 @@
 ---
 testoverride:
   input:
-    dest_addr: "TEST_ADDR"
-    port: %d
+    dest_addr: "{{ .TestAddr }}"
+    port: {{ .TestPort }}
     protocol: "http"
