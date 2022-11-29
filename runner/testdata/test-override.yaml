@@ -10,9 +10,9 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: "TEST_ADDR"
+            dest_addr: "{{ .TestAddr }}"
             # -1 designates port value must be replaced by test setup
-            port: -1
+            port: {{ .TestPort }}
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
               Host: "TEST_ADDR"

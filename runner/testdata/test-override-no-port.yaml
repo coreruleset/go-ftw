@@ -10,10 +10,10 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: "TEST_ADDR"
+            dest_addr: "{{ .TestAddr }}"
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
-              Host: "TEST_ADDR"
+              Host: "{{ .TestAddr }}"
           output:
             expect_error: False
             status: [200]

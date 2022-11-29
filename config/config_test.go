@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 	"os"
@@ -37,6 +38,7 @@ doesNotExist: ""
 type fileTestSuite struct {
 	suite.Suite
 	filename string
+    cfg config.FTWConfig
 }
 
 func TestConfigTestSuite(t *testing.T) {
@@ -47,16 +49,20 @@ func (s *fileTestSuite) SetupTest() {
 }
 
 func (s *fileTestSuite) BeforeTest(_, name string) {
-    s.filename, _ = utils.CreateTempFileWithContent(testData[name], "test-*.yaml")
-    cfg, err := NewConfigFromFile(s.filename)
-    s.NoError(err)
+	fmt.Printf("Reading data for %s\n", name)
+	s.filename, _ = utils.CreateTempFileWithContent(testData[name], "test-*.yaml")
+	s.cfg, err := NewConfigFromFile(s.filename)
+	s.NoError(err)
+    s.NotNil(cfg)
 }
 
 func (s *fileTestSuite) AfterTest(_ string, _ string) {
-    if s.filename != "" {
-        _ = os.Remove(s.filename)
-        log.Info().Msgf("Deleting temporary file '%s'", s.filename)
-    }
+	if s.filename != "" {
+		_ = os.Remove(s.filename)
+		log.Info().Msgf("Deleting temporary file '%s'", s.filename)
+		s.filename = ""
+	}
+	Reset()
 }
 
 func (s *fileTestSuite)TestNewDefaultConfig() {
@@ -75,15 +81,9 @@ func (s *fileTestSuite)TestNewConfigBadFileConfig() {
 }
 
 func (s *fileTestSuite) TestNewConfigFromFile() {
-	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-*.yaml")
+	s.NotEmpty(s.cfg.TestOverride.Overrides, "Ignore list must not be empty")
 
-	cfg, err := NewConfigFromFile(filename)
-
-	s.NoError(err)
-	s.NotNil(cfg)
-	s.NotEmpty(cfg.TestOverride.Overrides, "Ignore list must not be empty")
-
-	for id, text := range cfg.TestOverride.Ignore {
+	for id, text := range s.cfg.TestOverride.Ignore {
 		s.Contains((*regexp.Regexp)(id).String(), "920400-1$", "Looks like we could not find item to ignore")
 		s.Equal("This test must be ignored", text, "Text doesn't match")
 	}
@@ -94,21 +94,14 @@ func (s *fileTestSuite) TestNewConfigFromFile() {
 }
 
 func (s *fileTestSuite) TestNewConfigBadConfig() {
-	filename, _ := utils.CreateTempFileWithContent(yamlBadConfig, "test-*.yaml")
-	defer os.Remove(filename)
-	cfg, err := NewConfigFromFile(filename)
-
-	s.NoError(err)
-	s.NotNil(cfg)
+    // contents come from yamlBadConfig
+	s.NotNil(s.cfg)
 }
 
 func (s *fileTestSuite) TestNewConfigDefaultConfig() {
 	// For this test we need a local .ftw.yaml file
-	fileName := ".ftw.yaml"
-	_ = os.WriteFile(fileName, []byte(testData["ok"]), 0644)
-	t.Cleanup(func() {
-		os.Remove(fileName)
-	})
+	s.filename = ".ftw.yaml"
+	_ = os.WriteFile(s.filename, []byte(testData["ok"]), 0644)
 
 	cfg, err := NewConfigFromFile("")
 	s.NoError(err)
