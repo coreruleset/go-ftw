@@ -371,5 +371,52 @@ The rule looks for an HTTP header named `X-CRS-Test` and writes its value to the
 
 You can configure the name of the HTTP header by setting the `logmarkerheadername` option in the configuration to a custom value (the value is case insensitive).
 
+## Library usage
+
+`go-ftw` can be used as a library also. Just include it in your project:
+```sh
+go get github.com/coreruleset/go-ftw
+```
+```go
+     // sample from https://github.com/corazawaf/coraza/blob/v3/dev/testing/coreruleset/coreruleset_test.go#L215-L251
+     var tests []test.FTWTest
+     err = doublestar.GlobWalk(crsReader, "tests/regression/tests/**/*.yaml", func(path string, d os.DirEntry) error {
+         yaml, err := fs.ReadFile(crsReader, path)
+         if err != nil {
+             return err
+         }
+         t, err := test.GetTestFromYaml(yaml)
+         if err != nil {
+             return err
+         }
+         tests = append(tests, t)
+         return nil
+     })
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     u, _ := url.Parse(s.URL)
+     host := u.Hostname()
+     port, _ := strconv.Atoi(u.Port())
+     zerolog.SetGlobalLevel(zerolog.InfoLevel)
+     _ = config.NewConfigFromFile(".ftw.yml")
+     config.FTWConfig.LogFile = errorPath
+     config.FTWConfig.TestOverride.Input.DestAddr = &host
+     config.FTWConfig.TestOverride.Input.Port = &port
+
+     res, err := runner.Run(tests, runner.Config{
+         ShowTime: false,
+     }, output.NewOutput("quiet", os.Stdout))
+     if err != nil {
+         t.Fatal(err)
+     }
+
+     if len(res.Stats.Failed) > 0 {
+         t.Errorf("failed tests: %v", res.Stats.Failed)
+     }
+```
+
+
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcoreruleset%2Fgo-ftw.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcoreruleset%2Fgo-ftw?ref=badge_large)
