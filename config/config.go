@@ -118,3 +118,20 @@ func NewConfigFromString(conf string) (*FTWConfiguration, error) {
 
 	return cfg, err
 }
+
+// WithLogfile changes the logfile in the configuration.
+func (c *FTWConfiguration) WithLogfile(logfile string) {
+	c.LogFile = logfile
+}
+
+func (c *FTWConfiguration) WithOverrides(overrides FTWTestOverride) {
+	c.TestOverride = overrides
+}
+
+func (c *FTWConfiguration) WithRunMode(runmode RunMode) {
+	c.RunMode = runmode
+}
+
+func (c *FTWConfiguration) WithLogMarkerHeaderName(name string) {
+	c.LogMarkerHeaderName = name
+}

@@ -26,12 +26,12 @@ mode: "cloud"
 `
 
 func TestNewCheck(t *testing.T) {
-	err := config.NewConfigFromString(yamlNginxConfig)
+	cfg, err := config.NewConfigFromString(yamlNginxConfig)
 	assert.NoError(t, err)
 
-	c := NewCheck(config.FTWConfig)
+	c := NewCheck(cfg)
 
-	for _, text := range c.overrides.Ignore {
+	for _, text := range c.cfg.TestOverride.Ignore {
 		assert.Equal(t, text, "Ignore Me", "Well, didn't match Ignore Me")
 	}
 
@@ -52,10 +52,10 @@ func TestNewCheck(t *testing.T) {
 }
 
 func TestForced(t *testing.T) {
-	err := config.NewConfigFromString(yamlNginxConfig)
+	cfg, err := config.NewConfigFromString(yamlNginxConfig)
 	assert.NoError(t, err)
 
-	c := NewCheck(config.FTWConfig)
+	c := NewCheck(cfg)
 
 	assert.True(t, c.ForcedIgnore("942200-1"), "Can't find ignored value")
 
@@ -65,10 +65,10 @@ func TestForced(t *testing.T) {
 }
 
 func TestCloudMode(t *testing.T) {
-	err := config.NewConfigFromString(yamlCloudConfig)
+	cfg, err := config.NewConfigFromString(yamlCloudConfig)
 	assert.NoError(t, err)
 
-	c := NewCheck(config.FTWConfig)
+	c := NewCheck(cfg)
 
 	assert.True(t, c.CloudMode(), "couldn't detect cloud mode")
 

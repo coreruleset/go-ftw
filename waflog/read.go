@@ -35,10 +35,6 @@ func (ll *FTWLogLines) Contains(match string) bool {
 func (ll *FTWLogLines) getMarkedLines() [][]byte {
 	var found [][]byte
 
-	if err := ll.openLogFile(); err != nil {
-		log.Error().Caller().Msgf("cannot open log file: %s", err)
-	}
-
 	fi, err := ll.logFile.Stat()
 	if err != nil {
 		log.Error().Caller().Msgf("cannot read file's size")
@@ -93,7 +89,7 @@ func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit int) []byte {
 	}
 	scanner := backscanner.NewOptions(ll.logFile, int(offset), backscannerOptions)
 	stageIDBytes := []byte(stageID)
-	crsHeaderBytes := bytes.ToLower([]byte(ll.cfg.LogMarkerHeaderName))
+	crsHeaderBytes := bytes.ToLower([]byte(ll.LogMarkerHeaderName))
 
 	var line []byte
 	lineCounter := 0

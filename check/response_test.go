@@ -23,10 +23,10 @@ var expectedResponseFailTests = []struct {
 }
 
 func TestAssertResponseTextErrorOK(t *testing.T) {
-	err := config.NewConfigFromString(yamlApacheConfig)
+	cfg, err := config.NewConfigFromString(yamlApacheConfig)
 	assert.NoError(t, err)
 
-	c := NewCheck(config.FTWConfig)
+	c := NewCheck(cfg)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)
 		assert.Truef(t, c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
@@ -34,10 +34,10 @@ func TestAssertResponseTextErrorOK(t *testing.T) {
 }
 
 func TestAssertResponseTextFailOK(t *testing.T) {
-	err := config.NewConfigFromString(yamlApacheConfig)
+	cfg, err := config.NewConfigFromString(yamlApacheConfig)
 	assert.NoError(t, err)
 
-	c := NewCheck(config.FTWConfig)
+	c := NewCheck(cfg)
 	for _, e := range expectedResponseFailTests {
 		c.SetExpectResponse(e.expected)
 		assert.Falsef(t, c.AssertResponseContains(e.response), "response shouldn't contain text %v", e.response)

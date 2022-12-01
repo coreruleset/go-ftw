@@ -32,9 +32,9 @@ func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
 	cfg.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
-	ll, err := NewFTWLogLines(WithStartMarker([]byte(markerLine)))
+	ll, err := NewFTWLogLines(cfg)
 	assert.NoError(t, err)
-
+	ll.WithStartMarker([]byte(markerLine))
 	marker := ll.CheckLogForMarker(stageID, 100)
 	assert.Equal(t, string(marker), strings.ToLower(markerLine), "unexpectedly found marker")
 }
@@ -57,7 +57,8 @@ func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
 	cfg.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
-	ll, err := NewFTWLogLines(WithStartMarker([]byte(markerLine)))
+	ll, err := NewFTWLogLines(cfg)
+	ll.WithStartMarker([]byte(markerLine))
 	assert.NoError(t, err)
 
 	marker := ll.CheckLogForMarker(stageID, 100)
@@ -85,10 +86,10 @@ func TestReadGetMarkedLines(t *testing.T) {
 	cfg.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
-	ll, err := NewFTWLogLines(
-		WithStartMarker(bytes.ToLower([]byte(startMarkerLine))),
-		WithEndMarker(bytes.ToLower([]byte(endMarkerLine))))
+	ll, err := NewFTWLogLines(cfg)
 	assert.NoError(t, err)
+	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
+	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
 	foundLines := ll.getMarkedLines()
 	// logs are scanned backwards
@@ -123,10 +124,10 @@ func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
 	cfg.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
-	ll, err := NewFTWLogLines(
-		WithStartMarker(bytes.ToLower([]byte(startMarkerLine))),
-		WithEndMarker(bytes.ToLower([]byte(endMarkerLine))))
+	ll, err := NewFTWLogLines(cfg)
 	assert.NoError(t, err)
+	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
+	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
 	foundLines := ll.getMarkedLines()
 	// logs are scanned backwards
@@ -164,10 +165,10 @@ func TestReadGetMarkedLinesWithPrecedingLines(t *testing.T) {
 	cfg.LogFile = filename
 	t.Cleanup(func() { os.Remove(filename) })
 
-	ll, err := NewFTWLogLines(
-		WithStartMarker(bytes.ToLower([]byte(startMarkerLine))),
-		WithEndMarker(bytes.ToLower([]byte(endMarkerLine))))
+	ll, err := NewFTWLogLines(cfg)
 	assert.NoError(t, err)
+	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
+	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
 	foundLines := ll.getMarkedLines()
 	// logs are scanned backwards
@@ -205,16 +206,16 @@ func TestFTWLogLines_Contains(t *testing.T) {
 	t.Cleanup(func() { os.Remove(filename) })
 
 	type fields struct {
-		logFile     *os.File
-		FileName    string
-		StartMarker []byte
-		EndMarker   []byte
+		logFile             *os.File
+		LogMarkerHeaderName []byte
+		StartMarker         []byte
+		EndMarker           []byte
 	}
 	f := fields{
-		logFile:     log,
-		FileName:    filename,
-		StartMarker: []byte(markerLine),
-		EndMarker:   []byte(markerLine),
+		logFile:             log,
+		LogMarkerHeaderName: []byte(cfg.LogMarkerHeaderName),
+		StartMarker:         []byte(markerLine),
+		EndMarker:           []byte(markerLine),
 	}
 
 	type args struct {
@@ -246,10 +247,10 @@ func TestFTWLogLines_Contains(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ll := &FTWLogLines{
-				cfg:         cfg,
-				logFile:     tt.fields.logFile,
-				StartMarker: bytes.ToLower(tt.fields.StartMarker),
-				EndMarker:   bytes.ToLower(tt.fields.EndMarker),
+				logFile:             tt.fields.logFile,
+				LogMarkerHeaderName: bytes.ToLower(tt.fields.LogMarkerHeaderName),
+				StartMarker:         bytes.ToLower(tt.fields.StartMarker),
+				EndMarker:           bytes.ToLower(tt.fields.EndMarker),
 			}
 			got := ll.Contains(tt.args.match)
 			assert.Equalf(t, tt.want, got, "Contains() = %v, want %v", got, tt.want)
@@ -280,16 +281,16 @@ func TestFTWLogLines_ContainsIn404(t *testing.T) {
 	t.Cleanup(func() { os.Remove(filename) })
 
 	type fields struct {
-		logFile     *os.File
-		FileName    string
-		StartMarker []byte
-		EndMarker   []byte
+		logFile             *os.File
+		LogMarkerHeaderName []byte
+		StartMarker         []byte
+		EndMarker           []byte
 	}
 	f := fields{
-		logFile:     log,
-		FileName:    filename,
-		StartMarker: []byte(markerLine),
-		EndMarker:   []byte(markerLine),
+		logFile:             log,
+		LogMarkerHeaderName: []byte(cfg.LogMarkerHeaderName),
+		StartMarker:         []byte(markerLine),
+		EndMarker:           []byte(markerLine),
 	}
 
 	type args struct {
@@ -313,10 +314,10 @@ func TestFTWLogLines_ContainsIn404(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ll := &FTWLogLines{
-				cfg:         cfg,
-				logFile:     tt.fields.logFile,
-				StartMarker: bytes.ToLower(tt.fields.StartMarker),
-				EndMarker:   bytes.ToLower(tt.fields.EndMarker),
+				logFile:             tt.fields.logFile,
+				LogMarkerHeaderName: bytes.ToLower(tt.fields.LogMarkerHeaderName),
+				StartMarker:         bytes.ToLower(tt.fields.StartMarker),
+				EndMarker:           bytes.ToLower(tt.fields.EndMarker),
 			}
 			got := ll.Contains(tt.args.match)
 			assert.Equalf(t, tt.want, got, "Contains() = %v, want %v", got, tt.want)
@@ -347,10 +348,10 @@ func TestFTWLogLines_CheckForLogMarkerIn404(t *testing.T) {
 	t.Cleanup(func() { os.Remove(filename) })
 
 	ll := &FTWLogLines{
-		cfg:         cfg,
-		logFile:     log,
-		StartMarker: bytes.ToLower([]byte(markerLine)),
-		EndMarker:   bytes.ToLower([]byte(markerLine)),
+		logFile:             log,
+		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
+		StartMarker:         bytes.ToLower([]byte(markerLine)),
+		EndMarker:           bytes.ToLower([]byte(markerLine)),
 	}
 	foundMarker := ll.CheckLogForMarker(stageID, 100)
 	assert.Equal(t, strings.ToLower(markerLine), strings.ToLower(string(foundMarker)))

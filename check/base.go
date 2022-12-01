@@ -10,21 +10,19 @@ import (
 
 // FTWCheck is the base struct for checking test results
 type FTWCheck struct {
-	log       *waflog.FTWLogLines
-	expected  *test.Output
-	overrides *config.FTWTestOverride
+	log      *waflog.FTWLogLines
+	expected *test.Output
+	cfg      *config.FTWConfiguration
 }
 
 // NewCheck creates a new FTWCheck, allowing to inject the configuration
 func NewCheck(c *config.FTWConfiguration) *FTWCheck {
+	//TODO: check error
+	ll, _ := waflog.NewFTWLogLines(c)
 	check := &FTWCheck{
-		log: &waflog.FTWLogLines{
-			FileName:    c.LogFile,
-			StartMarker: nil,
-			EndMarker:   nil,
-		},
-		expected:  &test.Output{},
-		overrides: &c.TestOverride,
+		log:      ll,
+		cfg:      c,
+		expected: &test.Output{},
 	}
 
 	return check
@@ -62,7 +60,7 @@ func (c *FTWCheck) SetNoLogContains(contains string) {
 
 // ForcedIgnore check if this id need to be ignored from results
 func (c *FTWCheck) ForcedIgnore(id string) bool {
-	for re := range c.overrides.Ignore {
+	for re := range c.cfg.TestOverride.Ignore {
 		if re.MatchString(id) {
 			return true
 		}
@@ -72,7 +70,7 @@ func (c *FTWCheck) ForcedIgnore(id string) bool {
 
 // ForcedPass check if this id need to be ignored from results
 func (c *FTWCheck) ForcedPass(id string) bool {
-	for re := range c.overrides.ForcePass {
+	for re := range c.cfg.TestOverride.ForcePass {
 		if re.MatchString(id) {
 			return true
 		}
@@ -82,7 +80,7 @@ func (c *FTWCheck) ForcedPass(id string) bool {
 
 // ForcedFail check if this id need to be ignored from results
 func (c *FTWCheck) ForcedFail(id string) bool {
-	for re := range c.overrides.ForceFail {
+	for re := range c.cfg.TestOverride.ForceFail {
 		if re.MatchString(id) {
 			return true
 		}
@@ -92,7 +90,7 @@ func (c *FTWCheck) ForcedFail(id string) bool {
 
 // CloudMode returns true if we are running in cloud mode
 func (c *FTWCheck) CloudMode() bool {
-	return config.FTWConfig.RunMode == config.CloudRunMode
+	return c.cfg.RunMode == config.CloudRunMode
 }
 
 // SetCloudMode alters the values for expected logs and status code

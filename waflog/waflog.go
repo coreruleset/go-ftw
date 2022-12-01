@@ -9,57 +9,34 @@ import (
 	"github.com/coreruleset/go-ftw/config"
 )
 
-var errNoLogFile = errors.New("no log file supplied")
-
 // NewFTWLogLines is the base struct for reading the log file
-func NewFTWLogLines(opts ...FTWLogOption) (*FTWLogLines, error) {
+func NewFTWLogLines(cfg *config.FTWConfiguration) (*FTWLogLines, error) {
 	ll := &FTWLogLines{
-		cfg:         nil,
-		logFile:     nil,
-		StartMarker: nil,
-		EndMarker:   nil,
+		logFile:             nil,
+		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
+		StartMarker:         nil,
+		EndMarker:           nil,
 	}
 
-	// Loop through each option
-	for _, opt := range opts {
-		// Call the option giving the instantiated
-		// *FTWLogOption as the argument
-		opt(ll)
-	}
-
-	if ll.cfg == nil {
-		return nil, errors.New("no global config")
-	}
-	if err := ll.openLogFile(); err != nil {
+	if err := ll.openLogFile(cfg); err != nil {
 		return nil, fmt.Errorf("cannot open log file: %w", err)
 	}
 
-	if ll.cfg.RunMode == config.DefaultRunMode && ll.logFile == nil {
-		return nil, errNoLogFile
+	if cfg.RunMode == config.DefaultRunMode && ll.logFile == nil {
+		return nil, errors.New("no log file supplied")
 	}
 
 	return ll, nil
 }
 
 // WithStartMarker sets the start marker for the log file
-func WithStartMarker(marker []byte) FTWLogOption {
-	return func(ll *FTWLogLines) {
-		ll.StartMarker = bytes.ToLower(marker)
-	}
+func (ll *FTWLogLines) WithStartMarker(marker []byte) {
+	ll.StartMarker = bytes.ToLower(marker)
 }
 
 // WithEndMarker sets the end marker for the log file
-func WithEndMarker(marker []byte) FTWLogOption {
-	return func(ll *FTWLogLines) {
-		ll.EndMarker = bytes.ToLower(marker)
-	}
-}
-
-// WithLogFile sets the log file to read
-func WithConfig(cfg *config.FTWConfiguration) FTWLogOption {
-	return func(ll *FTWLogLines) {
-		ll.cfg = cfg
-	}
+func (ll *FTWLogLines) WithEndMarker(marker []byte) {
+	ll.EndMarker = bytes.ToLower(marker)
 }
 
 // Cleanup closes the log file
@@ -70,12 +47,12 @@ func (ll *FTWLogLines) Cleanup() error {
 	return nil
 }
 
-func (ll *FTWLogLines) openLogFile() error {
+func (ll *FTWLogLines) openLogFile(cfg *config.FTWConfiguration) error {
 	// Using a log file is not required in cloud mode
-	if ll.cfg.RunMode == config.DefaultRunMode {
-		if ll.cfg.LogFile != "" && ll.logFile == nil {
+	if cfg.RunMode == config.DefaultRunMode {
+		if cfg.LogFile != "" && ll.logFile == nil {
 			var err error
-			ll.logFile, err = os.Open(ll.cfg.LogFile)
+			ll.logFile, err = os.Open(cfg.LogFile)
 			return err
 		}
 	}

@@ -64,7 +64,7 @@ var runCmd = &cobra.Command{
 		out := output.NewOutput(wantedOutput, os.Stdout)
 		_ = out.Println("%s", out.Message("** Starting tests!"))
 
-		currentRun, err := runner.Run(cfg, tests, runner.Config{
+		currentRun, err := runner.Run(cfg, tests, runner.RunnerConfig{
 			Include:           includeRE,
 			Exclude:           excludeRE,
 			ShowTime:          showTime,

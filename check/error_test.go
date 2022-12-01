@@ -26,10 +26,10 @@ var expectedFailTests = []struct {
 }
 
 func TestAssertResponseErrorOK(t *testing.T) {
-	err := config.NewConfigFromString(yamlApacheConfig)
+	cfg, err := config.NewConfigFromString(yamlApacheConfig)
 	assert.NoError(t, err)
 
-	c := NewCheck(config.FTWConfig)
+	c := NewCheck(cfg)
 	for _, e := range expectedOKTests {
 		c.SetExpectError(e.expected)
 		assert.Equal(t, e.expected, c.AssertExpectError(e.err))
@@ -37,10 +37,10 @@ func TestAssertResponseErrorOK(t *testing.T) {
 }
 
 func TestAssertResponseFail(t *testing.T) {
-	err := config.NewConfigFromString(yamlApacheConfig)
+	cfg, err := config.NewConfigFromString(yamlApacheConfig)
 	assert.NoError(t, err)
 
-	c := NewCheck(config.FTWConfig)
+	c := NewCheck(cfg)
 
 	for _, e := range expectedFailTests {
 		c.SetExpectError(e.expected)
