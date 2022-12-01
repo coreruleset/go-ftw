@@ -25,11 +25,9 @@ var errBadTestRequest = errors.New("ftw/run: bad test: choose between data, enco
 func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out *output.Output) (TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
 
-	stats := NewRunStats()
-
 	logLines, err := waflog.NewFTWLogLines(cfg)
 	if err != nil {
-		return &TestRunContext{}, err
+		return TestRunContext{}, err
 	}
 
 	conf := ftwhttp.NewClientConfig()
@@ -41,7 +39,7 @@ func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out
 	}
 	client, err := ftwhttp.NewClient(conf)
 	if err != nil {
-		return &TestRunContext{}, err
+		return TestRunContext{}, err
 	}
 	// TODO: These defaults shouldn't be initialized here but config intialization
 	// needs to be cleaned up properly first (e.g., with a `NewConfig()` function)
@@ -77,7 +75,7 @@ func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out
 
 	defer cleanLogs(logLines)
 
-	return &runContext, nil
+	return runContext, nil
 }
 
 // RunTest runs an individual test.
