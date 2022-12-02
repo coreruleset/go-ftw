@@ -14,7 +14,6 @@ func TestNewFTWLogLines(t *testing.T) {
 
 	// Don't call NewFTWLogLines to avoid opening the file.
 	ll := &FTWLogLines{}
-	// Loop through each option
 	ll.WithStartMarker([]byte("#"))
 	ll.WithEndMarker([]byte("#"))
 

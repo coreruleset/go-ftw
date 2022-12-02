@@ -82,7 +82,6 @@ func NewConfigFromFile(cfgFile string) (*FTWConfiguration, error) {
 
 // NewConfigFromEnv reads configuration information from environment variables that start with `FTW_`
 func NewConfigFromEnv() (*FTWConfiguration, error) {
-	// koanf merges by default, but we never want to merge in this case
 	var err error
 	var k = koanf.New(".")
 	cfg := NewDefaultConfig()
@@ -103,7 +102,6 @@ func NewConfigFromEnv() (*FTWConfiguration, error) {
 
 // NewConfigFromString initializes the configuration from a yaml formatted string. Useful for testing.
 func NewConfigFromString(conf string) (*FTWConfiguration, error) {
-	// koanf merges by default, but we never want to merge in this case
 	var k = koanf.New(".")
 	var err error
 	cfg := NewDefaultConfig()
