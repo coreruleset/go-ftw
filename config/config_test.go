@@ -175,9 +175,6 @@ func TestNewConfigFromFileRunMode(t *testing.T) {
 
 func TestNewDefaultConfigWithParams(t *testing.T) {
 	cfg := NewDefaultConfig()
-	assert.Equal(t, DefaultLogMarkerHeaderName, cfg.LogMarkerHeaderName)
-	assert.Equal(t, DefaultRunMode, cfg.RunMode)
-	assert.Equal(t, "", cfg.LogFile)
 	cfg.WithLogfile("mylogfile.log")
 	assert.Equal(t, "mylogfile.log", cfg.LogFile)
 	overrides := FTWTestOverride{

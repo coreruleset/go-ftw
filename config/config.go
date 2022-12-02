@@ -122,14 +122,17 @@ func (c *FTWConfiguration) WithLogfile(logfile string) {
 	c.LogFile = logfile
 }
 
+// WithOverrides sets the overrides in the configuration.
 func (c *FTWConfiguration) WithOverrides(overrides FTWTestOverride) {
 	c.TestOverride = overrides
 }
 
-func (c *FTWConfiguration) WithRunMode(runmode RunMode) {
-	c.RunMode = runmode
+// WithRunMode sets the RunMode.
+func (c *FTWConfiguration) WithRunMode(runMode RunMode) {
+	c.RunMode = runMode
 }
 
+// WithLogMarkerHeaderName sets the new LogMarker header name.
 func (c *FTWConfiguration) WithLogMarkerHeaderName(name string) {
 	c.LogMarkerHeaderName = name
 }
