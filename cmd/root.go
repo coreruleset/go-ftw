@@ -17,6 +17,8 @@ var (
 	cloud   bool
 )
 
+var cfg = config.NewDefaultConfig()
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "ftw run",
@@ -52,14 +54,15 @@ func initConfig() {
 	if trace {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	}
-	errFile := config.NewConfigFromFile(cfgFile)
+	cfg, errFile := config.NewConfigFromFile(cfgFile)
 	if errFile != nil {
-		errEnv := config.NewConfigFromEnv()
+		cfgenv, errEnv := config.NewConfigFromEnv()
 		if errEnv != nil {
 			log.Fatalf("cannot read config from file (%s) nor environment (%s).", errFile.Error(), errEnv.Error())
 		}
+		cfg = cfgenv
 	}
 	if cloud {
-		config.FTWConfig.RunMode = config.CloudRunMode
+		cfg.RunMode = config.CloudRunMode
 	}
 }

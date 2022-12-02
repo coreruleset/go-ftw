@@ -17,14 +17,14 @@ var logText = `[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 1396834345
 `
 
 func TestAssertLogContainsOK(t *testing.T) {
-	err := config.NewConfigFromString(yamlApacheConfig)
+	cfg, err := config.NewConfigFromString(yamlApacheConfig)
 	assert.NoError(t, err)
 
 	logName, _ := utils.CreateTempFileWithContent(logText, "test-*.log")
 	defer os.Remove(logName)
-	config.FTWConfig.LogFile = logName
+	cfg.WithLogfile(logName)
 
-	c := NewCheck(config.FTWConfig)
+	c := NewCheck(cfg)
 
 	c.SetLogContains(`id "920300"`)
 	assert.True(t, c.AssertLogContains(), "did not find expected content 'id \"920300\"'")

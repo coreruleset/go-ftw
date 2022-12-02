@@ -11,8 +11,8 @@ import (
 	"github.com/coreruleset/go-ftw/waflog"
 )
 
-// Config provides configuration for the test runner.
-type Config struct {
+// RunnerConfig provides configuration for the test runner.
+type RunnerConfig struct {
 	// Include is a regular expression to filter tests to include. If nil, all tests are included.
 	Include *regexp.Regexp
 	// Exclude is a regular expression to filter tests to exclude. If nil, no tests are excluded.
@@ -37,6 +37,7 @@ type Config struct {
 // This includes configuration information as well as statistics
 // and results.
 type TestRunContext struct {
+	Config            *config.FTWConfiguration
 	Include           *regexp.Regexp
 	Exclude           *regexp.Regexp
 	ShowTime          bool
@@ -49,5 +50,4 @@ type TestRunContext struct {
 	Duration          time.Duration
 	Client            *ftwhttp.Client
 	LogLines          *waflog.FTWLogLines
-	RunMode           config.RunMode
 }

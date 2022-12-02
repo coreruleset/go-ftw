@@ -6,11 +6,12 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/coreruleset/go-ftw/config"
+
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/check"
-	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/test"
@@ -21,10 +22,10 @@ import (
 var errBadTestRequest = errors.New("ftw/run: bad test: choose between data, encoded_request, or raw_request")
 
 // Run runs your tests with the specified Config.
-func Run(tests []test.FTWTest, c Config, out *output.Output) (*TestRunContext, error) {
+func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
 
-	logLines, err := waflog.NewFTWLogLines(waflog.WithLogFile(config.FTWConfig.LogFile))
+	logLines, err := waflog.NewFTWLogLines(cfg)
 	if err != nil {
 		return &TestRunContext{}, err
 	}
@@ -50,7 +51,8 @@ func Run(tests []test.FTWTest, c Config, out *output.Output) (*TestRunContext, e
 	if maxMarkerLogLines == 0 {
 		maxMarkerLogLines = 500
 	}
-	runContext := TestRunContext{
+	runContext := &TestRunContext{
+		Config:            cfg,
 		Include:           c.Include,
 		Exclude:           c.Exclude,
 		ShowTime:          c.ShowTime,
@@ -61,11 +63,10 @@ func Run(tests []test.FTWTest, c Config, out *output.Output) (*TestRunContext, e
 		Stats:             NewRunStats(),
 		Client:            client,
 		LogLines:          logLines,
-		RunMode:           config.FTWConfig.RunMode,
 	}
 
 	for _, tc := range tests {
-		if err := RunTest(&runContext, tc); err != nil {
+		if err := RunTest(runContext, tc); err != nil {
 			return &TestRunContext{}, err
 		}
 	}
@@ -74,7 +75,7 @@ func Run(tests []test.FTWTest, c Config, out *output.Output) (*TestRunContext, e
 
 	defer cleanLogs(logLines)
 
-	return &runContext, nil
+	return runContext, nil
 }
 
 // RunTest runs an individual test.
@@ -103,7 +104,7 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 		}
 		// Iterate over stages
 		for _, stage := range testCase.Stages {
-			ftwCheck := check.NewCheck(config.FTWConfig)
+			ftwCheck := check.NewCheck(runContext.Config)
 			if err := RunStage(runContext, ftwCheck, testCase, stage.Stage); err != nil {
 				return err
 			}
@@ -123,7 +124,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	stageID := uuid.NewString()
 	// Apply global overrides initially
 	testRequest := stage.Input
-	err := applyInputOverride(&testRequest)
+	err := applyInputOverride(runContext.Config.TestOverride, &testRequest)
 	if err != nil {
 		log.Debug().Msgf("ftw/run: problem overriding input: %s", err.Error())
 	}
@@ -216,10 +217,10 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	}
 
 	headers := &ftwhttp.Header{
-		"Accept":                             "*/*",
-		"User-Agent":                         "go-ftw test agent",
-		"Host":                               "localhost",
-		config.FTWConfig.LogMarkerHeaderName: stageID,
+		"Accept":                              "*/*",
+		"User-Agent":                          "go-ftw test agent",
+		"Host":                                "localhost",
+		runContext.Config.LogMarkerHeaderName: stageID,
 	}
 
 	req := ftwhttp.NewRequest(rline, *headers, nil, true)
@@ -240,7 +241,7 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 			return marker, nil
 		}
 	}
-	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.LogLines.FileName)
+	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.Config.LogFile)
 }
 
 func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string, enabled bool) bool {
@@ -388,8 +389,8 @@ func getRequestFromTest(testRequest test.Input) *ftwhttp.Request {
 }
 
 // applyInputOverride will check if config had global overrides and write that into the test.
-func applyInputOverride(testRequest *test.Input) error {
-	overrides := config.FTWConfig.TestOverride.Input
+func applyInputOverride(o config.FTWTestOverride, testRequest *test.Input) error {
+	overrides := o.Input
 	if overrides.Port != nil {
 		testRequest.Port = overrides.Port
 	}

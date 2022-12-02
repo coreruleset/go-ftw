@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/coreruleset/go-ftw/test"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/coreruleset/go-ftw/utils"
@@ -34,27 +36,49 @@ var jsonConfig = `
 {"test": "type"}
 `
 
+func TestNewConfig(t *testing.T) {
+	overrides := FTWTestOverride{
+		Input:     test.Input{},
+		Ignore:    nil,
+		ForcePass: nil,
+		ForceFail: nil,
+	}
+	cfg := NewConfig("mylogfile.log", overrides, "X-Test-Me", "cloud")
+	assert.Equal(t, "mylogfile.log", cfg.LogFile)
+	assert.Equal(t, "X-Test-Me", cfg.LogMarkerHeaderName)
+	assert.Equal(t, CloudRunMode, cfg.RunMode)
+}
+
+func TestNewDefaultConfig(t *testing.T) {
+	cfg := NewDefaultConfig()
+	assert.Equal(t, DefaultLogMarkerHeaderName, cfg.LogMarkerHeaderName)
+	assert.Equal(t, DefaultRunMode, cfg.RunMode)
+	assert.Equal(t, "", cfg.LogFile)
+}
+
 func TestNewConfigBadFileConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(jsonConfig, "test-*.yaml")
 	defer os.Remove(filename)
-	err := NewConfigFromFile(filename)
+	cfg, err := NewConfigFromFile(filename)
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 }
 
 func TestNewConfigConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-*.yaml")
 
-	err := NewConfigFromFile(filename)
+	cfg, err := NewConfigFromFile(filename)
 
 	assert.NoError(t, err)
-	assert.NotEmpty(t, FTWConfig.TestOverride.Input, "Ignore list must not be empty")
+	assert.NotNil(t, cfg)
+	assert.NotEmpty(t, cfg.TestOverride.Input, "Ignore list must not be empty")
 
-	for id, text := range FTWConfig.TestOverride.Ignore {
+	for id, text := range cfg.TestOverride.Ignore {
 		assert.Contains(t, (*regexp.Regexp)(id).String(), "920400-1$", "Looks like we could not find item to ignore")
 		assert.Equal(t, "This test must be ignored", text, "Text doesn't match")
 	}
 
-	overrides := FTWConfig.TestOverride.Input
+	overrides := cfg.TestOverride.Input
 	assert.NotNil(t, overrides.DestAddr, "Looks like we are not overriding destination address")
 	assert.Equal(t, "httpbin.org", *overrides.DestAddr, "Looks like we are not overriding destination address")
 }
@@ -62,9 +86,10 @@ func TestNewConfigConfig(t *testing.T) {
 func TestNewConfigBadConfig(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlBadConfig, "test-*.yaml")
 	defer os.Remove(filename)
-	_ = NewConfigFromFile(filename)
+	cfg, err := NewConfigFromFile(filename)
 
-	assert.NotNil(t, FTWConfig)
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 }
 
 func TestNewConfigDefaultConfig(t *testing.T) {
@@ -75,39 +100,42 @@ func TestNewConfigDefaultConfig(t *testing.T) {
 		os.Remove(fileName)
 	})
 
-	_ = NewConfigFromFile("")
-
-	assert.NotNil(t, FTWConfig)
+	cfg, err := NewConfigFromFile("")
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 }
 
 func TestNewConfigFromString(t *testing.T) {
-	err := NewConfigFromString(yamlConfig)
+	cfg, err := NewConfigFromString(yamlConfig)
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 }
 
 func TestNewEnvConfigFromString(t *testing.T) {
-	err := NewConfigFromString(yamlConfig)
+	cfg, err := NewConfigFromString(yamlConfig)
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 }
 
 func TestNewConfigFromEnv(t *testing.T) {
 	// Set some environment so it gets merged with conf
 	os.Setenv("FTW_LOGFILE", "koanf")
 
-	err := NewConfigFromEnv()
+	cfg, err := NewConfigFromEnv()
 	assert.NoError(t, err)
-
-	assert.Equal(t, "koanf", FTWConfig.LogFile)
+	assert.NotNil(t, cfg)
+	assert.Equal(t, "koanf", cfg.LogFile)
 }
 
 func TestNewConfigFromEnvHasDefaults(t *testing.T) {
-	err := NewConfigFromEnv()
+	cfg, err := NewConfigFromEnv()
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
 
-	assert.Equalf(t, DefaultRunMode, FTWConfig.RunMode,
-		"unexpected default value '%s' for run mode", FTWConfig.RunMode)
-	assert.Equalf(t, DefaultLogMarkerHeaderName, FTWConfig.LogMarkerHeaderName,
-		"unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
+	assert.Equalf(t, DefaultRunMode, cfg.RunMode,
+		"unexpected default value '%s' for run mode", cfg.RunMode)
+	assert.Equalf(t, DefaultLogMarkerHeaderName, cfg.LogMarkerHeaderName,
+		"unexpected default value '%s' for logmarkerheadername", cfg.LogMarkerHeaderName)
 
 }
 
@@ -115,32 +143,50 @@ func TestNewConfigFromFileHasDefaults(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlConfig, "test-*.yaml")
 	defer os.Remove(filename)
 
-	err := NewConfigFromFile(filename)
+	cfg, err := NewConfigFromFile(filename)
 	assert.NoError(t, err)
-
-	assert.Equalf(t, DefaultRunMode, FTWConfig.RunMode,
-		"unexpected default value '%s' for run mode", FTWConfig.RunMode)
-	assert.Equalf(t, DefaultLogMarkerHeaderName, FTWConfig.LogMarkerHeaderName,
-		"unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
+	assert.NotNil(t, cfg)
+	assert.Equalf(t, DefaultRunMode, cfg.RunMode,
+		"unexpected default value '%s' for run mode", cfg.RunMode)
+	assert.Equalf(t, DefaultLogMarkerHeaderName, cfg.LogMarkerHeaderName,
+		"unexpected default value '%s' for logmarkerheadername", cfg.LogMarkerHeaderName)
 }
 
 func TestNewConfigFromStringHasDefaults(t *testing.T) {
-	err := NewConfigFromString("")
+	cfg, err := NewConfigFromString("")
 	assert.NoError(t, err)
-
-	assert.Equalf(t, DefaultRunMode, FTWConfig.RunMode,
-		"unexpected default value '%s' for run mode", FTWConfig.RunMode)
-	assert.Equalf(t, DefaultLogMarkerHeaderName, FTWConfig.LogMarkerHeaderName,
-		"unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
+	assert.NotNil(t, cfg)
+	assert.Equalf(t, DefaultRunMode, cfg.RunMode,
+		"unexpected default value '%s' for run mode", cfg.RunMode)
+	assert.Equalf(t, DefaultLogMarkerHeaderName, cfg.LogMarkerHeaderName,
+		"unexpected default value '%s' for logmarkerheadername", cfg.LogMarkerHeaderName)
 }
 
 func TestNewConfigFromFileRunMode(t *testing.T) {
 	filename, _ := utils.CreateTempFileWithContent(yamlCloudConfig, "test-*.yaml")
 	defer os.Remove(filename)
 
-	err := NewConfigFromFile(filename)
+	cfg, err := NewConfigFromFile(filename)
 	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
+	assert.Equalf(t, CloudRunMode, cfg.RunMode,
+		"unexpected value '%s' for run mode, expected '%s;", cfg.RunMode, CloudRunMode)
+}
 
-	assert.Equalf(t, CloudRunMode, FTWConfig.RunMode,
-		"unexpected value '%s' for run mode, expected '%s;", FTWConfig.RunMode, CloudRunMode)
+func TestNewDefaultConfigWithParams(t *testing.T) {
+	cfg := NewDefaultConfig()
+	cfg.WithLogfile("mylogfile.log")
+	assert.Equal(t, "mylogfile.log", cfg.LogFile)
+	overrides := FTWTestOverride{
+		Input:     test.Input{},
+		Ignore:    nil,
+		ForcePass: nil,
+		ForceFail: nil,
+	}
+	cfg.WithOverrides(overrides)
+	assert.Equal(t, overrides, cfg.TestOverride)
+	cfg.WithLogMarkerHeaderName("NEW-MARKER-TEST")
+	assert.Equal(t, "NEW-MARKER-TEST", cfg.LogMarkerHeaderName)
+	cfg.WithRunMode(CloudRunMode)
+	assert.Equal(t, CloudRunMode, cfg.RunMode)
 }
