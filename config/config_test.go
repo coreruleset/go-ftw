@@ -6,10 +6,8 @@ import (
 	"testing"
 
 	"github.com/coreruleset/go-ftw/test"
-
-	"github.com/stretchr/testify/assert"
-
 	"github.com/coreruleset/go-ftw/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 var yamlConfig = `---
@@ -32,22 +30,7 @@ logfile: 'tests/logs/modsec2-apache/apache2/error.log'
 doesNotExist: ""
 `
 
-var jsonConfig = `
-{"test": "type"}
-`
-
-func TestNewConfig(t *testing.T) {
-	overrides := FTWTestOverride{
-		Input:     test.Input{},
-		Ignore:    nil,
-		ForcePass: nil,
-		ForceFail: nil,
-	}
-	cfg := NewConfig("mylogfile.log", overrides, "X-Test-Me", "cloud")
-	assert.Equal(t, "mylogfile.log", cfg.LogFile)
-	assert.Equal(t, "X-Test-Me", cfg.LogMarkerHeaderName)
-	assert.Equal(t, CloudRunMode, cfg.RunMode)
-}
+var jsonConfig = `{"test": "type"}`
 
 func TestNewDefaultConfig(t *testing.T) {
 	cfg := NewDefaultConfig()

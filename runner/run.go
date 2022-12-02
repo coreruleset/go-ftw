@@ -41,28 +41,17 @@ func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out
 	if err != nil {
 		return &TestRunContext{}, err
 	}
-	// TODO: These defaults shouldn't be initialized here but config intialization
-	// needs to be cleaned up properly first (e.g., with a `NewConfig()` function)
-	maxMarkerRetries := c.MaxMarkerRetries
-	maxMarkerLogLines := c.MaxMarkerLogLines
-	if maxMarkerRetries == 0 {
-		maxMarkerRetries = 20
-	}
-	if maxMarkerLogLines == 0 {
-		maxMarkerLogLines = 500
-	}
+
 	runContext := &TestRunContext{
-		Config:            cfg,
-		Include:           c.Include,
-		Exclude:           c.Exclude,
-		ShowTime:          c.ShowTime,
-		Output:            out,
-		ShowOnlyFailed:    c.ShowOnlyFailed,
-		MaxMarkerRetries:  maxMarkerRetries,
-		MaxMarkerLogLines: maxMarkerLogLines,
-		Stats:             NewRunStats(),
-		Client:            client,
-		LogLines:          logLines,
+		Config:         cfg,
+		Include:        c.Include,
+		Exclude:        c.Exclude,
+		ShowTime:       c.ShowTime,
+		Output:         out,
+		ShowOnlyFailed: c.ShowOnlyFailed,
+		Stats:          NewRunStats(),
+		Client:         client,
+		LogLines:       logLines,
 	}
 
 	for _, tc := range tests {
@@ -225,7 +214,7 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 
 	req := ftwhttp.NewRequest(rline, *headers, nil, true)
 
-	for i := runContext.MaxMarkerRetries; i > 0; i-- {
+	for i := runContext.Config.MaxMarkerRetries; i > 0; i-- {
 		err := runContext.Client.NewOrReusedConnection(*dest)
 		if err != nil {
 			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v: %w", dest, err)
@@ -236,7 +225,7 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v: %w", dest, err)
 		}
 
-		marker := runContext.LogLines.CheckLogForMarker(stageID, runContext.MaxMarkerLogLines)
+		marker := runContext.LogLines.CheckLogForMarker(stageID, runContext.Config.MaxMarkerLogLines)
 		if marker != nil {
 			return marker, nil
 		}
