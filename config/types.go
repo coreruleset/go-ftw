@@ -17,14 +17,26 @@ const (
 	DefaultRunMode RunMode = "default"
 	// DefaultLogMarkerHeaderName is the default log marker header name
 	DefaultLogMarkerHeaderName string = "X-CRS-Test"
+	// DefaultMaxMarkerRetries is the default amount of retries that will be attempted to find the log markers
+	DefaultMaxMarkerRetries int = 20
+	// DefaultMaxMarkerLogLines is the default lines we are going read back in a logfile to find the markers
+	DefaultMaxMarkerLogLines int = 500
 )
 
 // FTWConfiguration FTW global Configuration
 type FTWConfiguration struct {
-	LogFile             string          `koanf:"logfile"`
-	TestOverride        FTWTestOverride `koanf:"testoverride"`
-	LogMarkerHeaderName string          `koanf:"logmarkerheadername"`
-	RunMode             RunMode         `koanf:"mode"`
+	// Logfile is the path to the file that contains the WAF logs to check. The path may be absolute or relative, in which case it will be interpreted as relative to the current working directory.
+	LogFile string `koanf:"logfile"`
+	// TestOverride holds the test overrides that will apply globally
+	TestOverride FTWTestOverride `koanf:"testoverride"`
+	// LogMarkerHeaderName is the name of the header that will be used by the test framework to mark positions in the log file
+	LogMarkerHeaderName string `koanf:"logmarkerheadername"`
+	// RunMode stores the mode used to interpret test results. See https://github.com/coreruleset/go-ftw#%EF%B8%8F-cloud-mode.
+	RunMode RunMode `koanf:"mode"`
+	// MaxMarkerRetries is the maximum number of times the search for log markers will be repeated; each time an additional request is sent to the web server, eventually forcing the log to be flushed
+	MaxMarkerRetries int `koanf:"maxmarkerretries"`
+	// MaxMarkerLogLines is the maximum number of lines to search for a marker before aborting
+	MaxMarkerLogLines int `koanf:"maxmarkerloglines"`
 }
 
 // FTWTestOverride holds four lists:

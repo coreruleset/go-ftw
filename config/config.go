@@ -11,17 +11,6 @@ import (
 	"github.com/knadh/koanf/providers/rawbytes"
 )
 
-// NewConfig creates a new configuration with the passed parameters
-func NewConfig(logFile string, overrides FTWTestOverride, logMarkerHeaderName string, runMode RunMode) *FTWConfiguration {
-	cfg := &FTWConfiguration{
-		LogFile:             logFile,
-		TestOverride:        overrides,
-		LogMarkerHeaderName: logMarkerHeaderName,
-		RunMode:             runMode,
-	}
-	return cfg
-}
-
 // NewDefaultConfig initializes the configuration with default values
 func NewDefaultConfig() *FTWConfiguration {
 	cfg := &FTWConfiguration{
@@ -29,6 +18,8 @@ func NewDefaultConfig() *FTWConfiguration {
 		TestOverride:        FTWTestOverride{},
 		LogMarkerHeaderName: DefaultLogMarkerHeaderName,
 		RunMode:             DefaultRunMode,
+		MaxMarkerRetries:    DefaultMaxMarkerRetries,
+		MaxMarkerLogLines:   DefaultMaxMarkerLogLines,
 	}
 	return cfg
 }
@@ -135,4 +126,14 @@ func (c *FTWConfiguration) WithRunMode(runMode RunMode) {
 // WithLogMarkerHeaderName sets the new LogMarker header name.
 func (c *FTWConfiguration) WithLogMarkerHeaderName(name string) {
 	c.LogMarkerHeaderName = name
+}
+
+// WithMaxMarkerRetries sets the new amount of retries we are doing to find markers in the logfile.
+func (c *FTWConfiguration) WithMaxMarkerRetries(retries int) {
+	c.MaxMarkerRetries = retries
+}
+
+// WithMaxMarkerLogLines sets the new amount of lines we go back in the logfile attempting to find markers.
+func (c *FTWConfiguration) WithMaxMarkerLogLines(retries int) {
+	c.MaxMarkerLogLines = retries
 }

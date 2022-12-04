@@ -44,6 +44,12 @@ var runCmd = &cobra.Command{
 			cmd.SilenceUsage = false
 			return fmt.Errorf("You need to choose one: use --include (%s) or --exclude (%s)", include, exclude)
 		}
+		if maxMarkerRetries != 0 {
+			cfg.WithMaxMarkerRetries(maxMarkerRetries)
+		}
+		if maxMarkerLogLines != 0 {
+			cfg.WithMaxMarkerLogLines(maxMarkerLogLines)
+		}
 		files := fmt.Sprintf("%s/**/*.yaml", dir)
 		tests, err := test.GetTestsFromFiles(files)
 
@@ -65,14 +71,12 @@ var runCmd = &cobra.Command{
 		_ = out.Println("%s", out.Message("** Starting tests!"))
 
 		currentRun, err := runner.Run(cfg, tests, runner.RunnerConfig{
-			Include:           includeRE,
-			Exclude:           excludeRE,
-			ShowTime:          showTime,
-			ShowOnlyFailed:    showOnlyFailed,
-			ConnectTimeout:    connectTimeout,
-			ReadTimeout:       readTimeout,
-			MaxMarkerRetries:  maxMarkerRetries,
-			MaxMarkerLogLines: maxMarkerLogLines,
+			Include:        includeRE,
+			Exclude:        excludeRE,
+			ShowTime:       showTime,
+			ShowOnlyFailed: showOnlyFailed,
+			ConnectTimeout: connectTimeout,
+			ReadTimeout:    readTimeout,
 		}, out)
 
 		if err != nil {

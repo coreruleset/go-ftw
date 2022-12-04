@@ -47,12 +47,16 @@ In order to run the tests, you need to prepare the following:
 
 With the configuration, you can set paths for your environment, enable and disable features and you can also use it to alter the test results.
 
-The config file has four basic values:
+The config file has six basic settings:
 
 * `logfile` : path to WAF log with alert messages, relative or absolute
-* `logmarkerheadername` : name of a HTTP header used for marking log messages, usually `X-CRS-TEST` (see [How log parsing works](https://github.com/coreruleset/go-ftw#how-log-parsing-works) below)
 * `testoverride` : a list of things to override (see "Overriding tests" below)>
 * `mode` : "default" or "cloud" (only change it if you need "cloud")
+* `logmarkerheadername` : name of a HTTP header used for marking log messages, usually `X-CRS-TEST` (see [How log parsing works](https://github.com/coreruleset/go-ftw#how-log-parsing-works) below)
+* `maxmarkerretries` : the maximum number of times the search for log markers will be repeated; each time an additional request is sent to the web server, eventually forcing the log to be flushed
+* `maxmarkerloglines` the maximum number of lines to search for a marker before aborting
+
+You can probably leave the last three alone, they are set to sane defaults.
 
 __Example with absolute logfile__:
 
@@ -74,11 +78,10 @@ mode: "default"
 
 __Example with minimal definitions__:
 
+The minimal requirement for go-ftw is to have a logfile when running in default mode:
+
 ```yaml
 logfile: ../logs/error.log
-logmarkerheadername:
-testoverride:
-mode:
 ```
 
 By default, _go-ftw_ looks for a file in `$PWD` / local folder with the name `.ftw.yaml`. If this can not be found, it will look in the user's HOME folder. You can pass the `--config <config file name>` to point it to a different file.
