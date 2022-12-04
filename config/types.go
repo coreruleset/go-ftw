@@ -25,7 +25,7 @@ const (
 
 // FTWConfiguration FTW global Configuration
 type FTWConfiguration struct {
-	// Logfile is the path to the file that contains the WAF logs to check
+	// Logfile is the path to the file that contains the WAF logs to check. The path may be absolute or relative, in which case it will be interpreted as relative to the current working directory.
 	LogFile string `koanf:"logfile"`
 	// TestOverride holds the test overrides that will apply globally
 	TestOverride FTWTestOverride `koanf:"testoverride"`
