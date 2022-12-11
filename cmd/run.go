@@ -14,7 +14,7 @@ import (
 	"github.com/coreruleset/go-ftw/test"
 )
 
-// cleanCmd represents the clean command
+// runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run Tests",
@@ -42,7 +42,7 @@ var runCmd = &cobra.Command{
 		}
 		if exclude != "" && include != "" {
 			cmd.SilenceUsage = false
-			return fmt.Errorf("You need to choose one: use --include (%s) or --exclude (%s)", include, exclude)
+			return fmt.Errorf("you need to choose one: use --include (%s) or --exclude (%s)", include, exclude)
 		}
 		if maxMarkerRetries != 0 {
 			cfg.WithMaxMarkerRetries(maxMarkerRetries)

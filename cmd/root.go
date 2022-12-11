@@ -54,11 +54,12 @@ func initConfig() {
 	if trace {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	}
-	cfg, errFile := config.NewConfigFromFile(cfgFile)
-	if errFile != nil {
+	var err error
+	cfg, err = config.NewConfigFromFile(cfgFile)
+	if err != nil {
 		cfgenv, errEnv := config.NewConfigFromEnv()
 		if errEnv != nil {
-			log.Fatalf("cannot read config from file (%s) nor environment (%s).", errFile.Error(), errEnv.Error())
+			log.Fatalf("cannot read config from file (%s) nor environment (%s).", err.Error(), errEnv.Error())
 		}
 		cfg = cfgenv
 	}
