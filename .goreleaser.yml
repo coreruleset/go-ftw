@@ -1,3 +1,4 @@
+---
 # This is an example .goreleaser.yml file with some sane defaults.
 # Make sure to check the documentation at http://goreleaser.com
 project_name: ftw
@@ -19,10 +20,10 @@ builds:
       - windows_amd64
 archives:
   - format_overrides:
-    - goos: windows
-      format: zip
+      - goos: windows
+        format: zip
 checksum:
-  name_template: '{{ .ProjectName }}-checksums.txt'
+  name_template: "{{ .ProjectName }}-checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
@@ -32,39 +33,39 @@ changelog:
     - title: Features
       regexp: "^.*feat[(\\w)]*:+.*$"
       order: 0
-    - title: 'Bug fixes'
+    - title: "Bug fixes"
       regexp: "^.*fix[(\\w)]*:+.*$"
       order: 1
     - title: Others
       order: 999
   filters:
     exclude:
-      - '^docs'
-      - '^test'
+      - "^docs"
+      - "^test"
 release:
   prerelease: auto
 dockers:
-    - image_templates:
-          - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-amd64"
-      use: buildx
-      goarch: amd64
-      build_flag_templates:
-          - "--platform=linux/amd64"
-    - image_templates:
-          - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-arm64"
-      use: buildx
-      goarch: arm64
-      build_flag_templates:
-          - "--platform=linux/arm64"
+  - image_templates:
+      - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-amd64"
+    use: buildx
+    goarch: amd64
+    build_flag_templates:
+      - "--platform=linux/amd64"
+  - image_templates:
+      - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-arm64"
+    use: buildx
+    goarch: arm64
+    build_flag_templates:
+      - "--platform=linux/arm64"
 docker_manifests:
-    - name_template: "ghcr.io/coreruleset/go-ftw:latest"
-      image_templates:
-          - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-amd64"
-          - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-arm64"
-    - name_template: "ghcr.io/coreruleset/go-ftw:{{ .Version }}"
-      image_templates:
-          - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-amd64"
-          - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/coreruleset/go-ftw:latest"
+    image_templates:
+      - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-amd64"
+      - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/coreruleset/go-ftw:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-amd64"
+      - "ghcr.io/coreruleset/go-ftw:{{ .Version }}-arm64"
 nfpms:
   - id: "ftw"
     builds: ["ftw"]
@@ -82,27 +83,28 @@ nfpms:
     vendor:
     homepage: https://github.com/coreruleset/go-ftw
     maintainer: felipe.zipitria@owasp.org
-    description:
+    description: >
       Framework for Testing WAFs - Go version
 
-      It uses the OWASP Core Ruleset V3 as a baseline to test rules on a WAF. Each rule from the ruleset is loaded into a YAML file that issues HTTP requests that will trigger these rules. Users can verify the execution of the rule after the tests are issued to make sure the expected response is received from an attack
+      It uses the OWASP Core Ruleset V3 as a baseline to test rules on a WAF.
+      Each rule from the ruleset is loaded into a YAML file that issues HTTP
+      requests that will trigger these rules. Users can verify the execution
+      of the rule after the tests are issued to make sure the expected
+      response is received from an attack.
     license: APL2
 
 announce:
-    slack:
-        enabled: true
-        message_template: '{{ .ProjectName }} {{ .Tag }} is out! Check it out at {{ .ReleaseURL }}'
-        channel: '#coreruleset-notify'
-        username: 'Releaser'
-        icon_emoji: ':new:'
-        blocks: [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": '{{.ReleaseNotes}}',
-                }
-            }
-        ]
-        attachments: []
-
+  slack:
+    enabled: true
+    message_template: >
+      {{ .ProjectName }} {{ .Tag }} is out!
+      Check it out at {{ .ReleaseURL }}"
+    channel: "#coreruleset-notify"
+    username: "Releaser"
+    icon_emoji: ":new:"
+    blocks:
+      - type: section
+        text:
+          type: mrkdwn
+          text: "{{.ReleaseNotes}}"
+    attachments: []
