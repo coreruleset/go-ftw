@@ -91,17 +91,17 @@ func (stats *RunStats) printSummary(out *output.Output) {
 			out.Println(out.Message("+ run %d total tests in %s"), stats.Run, stats.TotalTime)
 			out.Println(out.Message(">> skipped %d tests"), len(stats.Skipped))
 			if len(stats.Ignored) > 0 {
-				out.Println(out.Message("- ignored %d tests"), len(stats.Ignored))
+				out.Println(out.Message("^ ignored %d tests"), len(stats.Ignored))
 			}
 			if len(stats.ForcedPass) > 0 {
-				out.Println(out.Message("- forced to pass %d tests"), len(stats.ForcedPass))
+				out.Println(out.Message("^ forced to pass %d tests"), len(stats.ForcedPass))
 			}
 			if stats.TotalFailed() == 0 {
 				out.Println(out.Message("\\o/ All tests successful!"))
 			} else {
 				out.Println(out.Message("- %d test(s) failed to run: %+q"), len(stats.Failed), stats.Failed)
 				if len(stats.ForcedFail) > 0 {
-					out.Println(out.Message("-  %d test(s) were forced to fail: %+q"), len(stats.ForcedFail), stats.ForcedFail)
+					out.Println(out.Message("- %d test(s) were forced to fail: %+q"), len(stats.ForcedFail), stats.ForcedFail)
 				}
 			}
 		}

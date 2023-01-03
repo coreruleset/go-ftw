@@ -27,7 +27,7 @@ type catalog map[string]string
 // this catalog is used to translate text from basic terminals to enhanced ones that support emoji, just
 // because we are fancy. If we are not using a normal output, then just use the key from this map.
 var normalCatalog = catalog{
-	"* Starting tests!":                     ":hammer_and_wrench: Starting tests!",
+	"** Starting tests!":                    ":hammer_and_wrench: Starting tests!",
 	"** Running go-ftw!":                    ":rocket:Running go-ftw!",
 	"=> executing tests in file %s":         ":point_right:executing tests in file %s",
 	"+ passed in %s (RTT %s)":               ":check_mark:passed in %s (RTT %s)",
