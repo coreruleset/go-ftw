@@ -364,10 +364,11 @@ SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
   pass,\
   phase:1,\
   log,\
-  msg:'X-CRS-Test %{MATCHED_VAR}'"
+  msg:'X-CRS-Test %{MATCHED_VAR}',\
+  ctl:ruleRemoveById=1-999999"
 ```
 
-The rule looks for an HTTP header named `X-CRS-Test` and writes its value to the log, the value being the UUID of a test stage. If the header is not existing, rule is being ignored and no marker is being written.
+The rule looks for an HTTP header named `X-CRS-Test` and writes its value to the log, the value being the UUID of a test stage. If the header does not exist, the rule will be skipped and no marker will be written. If the header is found, the rule will also disable all further matching against the request to ensure that reported matches only concern actual test requests.
 
 You can configure the name of the HTTP header by setting the `logmarkerheadername` option in the configuration to a custom value (the value is case insensitive).
 
