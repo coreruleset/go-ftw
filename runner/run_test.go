@@ -675,7 +675,7 @@ func TestFailedTestsRun(t *testing.T) {
 	assert.Equal(t, 1, res.Stats.TotalFailed())
 }
 
-func TestApplyInputOverrideSetHostFromDestAddr(t *testing.T) {
+func TestApplyInputOverrideEmptyHostHeaderSetHostFromDestAddr(t *testing.T) {
 	originalHost := "original.com"
 	overrideHost := "override.com"
 	testInput := test.Input{
@@ -684,7 +684,8 @@ func TestApplyInputOverrideSetHostFromDestAddr(t *testing.T) {
 	cfg := &config.FTWConfiguration{
 		TestOverride: config.FTWTestOverride{
 			Input: test.Input{
-				DestAddr: &overrideHost,
+				DestAddr:                &overrideHost,
+				OverrideEmptyHostHeader: true,
 			},
 		},
 	}

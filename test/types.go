@@ -5,18 +5,19 @@ import "github.com/coreruleset/go-ftw/ftwhttp"
 // Input represents the input request in a stage
 // The fields `Version`, `Method` and `URI` we want to explicitly now when they are set to ""
 type Input struct {
-	DestAddr       *string        `yaml:"dest_addr,omitempty" koanf:"dest_addr,omitempty"`
-	Port           *int           `yaml:"port,omitempty" koanf:"port,omitempty"`
-	Protocol       *string        `yaml:"protocol,omitempty" koanf:"protocol,omitempty"`
-	URI            *string        `yaml:"uri,omitempty" koanf:"uri,omitempty"`
-	Version        *string        `yaml:"version,omitempty" koanf:"version,omitempty"`
-	Headers        ftwhttp.Header `yaml:"headers,omitempty" koanf:"headers,omitempty"`
-	Method         *string        `yaml:"method,omitempty" koanf:"method,omitempty"`
-	Data           *string        `yaml:"data,omitempty" koanf:"data,omitempty"`
-	SaveCookie     bool           `yaml:"save_cookie,omitempty" koanf:"save_cookie,omitempty"`
-	StopMagic      bool           `yaml:"stop_magic" koanf:"stop_magic,omitempty"`
-	EncodedRequest string         `yaml:"encoded_request,omitempty" koanf:"encoded_request,omitempty"`
-	RAWRequest     string         `yaml:"raw_request,omitempty" koanf:"raw_request,omitempty"`
+	DestAddr                *string        `yaml:"dest_addr,omitempty" koanf:"dest_addr,omitempty"`
+	Port                    *int           `yaml:"port,omitempty" koanf:"port,omitempty"`
+	Protocol                *string        `yaml:"protocol,omitempty" koanf:"protocol,omitempty"`
+	URI                     *string        `yaml:"uri,omitempty" koanf:"uri,omitempty"`
+	Version                 *string        `yaml:"version,omitempty" koanf:"version,omitempty"`
+	Headers                 ftwhttp.Header `yaml:"headers,omitempty" koanf:"headers,omitempty"`
+	Method                  *string        `yaml:"method,omitempty" koanf:"method,omitempty"`
+	Data                    *string        `yaml:"data,omitempty" koanf:"data,omitempty"`
+	SaveCookie              bool           `yaml:"save_cookie,omitempty" koanf:"save_cookie,omitempty"`
+	StopMagic               bool           `yaml:"stop_magic" koanf:"stop_magic,omitempty"`
+	EncodedRequest          string         `yaml:"encoded_request,omitempty" koanf:"encoded_request,omitempty"`
+	RAWRequest              string         `yaml:"raw_request,omitempty" koanf:"raw_request,omitempty"`
+	OverrideEmptyHostHeader bool           `yaml:"override_empty_host_header,omitempty" koanf:"override_empty_host_header,omitempty"`
 }
 
 // Output is the response expected from the test

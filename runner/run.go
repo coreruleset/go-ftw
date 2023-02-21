@@ -388,7 +388,7 @@ func applyInputOverride(o config.FTWTestOverride, testRequest *test.Input) error
 		if testRequest.Headers == nil {
 			testRequest.Headers = ftwhttp.Header{}
 		}
-		if testRequest.Headers.Get("Host") == "" {
+		if overrides.OverrideEmptyHostHeader && testRequest.Headers.Get("Host") == "" {
 			testRequest.Headers.Set("Host", *overrides.DestAddr)
 		}
 	}
