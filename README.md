@@ -297,6 +297,7 @@ Sometimes you have tests that work well for some platform combinations, e.g. Apa
 
 Tests can be altered using four lists:
 - `input` allows you to override global parameters in tests. An example usage is if you want to change the `dest_addr` of all tests to point to an external IP or host
+  - it includes also the `override_empty_host_header` flag: enabling it, empty Host headers will be replaced with `dest_addr`
 - `ignore` is for tests you want to ignore. You should add a comment on why you ignore the test
 - `forcepass` is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
 - `forcefail` is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
