@@ -297,8 +297,8 @@ Sometimes you have tests that work well for some platform combinations, e.g. Apa
 
 Tests can be altered using four lists:
 - `input` allows you to override global parameters in tests. The following ones can be overridden:
-  - `dest_addr`: allows to point to an external IP or host
-  - `override_empty_host_header`: enabling this flag, empty Host headers will be replaced with `dest_addr`
+  - `dest_addr`: overrides the destination address (accepts IP or hostname)
+  - `override_empty_host_header`: if true and `dest_addr` override is _also_ set, empty `Host` headers will be replaced with `dest_addr`
   - `port`: overrides the port number
   - `protocol`: overrides the protocol
   - `uri`: overrides the uri
@@ -306,8 +306,7 @@ Tests can be altered using four lists:
   - `headers`: overrides headers, the format is a map of strings
   - `method`: overrides the method used to perform the request
   - `data`: overrides data sent in the request
-  - `savecookie`: 
-  - `stopmagic`:
+  - `stopmagic`: prevent header autocompletion (currently sets `Connection: close` and `Content-Length` for requests with body data)
   - `encodedrequest`: overrides base64 encoded request
   - `rawrequest`: permits to provide a raw request. `method`, `uri` and `version` values will be ignored
 - `ignore` is for tests you want to ignore. You should add a comment on why you ignore the test
