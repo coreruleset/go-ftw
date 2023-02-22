@@ -675,6 +675,31 @@ func TestFailedTestsRun(t *testing.T) {
 	assert.Equal(t, 1, res.Stats.TotalFailed())
 }
 
+func TestApplyInputOverrideHostFromDestAddr(t *testing.T) {
+	originalHost := "original.com"
+	overrideHost := "override.com"
+	testInput := test.Input{
+		DestAddr: &originalHost,
+	}
+	cfg := &config.FTWConfiguration{
+		TestOverride: config.FTWTestOverride{
+			Input: test.Input{
+				DestAddr: &overrideHost,
+			},
+		},
+	}
+
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+
+	assert.Equal(t, overrideHost, *testInput.DestAddr, "`dest_addr` should have been overridden")
+
+	assert.NotNil(t, testInput.Headers, "Header map must exist after overriding `dest_addr`")
+
+	hostHeader := testInput.Headers.Get("Host")
+	assert.Equal(t, "", hostHeader, "Without OverrideEmptyHostHeader, Host header must not be set after overriding `dest_addr`")
+}
+
 func TestApplyInputOverrideEmptyHostHeaderSetHostFromDestAddr(t *testing.T) {
 	originalHost := "original.com"
 	overrideHost := "override.com"
