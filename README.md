@@ -296,8 +296,20 @@ Other interesting functions you can use are: `randBytes`, `htpasswd`, `encryptAE
 Sometimes you have tests that work well for some platform combinations, e.g. Apache + modsecurity2, but fail for others, e.g. NGiNX + modsecurity3. Taking that into account, you can override test results using the `testoverride` config param. The test will be skipped, and the result forced as configured.
 
 Tests can be altered using four lists:
-- `input` allows you to override global parameters in tests. An example usage is if you want to change the `dest_addr` of all tests to point to an external IP or host
-  - it includes also the `override_empty_host_header` flag: enabling it, empty Host headers will be replaced with `dest_addr`
+- `input` allows you to override global parameters in tests. The following ones can be overridden:
+  - `dest_addr`: allows to point to an external IP or host
+  - `override_empty_host_header`: enabling this flag, empty Host headers will be replaced with `dest_addr`
+  - `port`: overrides the port number
+  - `protocol`: overrides the protocol
+  - `uri`: overrides the uri
+  - `version`: overrides the HTTP version. E.g. "HTTP/1.1"
+  - `headers`: overrides headers, the format is a map of strings
+  - `method`: overrides the method used to perform the request
+  - `data`: overrides data sent in the request
+  - `savecookie`: 
+  - `stopmagic`:
+  - `encodedrequest`: overrides base64 encoded request
+  - `rawrequest`: permits to provide a raw request. `method`, `uri` and `version` values will be ignored
 - `ignore` is for tests you want to ignore. You should add a comment on why you ignore the test
 - `forcepass` is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
 - `forcefail` is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
