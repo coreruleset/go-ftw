@@ -33,7 +33,7 @@ func TestMultipartFormDataRequest(t *testing.T) {
 	}
 
 	h := Header{
-		"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost",
+		"Accept": "*/*", "User-Agent": "ftw test agent", "Host": "localhost",
 		"Content-Type": "multipart/form-data; boundary=--------397236876",
 	}
 
@@ -118,7 +118,7 @@ func TestWithAutocompleteRequest(t *testing.T) {
 		Version: "HTTP/1.1",
 	}
 
-	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	h := Header{"Accept": "*/*", "User-Agent": "ftw test agent", "Host": "localhost"}
 
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, true)
@@ -135,7 +135,7 @@ func TestWithoutAutocompleteRequest(t *testing.T) {
 		Version: "1.1",
 	}
 
-	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	h := Header{"Accept": "*/*", "User-Agent": "ftw test agent", "Host": "localhost"}
 
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, false)

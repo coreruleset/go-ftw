@@ -207,7 +207,7 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 
 	headers := &ftwhttp.Header{
 		"Accept":                              "*/*",
-		"User-Agent":                          "go-ftw test agent",
+		"User-Agent":                          "ftw test agent",
 		"Host":                                "localhost",
 		runContext.Config.LogMarkerHeaderName: stageID,
 	}

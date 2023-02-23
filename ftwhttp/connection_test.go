@@ -18,7 +18,7 @@ func TestMultipleRequestTypes(t *testing.T) {
 		Version: "HTTP/1.1",
 	}
 
-	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	h := Header{"Accept": "*/*", "User-Agent": "ftw test agent", "Host": "localhost"}
 
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, true)

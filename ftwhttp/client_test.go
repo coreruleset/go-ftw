@@ -64,7 +64,7 @@ func TestGetTrackedTime(t *testing.T) {
 		Version: "HTTP/1.1",
 	}
 
-	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	h := Header{"Accept": "*/*", "User-Agent": "ftw test agent", "Host": "localhost"}
 
 	data := []byte(`test=me&one=two&one=twice`)
 	req := NewRequest(rl, h, data, true)
@@ -104,7 +104,7 @@ func TestClientMultipartFormDataRequest(t *testing.T) {
 	}
 
 	h := Header{
-		"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost",
+		"Accept": "*/*", "User-Agent": "ftw test agent", "Host": "localhost",
 		"Content-Type": "multipart/form-data; boundary=--------397236876",
 	}
 
