@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"sort"
-	"strconv"
 )
 
 const (
@@ -68,16 +67,6 @@ func (h Header) Value(key string) string {
 // Del deletes the value associated with key.
 func (h Header) Del(key string) {
 	delete(h, key)
-}
-
-// AddStandard adds standard headers
-func (h Header) AddStandard(dataSize int) {
-	// For better performance, we always close the connection (unless otherwise)
-	h.Add("Connection", "close")
-	// If there is data, we add the length also
-	if dataSize > 0 {
-		h.Add("Content-Length", strconv.Itoa(dataSize))
-	}
 }
 
 // Write writes a header in wire format.

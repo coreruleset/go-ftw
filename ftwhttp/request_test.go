@@ -158,8 +158,6 @@ func TestRequestHeadersSet(t *testing.T) {
 	req.AddHeader("X-New-Header2", "Value")
 	head := req.Headers()
 	assert.Equal(t, "Value", head.Get("X-New-Header2"))
-
-	req.AddStandardHeaders(5)
 }
 
 func TestRequestAutoCompleteHeaders(t *testing.T) {
