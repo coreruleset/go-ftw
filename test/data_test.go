@@ -30,12 +30,14 @@ Content-Type: "application/x-www-form-urlencoded"
 data: "hi=test"
 protocol: "http"
 stop_magic: true
+no_autocomplete_headers: true
 uri: "/"
 `
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
 	s.True(input.StopMagic)
+	s.True(input.NoAutocompleteHeaders)
 }
 
 func (s *dataTestSuite) TestGetPartialDataFromYAML() {
@@ -50,7 +52,7 @@ Content-Type: "application/x-www-form-urlencoded"
 data: "hi=test"
 version: ""
 protocol: "http"
-stop_magic: true
+no_autocomplete_headers: false
 uri: "/"
 `
 	input := Input{}
@@ -71,7 +73,7 @@ Content-Type: "application/x-www-form-urlencoded"
 data: 'foo=%3d{{ "+" | repeat 34 }}'
 version: ""
 protocol: "http"
-stop_magic: true
+no_autocomplete_headers: true
 uri: "/"
 `
 	input := Input{}

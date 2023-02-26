@@ -3,7 +3,7 @@ package test
 import "github.com/coreruleset/go-ftw/ftwhttp"
 
 // Input represents the input request in a stage
-// The fields `Version`, `Method` and `URI` we want to explicitly now when they are set to ""
+// The fields `Version`, `Method` and `URI` we want to explicitly know when they are set to ""
 
 type Input struct {
 	DestAddr       *string        `yaml:"dest_addr,omitempty" koanf:"dest_addr,omitempty"`

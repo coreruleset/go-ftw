@@ -62,7 +62,7 @@ type RequestLine struct {
 }
 
 // Request represents a request
-// No Defaults represents the previous "stop_magic" behavior
+// No Defaults represents the previous "autocomplete headers" behavior
 type Request struct {
 	requestLine         *RequestLine
 	headers             Header

@@ -21,10 +21,10 @@ func getTestInputDefaults() *Input {
 	data := "My Data"
 
 	inputDefaults := Input{
-		Headers:    make(ftwhttp.Header),
-		Data:       &data,
-		SaveCookie: false,
-		StopMagic:  false,
+		Headers:               make(ftwhttp.Header),
+		Data:                  &data,
+		SaveCookie:            false,
+		NoAutocompleteHeaders: false,
 	}
 	return &inputDefaults
 }
@@ -38,17 +38,17 @@ func getTestExampleInput() *Input {
 	version := "HTTP/1.1"
 
 	inputTest := Input{
-		DestAddr:       &destaddr,
-		Port:           &port,
-		Protocol:       &protocol,
-		URI:            &uri,
-		Version:        &version,
-		Headers:        make(ftwhttp.Header),
-		Method:         &method,
-		Data:           nil,
-		EncodedRequest: "TXkgRGF0YQo=",
-		SaveCookie:     false,
-		StopMagic:      false,
+		DestAddr:              &destaddr,
+		Port:                  &port,
+		Protocol:              &protocol,
+		URI:                   &uri,
+		Version:               &version,
+		Headers:               make(ftwhttp.Header),
+		Method:                &method,
+		Data:                  nil,
+		EncodedRequest:        "TXkgRGF0YQo=",
+		SaveCookie:            false,
+		NoAutocompleteHeaders: false,
 	}
 
 	return &inputTest
@@ -75,8 +75,8 @@ Keep-Alive: 300
 Proxy-Connection: keep-alive
 User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727)
 		`,
-		SaveCookie: false,
-		StopMagic:  true,
+		SaveCookie:            false,
+		NoAutocompleteHeaders: true,
 	}
 
 	return &inputTest
@@ -128,7 +128,7 @@ func (s *defaultsTestSuite) TestDefaultGetters() {
 func (s *defaultsTestSuite) TestRaw() {
 	raw := getRawInput()
 
-	s.True(raw.StopMagic)
+	s.True(raw.NoAutocompleteHeaders)
 
 	request, _ := raw.GetRawRequest()
 	s.NotEqual(2, bytes.Index(request, []byte("Acunetix")))
