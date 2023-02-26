@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -103,8 +104,14 @@ func (r *Request) AddHeader(name string, value string) {
 // AddStandardHeaders adds standard headers to the request, if they don't exist
 //
 // This will add Content-Length and the proper Content-Type
-func (r *Request) AddStandardHeaders(size int) {
-	r.headers.AddStandard(size)
+func (r *Request) AddStandardHeaders() {
+	// For better performance, we always close the connection (unless otherwise)
+	r.headers.Add("Connection", "close")
+
+	// If there is data or POST method header, we add the length also
+	if len(r.data) > 0 || r.requestLine.Method == "POST" {
+		r.headers.Add("Content-Length", strconv.Itoa(len(r.data)))
+	}
 }
 
 // isRaw is a helper that returns true if raw or encoded data
@@ -153,7 +160,7 @@ func buildRequest(r *Request) ([]byte, error) {
 		}
 
 		if r.WithAutoCompleteHeaders() {
-			r.AddStandardHeaders(len(r.data))
+			r.AddStandardHeaders()
 		}
 
 		err = r.Headers().WriteBytes(&b)
