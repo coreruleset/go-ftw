@@ -105,7 +105,6 @@ func (r *Request) AddHeader(name string, value string) {
 //
 // This will add Content-Length and the proper Content-Type
 func (r *Request) AddStandardHeaders() {
-	// For better performance, we always close the connection (unless otherwise)
 	r.headers.Add("Connection", "close")
 
 	// If there is data or POST method header, we add the length also
