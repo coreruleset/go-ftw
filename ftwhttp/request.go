@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -113,9 +114,13 @@ func (r *Request) AddStandardHeaders() {
 		r.headers.Add("Connection", "close")
 	}
 
-	if len(r.data) > 0 || r.requestLine.Method == "POST" {
+	if len(r.data) > 0 || methodsWithBodyRegex().MatchString(r.requestLine.Method) {
 		r.headers.Add("Content-Length", strconv.Itoa(len(r.data)))
 	}
+}
+
+func methodsWithBodyRegex() *regexp.Regexp {
+	return regexp.MustCompile(`^POST|PUT|PATCH|DELETE$`)
 }
 
 // isRaw is a helper that returns true if raw or encoded data
