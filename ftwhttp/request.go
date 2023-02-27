@@ -109,7 +109,9 @@ func (r *Request) AddHeader(name string, value string) {
 //     permits a body (the spec says that the client SHOULD send `Content-Length`
 //     in that case)
 func (r *Request) AddStandardHeaders() {
-	r.headers.Add("Connection", "close")
+	if r.headers.Get("Connection") == "" {
+		r.headers.Add("Connection", "close")
+	}
 
 	if len(r.data) > 0 || r.requestLine.Method == "POST" {
 		r.headers.Add("Content-Length", strconv.Itoa(len(r.data)))
