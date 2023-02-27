@@ -107,7 +107,6 @@ func (r *Request) AddHeader(name string, value string) {
 func (r *Request) AddStandardHeaders() {
 	r.headers.Add("Connection", "close")
 
-	// If there is data or POST method header, we add the length also
 	if len(r.data) > 0 || r.requestLine.Method == "POST" {
 		r.headers.Add("Content-Length", strconv.Itoa(len(r.data)))
 	}
