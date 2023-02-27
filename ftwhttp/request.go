@@ -14,6 +14,8 @@ import (
 	"github.com/coreruleset/go-ftw/utils"
 )
 
+var methodsWithBodyRegex = regexp.MustCompile(`^POST|PUT|PATCH|DELETE$`)
+
 // ToString converts the request line to string for sending it in the wire
 func (rl RequestLine) ToString() string {
 	return fmt.Sprintf("%s %s %s\r\n", rl.Method, rl.URI, rl.Version)
@@ -114,13 +116,9 @@ func (r *Request) AddStandardHeaders() {
 		r.headers.Add("Connection", "close")
 	}
 
-	if len(r.data) > 0 || methodsWithBodyRegex().MatchString(r.requestLine.Method) {
+	if len(r.data) > 0 || methodsWithBodyRegex.MatchString(r.requestLine.Method) {
 		r.headers.Add("Content-Length", strconv.Itoa(len(r.data)))
 	}
-}
-
-func methodsWithBodyRegex() *regexp.Regexp {
-	return regexp.MustCompile(`^POST|PUT|PATCH|DELETE$`)
 }
 
 // isRaw is a helper that returns true if raw or encoded data
