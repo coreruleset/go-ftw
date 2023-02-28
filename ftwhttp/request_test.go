@@ -40,11 +40,19 @@ func TestAddStandardHeadersWhenConnectionHeaderIsEmpty(t *testing.T) {
 }
 
 func TestAddStandardHeadersWhenNoData(t *testing.T) {
-	req := NewRequest(&RequestLine{}, Header{}, []byte(""), true)
+	req := NewRequest(&RequestLine{Method: "GET"}, Header{}, []byte(""), true)
 
 	req.AddStandardHeaders()
 
 	assert.Equal(t, req.headers.Get("Content-Length"), "")
+}
+
+func TestAddStandardHeadersWhenGetMethod(t *testing.T) {
+	req := NewRequest(&RequestLine{Method: "GET"}, Header{}, []byte("Data"), true)
+
+	req.AddStandardHeaders()
+
+	assert.Equal(t, req.headers.Get("Content-Length"), "4")
 }
 
 func TestAddStandardHeadersWhenPostMethod(t *testing.T) {
