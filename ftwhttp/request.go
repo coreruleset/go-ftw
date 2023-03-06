@@ -5,12 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/utils"
 )
+
+var methodsWithBodyRegex = regexp.MustCompile(`^POST|PUT|PATCH|DELETE$`)
 
 // ToString converts the request line to string for sending it in the wire
 func (rl RequestLine) ToString() string {
@@ -102,9 +106,19 @@ func (r *Request) AddHeader(name string, value string) {
 
 // AddStandardHeaders adds standard headers to the request, if they don't exist
 //
-// This will add Content-Length and the proper Content-Type
-func (r *Request) AddStandardHeaders(size int) {
-	r.headers.AddStandard(size)
+// AddStandardHeaders does the following:
+//   - adds `Connection` header with `close` value (if not set) to improve performance
+//   - adds `Content-Length` header if payload size > 0 or the request method
+//     permits a body (the spec says that the client SHOULD send `Content-Length`
+//     in that case)
+func (r *Request) AddStandardHeaders() {
+	if r.headers.Get("Connection") == "" {
+		r.headers.Add("Connection", "close")
+	}
+
+	if len(r.data) > 0 || methodsWithBodyRegex.MatchString(r.requestLine.Method) {
+		r.headers.Add("Content-Length", strconv.Itoa(len(r.data)))
+	}
 }
 
 // isRaw is a helper that returns true if raw or encoded data
@@ -153,7 +167,7 @@ func buildRequest(r *Request) ([]byte, error) {
 		}
 
 		if r.WithAutoCompleteHeaders() {
-			r.AddStandardHeaders(len(r.data))
+			r.AddStandardHeaders()
 		}
 
 		err = r.Headers().WriteBytes(&b)

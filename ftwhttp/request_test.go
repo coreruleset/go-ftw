@@ -23,6 +23,70 @@ func generateBaseRequestForTesting() *Request {
 	return req
 }
 
+func TestAddStandardHeadersWhenConnectionHeaderIsPresent(t *testing.T) {
+	req := NewRequest(&RequestLine{}, Header{"Connection": "Not-Closed"}, []byte("Data"), true)
+
+	req.AddStandardHeaders()
+
+	assert.Equal(t, req.headers.Get("Connection"), "Not-Closed")
+}
+
+func TestAddStandardHeadersWhenConnectionHeaderIsEmpty(t *testing.T) {
+	req := NewRequest(&RequestLine{}, Header{}, []byte("Data"), true)
+
+	req.AddStandardHeaders()
+
+	assert.Equal(t, req.headers.Get("Connection"), "close")
+}
+
+func TestAddStandardHeadersWhenNoData(t *testing.T) {
+	req := NewRequest(&RequestLine{Method: "GET"}, Header{}, []byte(""), true)
+
+	req.AddStandardHeaders()
+
+	assert.Equal(t, req.headers.Get("Content-Length"), "")
+}
+
+func TestAddStandardHeadersWhenGetMethod(t *testing.T) {
+	req := NewRequest(&RequestLine{Method: "GET"}, Header{}, []byte("Data"), true)
+
+	req.AddStandardHeaders()
+
+	assert.Equal(t, req.headers.Get("Content-Length"), "4")
+}
+
+func TestAddStandardHeadersWhenPostMethod(t *testing.T) {
+	req := NewRequest(&RequestLine{Method: "POST"}, Header{}, []byte("Data"), true)
+
+	req.AddStandardHeaders()
+
+	assert.Equal(t, req.headers.Get("Content-Length"), "4")
+}
+
+func TestAddStandardHeadersWhenPutMethod(t *testing.T) {
+	req := NewRequest(&RequestLine{Method: "PUT"}, Header{}, []byte("Data"), true)
+
+	req.AddStandardHeaders()
+
+	assert.Equal(t, req.headers.Get("Content-Length"), "4")
+}
+
+func TestAddStandardHeadersWhenPatchMethod(t *testing.T) {
+	req := NewRequest(&RequestLine{Method: "PATCH"}, Header{}, []byte("Data"), true)
+
+	req.AddStandardHeaders()
+
+	assert.Equal(t, req.headers.Get("Content-Length"), "4")
+}
+
+func TestAddStandardHeadersWhenDeleteMethod(t *testing.T) {
+	req := NewRequest(&RequestLine{Method: "DELETE"}, Header{}, []byte("Data"), true)
+
+	req.AddStandardHeaders()
+
+	assert.Equal(t, req.headers.Get("Content-Length"), "4")
+}
+
 func TestMultipartFormDataRequest(t *testing.T) {
 	var req *Request
 
@@ -158,8 +222,6 @@ func TestRequestHeadersSet(t *testing.T) {
 	req.AddHeader("X-New-Header2", "Value")
 	head := req.Headers()
 	assert.Equal(t, "Value", head.Get("X-New-Header2"))
-
-	req.AddStandardHeaders(5)
 }
 
 func TestRequestAutoCompleteHeaders(t *testing.T) {
