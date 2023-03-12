@@ -324,30 +324,30 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 		return Failed
 	}
 	if c.CloudMode() {
-		// Cloud mode assumes that we cannot read logs. So we rely entirely on status code
+		// Cloud mode assumes that we cannot read logs. So we rely entirely on status code and response
 		c.SetCloudMode()
 	}
 
 	// If we didn't expect an error, check the actual response from the waf
 	if response != nil {
-		if c.AssertStatus(response.Parsed.StatusCode) {
-			return Success
+		if c.StatusCodeRequired() && !c.AssertStatus(response.Parsed.StatusCode) {
+			return Failed
 		}
 		// Check response
-		if c.AssertResponseContains(response.GetBodyAsString()) {
-			return Success
+		if c.ResponseContainsRequired() && !c.AssertResponseContains(response.GetBodyAsString()) {
+			return Failed
 		}
 	}
 	// Lastly, check logs
-	if c.AssertLogContains() {
-		return Success
+	if c.LogContainsRequired() && !c.AssertLogContains() {
+		return Failed
 	}
 	// We assume that they were already setup, for comparing
-	if c.AssertNoLogContains() {
-		return Success
+	if c.NoLogContainsRequired() && !c.AssertNoLogContains() {
+		return Failed
 	}
 
-	return Failed
+	return Success
 }
 
 func getRequestFromTest(testRequest test.Input) *ftwhttp.Request {

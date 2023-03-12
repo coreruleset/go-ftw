@@ -159,6 +159,30 @@ tests:
             expect_error: True
 `
 
+var yamlTestMultipleMatches = `---
+meta:
+  author: "tester"
+  enabled: true
+  name: "gotest-ftw.yaml"
+  description: "Example Test with multiple expected outputs per single rule"
+tests:
+  - test_title: "001"
+    description: "access real external site"
+    stages:
+      - stage:
+          input:
+            dest_addr: "TEST_ADDR"
+            # -1 designates port value must be replaced by test setup
+            port: -1
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "TEST_ADDR"
+          output:
+            status: [200]
+            response_contains: "Not contains this"
+`
+
 var yamlTestOverride = `
 ---
 meta:
@@ -469,6 +493,28 @@ func TestRun(t *testing.T) {
 		}, out)
 		assert.NoError(t, err)
 		assert.Equal(t, res.Stats.TotalFailed(), 0, "failed to test exceptions")
+	})
+}
+
+func TestRunMultipleMatches(t *testing.T) {
+	cfg, err := config.NewConfigFromString(yamlConfig)
+	assert.NoError(t, err)
+
+	out := output.NewOutput("normal", os.Stdout)
+
+	dest, logFilePath := newTestServer(t, cfg, logText)
+	cfg.WithLogfile(logFilePath)
+	ftwTest, err := test.GetTestFromYaml([]byte(yamlTestMultipleMatches))
+	assert.NoError(t, err)
+
+	replaceDestinationInTest(&ftwTest, *dest)
+
+	t.Run("execute multiple...test", func(t *testing.T) {
+		res, err := Run(cfg, []test.FTWTest{ftwTest}, RunnerConfig{
+			Output: output.Quiet,
+		}, out)
+		assert.NoError(t, err)
+		assert.Equalf(t, res.Stats.TotalFailed(), 1, "Oops, %d tests failed to run! Expected 1 failing test", res.Stats.TotalFailed())
 	})
 }
 
