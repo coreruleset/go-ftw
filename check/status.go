@@ -9,3 +9,11 @@ func (c *FTWCheck) AssertStatus(status int) bool {
 	}
 	return false
 }
+
+// StatusCodeRequired checks that the test requires to check the returned status code
+func (c *FTWCheck) StatusCodeRequired() bool {
+	if c.expected.Status == nil {
+		return false
+	}
+	return true
+}
