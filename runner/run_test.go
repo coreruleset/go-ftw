@@ -773,6 +773,35 @@ func TestApplyInputOverrideEmptyHostHeaderSetHostFromDestAddr(t *testing.T) {
 	assert.Equal(t, overrideHost, hostHeader, "Host header must be identical to `dest_addr` after overrding `dest_addr`")
 }
 
+func TestApplyInputOverrideSetHostFromHostHeaderOverride(t *testing.T) {
+	originalDestAddr := "original.com"
+	overrideHostHeader := "override.com"
+	testConfig := `
+---
+testoverride:
+  dest_addr: wrong.org
+  input:
+    headers:
+      Host: %s
+`
+
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(testConfig, overrideHostHeader))
+	assert.NoError(t, err1)
+
+	testInput := test.Input{
+		DestAddr: &originalDestAddr,
+	}
+
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+
+	assert.NotNil(t, testInput.Headers, "Header map must exist after overriding the `Host` header")
+
+	hostHeader := testInput.Headers.Get("Host")
+	assert.NotEqual(t, "", hostHeader, "Host header must be set after overriding the `Host` header")
+	assert.Equal(t, overrideHostHeader, hostHeader, "Host header must be identical to overridden `Host` header.")
+}
+
 func TestIgnoredTestsRun(t *testing.T) {
 	cfg, err := config.NewConfigFromString(yamlConfigIgnoreTests)
 	dest, logFilePath := newTestServer(t, cfg, logText)
