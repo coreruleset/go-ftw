@@ -36,6 +36,34 @@ testoverride:
     protocol: "http"
 `
 
+var yamlConfigEmptyHostHeaderOverride = `
+---
+testoverride:
+  input:
+    dest_addr: %s
+    headers:
+      Host: %s
+    override_empty_host_header: true
+`
+
+var yamlConfigHostHeaderOverride = `
+---
+testoverride:
+  input:
+    dest_addr: address.org
+    headers:
+      unique_id: %s
+`
+
+var yamlConfigHeaderOverride = `
+---
+testoverride:
+  input:
+    dest_addr: address.org
+    headers:
+      unique_id: %s
+`
+
 var yamlConfigOverride = `
 ---
 testoverride:
@@ -419,12 +447,12 @@ func replaceDestinationInConfiguration(override *config.FTWTestOverride, dest ft
 	replaceableAddress := "TEST_ADDR"
 	replaceablePort := -1
 
-	input := &override.Input
-	if input.DestAddr != nil && *input.DestAddr == replaceableAddress {
-		input.DestAddr = &dest.DestAddr
+	overriddenInputs := &override.Overrides
+	if overriddenInputs.DestAddr != nil && *overriddenInputs.DestAddr == replaceableAddress {
+		overriddenInputs.DestAddr = &dest.DestAddr
 	}
-	if input.Port != nil && *input.Port == replaceablePort {
-		input.Port = &dest.Port
+	if overriddenInputs.Port != nil && *overriddenInputs.Port == replaceablePort {
+		overriddenInputs.Port = &dest.Port
 	}
 }
 
@@ -729,7 +757,7 @@ func TestApplyInputOverrideHostFromDestAddr(t *testing.T) {
 	}
 	cfg := &config.FTWConfiguration{
 		TestOverride: config.FTWTestOverride{
-			Input: test.Input{
+			Overrides: test.Overrides{
 				DestAddr: &overrideHost,
 			},
 		},
@@ -754,7 +782,7 @@ func TestApplyInputOverrideEmptyHostHeaderSetHostFromDestAddr(t *testing.T) {
 	}
 	cfg := &config.FTWConfiguration{
 		TestOverride: config.FTWTestOverride{
-			Input: test.Input{
+			Overrides: test.Overrides{
 				DestAddr:                &overrideHost,
 				OverrideEmptyHostHeader: true,
 			},
@@ -777,17 +805,8 @@ func TestApplyInputOverrideSetHostFromHostHeaderOverride(t *testing.T) {
 	originalDestAddr := "original.com"
 	overrideDestAddress := "wrong.org"
 	overrideHostHeader := "override.com"
-	testConfig := `
----
-testoverride:
-  input:
-    dest_addr: %s
-    headers:
-      Host: %s
-    override_empty_host_header: true
-`
 
-	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(testConfig, overrideDestAddress, overrideHostHeader))
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigEmptyHostHeaderOverride, overrideDestAddress, overrideHostHeader))
 	assert.NoError(t, err1)
 
 	testInput := test.Input{
@@ -809,16 +828,27 @@ testoverride:
 func TestApplyInputOverrideSetHeaderOverridingExistingOne(t *testing.T) {
 	originalHeaderValue := "original"
 	overrideHeaderValue := "override"
-	testConfig := `
----
-testoverride:
-  input:
-    dest_addr: address.org
-    headers:
-      unique_id: %s
-`
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigHostHeaderOverride, overrideHeaderValue))
+	assert.NoError(t, err1)
 
-	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(testConfig, overrideHeaderValue))
+	testInput := test.Input{
+		Headers: ftwhttp.Header{"unique_id": originalHeaderValue},
+	}
+
+	assert.NotNil(t, testInput.Headers, "Header map must exist before overriding any header")
+
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+
+	overriddenHeader := testInput.Headers.Get("unique_id")
+	assert.NotEqual(t, "", overriddenHeader, "unique_id header must be set after overriding it")
+	assert.Equal(t, overrideHeaderValue, overriddenHeader, "Host header must be identical to overridden `Host` header.")
+}
+
+func TestApplyInputOverrides(t *testing.T) {
+	originalHeaderValue := "original"
+	overrideHeaderValue := "override"
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigHeaderOverride, overrideHeaderValue))
 	assert.NoError(t, err1)
 
 	testInput := test.Input{

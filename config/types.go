@@ -41,12 +41,12 @@ type FTWConfiguration struct {
 
 // FTWTestOverride holds four lists:
 //
-//	Input allows you to override input parameters in tests. An example usage is if you want to change the `dest_addr` of all tests to point to an external IP or host.
+//	Overrides allows you to override input parameters in tests. An example usage is if you want to change the `dest_addr` of all tests to point to an external IP or host.
 //	Ignore is for tests you want to ignore. You should add a comment on why you ignore the test
 //	ForcePass is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
 //	ForceFail is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
 type FTWTestOverride struct {
-	Input     test.Input            `koanf:"input"`
+	Overrides test.Overrides        `koanf:"input"`
 	Ignore    map[*FTWRegexp]string `koanf:"ignore"`
 	ForcePass map[*FTWRegexp]string `koanf:"forcepass"`
 	ForceFail map[*FTWRegexp]string `koanf:"forcefail"`
