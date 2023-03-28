@@ -775,17 +775,19 @@ func TestApplyInputOverrideEmptyHostHeaderSetHostFromDestAddr(t *testing.T) {
 
 func TestApplyInputOverrideSetHostFromHostHeaderOverride(t *testing.T) {
 	originalDestAddr := "original.com"
+	overrideDestAddress := "wrong.org"
 	overrideHostHeader := "override.com"
 	testConfig := `
 ---
 testoverride:
-  dest_addr: wrong.org
   input:
+    dest_addr: %s
     headers:
       Host: %s
+    override_empty_host_header: true
 `
 
-	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(testConfig, overrideHostHeader))
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(testConfig, overrideDestAddress, overrideHostHeader))
 	assert.NoError(t, err1)
 
 	testInput := test.Input{
@@ -795,11 +797,42 @@ testoverride:
 	err := applyInputOverride(cfg.TestOverride, &testInput)
 	assert.NoError(t, err, "Failed to apply input overrides")
 
-	assert.NotNil(t, testInput.Headers, "Header map must exist after overriding the `Host` header")
-
 	hostHeader := testInput.Headers.Get("Host")
 	assert.NotEqual(t, "", hostHeader, "Host header must be set after overriding the `Host` header")
-	assert.Equal(t, overrideHostHeader, hostHeader, "Host header must be identical to overridden `Host` header.")
+	if hostHeader == overrideDestAddress {
+		assert.Equal(t, overrideHostHeader, hostHeader, "Host header override must take precence over OverrideEmptyHostHeader")
+	} else {
+		assert.Equal(t, overrideHostHeader, hostHeader, "Host header must be identical to overridden `Host` header.")
+	}
+}
+
+func TestApplyInputOverrideSetHeaderOverridingExistingOne(t *testing.T) {
+	originalHeaderValue := "original"
+	overrideHeaderValue := "override"
+	testConfig := `
+---
+testoverride:
+  input:
+    dest_addr: address.org
+    headers:
+      unique_id: %s
+`
+
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(testConfig, overrideHeaderValue))
+	assert.NoError(t, err1)
+
+	testInput := test.Input{
+		Headers: ftwhttp.Header{"unique_id": originalHeaderValue},
+	}
+
+	assert.NotNil(t, testInput.Headers, "Header map must exist before overriding any header")
+
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+
+	overriddenHeader := testInput.Headers.Get("unique_id")
+	assert.NotEqual(t, "", overriddenHeader, "unique_id header must be set after overriding it")
+	assert.Equal(t, overrideHeaderValue, overriddenHeader, "Host header must be identical to overridden `Host` header.")
 }
 
 func TestIgnoredTestsRun(t *testing.T) {

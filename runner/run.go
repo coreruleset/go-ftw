@@ -383,14 +383,16 @@ func applyInputOverride(o config.FTWTestOverride, testRequest *test.Input) error
 	if overrides.Port != nil {
 		testRequest.Port = overrides.Port
 	}
-	if overrides.Headers.Get("Host") != "" {
+
+	if overrides.Headers != nil {
 		if testRequest.Headers == nil {
 			testRequest.Headers = ftwhttp.Header{}
 		}
-		if testRequest.Headers.Get("Host") == "" {
-			testRequest.Headers.Set("Host", overrides.Headers.Get("Host"))
+		for k, v := range overrides.Headers {
+			testRequest.Headers.Set(k, v)
 		}
 	}
+
 	if overrides.DestAddr != nil {
 		testRequest.DestAddr = overrides.DestAddr
 		if testRequest.Headers == nil {
