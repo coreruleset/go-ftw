@@ -797,8 +797,8 @@ func TestApplyInputOverrideEmptyHostHeaderSetHostFromDestAddr(t *testing.T) {
 	assert.NotNil(t, testInput.Headers, "Header map must exist after overriding `dest_addr`")
 
 	hostHeader := testInput.Headers.Get("Host")
-	assert.NotEqual(t, "", hostHeader, "Host header must be set after overriding `dest_addr`")
-	assert.Equal(t, overrideHost, hostHeader, "Host header must be identical to `dest_addr` after overrding `dest_addr`")
+	assert.NotEqual(t, "", hostHeader, "Host header must be set after overriding `dest_addr` and setting `override_empty_host_header` to `true`")
+	assert.Equal(t, overrideHost, hostHeader, "Host header must be identical to `dest_addr` after overriding `dest_addr` and setting `override_emtpy_host_header` to `true`")
 }
 
 func TestApplyInputOverrideSetHostFromHostHeaderOverride(t *testing.T) {
