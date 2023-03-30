@@ -97,8 +97,8 @@ announce:
   slack:
     enabled: true
     message_template: >
-      "{{ .ProjectName }} {{ .Tag }} is out!
-      Check it out at {{ .ReleaseURL }}"
+      {{ .ProjectName }} {{ .Tag }} is out!
+      Check it out at {{ .ReleaseURL }}
     channel: "#coreruleset-notify"
     username: "Releaser"
     icon_emoji: ":new:"
@@ -106,6 +106,5 @@ announce:
       - type: section
         text:
           type: mrkdwn
-          text: |
-            "{{ .ReleaseNotes }}"
+          text: "{{ .ReleaseNotes }}"
     attachments: []
