@@ -36,6 +36,34 @@ testoverride:
     protocol: "http"
 `
 
+var yamlConfigEmptyHostHeaderOverride = `
+---
+testoverride:
+  input:
+    dest_addr: %s
+    headers:
+      Host: %s
+    override_empty_host_header: true
+`
+
+var yamlConfigHostHeaderOverride = `
+---
+testoverride:
+  input:
+    dest_addr: address.org
+    headers:
+      unique_id: %s
+`
+
+var yamlConfigHeaderOverride = `
+---
+testoverride:
+  input:
+    dest_addr: address.org
+    headers:
+      unique_id: %s
+`
+
 var yamlConfigOverride = `
 ---
 testoverride:
@@ -419,12 +447,12 @@ func replaceDestinationInConfiguration(override *config.FTWTestOverride, dest ft
 	replaceableAddress := "TEST_ADDR"
 	replaceablePort := -1
 
-	input := &override.Input
-	if input.DestAddr != nil && *input.DestAddr == replaceableAddress {
-		input.DestAddr = &dest.DestAddr
+	overriddenInputs := &override.Overrides
+	if overriddenInputs.DestAddr != nil && *overriddenInputs.DestAddr == replaceableAddress {
+		overriddenInputs.DestAddr = &dest.DestAddr
 	}
-	if input.Port != nil && *input.Port == replaceablePort {
-		input.Port = &dest.Port
+	if overriddenInputs.Port != nil && *overriddenInputs.Port == replaceablePort {
+		overriddenInputs.Port = &dest.Port
 	}
 }
 
@@ -721,7 +749,7 @@ func TestFailedTestsRun(t *testing.T) {
 	assert.Equal(t, 1, res.Stats.TotalFailed())
 }
 
-func TestApplyInputOverrideSetHostFromDestAddr(t *testing.T) {
+func TestApplyInputOverrideHostFromDestAddr(t *testing.T) {
 	originalHost := "original.com"
 	overrideHost := "override.com"
 	testInput := test.Input{
@@ -729,7 +757,7 @@ func TestApplyInputOverrideSetHostFromDestAddr(t *testing.T) {
 	}
 	cfg := &config.FTWConfiguration{
 		TestOverride: config.FTWTestOverride{
-			Input: test.Input{
+			Overrides: test.Overrides{
 				DestAddr: &overrideHost,
 			},
 		},
@@ -743,8 +771,98 @@ func TestApplyInputOverrideSetHostFromDestAddr(t *testing.T) {
 	assert.NotNil(t, testInput.Headers, "Header map must exist after overriding `dest_addr`")
 
 	hostHeader := testInput.Headers.Get("Host")
-	assert.NotEqual(t, "", hostHeader, "Host header must be set after overriding `dest_addr`")
-	assert.Equal(t, overrideHost, hostHeader, "Host header must be identical to `dest_addr` after overrding `dest_addr`")
+	assert.Equal(t, "", hostHeader, "Without OverrideEmptyHostHeader, Host header must not be set after overriding `dest_addr`")
+}
+
+func TestApplyInputOverrideEmptyHostHeaderSetHostFromDestAddr(t *testing.T) {
+	originalHost := "original.com"
+	overrideHost := "override.com"
+	testInput := test.Input{
+		DestAddr: &originalHost,
+	}
+	cfg := &config.FTWConfiguration{
+		TestOverride: config.FTWTestOverride{
+			Overrides: test.Overrides{
+				DestAddr:                &overrideHost,
+				OverrideEmptyHostHeader: true,
+			},
+		},
+	}
+
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+
+	assert.Equal(t, overrideHost, *testInput.DestAddr, "`dest_addr` should have been overridden")
+
+	assert.NotNil(t, testInput.Headers, "Header map must exist after overriding `dest_addr`")
+
+	hostHeader := testInput.Headers.Get("Host")
+	assert.NotEqual(t, "", hostHeader, "Host header must be set after overriding `dest_addr` and setting `override_empty_host_header` to `true`")
+	assert.Equal(t, overrideHost, hostHeader, "Host header must be identical to `dest_addr` after overriding `dest_addr` and setting `override_emtpy_host_header` to `true`")
+}
+
+func TestApplyInputOverrideSetHostFromHostHeaderOverride(t *testing.T) {
+	originalDestAddr := "original.com"
+	overrideDestAddress := "wrong.org"
+	overrideHostHeader := "override.com"
+
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigEmptyHostHeaderOverride, overrideDestAddress, overrideHostHeader))
+	assert.NoError(t, err1)
+
+	testInput := test.Input{
+		DestAddr: &originalDestAddr,
+	}
+
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+
+	hostHeader := testInput.Headers.Get("Host")
+	assert.NotEqual(t, "", hostHeader, "Host header must be set after overriding the `Host` header")
+	if hostHeader == overrideDestAddress {
+		assert.Equal(t, overrideHostHeader, hostHeader, "Host header override must take precence over OverrideEmptyHostHeader")
+	} else {
+		assert.Equal(t, overrideHostHeader, hostHeader, "Host header must be identical to overridden `Host` header.")
+	}
+}
+
+func TestApplyInputOverrideSetHeaderOverridingExistingOne(t *testing.T) {
+	originalHeaderValue := "original"
+	overrideHeaderValue := "override"
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigHostHeaderOverride, overrideHeaderValue))
+	assert.NoError(t, err1)
+
+	testInput := test.Input{
+		Headers: ftwhttp.Header{"unique_id": originalHeaderValue},
+	}
+
+	assert.NotNil(t, testInput.Headers, "Header map must exist before overriding any header")
+
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+
+	overriddenHeader := testInput.Headers.Get("unique_id")
+	assert.NotEqual(t, "", overriddenHeader, "unique_id header must be set after overriding it")
+	assert.Equal(t, overrideHeaderValue, overriddenHeader, "Host header must be identical to overridden `Host` header.")
+}
+
+func TestApplyInputOverrides(t *testing.T) {
+	originalHeaderValue := "original"
+	overrideHeaderValue := "override"
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigHeaderOverride, overrideHeaderValue))
+	assert.NoError(t, err1)
+
+	testInput := test.Input{
+		Headers: ftwhttp.Header{"unique_id": originalHeaderValue},
+	}
+
+	assert.NotNil(t, testInput.Headers, "Header map must exist before overriding any header")
+
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+
+	overriddenHeader := testInput.Headers.Get("unique_id")
+	assert.NotEqual(t, "", overriddenHeader, "unique_id header must be set after overriding it")
+	assert.Equal(t, overrideHeaderValue, overriddenHeader, "Host header must be identical to overridden `Host` header.")
 }
 
 func TestIgnoredTestsRun(t *testing.T) {

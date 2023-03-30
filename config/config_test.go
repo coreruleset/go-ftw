@@ -54,14 +54,14 @@ func TestNewConfigConfig(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, cfg)
-	assert.NotEmpty(t, cfg.TestOverride.Input, "Ignore list must not be empty")
+	assert.NotEmpty(t, cfg.TestOverride.Overrides, "Ignore list must not be empty")
 
 	for id, text := range cfg.TestOverride.Ignore {
 		assert.Contains(t, (*regexp.Regexp)(id).String(), "920400-1$", "Looks like we could not find item to ignore")
 		assert.Equal(t, "This test must be ignored", text, "Text doesn't match")
 	}
 
-	overrides := cfg.TestOverride.Input
+	overrides := cfg.TestOverride.Overrides
 	assert.NotNil(t, overrides.DestAddr, "Looks like we are not overriding destination address")
 	assert.Equal(t, "httpbin.org", *overrides.DestAddr, "Looks like we are not overriding destination address")
 }
@@ -161,7 +161,7 @@ func TestNewDefaultConfigWithParams(t *testing.T) {
 	cfg.WithLogfile("mylogfile.log")
 	assert.Equal(t, "mylogfile.log", cfg.LogFile)
 	overrides := FTWTestOverride{
-		Input:     test.Input{},
+		Overrides: test.Overrides{},
 		Ignore:    nil,
 		ForcePass: nil,
 		ForceFail: nil,
