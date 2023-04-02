@@ -321,7 +321,7 @@ Tests can be altered using four lists:
   - `headers`: overrides headers, the format is a map of strings
   - `method`: overrides the method used to perform the request
   - `data`: overrides data sent in the request
-  - `stopmagic`: prevent header autocompletion (currently sets `Connection: close` and `Content-Length` for requests with body data)
+  - `no_autocomplete_headers`: prevent header autocompletion (currently sets `Connection: close` and `Content-Length` for requests with body data)
   - `encodedrequest`: overrides base64 encoded request
   - `rawrequest`: permits to provide a raw request. `method`, `uri` and `version` values will be ignored
 - `ignore` is for tests you want to ignore. You should add a comment on why you ignore the test
