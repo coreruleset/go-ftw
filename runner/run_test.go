@@ -105,6 +105,56 @@ type runTestSuite struct {
 	tempFileName string
 }
 
+var yamlNoAutocompleteHeadersTest = `---
+meta:
+  author: "tester"
+  enabled: true
+  name: "gotest-ftw.yaml"
+  description: "Example Test"
+tests:
+  - test_title: "001"
+    description: "autocomplete headers by default"
+    stages:
+      - stage:
+          input:
+            dest_addr: "localhost"
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "localhost"
+          output:
+            expect_error: False
+            status: [200]
+  - test_title: "002"
+    description: "autocomplete headers explicitly"
+    stages:
+      - stage:
+          input:
+            no_autocomplete_headers: false
+            dest_addr: "localhost"
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "localhost"
+          output:
+            expect_error: False
+            status: [200]
+  - test_title: "003"
+    description: "do not autocomplete"
+    stages:
+      - stage:
+          input:
+            no_autocomplete_headers: true
+            dest_addr: "localhost"
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "localhost"
+          output:
+            expect_error: False
+            status: [200]
+`
+
 // Error checking omitted for brevity
 func (s *runTestSuite) newTestServer(logLines string) {
 	var err error
@@ -343,4 +393,28 @@ func (s *runTestSuite) TestIgnoredTestsRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
 	s.Require().NoError(err)
 	s.Equal(res.Stats.TotalFailed(), 1, "Oops, test run failed!")
+}
+
+func TestNoAutocompleteHeadersDefault(t *testing.T) {
+	ftwTest, err := test.GetTestFromYaml([]byte(yamlNoAutocompleteHeadersTest))
+	assert.NoError(t, err)
+
+	request := getRequestFromTest(ftwTest.Tests[0].Stages[0].Stage.Input)
+	assert.True(t, request.WithAutoCompleteHeaders())
+}
+
+func TestNoAutocompleteHeadersFalse(t *testing.T) {
+	ftwTest, err := test.GetTestFromYaml([]byte(yamlNoAutocompleteHeadersTest))
+	assert.NoError(t, err)
+
+	request := getRequestFromTest(ftwTest.Tests[1].Stages[0].Stage.Input)
+	assert.True(t, request.WithAutoCompleteHeaders())
+}
+
+func TestNoAutocompleteHeadersTrue(t *testing.T) {
+	ftwTest, err := test.GetTestFromYaml([]byte(yamlNoAutocompleteHeadersTest))
+	assert.NoError(t, err)
+
+	request := getRequestFromTest(ftwTest.Tests[2].Stages[0].Stage.Input)
+	assert.False(t, request.WithAutoCompleteHeaders())
 }
