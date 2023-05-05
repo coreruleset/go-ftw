@@ -50,7 +50,7 @@ With the configuration, you can set paths for your environment, enable and disab
 The config file has six basic settings:
 
 * `logfile` : path to WAF log with alert messages, relative or absolute
-* `testoverride` : a list of things to override (see "Overriding tests" below)>
+* `testoverride` : a list of things to override (see [Overriding tests](https://github.com/coreruleset/go-ftw#overriding-tests) below)
 * `mode` : "default" or "cloud" (only change it if you need "cloud")
 * `logmarkerheadername` : name of a HTTP header used for marking log messages, usually `X-CRS-TEST` (see [How log parsing works](https://github.com/coreruleset/go-ftw#how-log-parsing-works) below)
 * `maxmarkerretries` : the maximum number of times the search for log markers will be repeated; each time an additional request is sent to the web server, eventually forcing the log to be flushed
@@ -356,6 +356,7 @@ Or you can just run: `./ftw run --cloud`
 ## How log parsing works
 
 The WAF's log file with the alert messages is parsed and compared to the expected output defined in the unit test under `log_contains` or `no_log_contains`.
+Note that the expected output may contain multiple checks (E.g. `log_contains` and `status`). If any of the checks fail, the test will fail.
 
 The problem with log files is that `go-ftw` is very, very fast and the log files are not updated in real time. Frequently, the
 web server / WAF is not syncing the file fast enough. That results in a situation where `go-ftw` won't find the log messages it has triggered.
