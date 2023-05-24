@@ -333,8 +333,8 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 		if c.StatusCodeRequired() && !c.AssertStatus(response.Parsed.StatusCode) {
 			return Failed
 		}
-		// Check response
-		if c.ResponseContainsRequired() && !c.AssertResponseContains(response.GetBodyAsString()) {
+		// Check if text is contained in the full raw response
+		if c.ResponseContainsRequired() && !c.AssertResponseContains(response.GetFullResponse()) {
 			return Failed
 		}
 	}
