@@ -64,6 +64,55 @@ testoverride:
       unique_id: %s
 `
 
+var yamlConfigURIOverride = `
+---
+testoverride:
+  input:
+   uri: %s
+`
+
+var yamlConfigVersionOverride = `
+---
+testoverride:
+  input:
+   version: %s
+`
+
+var yamlConfigMethodOverride = `
+---
+testoverride:
+  input:
+   method: %s
+`
+
+var yamlConfigDataOverride = `
+---
+testoverride:
+  input:
+   data: %s
+`
+
+var yamlConfigStopMagicOverride = `
+---
+testoverride:
+  input:
+   stop_magic: %t
+`
+
+var yamlConfigEncodedRequestOverride = `
+---
+testoverride:
+  input:
+   encoded_request: %s
+`
+
+var yamlConfigRAWRequestOverride = `
+---
+testoverride:
+  input:
+   raw_request: %s
+`
+
 var yamlConfigOverride = `
 ---
 testoverride:
@@ -863,6 +912,97 @@ func TestApplyInputOverrides(t *testing.T) {
 	overriddenHeader := testInput.Headers.Get("unique_id")
 	assert.NotEqual(t, "", overriddenHeader, "unique_id header must be set after overriding it")
 	assert.Equal(t, overrideHeaderValue, overriddenHeader, "Host header must be identical to overridden `Host` header.")
+}
+
+func TestApplyInputOverrideURI(t *testing.T) {
+	originalURI := "original.com"
+	overrideURI := "override.com"
+	testInput := test.Input{
+		URI: &originalURI,
+	}
+
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigURIOverride, overrideURI))
+	assert.NoError(t, err1)
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+	assert.Equal(t, overrideURI, *testInput.URI, "`URI` should have been overridden")
+}
+
+func TestApplyInputOverrideVersion(t *testing.T) {
+	originalVersion := "HTTP/0.9"
+	overrideVersion := "HTTP/1.1"
+	testInput := test.Input{
+		Version: &originalVersion,
+	}
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigVersionOverride, overrideVersion))
+	assert.NoError(t, err1)
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+	assert.Equal(t, overrideVersion, *testInput.Version, "`Version` should have been overridden")
+}
+
+func TestApplyInputOverrideMethod(t *testing.T) {
+	originalMethod := "original.com"
+	overrideMethod := "override.com"
+	testInput := test.Input{
+		Method: &originalMethod,
+	}
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigMethodOverride, overrideMethod))
+	assert.NoError(t, err1)
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+	assert.Equal(t, overrideMethod, *testInput.Method, "`Method` should have been overridden")
+}
+
+func TestApplyInputOverrideData(t *testing.T) {
+	originalData := "data"
+	overrideData := "new data"
+	testInput := test.Input{
+		Data: &originalData,
+	}
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigDataOverride, overrideData))
+	assert.NoError(t, err1)
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+	assert.Equal(t, overrideData, *testInput.Data, "`Data` should have been overridden")
+}
+
+func TestApplyInputOverrideStopMagic(t *testing.T) {
+	overrideStopMagic := true
+	testInput := test.Input{
+		StopMagic: false,
+	}
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigStopMagicOverride, overrideStopMagic))
+	assert.NoError(t, err1)
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+	assert.Equal(t, overrideStopMagic, testInput.StopMagic, "`StopMagic` should have been overridden")
+}
+
+func TestApplyInputOverrideEncodedRequest(t *testing.T) {
+	originalEncodedRequest := "originalbase64"
+	overrideEncodedRequest := "modifiedbase64"
+	testInput := test.Input{
+		EncodedRequest: originalEncodedRequest,
+	}
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigEncodedRequestOverride, overrideEncodedRequest))
+	assert.NoError(t, err1)
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+	assert.Equal(t, overrideEncodedRequest, testInput.EncodedRequest, "`EncodedRequest` should have been overridden")
+}
+
+func TestApplyInputOverrideRAWRequest(t *testing.T) {
+	originalRAWRequest := "original"
+	overrideRAWRequest := "override"
+	testInput := test.Input{
+		RAWRequest: originalRAWRequest,
+	}
+	cfg, err1 := config.NewConfigFromString(fmt.Sprintf(yamlConfigRAWRequestOverride, overrideRAWRequest))
+	assert.NoError(t, err1)
+	err := applyInputOverride(cfg.TestOverride, &testInput)
+	assert.NoError(t, err, "Failed to apply input overrides")
+	assert.Equal(t, overrideRAWRequest, testInput.RAWRequest, "`RAWRequest` should have been overridden")
 }
 
 func TestIgnoredTestsRun(t *testing.T) {

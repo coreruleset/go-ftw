@@ -380,8 +380,31 @@ func getRequestFromTest(testRequest test.Input) *ftwhttp.Request {
 // applyInputOverride will check if config had global overrides and write that into the test.
 func applyInputOverride(o config.FTWTestOverride, testRequest *test.Input) error {
 	overrides := o.Overrides
+
+	if overrides.DestAddr != nil {
+		testRequest.DestAddr = overrides.DestAddr
+		if testRequest.Headers == nil {
+			testRequest.Headers = ftwhttp.Header{}
+		}
+		if overrides.OverrideEmptyHostHeader && testRequest.Headers.Get("Host") == "" {
+			testRequest.Headers.Set("Host", *overrides.DestAddr)
+		}
+	}
+
 	if overrides.Port != nil {
 		testRequest.Port = overrides.Port
+	}
+
+	if overrides.Protocol != nil {
+		testRequest.Protocol = overrides.Protocol
+	}
+
+	if overrides.URI != nil {
+		testRequest.URI = overrides.URI
+	}
+
+	if overrides.Version != nil {
+		testRequest.Version = overrides.Version
 	}
 
 	if overrides.Headers != nil {
@@ -393,17 +416,24 @@ func applyInputOverride(o config.FTWTestOverride, testRequest *test.Input) error
 		}
 	}
 
-	if overrides.DestAddr != nil {
-		testRequest.DestAddr = overrides.DestAddr
-		if testRequest.Headers == nil {
-			testRequest.Headers = ftwhttp.Header{}
-		}
-		if overrides.OverrideEmptyHostHeader && testRequest.Headers.Get("Host") == "" {
-			testRequest.Headers.Set("Host", *overrides.DestAddr)
-		}
+	if overrides.Method != nil {
+		testRequest.Method = overrides.Method
 	}
-	if overrides.Protocol != nil {
-		testRequest.Protocol = overrides.Protocol
+
+	if overrides.Data != nil {
+		testRequest.Data = overrides.Data
+	}
+
+	if overrides.StopMagic != nil {
+		testRequest.StopMagic = *overrides.StopMagic
+	}
+
+	if overrides.EncodedRequest != nil {
+		testRequest.EncodedRequest = *overrides.EncodedRequest
+	}
+
+	if overrides.RAWRequest != nil {
+		testRequest.RAWRequest = *overrides.RAWRequest
 	}
 
 	return nil
