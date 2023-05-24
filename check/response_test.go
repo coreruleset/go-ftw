@@ -43,3 +43,14 @@ func TestAssertResponseTextFailOK(t *testing.T) {
 		assert.Falsef(t, c.AssertResponseContains(e.response), "response shouldn't contain text %v", e.response)
 	}
 }
+
+func TestAssertResponseTextChecksFullResponseOK(t *testing.T) {
+	cfg, err := config.NewConfigFromString(yamlApacheConfig)
+	assert.NoError(t, err)
+
+	c := NewCheck(cfg)
+	for _, e := range expectedResponseOKTests {
+		c.SetExpectResponse(e.expected)
+		assert.Truef(t, c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
+	}
+}
