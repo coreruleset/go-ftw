@@ -14,8 +14,5 @@ func (c *FTWCheck) AssertResponseContains(response string) bool {
 
 // ResponseContainsRequired checks that the test requires to check the response
 func (c *FTWCheck) ResponseContainsRequired() bool {
-	if c.expected.ResponseContains == "" {
-		return false
-	}
-	return true
+	return c.expected.ResponseContains != ""
 }
