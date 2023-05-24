@@ -65,7 +65,7 @@ Host: localhost
 Keep-Alive: 300
 Proxy-Connection: keep-alive
 User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727)
-`,
+		`,
 		SaveCookie: false,
 		StopMagic:  true,
 	}
