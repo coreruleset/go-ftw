@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"log"
 	"os"
 
@@ -19,31 +21,39 @@ var (
 
 var cfg = config.NewDefaultConfig()
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "ftw run",
-	Short: "Framework for Testing WAFs - Go Version",
+// NewRootCommand represents the base command when called without any subcommands
+func NewRootCommand() *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use:   "ftw run",
+		Short: "Framework for Testing WAFs - Go Version",
+	}
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "override config file (default is $PWD/.ftw.yaml)")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "", false, "debug output")
+	rootCmd.PersistentFlags().BoolVarP(&trace, "trace", "", false, "trace output: really, really verbose")
+	rootCmd.PersistentFlags().BoolVarP(&cloud, "cloud", "", false, "cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)")
+
+	return rootCmd
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute(version string) {
+	rootCmd := NewRootCommand()
+	rootCmd.AddCommand(NewCheckCommand())
+	rootCmd.AddCommand(NewRunCommand())
 	rootCmd.Version = version
-	if err := rootCmd.Execute(); err != nil {
+
+	if err := rootCmd.ExecuteContext(context.Background()); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			os.Exit(2)
+		}
+
 		os.Exit(1)
 	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "override config file (default is $PWD/.ftw.yaml)")
-	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "", false, "debug output")
-	rootCmd.PersistentFlags().BoolVarP(&trace, "trace", "", false, "trace output: really, really verbose")
-	rootCmd.PersistentFlags().BoolVarP(&cloud, "cloud", "", false, "cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)")
 }
 
 func initConfig() {

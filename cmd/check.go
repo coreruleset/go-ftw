@@ -10,20 +10,19 @@ import (
 	"github.com/coreruleset/go-ftw/test"
 )
 
-// checkCmd represents the check command
-var checkCmd = &cobra.Command{
-	Use:   "check",
-	Short: "Checks ftw test files for syntax errors.",
-	Long:  ``,
-	Run: func(cmd *cobra.Command, args []string) {
-		dir, _ := cmd.Flags().GetString("dir")
-		checkFiles(dir)
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(checkCmd)
+// NewCheckCmd represents the check command
+func NewCheckCommand() *cobra.Command {
+	checkCmd := &cobra.Command{
+		Use:   "check",
+		Short: "Checks ftw test files for syntax errors.",
+		Long:  ``,
+		Run: func(cmd *cobra.Command, args []string) {
+			dir, _ := cmd.Flags().GetString("dir")
+			checkFiles(dir)
+		},
+	}
 	checkCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
+	return checkCmd
 }
 
 func checkFiles(dir string) {
