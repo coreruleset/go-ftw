@@ -198,7 +198,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID string) ([]byte, error) {
 	rline := &ftwhttp.RequestLine{
 		Method: "GET",
-		// Use the `/status` endpoint of `httpbin` (http://httpbin.org), if possible,
+		// Use the `/status` endpoint of `httpbin` (http://httpbingo.org), if possible,
 		// to minimize the amount of data transferred and in the log.
 		// `httpbin` is used by the CRS test setup.
 		URI:     "/status/200",

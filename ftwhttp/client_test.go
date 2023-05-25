@@ -50,7 +50,7 @@ func TestDoRequest(t *testing.T) {
 
 func TestGetTrackedTime(t *testing.T) {
 	d := &Destination{
-		DestAddr: "httpbin.org",
+		DestAddr: "httpbingo.org",
 		Port:     443,
 		Protocol: "https",
 	}
@@ -89,7 +89,7 @@ func TestGetTrackedTime(t *testing.T) {
 
 func TestClientMultipartFormDataRequest(t *testing.T) {
 	d := &Destination{
-		DestAddr: "httpbin.org",
+		DestAddr: "httpbingo.org",
 		Port:     443,
 		Protocol: "https",
 	}

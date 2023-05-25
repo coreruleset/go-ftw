@@ -14,7 +14,7 @@ var yamlConfig = `---
 logfile: 'tests/logs/modsec2-apache/apache2/error.log'
 testoverride:
   input:
-    dest_addr: 'httpbin.org'
+    dest_addr: 'httpbingo.org'
     port: '1234'
   ignore:
     '920400-1$': 'This test must be ignored'
@@ -63,7 +63,7 @@ func TestNewConfigConfig(t *testing.T) {
 
 	overrides := cfg.TestOverride.Overrides
 	assert.NotNil(t, overrides.DestAddr, "Looks like we are not overriding destination address")
-	assert.Equal(t, "httpbin.org", *overrides.DestAddr, "Looks like we are not overriding destination address")
+	assert.Equal(t, "httpbingo.org", *overrides.DestAddr, "Looks like we are not overriding destination address")
 }
 
 func TestNewConfigBadConfig(t *testing.T) {

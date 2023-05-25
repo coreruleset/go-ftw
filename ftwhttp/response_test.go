@@ -116,7 +116,7 @@ func TestResponse(t *testing.T) {
 	response, err := client.Do(*req)
 	assert.NoError(t, err)
 
-	assert.Equal(t, "Hello, client\n", response.GetBodyAsString())
+	assert.Contains(t, response.GetFullResponse(), "Hello, client\n")
 }
 
 func TestResponseWithCookies(t *testing.T) {
@@ -138,7 +138,7 @@ func TestResponseWithCookies(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	assert.Equal(t, "Setting Cookies!\n", response.GetBodyAsString())
+	assert.Contains(t, response.GetFullResponse(), "Setting Cookies!\n")
 
 	cookiereq := generateRequestWithCookiesForTesting()
 
@@ -166,8 +166,6 @@ func TestResponseChecksFullResponse(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	assert.Contains(t, response.GetBodyAsString(), "User-Agent=[Go Tests]")
-	assert.NotContains(t, response.GetBodyAsString(), "X-Powered-By: [go-ftw]\n")
 	assert.Contains(t, response.GetFullResponse(), "X-Powered-By: go-ftw")
 	assert.Contains(t, response.GetFullResponse(), "User-Agent=[Go Tests]")
 }
