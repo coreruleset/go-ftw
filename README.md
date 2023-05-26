@@ -52,7 +52,7 @@ The config file has six basic settings:
 * `logfile` : path to WAF log with alert messages, relative or absolute
 * `testoverride` : a list of things to override (see [Overriding tests](https://github.com/coreruleset/go-ftw#overriding-tests) below)
 * `mode` : "default" or "cloud" (only change it if you need "cloud")
-* `logmarkerheadername` : name of a HTTP header used for marking log messages, usually `X-CRS-TEST` (see [How log parsing works](https://github.com/coreruleset/go-ftw#how-log-parsing-works) below)
+* `logmarkerheadername` : name of an HTTP header used for marking log messages, usually `X-CRS-TEST` (see [How log parsing works](https://github.com/coreruleset/go-ftw#how-log-parsing-works) below)
 * `maxmarkerretries` : the maximum number of times the search for log markers will be repeated; each time an additional request is sent to the web server, eventually forcing the log to be flushed
 * `maxmarkerloglines` the maximum number of lines to search for a marker before aborting
 
@@ -123,20 +123,31 @@ Usage:
   ftw run [flags]
 
 Flags:
-      --connect-timeout duration   timeout for connecting to endpoints during test execution (default 3s)
-  -d, --dir string                 recursively find yaml tests in this directory (default ".")
-  -e, --exclude string             exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*").
-                                   If you want more permanent exclusion, check the 'testoverride' option in the config file.
-  -h, --help                       help for run
-      --id string                  (deprecated). Use --include matching your test only.
-  -i, --include string             include only tests matching this Go regexp (e.g. to include only tests beginning with "91", use "91.*").
-      --max-marker-log-lines int   maximum number of lines to search for a marker before aborting (default 500)
-      --max-marker-retries int     maximum number of times the search for log markers will be repeated.
-                                   Each time an additional request is sent to the web server, eventually forcing the log to be flushed (default 20)
-  -o, --output string              output type for ftw tests (default "normal")
-      --read-timeout duration      timeout for receiving responses during test execution (default 1s)
-      --show-failures-only         shows only the results of failed tests
-  -t, --time                       show time spent per test
+      --connect-timeout duration               timeout for connecting to endpoints during test execution (default 3s)
+  -d, --dir string                             recursively find yaml tests in this directory (default ".")
+  -e, --exclude string                         exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*").
+                                               If you want more permanent exclusion, check the 'testoverride' option in the config file.
+  -f, --file string                            output file path for ftw tests. Prints to standard output by default.
+  -h, --help                                   help for run
+  -i, --include string                         include only tests matching this Go regexp (e.g. to include only tests beginning with "91", use "91.*").
+      --max-marker-log-lines int               maximum number of lines to search for a marker before aborting (default 500)
+      --max-marker-retries int                 maximum number of times the search for log markers will be repeated.
+                                               Each time an additional request is sent to the web server, eventually forcing the log to be flushed (default 20)
+  -o, --output string                          output type for ftw tests. "normal" is the default. (default "normal")
+      --read-timeout duration                  timeout for receiving responses during test execution (default 1s)
+      --show-failures-only                     shows only the results of failed tests
+  -t, --time                                   show time spent per test
+      --wait-delay duration                    Time to wait between retries for all wait operations. (default 1s)
+      --wait-for-connection-timeout duration   Http connection timeout, The timeout includes connection time, any redirects, and reading the response body. (default 3s)
+      --wait-for-expect-body-json string       Expect response body JSON pattern.
+      --wait-for-expect-body-regex string      Expect response body pattern.
+      --wait-for-expect-body-xpath string      Expect response body XPath pattern.
+      --wait-for-expect-header string          Expect response header pattern.
+      --wait-for-expect-status-code int        Expect response code e.g. 200, 204, ... .
+      --wait-for-host string                   Wait for host to be available before running tests.
+      --wait-for-insecure-skip-tls-verify      Skips tls certificate checks for the HTTPS request.
+      --wait-for-no-redirect                   Do not follow HTTP 3xx redirects.
+      --wait-for-timeout duration              Sets the timeout for all wait operations, 0 is unlimited. (default 10s)
 
 Global Flags:
       --cloud           cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)
@@ -224,7 +235,7 @@ To support automation for processing the test results, there is also a new JSON 
     "913100-1",
     "913100-2",
     "913100-3",
-    ...
+    "...",
     "980170-2"
   ],
   "ignored": null,
@@ -343,7 +354,7 @@ You can combine any of `ignore`, `forcefail` and `forcepass` to make it work for
 
 Most of the tests rely on having access to a logfile to check for success or failure. Sometimes that is not possible, for example, when testing cloud services or servers where you don't have access to logfiles and/or logfiles won't have the information you need to decide if the test was good or bad.
 
-With cloud mode, we move the decision on test failure or success to the HTTP status code received after performing the test. The general idea is that you setup your WAF in blocking mode, so anything matching will return a block status (e.g. 403), and if not we expect a 2XX return code.
+With cloud mode, we move the decision on test failure or success to the HTTP status code received after performing the test. The general idea is that you set up your WAF in blocking mode, so anything matching will return a block status (e.g. 403), and if not we expect a 2XX return code.
 
 An example config file for this is:
 ```
@@ -383,7 +394,23 @@ SecRule REQUEST_HEADERS:X-CRS-Test "@rx ^.*$" \
 
 The rule looks for an HTTP header named `X-CRS-Test` and writes its value to the log, the value being the UUID of a test stage. If the header does not exist, the rule will be skipped and no marker will be written. If the header is found, the rule will also disable all further matching against the request to ensure that reported matches only concern actual test requests.
 
-You can configure the name of the HTTP header by setting the `logmarkerheadername` option in the configuration to a custom value (the value is case insensitive).
+You can configure the name of the HTTP header by setting the `logmarkerheadername` option in the configuration to a custom value (the value is case-insensitive).
+
+## Wait for backend service to be ready
+
+Sometimes you need to wait for a backend service to be ready before running the tests. For example, you may need to wait for an additional container to be ready before running the tests.
+Now you can do that by passing the `--wait-for-host` flag. The value of this option is a URL that will be requested, and you can configure the expected result using the following additional flags:
+- `--wait-for-host`:                     Wait for host to be available before running tests.
+- `--wait-delay`:                        Time to wait between retries for all wait operations. (default 1s)
+- `--wait-for-connection-timeout`        Http connection timeout, The timeout includes connection time, any redirects, and reading the response body. (default 3s)
+- `--wait-for-expect-body-json`          Expect response body JSON pattern.
+- `--wait-for-expect-body-regex`         Expect response body pattern.
+- `--wait-for-expect-body-xpath`         Expect response body XPath pattern.
+- `--wait-for-expect-header`             Expect response header pattern.
+- `--wait-for-expect-status-code`        Expect response code e.g. 200, 204, ... .
+- `--wait-for-insecure-skip-tls-verify`  Skips tls certificate checks for the HTTPS request.
+- `--wait-for-no-redirect`               Do not follow HTTP 3xx redirects.
+- `--wait-for-timeout`                   Sets the timeout for all wait operations, 0 is unlimited. (default 10s)
 
 ## Library usage
 
@@ -394,6 +421,8 @@ go get github.com/coreruleset/go-ftw
 
 Then, for the example below, import at least these:
 ```go
+package main
+
 import (
     "net/url"
     "os"
