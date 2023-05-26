@@ -10,10 +10,7 @@ func (c *FTWCheck) AssertNoLogContains() bool {
 
 // NoLogContainsRequired checks that the test requires no_log_contains
 func (c *FTWCheck) NoLogContainsRequired() bool {
-	if c.expected.NoLogContains == "" {
-		return false
-	}
-	return true
+	return c.expected.NoLogContains != ""
 }
 
 // AssertLogContains returns true when the logs contain the string
@@ -26,8 +23,5 @@ func (c *FTWCheck) AssertLogContains() bool {
 
 // LogContainsRequired checks that the test requires log_contains
 func (c *FTWCheck) LogContainsRequired() bool {
-	if c.expected.LogContains == "" {
-		return false
-	}
-	return true
+	return c.expected.LogContains != ""
 }
