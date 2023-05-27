@@ -8,7 +8,7 @@ require (
 	github.com/goccy/go-yaml v1.11.0
 	github.com/google/uuid v1.3.0
 	github.com/icza/backscanner v0.0.0-20220812133752-2e60bffed4a2
-	github.com/knadh/koanf v1.4.4
+	github.com/knadh/koanf v1.5.0
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.7.0
