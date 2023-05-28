@@ -8,13 +8,13 @@ require (
 	github.com/goccy/go-yaml v1.11.0
 	github.com/google/uuid v1.3.0
 	github.com/icza/backscanner v0.0.0-20220812133752-2e60bffed4a2
-	github.com/knadh/koanf v1.4.4
+	github.com/knadh/koanf v1.5.0
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.2
 	github.com/yargevad/filepathx v1.0.0
-	golang.org/x/net v0.8.0
+	golang.org/x/net v0.10.0
 	wait4x.dev/v2 v2.13.0
 )
 
@@ -45,7 +45,7 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
