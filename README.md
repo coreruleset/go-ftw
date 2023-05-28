@@ -139,10 +139,10 @@ Flags:
   -t, --time                                   show time spent per test
       --wait-delay duration                    Time to wait between retries for all wait operations. (default 1s)
       --wait-for-connection-timeout duration   Http connection timeout, The timeout includes connection time, any redirects, and reading the response body. (default 3s)
-      --wait-for-expect-body-json string       Expect response body JSON pattern.
-      --wait-for-expect-body-regex string      Expect response body pattern.
-      --wait-for-expect-body-xpath string      Expect response body XPath pattern.
-      --wait-for-expect-header string          Expect response header pattern.
+      --wait-for-expect-body-json string       Expect response body JSON pattern. To know more about JSON syntax see https://github.com/tidwall/gjson/blob/master/SYNTAX.md
+      --wait-for-expect-body-regex string      Expect response body pattern. This is just a regex.
+      --wait-for-expect-body-xpath string      Expect response body XPath pattern. Example: `"//*[@id="tux-gear"]"`
+      --wait-for-expect-header string          Expect response header pattern. This is a regex. Example: `"Content-Type: application/json"`.
       --wait-for-expect-status-code int        Expect response code e.g. 200, 204, ... .
       --wait-for-host string                   Wait for host to be available before running tests.
       --wait-for-insecure-skip-tls-verify      Skips TLS certificate checks for the HTTPS request.
@@ -155,6 +155,10 @@ Global Flags:
       --debug           debug output
       --trace           trace output: really, really verbose
 ```
+All the wait for flags are implemented using the [wait4x](https://github.com/atkrad/wait4x#http) library.
+See their examples on how to use them. In our flags we added the prefix `--wait-for` but they behave similarly.
+
+Note: Duration flags above accept any input valid for [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration).
 
 Here's an example on how to run your tests recursively in the folder `tests`:
 
