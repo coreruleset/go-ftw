@@ -145,7 +145,7 @@ Flags:
       --wait-for-expect-header string          Expect response header pattern.
       --wait-for-expect-status-code int        Expect response code e.g. 200, 204, ... .
       --wait-for-host string                   Wait for host to be available before running tests.
-      --wait-for-insecure-skip-tls-verify      Skips tls certificate checks for the HTTPS request.
+      --wait-for-insecure-skip-tls-verify      Skips TLS certificate checks for the HTTPS request.
       --wait-for-no-redirect                   Do not follow HTTP 3xx redirects.
       --wait-for-timeout duration              Sets the timeout for all wait operations, 0 is unlimited. (default 10s)
 
