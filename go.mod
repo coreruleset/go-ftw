@@ -12,7 +12,7 @@ require (
 	github.com/kyokomi/emoji v2.2.4+incompatible
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.7.0
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.3
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/net v0.10.0
 	wait4x.dev/v2 v2.13.0
