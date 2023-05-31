@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
 )
@@ -25,25 +25,33 @@ var expectedFailTests = []struct {
 	{errors.New("a"), false},
 }
 
-func TestAssertResponseErrorOK(t *testing.T) {
+type checkErrorTestSuite struct {
+	suite.Suite
+}
+
+func TestCheckErrorTestSuite(t *testing.T) {
+	suite.Run(t, new(checkErrorTestSuite))
+}
+
+func (s *checkErrorTestSuite) TestAssertResponseErrorOK() {
 	cfg, err := config.NewConfigFromString(yamlApacheConfig)
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	c := NewCheck(cfg)
 	for _, e := range expectedOKTests {
 		c.SetExpectError(e.expected)
-		assert.Equal(t, e.expected, c.AssertExpectError(e.err))
+		s.Equal(e.expected, c.AssertExpectError(e.err))
 	}
 }
 
-func TestAssertResponseFail(t *testing.T) {
+func (s *checkErrorTestSuite) TestAssertResponseFail() {
 	cfg, err := config.NewConfigFromString(yamlApacheConfig)
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	c := NewCheck(cfg)
 
 	for _, e := range expectedFailTests {
 		c.SetExpectError(e.expected)
-		assert.False(t, c.AssertExpectError(e.err))
+		s.False(c.AssertExpectError(e.err))
 	}
 }

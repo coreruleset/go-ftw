@@ -3,7 +3,7 @@ package check
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
 )
@@ -25,26 +25,34 @@ var statusFailTests = []struct {
 	{200, []int{0}},
 }
 
-func TestStatusOK(t *testing.T) {
+type checkStatusTestSuite struct {
+	suite.Suite
+}
+
+func TestCheckStatusTestSuite(t *testing.T) {
+	suite.Run(t, new(checkStatusTestSuite))
+}
+
+func (s *checkStatusTestSuite) TestStatusOK() {
 	cfg, err := config.NewConfigFromString(yamlApacheConfig)
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	c := NewCheck(cfg)
 
 	for _, expected := range statusOKTests {
 		c.SetExpectStatus(expected.expectedStatus)
-		assert.True(t, c.AssertStatus(expected.status))
+		s.True(c.AssertStatus(expected.status))
 	}
 }
 
-func TestStatusFail(t *testing.T) {
+func (s *checkStatusTestSuite) TestStatusFail() {
 	cfg, err := config.NewConfigFromString(yamlApacheConfig)
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	c := NewCheck(cfg)
 
 	for _, expected := range statusFailTests {
 		c.SetExpectStatus(expected.expectedStatus)
-		assert.False(t, c.AssertStatus(expected.status))
+		s.False(c.AssertStatus(expected.status))
 	}
 }

@@ -3,7 +3,7 @@ package check
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
 )
@@ -22,35 +22,43 @@ var expectedResponseFailTests = []struct {
 	{`<html><title></title><body></body></html>`, "not found"},
 }
 
-func TestAssertResponseTextErrorOK(t *testing.T) {
+type checkResponseTestSuite struct {
+	suite.Suite
+}
+
+func TestCheckResponseTestSuite(t *testing.T) {
+	suite.Run(t, new(checkResponseTestSuite))
+}
+
+func (s *checkResponseTestSuite) TestAssertResponseTextErrorOK() {
 	cfg, err := config.NewConfigFromString(yamlApacheConfig)
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	c := NewCheck(cfg)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)
-		assert.Truef(t, c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
+		s.Truef(c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
 	}
 }
 
-func TestAssertResponseTextFailOK(t *testing.T) {
+func (s *checkResponseTestSuite) TestAssertResponseTextFailOK() {
 	cfg, err := config.NewConfigFromString(yamlApacheConfig)
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	c := NewCheck(cfg)
 	for _, e := range expectedResponseFailTests {
 		c.SetExpectResponse(e.expected)
-		assert.Falsef(t, c.AssertResponseContains(e.response), "response shouldn't contain text %v", e.response)
+		s.Falsef(c.AssertResponseContains(e.response), "response shouldn't contain text %v", e.response)
 	}
 }
 
-func TestAssertResponseTextChecksFullResponseOK(t *testing.T) {
+func (s *checkResponseTestSuite) TestAssertResponseTextChecksFullResponseOK() {
 	cfg, err := config.NewConfigFromString(yamlApacheConfig)
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	c := NewCheck(cfg)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)
-		assert.Truef(t, c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
+		s.Truef(c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
 	}
 }
