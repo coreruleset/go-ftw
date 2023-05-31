@@ -3,6 +3,8 @@ package output
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 var testString = "test"
@@ -25,41 +27,44 @@ var outputTest = []struct {
 	{"json", `{"level":"notice","message":"This is the test"}`},
 }
 
-func TestOutput(t *testing.T) {
+type outputTestSuite struct {
+	suite.Suite
+}
+
+func TestOutputTestSuite(t *testing.T) {
+	suite.Run(t, new(outputTestSuite))
+}
+
+func (s *outputTestSuite) TestOutput() {
 	var b bytes.Buffer
 
 	for i, test := range outputTest {
 		o := NewOutput(test.oType, &b)
 
-		if err := o.Printf(format, testString); err != nil {
-			t.Fatalf("Error! in test %d", i)
-		}
+		err := o.Printf(format, testString)
+		s.NoError(err, "Error! in test %d", i)
 	}
 }
 
-func TestNormalCatalogOutput(t *testing.T) {
+func (s *outputTestSuite) TestNormalCatalogOutput() {
 	var b bytes.Buffer
 
 	normal := NewOutput("normal", &b)
 	for _, v := range normalCatalog {
 		normal.RawPrint(v)
-		if b.String() != v {
-			t.Error("output is not equal")
-		}
+		s.Equal(b.String(), v, "output is not equal")
 		// reset buffer
 		b.Reset()
 	}
 }
 
-func TestPlainCatalogOutput(t *testing.T) {
+func (s *outputTestSuite) TestPlainCatalogOutput() {
 	var b bytes.Buffer
 
 	normal := NewOutput("normal", &b)
 	for _, v := range createPlainCatalog(normalCatalog) {
 		normal.RawPrint(v)
-		if b.String() != v {
-			t.Error("plain output is not equal")
-		}
+		s.Equal(b.String(), v, "output is not equal")
 		// reset buffer
 		b.Reset()
 	}
