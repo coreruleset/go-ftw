@@ -11,7 +11,6 @@ tests:
       - stage:
           input:
             dest_addr: "{{ .TestAddr }}"
-            # -1 designates port value must be replaced by test setup
             port: {{ .TestPort }}
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
@@ -26,7 +25,6 @@ tests:
       - stage:
           input:
             dest_addr: "{{ .TestAddr }}"
-            # -1 designates port value must be replaced by test setup
             port: {{ .TestPort }}
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
@@ -38,8 +36,7 @@ tests:
     stages:
       - stage:
           input:
-            dest_addr: "{{ .test_addr }}"
-            # -1 designates port value must be replaced by test setup
+            dest_addr: "{{ .TestAddr }}"
             port: {{ .TestPort }}
             version: "HTTP/1.1"
             method: "OTHER"

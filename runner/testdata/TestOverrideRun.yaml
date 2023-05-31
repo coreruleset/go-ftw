@@ -15,7 +15,7 @@ tests:
             port: {{ .TestPort }}
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
-              Host: "TEST_ADDR"
+              Host: "{{ .TestAddr }}
           output:
             expect_error: False
             status: [200]

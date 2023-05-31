@@ -1,12 +1,11 @@
 package config
 
 import (
-	"fmt"
-	"github.com/rs/zerolog/log"
-	"github.com/stretchr/testify/suite"
 	"os"
 	"regexp"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/utils"
@@ -22,7 +21,7 @@ testoverride:
   ignore:
     '920400-1$': 'This test must be ignored'
 `,
-	"cloud": `---
+	"TestNewConfigFromFileRunMode": `---
 mode: 'cloud'
 `,
 	"bad": `
@@ -30,7 +29,7 @@ mode: 'cloud'
 logfile: 'tests/logs/modsec2-apache/apache2/error.log'
 doesNotExist: ""
 `,
-	"json": `
+	"jsonConfig": `
 {"test": "type"}
 `,
 }
@@ -38,46 +37,73 @@ doesNotExist: ""
 type fileTestSuite struct {
 	suite.Suite
 	filename string
-    cfg config.FTWConfig
+	cfg      *FTWConfiguration
+}
+
+type envTestSuite struct {
+	suite.Suite
+}
+
+type baseTestSuite struct {
+	suite.Suite
 }
 
 func TestConfigTestSuite(t *testing.T) {
+	suite.Run(t, new(baseTestSuite))
 	suite.Run(t, new(fileTestSuite))
+	suite.Run(t, new(envTestSuite))
 }
 
 func (s *fileTestSuite) SetupTest() {
 }
 
+func (s *envTestSuite) SetupTest() {
+}
+
 func (s *fileTestSuite) BeforeTest(_, name string) {
-	fmt.Printf("Reading data for %s\n", name)
+	var err error
 	s.filename, _ = utils.CreateTempFileWithContent(testData[name], "test-*.yaml")
-	s.cfg, err := NewConfigFromFile(s.filename)
+	s.cfg, err = NewConfigFromFile(s.filename)
 	s.NoError(err)
-    s.NotNil(cfg)
+	s.NotNil(s.cfg)
 }
 
 func (s *fileTestSuite) AfterTest(_ string, _ string) {
 	if s.filename != "" {
-		_ = os.Remove(s.filename)
-		log.Info().Msgf("Deleting temporary file '%s'", s.filename)
+		err := os.Remove(s.filename)
+		s.NoError(err)
 		s.filename = ""
 	}
-	Reset()
 }
 
-func (s *fileTestSuite)TestNewDefaultConfig() {
-    cfg := NewDefaultConfig()
-    s.Equal(DefaultLogMarkerHeaderName, cfg.LogMarkerHeaderName)
-    s.Equal(DefaultRunMode, cfg.RunMode)
-    s.Equal("", cfg.LogFile)
+func (s *baseTestSuite) TestBaseUnmarshalText() {
+	var ftwRegex FTWRegexp
+	err := ftwRegex.UnmarshalText([]byte("test"))
+	s.NoError(err)
+	s.NotNil(ftwRegex)
+	s.True(ftwRegex.MatchString("This is a test for unmarshalling"), "looks like we could not match string")
 }
 
-func (s *fileTestSuite)TestNewConfigBadFileConfig() {
-	filename, _ := utils.CreateTempFileWithContent(jsonConfig, "test-*.yaml")
+func (s *baseTestSuite) TestBaseNewFTWRegexpText() {
+	ftwRegex, err := NewFTWRegexp("test")
+	s.NoError(err)
+	s.NotNil(ftwRegex)
+	s.True(ftwRegex.MatchString("This is a test"), "looks like we could not match string")
+}
+
+func (s *fileTestSuite) TestNewDefaultConfig() {
+	cfg := NewDefaultConfig()
+	s.Equal(DefaultLogMarkerHeaderName, cfg.LogMarkerHeaderName)
+	s.Equal(DefaultRunMode, cfg.RunMode)
+	s.Equal("", cfg.LogFile)
+}
+
+func (s *fileTestSuite) TestNewConfigBadFileConfig() {
+	filename, _ := utils.CreateTempFileWithContent(testData["jsonConfig"], "test-*.yaml")
 	defer os.Remove(filename)
 	cfg, err := NewConfigFromFile(filename)
 	s.NoError(err)
-    s.NotNil(cfg)
+	s.NotNil(cfg)
 }
 
 func (s *fileTestSuite) TestNewConfigFromFile() {
@@ -88,13 +114,13 @@ func (s *fileTestSuite) TestNewConfigFromFile() {
 		s.Equal("This test must be ignored", text, "Text doesn't match")
 	}
 
-	overrides := cfg.TestOverride.Overrides
+	overrides := s.cfg.TestOverride.Overrides
 	s.NotNil(overrides.DestAddr, "Looks like we are not overriding destination address")
 	s.Equal("httpbingo.org", *overrides.DestAddr, "Looks like we are not overriding destination address")
 }
 
 func (s *fileTestSuite) TestNewConfigBadConfig() {
-    // contents come from yamlBadConfig
+	// contents come from yamlBadConfig
 	s.NotNil(s.cfg)
 }
 
@@ -109,15 +135,15 @@ func (s *fileTestSuite) TestNewConfigDefaultConfig() {
 }
 
 func (s *fileTestSuite) TestNewConfigFromString() {
-    cfg, err := NewConfigFromString(testData["ok"])
+	cfg, err := NewConfigFromString(testData["ok"])
 	s.NoError(err)
 	s.NotNil(cfg)
 }
 
 func (s *fileTestSuite) TestNewEnvConfigFromString() {
-    cfg, err := NewConfigFromString(testData["ok"])
-    s.NoError(err)
-    s.NotNil(cfg)
+	cfg, err := NewConfigFromString(testData["ok"])
+	s.NoError(err)
+	s.NotNil(cfg)
 }
 
 func (s *fileTestSuite) TestNewConfigFromEnv() {
@@ -133,7 +159,7 @@ func (s *fileTestSuite) TestNewConfigFromEnv() {
 func (s *fileTestSuite) TestNewConfigFromEnvHasDefaults() {
 	cfg, err := NewConfigFromEnv()
 	s.NoError(err)
-    s.NotNil(cfg)
+	s.NotNil(cfg)
 
 	s.Equalf(DefaultRunMode, cfg.RunMode,
 		"unexpected default value '%s' for run mode", cfg.RunMode)
@@ -152,37 +178,32 @@ func (s *fileTestSuite) TestNewConfigFromFileHasDefaults() {
 func (s *fileTestSuite) TestNewConfigFromStringHasDefaults() {
 	cfg, err := NewConfigFromString("")
 	s.NoError(err)
-    s.NotNil(cfg)
+	s.NotNil(cfg)
 	s.Equalf(DefaultRunMode, cfg.RunMode,
 		"unexpected default value '%s' for run mode", cfg.RunMode)
 	s.Equalf(DefaultLogMarkerHeaderName, cfg.LogMarkerHeaderName,
-		"unexpected default value '%s' for logmarkerheadername", FTWConfig.LogMarkerHeaderName)
+		"unexpected default value '%s' for logmarkerheadername", s.cfg.LogMarkerHeaderName)
 }
 
 func (s *fileTestSuite) TestNewConfigFromFileRunMode() {
-	s.filename, err := utils.CreateTempFileWithContent(testData["cloud"], "test-*.yaml")
-
-	cfg, err := NewConfigFromFile(s.filename)
-	s.NoError(err)
-	s.NotNil(cfg)
-	s.Equalf(CloudRunMode, cfg.RunMode,
-		"unexpected value '%s' for run mode, expected '%s;", cfg.RunMode, CloudRunMode)
+	s.Equalf(CloudRunMode, s.cfg.RunMode,
+		"unexpected value '%s' for run mode, expected '%s;", s.cfg.RunMode, CloudRunMode)
 }
 
-func (s *fileTestSuite)  TestNewDefaultConfigWithParams() {
-    cfg := NewDefaultConfig()
-    cfg.WithLogfile("mylogfile.log")
-    s.Equal("mylogfile.log", cfg.LogFile)
-    overrides := FTWTestOverride{
-        Overrides: test.Overrides{},
-        Ignore:    nil,
-        ForcePass: nil,
-        ForceFail: nil,
-    }
-    cfg.WithOverrides(overrides)
-    s.Equal(overrides, cfg.TestOverride)
-    cfg.WithLogMarkerHeaderName("NEW-MARKER-TEST")
-    s.Equal("NEW-MARKER-TEST", cfg.LogMarkerHeaderName)
-    cfg.WithRunMode(CloudRunMode)
-    s.Equal(CloudRunMode, cfg.RunMode)
+func (s *fileTestSuite) TestNewDefaultConfigWithParams() {
+	cfg := NewDefaultConfig()
+	cfg.WithLogfile("mylogfile.log")
+	s.Equal("mylogfile.log", cfg.LogFile)
+	overrides := FTWTestOverride{
+		Overrides: test.Overrides{},
+		Ignore:    nil,
+		ForcePass: nil,
+		ForceFail: nil,
+	}
+	cfg.WithOverrides(overrides)
+	s.Equal(overrides, cfg.TestOverride)
+	cfg.WithLogMarkerHeaderName("NEW-MARKER-TEST")
+	s.Equal("NEW-MARKER-TEST", cfg.LogMarkerHeaderName)
+	cfg.WithRunMode(CloudRunMode)
+	s.Equal(CloudRunMode, cfg.RunMode)
 }
