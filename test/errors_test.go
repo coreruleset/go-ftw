@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/utils"
 )
@@ -44,12 +44,20 @@ var errorsTest = `---
               no_log_contains: "id \"911100\""
 `
 
-func TestGetLinesFromTestName(t *testing.T) {
+type errorsTestSuite struct {
+	suite.Suite
+}
+
+func TestErrorsTestSuite(t *testing.T) {
+	suite.Run(t, new(errorsTestSuite))
+}
+
+func (s *errorsTestSuite) TestGetLinesFromTestName() {
 	filename, _ := utils.CreateTempFileWithContent(errorsTest, "test-yaml-*")
 	tests, _ := GetTestsFromFiles(filename)
 
 	for _, ft := range tests {
 		line, _ := ft.GetLinesFromTest("911100-2")
-		assert.Equal(t, 22, line, "Not getting the proper line.")
+		s.Equal(22, line, "Not getting the proper line.")
 	}
 }

@@ -4,9 +4,18 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/coreruleset/go-ftw/ftwhttp"
-	"github.com/stretchr/testify/assert"
 )
+
+type defaultsTestSuite struct {
+	suite.Suite
+}
+
+func TestDefaultsTestSuite(t *testing.T) {
+	suite.Run(t, new(defaultsTestSuite))
+}
 
 func getTestInputDefaults() *Input {
 	data := "My Data"
@@ -73,54 +82,54 @@ User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; SV1; .NET CLR 2.0
 	return &inputTest
 }
 
-func TestBasicGetters(t *testing.T) {
+func (s *defaultsTestSuite) TestBasicGetters() {
 	input := getTestExampleInput()
 
 	dest := input.GetDestAddr()
-	assert.Equal(t, "192.168.0.1", dest)
+	s.Equal("192.168.0.1", dest)
 	method := input.GetMethod()
-	assert.Equal(t, "REPORT", method)
+	s.Equal("REPORT", method)
 	version := input.GetVersion()
-	assert.Equal(t, "HTTP/1.1", version)
+	s.Equal("HTTP/1.1", version)
 	port := input.GetPort()
-	assert.Equal(t, 8080, port)
+	s.Equal(8080, port)
 	proto := input.GetProtocol()
-	assert.Equal(t, "http", proto)
+	s.Equal("http", proto)
 	uri := input.GetURI()
-	assert.Equal(t, "/test", uri)
+	s.Equal("/test", uri)
 	request, _ := input.GetRawRequest()
-	assert.Equal(t, []byte("My Data\n"), request)
+	s.Equal([]byte("My Data\n"), request)
 }
 
-func TestDefaultGetters(t *testing.T) {
+func (s *defaultsTestSuite) TestDefaultGetters() {
 	inputDefaults := getTestInputDefaults()
 
 	val := inputDefaults.GetDestAddr()
-	assert.Equal(t, "localhost", val)
+	s.Equal("localhost", val)
 
 	val = inputDefaults.GetMethod()
-	assert.Equal(t, "GET", val)
+	s.Equal("GET", val)
 
 	val = inputDefaults.GetVersion()
-	assert.Equal(t, "HTTP/1.1", val)
+	s.Equal("HTTP/1.1", val)
 
 	port := inputDefaults.GetPort()
-	assert.Equal(t, 80, port)
+	s.Equal(80, port)
 
 	val = inputDefaults.GetProtocol()
-	assert.Equal(t, "http", val)
+	s.Equal("http", val)
 
 	val = inputDefaults.GetURI()
-	assert.Equal(t, "/", val)
+	s.Equal("/", val)
 
-	assert.Equal(t, []byte("My Data"), []byte(*inputDefaults.Data))
+	s.Equal([]byte("My Data"), []byte(*inputDefaults.Data))
 }
 
-func TestRaw(t *testing.T) {
+func (s *defaultsTestSuite) TestRaw() {
 	raw := getRawInput()
 
-	assert.True(t, raw.StopMagic)
+	s.True(raw.StopMagic)
 
 	request, _ := raw.GetRawRequest()
-	assert.NotEqual(t, 2, bytes.Index(request, []byte("Acunetix")))
+	s.NotEqual(2, bytes.Index(request, []byte("Acunetix")))
 }

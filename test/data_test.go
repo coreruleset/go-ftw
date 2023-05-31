@@ -3,14 +3,22 @@ package test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/goccy/go-yaml"
 )
 
 var repeatTestSprig = `foo=%3d++++++++++++++++++++++++++++++++++`
 
-func TestGetDataFromYAML(t *testing.T) {
+type dataTestSuite struct {
+	suite.Suite
+}
+
+func TestDataTestSuite(t *testing.T) {
+	suite.Run(t, new(dataTestSuite))
+}
+
+func (s *dataTestSuite) TestGetDataFromYAML() {
 	yamlString := `
 dest_addr: "127.0.0.1"
 method: "POST"
@@ -26,11 +34,11 @@ uri: "/"
 `
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
-	assert.NoError(t, err)
-	assert.True(t, input.StopMagic)
+	s.NoError(err)
+	s.True(input.StopMagic)
 }
 
-func TestGetPartialDataFromYAML(t *testing.T) {
+func (s *dataTestSuite) TestGetPartialDataFromYAML() {
 	yamlString := `
 dest_addr: "127.0.0.1"
 method: ""
@@ -47,11 +55,11 @@ uri: "/"
 `
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
-	assert.NoError(t, err)
-	assert.Empty(t, *input.Version)
+	s.NoError(err)
+	s.Empty(*input.Version)
 }
 
-func TestDataTemplateFromYAML(t *testing.T) {
+func (s *dataTestSuite) TestDataTemplateFromYAML() {
 	yamlString := `
 dest_addr: "127.0.0.1"
 method: ""
@@ -70,7 +78,7 @@ uri: "/"
 	var data []byte
 	err := yaml.Unmarshal([]byte(yamlString), &input)
 
-	assert.NoError(t, err)
+	s.NoError(err)
 	data = input.ParseData()
-	assert.Equal(t, []byte(repeatTestSprig), data)
+	s.Equal([]byte(repeatTestSprig), data)
 }
