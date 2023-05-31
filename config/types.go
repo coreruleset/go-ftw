@@ -52,8 +52,10 @@ type FTWTestOverride struct {
 	ForceFail map[*FTWRegexp]string `koanf:"forcefail"`
 }
 
+// FTWRegexp is a wrapper around regexp.Regexp that implements the Unmarshaler interface
 type FTWRegexp regexp.Regexp
 
+// UnmarshalText implements the Unmarshaler interface
 func (r *FTWRegexp) UnmarshalText(b []byte) error {
 	re, err := regexp.Compile(string(b))
 	if err != nil {
@@ -63,6 +65,16 @@ func (r *FTWRegexp) UnmarshalText(b []byte) error {
 	return nil
 }
 
+// MatchString implements the MatchString method of the regexp.Regexp struct
 func (r *FTWRegexp) MatchString(s string) bool {
 	return (*regexp.Regexp)(r).MatchString(s)
+}
+
+// NewFTWRegexp creates a new FTWRegexp from a string
+func NewFTWRegexp(s string) (*FTWRegexp, error) {
+	re, err := regexp.Compile(s)
+	if err != nil {
+		return nil, fmt.Errorf("invalid regexp: %w", err)
+	}
+	return (*FTWRegexp)(re), nil
 }

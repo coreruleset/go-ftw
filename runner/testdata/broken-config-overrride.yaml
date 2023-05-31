@@ -1,7 +1,0 @@
----
-testoverride:
-  input:
-    dest_addr: "{{ .TestAddr }}"
-    # -1 designates port value must be replaced by test setup
-    port: {{ .TestPort }}
-    this_does_not_exist: "test"
