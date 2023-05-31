@@ -4,23 +4,31 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 var content = `This is the content`
 
-func TestCreateTempFile(t *testing.T) {
+type testFilesTestSuite struct {
+	suite.Suite
+}
+
+func TestFilesTestSuite(t *testing.T) {
+	suite.Run(t, new(testFilesTestSuite))
+}
+
+func (s *testFilesTestSuite) TestCreateTempFile() {
 	filename, err := CreateTempFileWithContent(content, "test-content-*")
 	// Remember to clean up the file afterwards
 	defer os.Remove(filename)
 
-	assert.NoError(t, err)
+	s.NoError(err)
 }
 
-func TestCreateBadTempFile(t *testing.T) {
+func (s *testFilesTestSuite) TestCreateBadTempFile() {
 	filename, err := CreateTempFileWithContent(content, "/dev/null/*")
 	// Remember to clean up the file afterwards
 	defer os.Remove(filename)
 
-	assert.NotNil(t, err)
+	s.Error(err)
 }
