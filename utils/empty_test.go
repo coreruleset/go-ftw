@@ -3,50 +3,58 @@ package utils
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestIsEmpty(t *testing.T) {
+type emptyTestSuite struct {
+	suite.Suite
+}
+
+func TestEmptyTestSuite(t *testing.T) {
+	suite.Run(t, new(emptyTestSuite))
+}
+
+func (s *emptyTestSuite) TestIsEmpty() {
 	data := ""
-	assert.True(t, IsEmpty(data))
+	s.True(IsEmpty(data))
 }
 
-func TestIsEmptyStringPointer(t *testing.T) {
+func (s *emptyTestSuite) TestIsEmptyStringPointer() {
 	var empty *string = nil
-	assert.True(t, IsEmpty(empty))
+	s.True(IsEmpty(empty))
 }
 
-func TestIsEmptyByte(t *testing.T) {
+func (s *emptyTestSuite) TestIsEmptyByte() {
 	data := []byte{}
-	assert.True(t, IsEmpty(data))
+	s.True(IsEmpty(data))
 }
 
-func TestIsNotEmpty(t *testing.T) {
+func (s *emptyTestSuite) TestIsNotEmpty() {
 	data := "Not Empty"
-	assert.True(t, IsNotEmpty(data))
+	s.True(IsNotEmpty(data))
 }
 
-func TestIsNotEmptyByte(t *testing.T) {
+func (s *emptyTestSuite) TestIsNotEmptyByte() {
 	data := []byte("Not Empty")
-	assert.True(t, IsNotEmpty(data))
+	s.True(IsNotEmpty(data))
 }
 
-func TestStringPEmpty(t *testing.T) {
-	var s *string
-	assert.True(t, IsEmpty(s))
+func (s *emptyTestSuite) TestStringPEmpty() {
+	var str *string
+	s.True(IsEmpty(str))
 }
 
-func TestStringPNotEmpty(t *testing.T) {
-	s := string("Empty")
-	assert.True(t, IsNotEmpty(&s))
+func (s *emptyTestSuite) TestStringPNotEmpty() {
+	str := string("Empty")
+	s.True(IsNotEmpty(&str))
 }
 
-func TestAnythingNotEmpty(t *testing.T) {
+func (s *emptyTestSuite) TestAnythingNotEmpty() {
 	data := make([]int, 1, 2)
-	assert.False(t, IsEmpty(data))
+	s.False(IsEmpty(data))
 }
 
-func TestAnythingEmpty(t *testing.T) {
+func (s *emptyTestSuite) TestAnythingEmpty() {
 	data := make([]int, 1, 2)
-	assert.False(t, IsNotEmpty(data), "[]int is not implemented so it should return false")
+	s.False(IsNotEmpty(data), "[]int is not implemented so it should return false")
 }
