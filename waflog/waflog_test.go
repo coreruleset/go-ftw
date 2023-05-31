@@ -3,22 +3,30 @@ package waflog
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
 )
 
-func TestNewFTWLogLines(t *testing.T) {
+type waflogTestSuite struct {
+	suite.Suite
+}
+
+func TestWafLogTestSuite(t *testing.T) {
+	suite.Run(t, new(waflogTestSuite))
+}
+
+func (s *waflogTestSuite) TestNewFTWLogLines() {
 	cfg := config.NewDefaultConfig()
-	assert.NotNil(t, cfg)
+	s.NotNil(cfg)
 
 	// Don't call NewFTWLogLines to avoid opening the file.
 	ll := &FTWLogLines{}
 	ll.WithStartMarker([]byte("#"))
 	ll.WithEndMarker([]byte("#"))
 
-	assert.NotNil(t, ll.StartMarker, "Failed! StartMarker must be set")
-	assert.NotNil(t, ll.EndMarker, "Failed! EndMarker must be set")
+	s.NotNil(ll.StartMarker, "Failed! StartMarker must be set")
+	s.NotNil(ll.EndMarker, "Failed! EndMarker must be set")
 	err := ll.Cleanup()
-	assert.NoError(t, err)
+	s.NoError(err)
 }
