@@ -7,16 +7,29 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/utils"
 )
 
-func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
+type readTestSuite struct {
+	suite.Suite
+	filename string
+}
+
+func TestReadTestSuite(t *testing.T) {
+	suite.Run(t, new(readTestSuite))
+}
+
+func (s *readTestSuite) TearDownSuite() {
+	os.Remove(s.filename)
+}
+
+func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	cfg, err := config.NewConfigFromEnv()
-	assert.NoError(t, err)
-	assert.NotNil(t, cfg)
+	s.NoError(err)
+	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := "X-cRs-TeSt: " + stageID
@@ -26,23 +39,22 @@ func TestReadCheckLogForMarkerNoMarkerAtEnd(t *testing.T) {
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 `
-	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	assert.NoError(t, err)
+	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
+	s.NoError(err)
 
-	cfg.LogFile = filename
-	t.Cleanup(func() { os.Remove(filename) })
+	cfg.LogFile = s.filename
 
 	ll, err := NewFTWLogLines(cfg)
-	assert.NoError(t, err)
+	s.NoError(err)
 	ll.WithStartMarker([]byte(markerLine))
 	marker := ll.CheckLogForMarker(stageID, 100)
-	assert.Equal(t, string(marker), strings.ToLower(markerLine), "unexpectedly found marker")
+	s.Equal(string(marker), strings.ToLower(markerLine), "unexpectedly found marker")
 }
 
-func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
+func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 	cfg, err := config.NewConfigFromEnv()
-	assert.NoError(t, err)
-	assert.NotNil(t, cfg)
+	s.NoError(err)
+	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := "X-cRs-TeSt: " + stageID
@@ -51,26 +63,25 @@ func TestReadCheckLogForMarkerWithMarkerAtEnd(t *testing.T) {
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 ` + markerLine
-	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	assert.NoError(t, err)
+	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
+	s.NoError(err)
 
-	cfg.LogFile = filename
-	t.Cleanup(func() { os.Remove(filename) })
+	cfg.LogFile = s.filename
 
 	ll, err := NewFTWLogLines(cfg)
 	ll.WithStartMarker([]byte(markerLine))
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	marker := ll.CheckLogForMarker(stageID, 100)
-	assert.NotNil(t, marker, "no marker found")
+	s.NotNil(marker, "no marker found")
 
-	assert.Equal(t, marker, bytes.ToLower([]byte(markerLine)), "found unexpected marker")
+	s.Equal(marker, bytes.ToLower([]byte(markerLine)), "found unexpected marker")
 }
 
-func TestReadGetMarkedLines(t *testing.T) {
+func (s *readTestSuite) TestReadGetMarkedLines() {
 	cfg, err := config.NewConfigFromEnv()
-	assert.NoError(t, err)
-	assert.NotNil(t, cfg)
+	s.NoError(err)
+	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
@@ -80,14 +91,13 @@ func TestReadGetMarkedLines(t *testing.T) {
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
 	logLines := fmt.Sprintf("%s\n%s\n%s", startMarkerLine, logLinesOnly, endMarkerLine)
-	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	assert.NoError(t, err)
+	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
+	s.NoError(err)
 
-	cfg.LogFile = filename
-	t.Cleanup(func() { os.Remove(filename) })
+	cfg.LogFile = s.filename
 
 	ll, err := NewFTWLogLines(cfg)
-	assert.NoError(t, err)
+	s.NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
@@ -98,17 +108,17 @@ func TestReadGetMarkedLines(t *testing.T) {
 		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
 	}
 
-	assert.Equal(t, len(foundLines), 3, "found unexpected number of log lines")
+	s.Equal(len(foundLines), 3, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
-		assert.Equalf(t, foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
+		s.Equalf(foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
 	}
 }
 
-func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
+func (s *readTestSuite) TestReadGetMarkedLinesWithTrailingEmptyLines() {
 	cfg, err := config.NewConfigFromEnv()
-	assert.NoError(t, err)
-	assert.NotNil(t, cfg)
+	s.NoError(err)
+	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
@@ -118,14 +128,13 @@ func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
 	logLines := fmt.Sprintf("%s\n%s\n%s\n\n\n", startMarkerLine, logLinesOnly, endMarkerLine)
-	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	assert.NoError(t, err)
+	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
+	s.NoError(err)
 
-	cfg.LogFile = filename
-	t.Cleanup(func() { os.Remove(filename) })
+	cfg.LogFile = s.filename
 
 	ll, err := NewFTWLogLines(cfg)
-	assert.NoError(t, err)
+	s.NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
@@ -136,17 +145,17 @@ func TestReadGetMarkedLinesWithTrailingEmptyLines(t *testing.T) {
 		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
 	}
 
-	assert.Len(t, foundLines, 6, "found unexpected number of log lines")
+	s.Len(foundLines, 6, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
-		assert.Equalf(t, foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
+		s.Equalf(foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
 	}
 }
 
-func TestReadGetMarkedLinesWithPrecedingLines(t *testing.T) {
+func (s *readTestSuite) TestReadGetMarkedLinesWithPrecedingLines() {
 	cfg, err := config.NewConfigFromEnv()
-	assert.NoError(t, err)
-	assert.NotNil(t, cfg)
+	s.NoError(err)
+	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
@@ -159,14 +168,13 @@ func TestReadGetMarkedLinesWithPrecedingLines(t *testing.T) {
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
 	logLines := fmt.Sprintf("%s\n%s\n%s\n%s\n", precedingLines, startMarkerLine, logLinesOnly, endMarkerLine)
-	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	assert.NoError(t, err)
+	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
+	s.NoError(err)
 
-	cfg.LogFile = filename
-	t.Cleanup(func() { os.Remove(filename) })
+	cfg.LogFile = s.filename
 
 	ll, err := NewFTWLogLines(cfg)
-	assert.NoError(t, err)
+	s.NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
@@ -177,17 +185,17 @@ func TestReadGetMarkedLinesWithPrecedingLines(t *testing.T) {
 		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
 	}
 
-	assert.Len(t, foundLines, 4, "found unexpected number of log lines")
+	s.Len(foundLines, 4, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
-		assert.Equalf(t, foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
+		s.Equalf(foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
 	}
 }
 
-func TestFTWLogLines_Contains(t *testing.T) {
+func (s *readTestSuite) TestFTWLogLines_Contains() {
 	cfg, err := config.NewConfigFromEnv()
-	assert.NoError(t, err)
-	assert.NotNil(t, cfg)
+	s.NoError(err)
+	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := "X-cRs-TeSt: " + stageID
@@ -196,14 +204,12 @@ func TestFTWLogLines_Contains(t *testing.T) {
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 ` + markerLine
-	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	assert.NoError(t, err)
+	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
+	s.NoError(err)
 
-	cfg.LogFile = filename
-	log, err := os.Open(filename)
-	assert.NoError(t, err)
-
-	t.Cleanup(func() { os.Remove(filename) })
+	cfg.LogFile = s.filename
+	log, err := os.Open(s.filename)
+	s.NoError(err)
 
 	type fields struct {
 		logFile             *os.File
@@ -245,7 +251,7 @@ func TestFTWLogLines_Contains(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			ll := &FTWLogLines{
 				logFile:             tt.fields.logFile,
 				LogMarkerHeaderName: bytes.ToLower(tt.fields.LogMarkerHeaderName),
@@ -253,15 +259,15 @@ func TestFTWLogLines_Contains(t *testing.T) {
 				EndMarker:           bytes.ToLower(tt.fields.EndMarker),
 			}
 			got := ll.Contains(tt.args.match)
-			assert.Equalf(t, tt.want, got, "Contains() = %v, want %v", got, tt.want)
+			s.Equalf(tt.want, got, "Contains() = %v, want %v", got, tt.want)
 		})
 	}
 }
 
-func TestFTWLogLines_ContainsIn404(t *testing.T) {
+func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 	cfg, err := config.NewConfigFromEnv()
-	assert.NoError(t, err)
-	assert.NotNil(t, cfg)
+	s.NoError(err)
+	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := fmt.Sprint(`[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
@@ -272,13 +278,11 @@ func TestFTWLogLines_ContainsIn404(t *testing.T) {
 		`[2022-11-12 23:08:18.013007] [core:info] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 AH00128: File does not exist: /apache/htdocs/status/200`,
 		"\n", markerLine)
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	cfg.LogFile = filename
 	log, err := os.Open(filename)
-	assert.NoError(t, err)
-
-	t.Cleanup(func() { os.Remove(filename) })
+	s.NoError(err)
 
 	type fields struct {
 		logFile             *os.File
@@ -312,7 +316,7 @@ func TestFTWLogLines_ContainsIn404(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			ll := &FTWLogLines{
 				logFile:             tt.fields.logFile,
 				LogMarkerHeaderName: bytes.ToLower(tt.fields.LogMarkerHeaderName),
@@ -320,15 +324,15 @@ func TestFTWLogLines_ContainsIn404(t *testing.T) {
 				EndMarker:           bytes.ToLower(tt.fields.EndMarker),
 			}
 			got := ll.Contains(tt.args.match)
-			assert.Equalf(t, tt.want, got, "Contains() = %v, want %v", got, tt.want)
+			s.Equalf(tt.want, got, "Contains() = %v, want %v", got, tt.want)
 		})
 	}
 }
 
-func TestFTWLogLines_CheckForLogMarkerIn404(t *testing.T) {
+func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	cfg, err := config.NewConfigFromEnv()
-	assert.NoError(t, err)
-	assert.NotNil(t, cfg)
+	s.NoError(err)
+	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := fmt.Sprint(`[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
@@ -339,13 +343,11 @@ func TestFTWLogLines_CheckForLogMarkerIn404(t *testing.T) {
 		`[2022-11-12 23:08:18.013007] [core:info] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 AH00128: File does not exist: /apache/htdocs/status/200`,
 		"\n", markerLine)
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	cfg.LogFile = filename
 	log, err := os.Open(filename)
-	assert.NoError(t, err)
-
-	t.Cleanup(func() { os.Remove(filename) })
+	s.NoError(err)
 
 	ll := &FTWLogLines{
 		logFile:             log,
@@ -354,5 +356,5 @@ func TestFTWLogLines_CheckForLogMarkerIn404(t *testing.T) {
 		EndMarker:           bytes.ToLower([]byte(markerLine)),
 	}
 	foundMarker := ll.CheckLogForMarker(stageID, 100)
-	assert.Equal(t, strings.ToLower(markerLine), strings.ToLower(string(foundMarker)))
+	s.Equal(strings.ToLower(markerLine), strings.ToLower(string(foundMarker)))
 }
