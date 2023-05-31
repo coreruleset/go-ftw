@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/utils"
@@ -16,9 +16,17 @@ var logText = `[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 1396834345
 [Tue Jan 05 02:21:09.647668 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:inbound_anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/RESPONSE-980-CORRELATION.conf"] [line "87"] [id "980130"] [msg "Inbound Anomaly Score Exceeded (Total Inbound Score: 5 - SQLI=0,XSS=0,RFI=0,LFI=0,RCE=0,PHPI=0,HTTP=0,SESS=0): individual paranoia level scores: 3, 2, 0, 0"] [ver "OWASP_CRS/3.3.0"] [tag "event-correlation"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 `
 
-func TestAssertLogContainsOK(t *testing.T) {
+type checkLogsTestSuite struct {
+	suite.Suite
+}
+
+func TestCheckLogsTestSuite(t *testing.T) {
+	suite.Run(t, new(checkLogsTestSuite))
+}
+
+func (s *checkLogsTestSuite) TestAssertLogContainsOK() {
 	cfg, err := config.NewConfigFromString(yamlApacheConfig)
-	assert.NoError(t, err)
+	s.NoError(err)
 
 	logName, _ := utils.CreateTempFileWithContent(logText, "test-*.log")
 	defer os.Remove(logName)
@@ -27,13 +35,13 @@ func TestAssertLogContainsOK(t *testing.T) {
 	c := NewCheck(cfg)
 
 	c.SetLogContains(`id "920300"`)
-	assert.True(t, c.AssertLogContains(), "did not find expected content 'id \"920300\"'")
+	s.True(c.AssertLogContains(), "did not find expected content 'id \"920300\"'")
 	c.SetLogContains(`SOMETHING`)
-	assert.False(t, c.AssertLogContains(), "found something that is not there")
+	s.False(c.AssertLogContains(), "found something that is not there")
 
 	c.SetNoLogContains("SOMETHING")
-	assert.True(t, c.AssertNoLogContains(), "found something that is not there")
+	s.True(c.AssertNoLogContains(), "found something that is not there")
 	c.SetNoLogContains(`id "920300"`)
-	assert.False(t, c.AssertNoLogContains(), "did not find expected content")
+	s.False(c.AssertNoLogContains(), "did not find expected content")
 
 }
