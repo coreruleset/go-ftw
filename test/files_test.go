@@ -4,8 +4,9 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/coreruleset/go-ftw/utils"
-	"github.com/stretchr/testify/assert"
 )
 
 var yamlTest = `
@@ -49,26 +50,34 @@ var wrongYamlTest = `
 this is not yaml
 `
 
-func TestGetTestFromYAML(t *testing.T) {
+type filesTestSuite struct {
+	suite.Suite
+}
+
+func TestFilesTestSuite(t *testing.T) {
+	suite.Run(t, new(filesTestSuite))
+}
+
+func (s *filesTestSuite) TestGetTestFromYAML() {
 	filename, _ := utils.CreateTempFileWithContent(yamlTest, "test-yaml-*")
 	tests, _ := GetTestsFromFiles(filename)
 
 	for _, ft := range tests {
-		assert.Equal(t, filename, ft.FileName)
-		assert.Equal(t, "tester", ft.Meta.Author)
-		assert.Equal(t, "911100.yaml", ft.Meta.Name)
+		s.Equal(filename, ft.FileName)
+		s.Equal("tester", ft.Meta.Author)
+		s.Equal("911100.yaml", ft.Meta.Name)
 
 		re := regexp.MustCompile("911100*")
 
 		for _, test := range ft.Tests {
-			assert.True(t, re.MatchString(test.TestTitle), "Can't read test title")
+			s.True(re.MatchString(test.TestTitle), "Can't read test title")
 		}
 	}
 }
 
-func TestGetFromBadYAML(t *testing.T) {
+func (s *filesTestSuite) TestGetFromBadYAML() {
 	filename, _ := utils.CreateTempFileWithContent(wrongYamlTest, "test-yaml-*")
 	_, err := GetTestsFromFiles(filename)
 
-	assert.NotNil(t, err, "reading yaml should fail")
+	s.Error(err, "reading yaml should fail")
 }
