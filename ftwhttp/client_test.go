@@ -1,62 +1,108 @@
 package ftwhttp
 
 import (
+	"bytes"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestNewClient(t *testing.T) {
-	c, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
-
-	assert.NotNil(t, c.Jar, "Error creating Client")
+type clientTestSuite struct {
+	suite.Suite
+	client *Client
+	ts     *httptest.Server
 }
 
-func TestConnectDestinationHTTPS(t *testing.T) {
-	d := &Destination{
-		DestAddr: "example.com",
-		Port:     443,
-		Protocol: "https",
-	}
-
-	c, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
-
-	err = c.NewConnection(*d)
-	assert.NoError(t, err, "This should not error")
-	assert.Equal(t, "https", c.Transport.protocol, "Error connecting to example.com using https")
+func TestClientTestSuite(t *testing.T) {
+	suite.Run(t, new(clientTestSuite))
 }
 
-func TestDoRequest(t *testing.T) {
-	d := &Destination{
-		DestAddr: "httpbin.org",
-		Port:     443,
-		Protocol: "https",
+func (s *clientTestSuite) SetupTest() {
+	var err error
+	s.client, err = NewClient(NewClientConfig())
+	s.NoError(err)
+	s.Nil(s.client.Transport, "Transport not expected to initialized yet")
+}
+
+func (s *clientTestSuite) TearDownTest() {
+	if s.ts != nil {
+		s.ts.Close()
 	}
+}
 
-	c, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
+func (s *clientTestSuite) httpTestServer() {
+	s.ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		resp := new(bytes.Buffer)
+		for key, value := range r.Header {
+			_, err := fmt.Fprintf(resp, "%s=%s,", key, value)
+			s.NoError(err)
+		}
 
+		_, err := w.Write(resp.Bytes())
+		s.NoError(err)
+	}))
+}
+
+func (s *clientTestSuite) httpsTestServer() {
+	s.ts = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		resp := new(bytes.Buffer)
+		for key, value := range r.Header {
+			_, err := fmt.Fprintf(resp, "%s=%s,", key, value)
+			s.NoError(err)
+		}
+
+		_, err := w.Write(resp.Bytes())
+		s.NoError(err)
+	}))
+}
+
+func (s *clientTestSuite) TestNewClient() {
+	s.NotNil(s.client.Jar, "Error creating Client")
+}
+
+func (s *clientTestSuite) TestConnectDestinationHTTPS() {
+	s.httpsTestServer()
+	d, err := DestinationFromString(s.ts.URL)
+	s.NoError(err, "This should not error")
+	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
+	err = s.client.NewConnection(*d)
+	s.NoError(err, "This should not error")
+	s.Equal("https", s.client.Transport.protocol, "Error connecting to example.com using https")
+}
+
+func (s *clientTestSuite) TestDoRequest() {
+	s.httpsTestServer()
+	d, err := DestinationFromString(s.ts.URL)
+	s.NoError(err, "This should not error")
+	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
 	req := generateBaseRequestForTesting()
+	err = s.client.NewConnection(*d)
+	s.NoError(err, "This should not error")
 
-	err = c.NewConnection(*d)
-	assert.NoError(t, err, "This should not error")
+	response, err := s.client.Do(*req)
 
-	_, err = c.Do(*req)
-
-	assert.Error(t, err, "This should return error")
+	// I'm getting consistently 400 Bad Request from the server, so I'm commenting this out for now.
+	// Example:
+	// nc httpbin.org 80
+	// UNEXISTENT /bad/path HTTP/1.4
+	// Host: httpbin.org
+	// User-Agent: curl/7.88.1
+	// Accept: */*
+	s.NoError(err, "This should not error")
+	s.Equal(response.Parsed.StatusCode, http.StatusBadRequest, "Error in calling website")
 }
 
-func TestGetTrackedTime(t *testing.T) {
+func (s *clientTestSuite) TestGetTrackedTime() {
 	d := &Destination{
 		DestAddr: "httpbingo.org",
 		Port:     443,
 		Protocol: "https",
 	}
-
-	c, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
 
 	rl := &RequestLine{
 		Method:  "POST",
@@ -69,33 +115,28 @@ func TestGetTrackedTime(t *testing.T) {
 	data := []byte(`test=me&one=two&one=twice`)
 	req := NewRequest(rl, h, data, true)
 
-	err = c.NewConnection(*d)
-	assert.NoError(t, err, "This should not error")
+	err := s.client.NewConnection(*d)
+	s.NoError(err, "This should not error")
 
-	c.StartTrackingTime()
+	s.client.StartTrackingTime()
 
-	resp, err := c.Do(*req)
+	resp, err := s.client.Do(*req)
 
-	c.StopTrackingTime()
+	s.client.StopTrackingTime()
 
-	assert.NoError(t, err, "This should not error")
+	s.NoError(err, "This should not error")
+	s.Equal(http.StatusOK, resp.Parsed.StatusCode, "Error in calling website")
 
-	assert.Equal(t, 200, resp.Parsed.StatusCode, "Error in calling website")
-
-	rtt := c.GetRoundTripTime()
-
-	assert.GreaterOrEqual(t, int(rtt.RoundTripDuration()), 0, "Error getting RTT")
+	rtt := s.client.GetRoundTripTime()
+	s.GreaterOrEqual(int(rtt.RoundTripDuration()), 0, "Error getting RTT")
 }
 
-func TestClientMultipartFormDataRequest(t *testing.T) {
-	d := &Destination{
-		DestAddr: "httpbingo.org",
-		Port:     443,
-		Protocol: "https",
-	}
+func (s *clientTestSuite) TestClientMultipartFormDataRequest() {
+	s.httpsTestServer()
+	d, err := DestinationFromString(s.ts.URL)
+	s.NoError(err, "This should not error")
 
-	c, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
+	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
 
 	rl := &RequestLine{
 		Method:  "POST",
@@ -117,67 +158,55 @@ Some-file-test-here
 
 	req := NewRequest(rl, h, data, true)
 
-	err = c.NewConnection(*d)
-	assert.NoError(t, err, "This should not error")
+	err = s.client.NewConnection(*d)
+	s.NoError(err, "This should not error")
 
-	c.StartTrackingTime()
+	s.client.StartTrackingTime()
 
-	resp, err := c.Do(*req)
+	resp, err := s.client.Do(*req)
 
-	c.StopTrackingTime()
+	s.client.StopTrackingTime()
 
-	assert.NoError(t, err, "This should not error")
-	assert.Equal(t, 200, resp.Parsed.StatusCode, "Error in calling website")
+	s.NoError(err, "This should not error")
+	s.Equal(http.StatusOK, resp.Parsed.StatusCode, "Error in calling website")
 
 }
 
-func TestNewConnectionCreatesTransport(t *testing.T) {
-	c, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
-	assert.Nil(t, c.Transport, "Transport not expected to initialized yet")
-
-	server := testServer()
-	d, err := DestinationFromString(server.URL)
-	assert.NoError(t, err, "Failed to construct destination from test server")
-
-	err = c.NewConnection(*d)
-	assert.NoError(t, err, "Failed to create new connection")
-	assert.NotNil(t, c.Transport, "Transport expected to be initialized")
-	assert.NotNil(t, c.Transport.connection, "Connection expected to be initialized")
+func (s *clientTestSuite) TestNewConnectionCreatesTransport() {
+	s.httpsTestServer()
+	d, err := DestinationFromString(s.ts.URL)
+	s.NoError(err, "Failed to construct destination from test server")
+	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
+	err = s.client.NewConnection(*d)
+	s.NoError(err, "Failed to create new connection")
+	s.NotNil(s.client.Transport, "Transport expected to be initialized")
+	s.NotNil(s.client.Transport.connection, "Connection expected to be initialized")
 }
 
-func TestNewOrReusedConnectionCreatesTransport(t *testing.T) {
-	c, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
-	assert.Nil(t, c.Transport, "Transport not expected to initialized yet")
-
-	server := testServer()
-	d, err := DestinationFromString(server.URL)
-	assert.NoError(t, err, "Failed to construct destination from test server")
-
-	err = c.NewOrReusedConnection(*d)
-	assert.NoError(t, err, "Failed to create new or to reuse connection")
-	assert.NotNil(t, c.Transport, "Transport expected to be initialized")
-	assert.NotNil(t, c.Transport.connection, "Connection expected to be initialized")
+func (s *clientTestSuite) TestNewOrReusedConnectionCreatesTransport() {
+	s.httpsTestServer()
+	d, err := DestinationFromString(s.ts.URL)
+	s.NoError(err, "Failed to construct destination from test server")
+	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
+	err = s.client.NewOrReusedConnection(*d)
+	s.NoError(err, "Failed to create new or to reuse connection")
+	s.NotNil(s.client.Transport, "Transport expected to be initialized")
+	s.NotNil(s.client.Transport.connection, "Connection expected to be initialized")
 }
 
-func TestNewOrReusedConnectionReusesTransport(t *testing.T) {
-	c, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
-	assert.Nil(t, c.Transport, "Transport not expected to initialized yet")
+func (s *clientTestSuite) TestNewOrReusedConnectionReusesTransport() {
+	s.httpTestServer()
+	d, err := DestinationFromString(s.ts.URL)
+	s.NoError(err, "Failed to construct destination from test server")
 
-	server := testServer()
-	d, err := DestinationFromString(server.URL)
-	assert.NoError(t, err, "Failed to construct destination from test server")
+	err = s.client.NewOrReusedConnection(*d)
+	s.NoError(err, "Failed to create new or to reuse connection")
+	s.NotNil(s.client.Transport, "Transport expected to be initialized")
+	s.NotNil(s.client.Transport.connection, "Connection expected to be initialized")
 
-	err = c.NewOrReusedConnection(*d)
-	assert.NoError(t, err, "Failed to create new or to reuse connection")
-	assert.NotNil(t, c.Transport, "Transport expected to be initialized")
-	assert.NotNil(t, c.Transport.connection, "Connection expected to be initialized")
+	begin := s.client.Transport.duration.begin
+	err = s.client.NewOrReusedConnection(*d)
+	s.NoError(err, "Failed to reuse connection")
 
-	begin := c.Transport.duration.begin
-	err = c.NewOrReusedConnection(*d)
-	assert.NoError(t, err, "Failed to reuse connection")
-
-	assert.Equal(t, begin, c.Transport.duration.begin, "Transport must not be reinitialized when reusing connection")
+	s.Equal(begin, s.client.Transport.duration.begin, "Transport must not be reinitialized when reusing connection")
 }

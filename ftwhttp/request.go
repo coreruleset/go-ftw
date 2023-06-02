@@ -177,8 +177,8 @@ func buildRequest(r *Request) ([]byte, error) {
 		}
 
 		// TODO: handle cookies
-		// if c.Jar != nil {
-		// 	for _, cookie := range c.Jar.Cookies(req.URL) {
+		// if client.Jar != nil {
+		// 	for _, cookie := range client.Jar.Cookies(req.URL) {
 		// 		req.AddCookie(cookie)
 		// 	}
 		// }
