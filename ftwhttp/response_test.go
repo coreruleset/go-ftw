@@ -8,8 +8,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
+
+type responseTestSuite struct {
+	suite.Suite
+	client *Client
+	ts     *httptest.Server
+}
+
+func TestHResponseTestSuite(t *testing.T) {
+	suite.Run(t, new(responseTestSuite))
+}
 
 func generateRequestForTesting(keepalive bool) *Request {
 	var req *Request
@@ -58,114 +68,103 @@ func generateRequestWithCookiesForTesting() *Request {
 	return req
 }
 
-// Error checking omitted for brevity
-func testServer() (server *httptest.Server) {
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, client")
-	}))
-
-	return ts
+func (s *responseTestSuite) helloClient(w http.ResponseWriter, r *http.Request) {
+	n, err := fmt.Fprintln(w, "Hello, client")
+	s.NoError(err)
+	s.Equal(14, n)
 }
 
-// Error checking omitted for brevity
-func testEchoServer(t *testing.T) (server *httptest.Server) {
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Powered-By", "go-ftw")
-		w.WriteHeader(http.StatusOK)
-		resp := new(bytes.Buffer)
-		for key, value := range r.Header {
-			_, err := fmt.Fprintf(resp, "%s=%s,", key, value)
-			assert.NoError(t, err)
-		}
-
-		_, err := w.Write(resp.Bytes())
-		assert.NoError(t, err)
-	}))
-
-	return ts
+func (s *responseTestSuite) testEchoServer(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-Powered-By", "go-ftw")
+	w.WriteHeader(http.StatusOK)
+	resp := new(bytes.Buffer)
+	for key, value := range r.Header {
+		_, err := fmt.Fprintf(resp, "%s=%s,", key, value)
+		s.NoError(err)
+	}
+	_, err := w.Write(resp.Bytes())
+	s.NoError(err)
 }
 
-func testServerWithCookies() (server *httptest.Server) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "username", Value: "go-ftw", Expires: expiration}
-		http.SetCookie(w, &cookie)
-		fmt.Fprintln(w, "Setting Cookies!")
-	}))
-
-	return ts
+func (s *responseTestSuite) responseWithCookies(w http.ResponseWriter, r *http.Request) {
+	expiration := time.Now().Add(365 * 24 * time.Hour)
+	cookie := http.Cookie{Name: "username", Value: "go-ftw", Expires: expiration}
+	http.SetCookie(w, &cookie)
+	n, err := fmt.Fprintln(w, "Setting Cookies!")
+	s.NoError(err)
+	s.Equal(17, n)
 }
 
-func TestResponse(t *testing.T) {
-	server := testServer()
+func (s *responseTestSuite) SetupTest() {
+	var err error
+	s.client, err = NewClient(NewClientConfig())
+	s.NoError(err)
+}
 
-	defer server.Close()
+func (s *responseTestSuite) TearDownTest() {
+	s.ts.Close()
+}
 
-	d, err := DestinationFromString(server.URL)
-	assert.NoError(t, err)
+func (s *responseTestSuite) BeforeTest(_, testName string) {
+	var f http.HandlerFunc
+	switch testName {
+	case "TestResponse":
+		f = s.helloClient
+	case "TestResponseWithCookies":
+		f = s.responseWithCookies
+	case "TestResponseChecksFullResponse":
+		f = s.testEchoServer
+	default:
+		f = s.testEchoServer
+	}
+	s.ts = httptest.NewServer(f)
+}
+
+func (s *responseTestSuite) TestResponse() {
+	d, err := DestinationFromString(s.ts.URL)
+	s.NoError(err)
 
 	req := generateRequestForTesting(true)
 
-	client, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
-	err = client.NewConnection(*d)
-	assert.NoError(t, err)
+	err = s.client.NewConnection(*d)
+	s.NoError(err)
 
-	response, err := client.Do(*req)
-	assert.NoError(t, err)
+	response, err := s.client.Do(*req)
+	s.NoError(err)
 
-	assert.Contains(t, response.GetFullResponse(), "Hello, client\n")
+	s.Contains(response.GetFullResponse(), "Hello, client\n")
 }
 
-func TestResponseWithCookies(t *testing.T) {
-	server := testServerWithCookies()
-
-	defer server.Close()
-
-	d, err := DestinationFromString(server.URL)
-	assert.NoError(t, err)
+func (s *responseTestSuite) TestResponseWithCookies() {
+	d, err := DestinationFromString(s.ts.URL)
+	s.NoError(err)
 	req := generateRequestForTesting(true)
 
-	client, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
-	err = client.NewConnection(*d)
+	err = s.client.NewConnection(*d)
+	s.NoError(err)
 
-	assert.NoError(t, err)
+	response, err := s.client.Do(*req)
+	s.NoError(err)
 
-	response, err := client.Do(*req)
-
-	assert.NoError(t, err)
-
-	assert.Contains(t, response.GetFullResponse(), "Setting Cookies!\n")
+	s.Contains(response.GetFullResponse(), "Setting Cookies!\n")
 
 	cookiereq := generateRequestWithCookiesForTesting()
 
-	_, err = client.Do(*cookiereq)
-
-	assert.NoError(t, err)
+	_, err = s.client.Do(*cookiereq)
+	s.NoError(err)
 }
 
-func TestResponseChecksFullResponse(t *testing.T) {
-	server := testEchoServer(t)
-
-	defer server.Close()
-
-	d, err := DestinationFromString(server.URL)
-	assert.NoError(t, err)
+func (s *responseTestSuite) TestResponseChecksFullResponse() {
+	d, err := DestinationFromString(s.ts.URL)
+	s.NoError(err)
 	req := generateRequestForTesting(true)
 
-	client, err := NewClient(NewClientConfig())
-	assert.NoError(t, err)
-	err = client.NewConnection(*d)
+	err = s.client.NewConnection(*d)
+	s.NoError(err)
 
-	assert.NoError(t, err)
+	response, err := s.client.Do(*req)
+	s.NoError(err)
 
-	response, err := client.Do(*req)
-
-	assert.NoError(t, err)
-
-	assert.Contains(t, response.GetFullResponse(), "X-Powered-By: go-ftw")
-	assert.Contains(t, response.GetFullResponse(), "User-Agent=[Go Tests]")
+	s.Contains(response.GetFullResponse(), "X-Powered-By: go-ftw")
+	s.Contains(response.GetFullResponse(), "User-Agent=[Go Tests]")
 }

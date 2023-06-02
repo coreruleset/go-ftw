@@ -4,8 +4,16 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
+
+type requestTestSuite struct {
+	suite.Suite
+}
+
+func TestRequestTestSuite(t *testing.T) {
+	suite.Run(t, new(requestTestSuite))
+}
 
 func generateBaseRequestForTesting() *Request {
 	var req *Request
@@ -23,71 +31,71 @@ func generateBaseRequestForTesting() *Request {
 	return req
 }
 
-func TestAddStandardHeadersWhenConnectionHeaderIsPresent(t *testing.T) {
+func (s *requestTestSuite) TestAddStandardHeadersWhenConnectionHeaderIsPresent() {
 	req := NewRequest(&RequestLine{}, Header{"Connection": "Not-Closed"}, []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	assert.Equal(t, req.headers.Get("Connection"), "Not-Closed")
+	s.Equal(req.headers.Get("Connection"), "Not-Closed")
 }
 
-func TestAddStandardHeadersWhenConnectionHeaderIsEmpty(t *testing.T) {
+func (s *requestTestSuite) TestAddStandardHeadersWhenConnectionHeaderIsEmpty() {
 	req := NewRequest(&RequestLine{}, Header{}, []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	assert.Equal(t, req.headers.Get("Connection"), "close")
+	s.Equal(req.headers.Get("Connection"), "close")
 }
 
-func TestAddStandardHeadersWhenNoData(t *testing.T) {
+func (s *requestTestSuite) TestAddStandardHeadersWhenNoData() {
 	req := NewRequest(&RequestLine{Method: "GET"}, Header{}, []byte(""), true)
 
 	req.AddStandardHeaders()
 
-	assert.Equal(t, req.headers.Get("Content-Length"), "")
+	s.Equal(req.headers.Get("Content-Length"), "")
 }
 
-func TestAddStandardHeadersWhenGetMethod(t *testing.T) {
+func (s *requestTestSuite) TestAddStandardHeadersWhenGetMethod() {
 	req := NewRequest(&RequestLine{Method: "GET"}, Header{}, []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	assert.Equal(t, req.headers.Get("Content-Length"), "4")
+	s.Equal(req.headers.Get("Content-Length"), "4")
 }
 
-func TestAddStandardHeadersWhenPostMethod(t *testing.T) {
+func (s *requestTestSuite) TestAddStandardHeadersWhenPostMethod() {
 	req := NewRequest(&RequestLine{Method: "POST"}, Header{}, []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	assert.Equal(t, req.headers.Get("Content-Length"), "4")
+	s.Equal(req.headers.Get("Content-Length"), "4")
 }
 
-func TestAddStandardHeadersWhenPutMethod(t *testing.T) {
+func (s *requestTestSuite) TestAddStandardHeadersWhenPutMethod() {
 	req := NewRequest(&RequestLine{Method: "PUT"}, Header{}, []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	assert.Equal(t, req.headers.Get("Content-Length"), "4")
+	s.Equal(req.headers.Get("Content-Length"), "4")
 }
 
-func TestAddStandardHeadersWhenPatchMethod(t *testing.T) {
+func (s *requestTestSuite) TestAddStandardHeadersWhenPatchMethod() {
 	req := NewRequest(&RequestLine{Method: "PATCH"}, Header{}, []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	assert.Equal(t, req.headers.Get("Content-Length"), "4")
+	s.Equal(req.headers.Get("Content-Length"), "4")
 }
 
-func TestAddStandardHeadersWhenDeleteMethod(t *testing.T) {
+func (s *requestTestSuite) TestAddStandardHeadersWhenDeleteMethod() {
 	req := NewRequest(&RequestLine{Method: "DELETE"}, Header{}, []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	assert.Equal(t, req.headers.Get("Content-Length"), "4")
+	s.Equal(req.headers.Get("Content-Length"), "4")
 }
 
-func TestMultipartFormDataRequest(t *testing.T) {
+func (s *requestTestSuite) TestMultipartFormDataRequest() {
 	var req *Request
 
 	rl := &RequestLine{
@@ -109,7 +117,7 @@ Some-file-test-here
 ----------397236876--`)
 	req = NewRequest(rl, h, data, true)
 
-	assert.False(t, req.isRaw())
+	s.False(req.isRaw())
 }
 
 func generateBaseRawRequestForTesting() *Request {
@@ -127,7 +135,7 @@ User-Agent: ModSecurity CRS 3 Tests
 	return req
 }
 
-func TestGenerateBaseRawRequestForTesting(t *testing.T) {
+func (s *requestTestSuite) TestGenerateBaseRawRequestForTesting() {
 	var req *Request
 
 	raw := []byte(`POST / HTTP/1.1
@@ -139,41 +147,41 @@ User-Agent: ModSecurity CRS 3 Tests
 `)
 	req = NewRawRequest(raw, false)
 
-	assert.False(t, req.autoCompleteHeaders)
+	s.False(req.autoCompleteHeaders)
 }
-func TestRequestLine(t *testing.T) {
+func (s *requestTestSuite) TestRequestLine() {
 	rl := &RequestLine{
 		Method:  "UNEXISTENT",
 		URI:     "/this/path",
 		Version: "1.4",
 	}
 
-	s := rl.ToString()
+	str := rl.ToString()
 
-	assert.Equal(t, "UNEXISTENT /this/path 1.4\r\n", s)
+	s.Equal("UNEXISTENT /this/path 1.4\r\n", str)
 }
 
-func TestDestination(t *testing.T) {
+func (s *requestTestSuite) TestDestination() {
 	d := &Destination{
 		DestAddr: "192.168.1.1",
 		Port:     443,
 		Protocol: "https",
 	}
 
-	assert.Equal(t, "192.168.1.1", d.DestAddr)
-	assert.Equal(t, 443, d.Port)
-	assert.Equal(t, "https", d.Protocol)
+	s.Equal("192.168.1.1", d.DestAddr)
+	s.Equal(443, d.Port)
+	s.Equal("https", d.Protocol)
 }
 
-func TestRequestNew(t *testing.T) {
+func (s *requestTestSuite) TestRequestNew() {
 	req := generateBaseRequestForTesting()
 
 	head := req.Headers()
-	assert.Equal(t, "Header", head.Get("This"))
-	assert.Equal(t, []byte("Data"), req.Data(), "Failed to set data")
+	s.Equal("Header", head.Get("This"))
+	s.Equal([]byte("Data"), req.Data(), "Failed to set data")
 }
 
-func TestWithAutocompleteRequest(t *testing.T) {
+func (s *requestTestSuite) TestWithAutocompleteRequest() {
 	var req *Request
 
 	rl := &RequestLine{
@@ -187,10 +195,10 @@ func TestWithAutocompleteRequest(t *testing.T) {
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, true)
 
-	assert.True(t, req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
+	s.True(req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
 }
 
-func TestWithoutAutocompleteRequest(t *testing.T) {
+func (s *requestTestSuite) TestWithoutAutocompleteRequest() {
 	var req *Request
 
 	rl := &RequestLine{
@@ -204,92 +212,87 @@ func TestWithoutAutocompleteRequest(t *testing.T) {
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, false)
 
-	assert.False(t, req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
+	s.False(req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
 }
 
-func TestRequestHeadersSet(t *testing.T) {
+func (s *requestTestSuite) TestRequestHeadersSet() {
 	req := generateBaseRequestForTesting()
 
 	newH := Header{"X-New-Header": "Value"}
 	req.SetHeaders(newH)
 
-	if req.headers.Get("X-New-Header") == "Value" {
-		t.Logf("Success !")
-	} else {
-		t.Errorf("Failed !")
-	}
-
+	s.Equal("Value", req.headers.Get("X-New-Header"), "Failed to set headers")
 	req.AddHeader("X-New-Header2", "Value")
 	head := req.Headers()
-	assert.Equal(t, "Value", head.Get("X-New-Header2"))
+	s.Equal("Value", head.Get("X-New-Header2"))
 }
 
-func TestRequestAutoCompleteHeaders(t *testing.T) {
+func (s *requestTestSuite) TestRequestAutoCompleteHeaders() {
 	req := generateBaseRequestForTesting()
 
 	req.SetAutoCompleteHeaders(true)
 
-	assert.True(t, req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
+	s.True(req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
 }
 
-func TestRequestData(t *testing.T) {
+func (s *requestTestSuite) TestRequestData() {
 	req := generateBaseRequestForTesting()
 
 	err := req.SetData([]byte("This is the data now"))
 
-	assert.NoError(t, err)
-	assert.Equal(t, []byte("This is the data now"), req.Data(), "failed to set data")
+	s.NoError(err)
+	s.Equal([]byte("This is the data now"), req.Data(), "failed to set data")
 }
 
-func TestRequestSettingRawDataWhenThereIsData(t *testing.T) {
+func (s *requestTestSuite) TestRequestSettingRawDataWhenThereIsData() {
 	req := generateBaseRequestForTesting()
 
 	err := req.SetRawData([]byte("This is the data now"))
 
 	expectedError := errors.New("ftw/http: data field is already present in this request")
-	assert.Error(t, err)
-	assert.Equal(t, expectedError, err)
+	s.Error(err)
+	s.Equal(expectedError, err)
 }
 
-func TestRequestRawData(t *testing.T) {
+func (s *requestTestSuite) TestRequestRawData() {
 	req := generateBaseRawRequestForTesting()
 
 	err := req.SetRawData([]byte("This is the RAW data now"))
-	assert.NoError(t, err)
+	s.NoError(err)
 
-	assert.Equal(t, []byte("This is the RAW data now"), req.RawData())
+	s.Equal([]byte("This is the RAW data now"), req.RawData())
 }
 
-func TestRequestSettingDataaWhenThereIsRawData(t *testing.T) {
+func (s *requestTestSuite) TestRequestSettingDataaWhenThereIsRawData() {
 	req := generateBaseRawRequestForTesting()
 
 	err := req.SetData([]byte("This is the data now"))
 	expectedError := errors.New("ftw/http: raw field is already present in this request")
-	assert.Error(t, err)
-	assert.Equal(t, expectedError, err)
+	s.Error(err)
+	s.Equal(expectedError, err)
 }
 
-func TestRequestURLParse(t *testing.T) {
+func (s *requestTestSuite) TestRequestURLParse() {
 	req := generateBaseRequestForTesting()
 
 	h := req.Headers()
 	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
 	// Test adding semicolons to test parse
 	err := req.SetData([]byte("test=This&test=nothing"))
-	assert.NoError(t, err)
+	s.NoError(err)
 }
 
-func TestRequestURLParseFail(t *testing.T) {
+func (s *requestTestSuite) TestRequestURLParseFail() {
 	req := generateBaseRequestForTesting()
 
 	h := req.Headers()
 	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
 	// Test adding semicolons to test parse
 	err := req.SetData([]byte("test=This&that=but with;;;;;; data now"))
-	assert.NoError(t, err)
+	s.NoError(err)
 }
 
-func TestRequestEncodesPostData(t *testing.T) {
+func (s *requestTestSuite) TestRequestEncodesPostData() {
 	tests := []struct {
 		raw     string
 		encoded string
@@ -312,8 +315,8 @@ func TestRequestEncodesPostData(t *testing.T) {
 		},
 		{
 			// Test adding semicolons to test parse
-			raw:     `c4= ;c3=t;c2=a;c1=c;a1=/;a2=e;a3=t;a4=c;a5=/;a6=p;a7=a;a8=s;a9=s;a10=w;a11=d;$c1$c2$c3$c4$a1$a2$a3$a4$a5$a6$a7$a8$a9$a10$a11`,
-			encoded: "c4=+%3Bc3%3Dt%3Bc2%3Da%3Bc1%3Dc%3Ba1%3D%2F%3Ba2%3De%3Ba3%3Dt%3Ba4%3Dc%3Ba5%3D%2F%3Ba6%3Dp%3Ba7%3Da%3Ba8%3Ds%3Ba9%3Ds%3Ba10%3Dw%3Ba11%3Dd%3B%24c1%24c2%24c3%24c4%24a1%24a2%24a3%24a4%24a5%24a6%24a7%24a8%24a9%24a10%24a11",
+			raw:     `c4= ;c3=t;c2=a;c1=client;a1=/;a2=e;a3=t;a4=client;a5=/;a6=p;a7=a;a8=s;a9=s;a10=w;a11=d;$c1$c2$c3$c4$a1$a2$a3$a4$a5$a6$a7$a8$a9$a10$a11`,
+			encoded: `c4=+%3Bc3%3Dt%3Bc2%3Da%3Bc1%3Dclient%3Ba1%3D%2F%3Ba2%3De%3Ba3%3Dt%3Ba4%3Dclient%3Ba5%3D%2F%3Ba6%3Dp%3Ba7%3Da%3Ba8%3Ds%3Ba9%3Ds%3Ba10%3Dw%3Ba11%3Dd%3B%24c1%24c2%24c3%24c4%24a1%24a2%24a3%24a4%24a5%24a6%24a7%24a8%24a9%24a10%24a11`,
 		},
 		{
 			// Already encoded
@@ -324,25 +327,19 @@ func TestRequestEncodesPostData(t *testing.T) {
 
 	for _, tc := range tests {
 		tt := tc
-		t.Run(tt.raw, func(t *testing.T) {
+		s.Run(tt.raw, func() {
 			req := generateBaseRequestForTesting()
 
 			h := req.Headers()
 			h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
 			err := req.SetData([]byte(tt.raw))
-			if err != nil {
-				t.Errorf("Failed !")
-			}
+			s.NoError(err)
 			result, err := encodeDataParameters(h, req.Data())
-			if err != nil {
-				t.Errorf("Failed to encode %s", req.Data())
-			}
+			s.NoError(err, "Failed to encode %s", req.Data())
 
 			expected := tt.encoded
 			actual := string(result)
-			if actual != expected {
-				t.Errorf("Unexpected URL encoded payload, expected %s, got %s", expected, actual)
-			}
+			s.Equal(expected, actual, "Unexpected URL encoded payload")
 		})
 	}
 }

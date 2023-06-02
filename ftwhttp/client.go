@@ -2,6 +2,7 @@ package ftwhttp
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http/cookiejar"
@@ -32,6 +33,12 @@ func NewClient(config ClientConfig) (*Client, error) {
 		config: config,
 	}
 	return c, nil
+}
+
+// SetRootCAs sets the root CAs for the client.
+// This can be used if you are using internal certificates and for testing purposes.
+func (c *Client) SetRootCAs(cas *x509.CertPool) {
+	c.config.RootCAs = cas
 }
 
 // NewConnection creates a new Connection based on a Destination
@@ -82,7 +89,15 @@ func (c *Client) dial(d Destination) (net.Conn, error) {
 	// strings.HasSuffix(err.String(), "connection refused") {
 	if strings.ToLower(d.Protocol) == "https" {
 		// Commenting InsecureSkipVerify: true.
-		return tls.DialWithDialer(&net.Dialer{Timeout: c.config.ConnectTimeout}, "tcp", hostPort, &tls.Config{MinVersion: tls.VersionTLS12})
+		return tls.DialWithDialer(
+			&net.Dialer{
+				Timeout: c.config.ConnectTimeout,
+			},
+			"tcp", hostPort,
+			&tls.Config{
+				MinVersion: tls.VersionTLS12,
+				RootCAs:    c.config.RootCAs,
+			})
 	}
 
 	return net.DialTimeout("tcp", hostPort, c.config.ConnectTimeout)

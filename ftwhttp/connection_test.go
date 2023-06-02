@@ -3,13 +3,26 @@ package ftwhttp
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestDestinationFromString(t *testing.T) {
-
+type connectionTestSuite struct {
+	suite.Suite
 }
-func TestMultipleRequestTypes(t *testing.T) {
+
+func TestConnectionTestSuite(t *testing.T) {
+	suite.Run(t, new(connectionTestSuite))
+}
+
+func (s *connectionTestSuite) TestDestinationFromString() {
+	d, err := DestinationFromString("http://example.com:80")
+	s.NoError(err, "This should not error")
+	s.Equal("example.com", d.DestAddr, "Error parsing destination")
+	s.Equal(80, d.Port, "Error parsing destination")
+	s.Equal("http", d.Protocol, "Error parsing destination")
+}
+
+func (s *connectionTestSuite) TestMultipleRequestTypes() {
 	var req *Request
 
 	rl := &RequestLine{
@@ -23,5 +36,5 @@ func TestMultipleRequestTypes(t *testing.T) {
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, true)
 
-	assert.True(t, req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
+	s.True(req.WithAutoCompleteHeaders(), "Set Autocomplete headers error ")
 }

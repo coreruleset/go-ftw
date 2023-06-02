@@ -13,7 +13,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 var headerWriteTests = []struct {
@@ -50,31 +50,39 @@ var headerWriteTests = []struct {
 	},
 }
 
-func TestHeaderWriteBytes(t *testing.T) {
+type headerTestSuite struct {
+	suite.Suite
+}
+
+func TestHeaderTestSuite(t *testing.T) {
+	suite.Run(t, new(headerTestSuite))
+}
+
+func (s *headerTestSuite) TestHeaderWriteBytes() {
 	var buf bytes.Buffer
 	for i, test := range headerWriteTests {
 		_ = test.h.WriteBytes(&buf)
-		assert.Equalf(t, test.expected, buf.String(), "#%d:\n got: %q\nwant: %q", i, buf.String(), test.expected)
+		s.Equalf(test.expected, buf.String(), "#%d:\n got: %q\nwant: %q", i, buf.String(), test.expected)
 		buf.Reset()
 	}
 }
 
-func TestHeaderWrite(t *testing.T) {
+func (s *headerTestSuite) TestHeaderWrite() {
 	for _, test := range headerWriteTests {
 		_ = test.h.Write(io.Discard)
 	}
 }
 
-func TestHeaderSetGet(t *testing.T) {
+func (s *headerTestSuite) TestHeaderSetGet() {
 	h := Header{
 		"Custom": "Value",
 	}
 	h.Add("Other", "Value")
 	value := h.Get("Other")
-	assert.Equalf(t, "Value", value, "got: %s, want: %s\n", value, "Value")
+	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
 }
 
-func TestHeaderClone(t *testing.T) {
+func (s *headerTestSuite) TestHeaderClone() {
 	h := Header{
 		"Custom": "Value",
 	}
@@ -83,7 +91,7 @@ func TestHeaderClone(t *testing.T) {
 
 	value := clone.Get("Custom")
 
-	assert.Equalf(t, "Value", value, "got: %s, want: %s\n", value, "Value")
+	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
 
 }
 

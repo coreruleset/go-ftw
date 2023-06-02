@@ -1,6 +1,7 @@
 package ftwhttp
 
 import (
+	"crypto/x509"
 	"net"
 	"net/http"
 	"time"
@@ -12,6 +13,8 @@ type ClientConfig struct {
 	ConnectTimeout time.Duration
 	// ReadTimeout is the timeout for reading a response.
 	ReadTimeout time.Duration
+	// RootCAs is the set of root CA certificates that is used to verify server
+	RootCAs *x509.CertPool
 }
 
 // Client is the top level abstraction in http
