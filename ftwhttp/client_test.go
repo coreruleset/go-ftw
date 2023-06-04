@@ -10,6 +10,11 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+const (
+	secureServer   = true
+	insecureServer = false
+)
+
 type clientTestSuite struct {
 	suite.Suite
 	client *Client
@@ -24,7 +29,7 @@ func (s *clientTestSuite) SetupTest() {
 	var err error
 	s.client, err = NewClient(NewClientConfig())
 	s.NoError(err)
-	s.Nil(s.client.Transport, "Transport not expected to initialized yet")
+	s.Nil(s.client.Transport, "Transport not expected to be initialized yet")
 }
 
 func (s *clientTestSuite) TearDownTest() {
@@ -33,8 +38,8 @@ func (s *clientTestSuite) TearDownTest() {
 	}
 }
 
-func (s *clientTestSuite) httpTestServer() {
-	s.ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (s *clientTestSuite) httpHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		resp := new(bytes.Buffer)
 		for key, value := range r.Header {
@@ -44,21 +49,15 @@ func (s *clientTestSuite) httpTestServer() {
 
 		_, err := w.Write(resp.Bytes())
 		s.NoError(err)
-	}))
+	}
 }
 
-func (s *clientTestSuite) httpsTestServer() {
-	s.ts = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		resp := new(bytes.Buffer)
-		for key, value := range r.Header {
-			_, err := fmt.Fprintf(resp, "%s=%s,", key, value)
-			s.NoError(err)
-		}
-
-		_, err := w.Write(resp.Bytes())
-		s.NoError(err)
-	}))
+func (s *clientTestSuite) httpTestServer(secure bool) {
+	if secure {
+		s.ts = httptest.NewTLSServer(s.httpHandler())
+	} else {
+		s.ts = httptest.NewServer(s.httpHandler())
+	}
 }
 
 func (s *clientTestSuite) TestNewClient() {
@@ -66,7 +65,7 @@ func (s *clientTestSuite) TestNewClient() {
 }
 
 func (s *clientTestSuite) TestConnectDestinationHTTPS() {
-	s.httpsTestServer()
+	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
 	s.NoError(err, "This should not error")
 	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
@@ -76,7 +75,7 @@ func (s *clientTestSuite) TestConnectDestinationHTTPS() {
 }
 
 func (s *clientTestSuite) TestDoRequest() {
-	s.httpsTestServer()
+	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
 	s.NoError(err, "This should not error")
 	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
@@ -86,13 +85,17 @@ func (s *clientTestSuite) TestDoRequest() {
 
 	response, err := s.client.Do(*req)
 
-	// I'm getting consistently 400 Bad Request from the server, so I'm commenting this out for now.
-	// Example:
+	// I'm getting consistently 400 Bad Request from the httpsTestServer's response,
+	// so I'm commenting this out for now.
+	// Example call used to test this:
 	// nc httpbin.org 80
 	// UNEXISTENT /bad/path HTTP/1.4
 	// Host: httpbin.org
 	// User-Agent: curl/7.88.1
 	// Accept: */*
+	//
+	// Will return HTTP/1.1 404 NOT FOUND from upstream.
+	// The same call to the httpsTestServer will return HTTP/1.1 400 Bad Request.
 	s.NoError(err, "This should not error")
 	s.Equal(response.Parsed.StatusCode, http.StatusBadRequest, "Error in calling website")
 }
@@ -132,7 +135,7 @@ func (s *clientTestSuite) TestGetTrackedTime() {
 }
 
 func (s *clientTestSuite) TestClientMultipartFormDataRequest() {
-	s.httpsTestServer()
+	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
 	s.NoError(err, "This should not error")
 
@@ -173,7 +176,7 @@ Some-file-test-here
 }
 
 func (s *clientTestSuite) TestNewConnectionCreatesTransport() {
-	s.httpsTestServer()
+	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
 	s.NoError(err, "Failed to construct destination from test server")
 	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
@@ -184,7 +187,7 @@ func (s *clientTestSuite) TestNewConnectionCreatesTransport() {
 }
 
 func (s *clientTestSuite) TestNewOrReusedConnectionCreatesTransport() {
-	s.httpsTestServer()
+	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
 	s.NoError(err, "Failed to construct destination from test server")
 	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
@@ -195,7 +198,7 @@ func (s *clientTestSuite) TestNewOrReusedConnectionCreatesTransport() {
 }
 
 func (s *clientTestSuite) TestNewOrReusedConnectionReusesTransport() {
-	s.httpTestServer()
+	s.httpTestServer(insecureServer)
 	d, err := DestinationFromString(s.ts.URL)
 	s.NoError(err, "Failed to construct destination from test server")
 
