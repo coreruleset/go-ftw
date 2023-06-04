@@ -2,7 +2,7 @@
 meta:
   author: "tester"
   enabled: true
-  name: "gotest-ftw.yaml"
+  name: "TestLogsRun.yaml"
   description: "Example Test"
 tests:
   - test_title: "200"

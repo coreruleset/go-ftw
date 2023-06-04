@@ -2,7 +2,7 @@
 meta:
   author: "tester"
   enabled: true
-  name: "gotest-ftw.yaml"
+  name: "TestBrokenPortOverrideRun.yaml"
   description: "Example Override Test"
 tests:
   - test_title: "001"
