@@ -68,7 +68,7 @@ func (s *fileTestSuite) BeforeTest(_, name string) {
 	s.NotNil(s.cfg)
 }
 
-func (s *fileTestSuite) AfterTest(_ string, _ string) {
+func (s *fileTestSuite) TearDownTest() {
 	if s.filename != "" {
 		err := os.Remove(s.filename)
 		s.NoError(err)
@@ -77,18 +77,18 @@ func (s *fileTestSuite) AfterTest(_ string, _ string) {
 }
 
 func (s *baseTestSuite) TestBaseUnmarshalText() {
-	var ftwRegex FTWRegexp
-	err := ftwRegex.UnmarshalText([]byte("test"))
+	var ftwRegexp FTWRegexp
+	err := ftwRegexp.UnmarshalText([]byte("test"))
 	s.NoError(err)
-	s.NotNil(ftwRegex)
-	s.True(ftwRegex.MatchString("This is a test for unmarshalling"), "looks like we could not match string")
+	s.NotNil(ftwRegexp)
+	s.True(ftwRegexp.MatchString("This is a test for unmarshalling"), "looks like we could not match string")
 }
 
 func (s *baseTestSuite) TestBaseNewFTWRegexpText() {
-	ftwRegex, err := NewFTWRegexp("test")
+	ftwRegexp, err := NewFTWRegexp("test")
 	s.NoError(err)
-	s.NotNil(ftwRegex)
-	s.True(ftwRegex.MatchString("This is a test"), "looks like we could not match string")
+	s.NotNil(ftwRegexp)
+	s.True(ftwRegexp.MatchString("This is a test"), "looks like we could not match string")
 }
 
 func (s *baseTestSuite) TestNewCloudConfig() {
@@ -126,7 +126,7 @@ func (s *fileTestSuite) TestNewConfigFromFile() {
 }
 
 func (s *fileTestSuite) TestNewConfigBadConfig() {
-	// contents come from yamlBadConfig
+	// contents come from `bad` YAML config
 	s.NotNil(s.cfg)
 }
 
@@ -141,12 +141,6 @@ func (s *fileTestSuite) TestNewConfigDefaultConfig() {
 }
 
 func (s *fileTestSuite) TestNewConfigFromString() {
-	cfg, err := NewConfigFromString(testData["ok"])
-	s.NoError(err)
-	s.NotNil(cfg)
-}
-
-func (s *fileTestSuite) TestNewEnvConfigFromString() {
 	cfg, err := NewConfigFromString(testData["ok"])
 	s.NoError(err)
 	s.NotNil(cfg)

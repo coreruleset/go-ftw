@@ -111,7 +111,7 @@ func getOverrideConfigValue(key string) (string, error) {
 		}
 		return overrideConfigMap[name].(map[string]interface{})[key].(string), nil
 	}
-	return "", errors.New("cannot caller function name")
+	return "", errors.New("failed to determine calling function")
 }
 
 func TestInputOverrideTestSuite(t *testing.T) {

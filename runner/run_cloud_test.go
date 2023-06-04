@@ -38,6 +38,11 @@ func (s *runCloudTestSuite) SetupTest() {
 
 func (s *runCloudTestSuite) TearDownTest() {
 	s.ts.Close()
+	if s.tempFileName != "" {
+		err := os.Remove(s.tempFileName)
+		s.NoError(err, "cannot remove test file")
+		s.tempFileName = ""
+	}
 }
 
 func (s *runCloudTestSuite) BeforeTest(_ string, name string) {
@@ -72,14 +77,6 @@ func (s *runCloudTestSuite) BeforeTest(_ string, name string) {
 	s.NoError(err, "cannot get tests from file")
 	// save the name of the temporary file so we can delete it later
 	s.tempFileName = testFileContents.Name()
-}
-
-func (s *runCloudTestSuite) AfterTest(_ string, _ string) {
-	if s.tempFileName != "" {
-		err := os.Remove(s.tempFileName)
-		s.NoError(err, "cannot remove test file")
-		s.tempFileName = ""
-	}
 }
 
 // Error checking omitted for brevity
