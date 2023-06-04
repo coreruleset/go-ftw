@@ -24,6 +24,14 @@ func NewDefaultConfig() *FTWConfiguration {
 	return cfg
 }
 
+// NewCloudConfig initializes the configuration with cloud values
+func NewCloudConfig() *FTWConfiguration {
+	cfg := NewDefaultConfig()
+	cfg.RunMode = CloudRunMode
+
+	return cfg
+}
+
 // NewConfigFromFile reads configuration information from the config file if it exists,
 // or uses `.ftw.yaml` as default file
 func NewConfigFromFile(cfgFile string) (*FTWConfiguration, error) {

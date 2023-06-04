@@ -91,7 +91,13 @@ func (s *baseTestSuite) TestBaseNewFTWRegexpText() {
 	s.True(ftwRegex.MatchString("This is a test"), "looks like we could not match string")
 }
 
-func (s *fileTestSuite) TestNewDefaultConfig() {
+func (s *baseTestSuite) TestNewCloudConfig() {
+	cfg := NewCloudConfig()
+	s.Equal(CloudRunMode, cfg.RunMode)
+	s.Equal("", cfg.LogFile)
+}
+
+func (s *baseTestSuite) TestNewDefaultConfig() {
 	cfg := NewDefaultConfig()
 	s.Equal(DefaultLogMarkerHeaderName, cfg.LogMarkerHeaderName)
 	s.Equal(DefaultRunMode, cfg.RunMode)

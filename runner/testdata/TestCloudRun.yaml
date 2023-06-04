@@ -2,7 +2,7 @@
 meta:
   author: "tester"
   enabled: true
-  name: "TestRunTests_Run.yaml"
+  name: "TestCloudRun.yaml"
   description: "Example Test"
 tests:
   - test_title: "001"
@@ -10,6 +10,7 @@ tests:
     stages:
       - stage:
           input:
+            uri: "/200"
             dest_addr: "{{ .TestAddr }}"
             port: {{ .TestPort }}
             headers:
@@ -19,11 +20,40 @@ tests:
           output:
             expect_error: False
             status: [200]
+  - test_title: "403"
+    description: "using log_contains should return a 403 response."
+    stages:
+      - stage:
+          input:
+            uri: "/403"
+            dest_addr: "{{ .TestAddr }}"
+            port: {{ .TestPort }}
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "{{ .TestAddr }}"
+          output:
+            log_contains: "ModSecurity: Access denied with code 403"
+  - test_title: "405"
+    description: "using no_log_contains should return a 405 response."
+    stages:
+      - stage:
+          input:
+            uri: "/405"
+            dest_addr: "{{ .TestAddr }}"
+            port: {{ .TestPort }}
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Accept: "*/*"
+              Host: "{{ .TestAddr }}"
+          output:
+            no_log_contains: "ModSecurity: Access denied with code 403"
   - test_title: "008"
     description: "this test is number 8"
     stages:
       - stage:
           input:
+            uri: "/200"
             dest_addr: "{{ .TestAddr }}"
             port: {{ .TestPort }}
             headers:
@@ -36,6 +66,7 @@ tests:
     stages:
       - stage:
           input:
+            uri: "/200"
             dest_addr: "{{ .TestAddr }}"
             port: {{ .TestPort }}
             version: "HTTP/1.1"

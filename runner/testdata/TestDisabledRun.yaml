@@ -2,8 +2,8 @@
 meta:
   author: "tester"
   enabled: false
-  name: "we do not care, this test is disabled"
-  description: "Example Test"
+  name: "TestDisabledRun.yaml"
+  description: "we do not care, this test is disabled"
 tests:
   - test_title: "001"
     description: "access real external site"

@@ -2,7 +2,7 @@
 meta:
     author: "tester"
     enabled: true
-    name: "gotest-ftw.yaml"
+    name: "TestRunMultipleMatches.yaml"
     description: "Example Test with multiple expected outputs per single rule"
 tests:
     - test_title: "001"
