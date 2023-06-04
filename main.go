@@ -3,6 +3,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	_ "time/tzdata"
@@ -28,10 +30,15 @@ func main() {
 	// Default level for this example is info, unless debug flag is present
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
-	cmd.Execute(
+	err := cmd.Execute(
 		buildVersion(version, commit, date, builtBy),
 	)
 
+	if errors.Is(err, context.DeadlineExceeded) {
+		os.Exit(2)
+	} else if err != nil {
+		os.Exit(1)
+	}
 }
 
 func buildVersion(version, commit, date, builtBy string) string {
