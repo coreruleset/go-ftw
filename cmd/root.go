@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"log"
-	"os"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -37,19 +35,13 @@ func NewRootCommand() *cobra.Command {
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute(version string) {
+func Execute(version string) error {
 	rootCmd := NewRootCommand()
 	rootCmd.AddCommand(NewCheckCommand())
 	rootCmd.AddCommand(NewRunCommand())
 	rootCmd.Version = version
 
-	if err := rootCmd.ExecuteContext(context.Background()); err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			os.Exit(2)
-		}
-
-		os.Exit(1)
-	}
+	return rootCmd.ExecuteContext(context.Background())
 }
 
 func init() {
