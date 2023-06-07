@@ -3,6 +3,8 @@ package check
 import (
 	"testing"
 
+	"github.com/coreruleset/go-ftw/utils"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -27,6 +29,15 @@ var statusFailTests = []struct {
 
 type checkStatusTestSuite struct {
 	suite.Suite
+	cfg *config.FTWConfiguration
+}
+
+func (s *checkStatusTestSuite) SetupTest() {
+	var err error
+	s.cfg = config.NewDefaultConfig()
+	logName, err := utils.CreateTempFileWithContent(logText, "test-*.log")
+	s.NoError(err)
+	s.cfg.WithLogfile(logName)
 }
 
 func TestCheckStatusTestSuite(t *testing.T) {
@@ -34,10 +45,8 @@ func TestCheckStatusTestSuite(t *testing.T) {
 }
 
 func (s *checkStatusTestSuite) TestStatusOK() {
-	cfg, err := config.NewConfigFromString(yamlApacheConfig)
+	c, err := NewCheck(s.cfg)
 	s.NoError(err)
-
-	c := NewCheck(cfg)
 
 	for _, expected := range statusOKTests {
 		c.SetExpectStatus(expected.expectedStatus)
@@ -46,13 +55,19 @@ func (s *checkStatusTestSuite) TestStatusOK() {
 }
 
 func (s *checkStatusTestSuite) TestStatusFail() {
-	cfg, err := config.NewConfigFromString(yamlApacheConfig)
+	c, err := NewCheck(s.cfg)
 	s.NoError(err)
-
-	c := NewCheck(cfg)
 
 	for _, expected := range statusFailTests {
 		c.SetExpectStatus(expected.expectedStatus)
 		s.False(c.AssertStatus(expected.status))
 	}
+}
+
+func (s *checkStatusTestSuite) TestStatusCodeRequired() {
+	c, err := NewCheck(s.cfg)
+	s.NoError(err)
+
+	c.SetExpectStatus([]int{200})
+	s.True(c.StatusCodeRequired(), "status code should be required")
 }

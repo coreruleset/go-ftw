@@ -146,6 +146,12 @@ func (s *fileTestSuite) TestNewConfigFromString() {
 	s.NotNil(cfg)
 }
 
+func (s *fileTestSuite) TestNewConfigFromNoneExistingFile() {
+	cfg, err := NewConfigFromFile("nonsense")
+	s.Error(err)
+	s.Nil(cfg)
+}
+
 func (s *fileTestSuite) TestNewConfigFromEnv() {
 	// Set some environment so it gets merged with conf
 	os.Setenv("FTW_LOGFILE", "koanf")
@@ -206,4 +212,13 @@ func (s *fileTestSuite) TestNewDefaultConfigWithParams() {
 	s.Equal("NEW-MARKER-TEST", cfg.LogMarkerHeaderName)
 	cfg.WithRunMode(CloudRunMode)
 	s.Equal(CloudRunMode, cfg.RunMode)
+}
+
+func (s *baseTestSuite) TestWithMaxMarker() {
+	cfg := NewDefaultConfig()
+	cfg.WithMaxMarkerRetries(19)
+	s.Equal(19, cfg.MaxMarkerRetries)
+	cfg.WithMaxMarkerLogLines(111)
+	s.Equal(111, cfg.MaxMarkerLogLines)
+
 }

@@ -16,16 +16,18 @@ type FTWCheck struct {
 }
 
 // NewCheck creates a new FTWCheck, allowing to inject the configuration
-func NewCheck(c *config.FTWConfiguration) *FTWCheck {
-	//TODO: check error
-	ll, _ := waflog.NewFTWLogLines(c)
+func NewCheck(c *config.FTWConfiguration) (*FTWCheck, error) {
+	ll, err := waflog.NewFTWLogLines(c)
+	if err != nil {
+		return nil, err
+	}
 	check := &FTWCheck{
 		log:      ll,
 		cfg:      c,
 		expected: &test.Output{},
 	}
 
-	return check
+	return check, nil
 }
 
 // SetExpectTestOutput sets the combined expected output from this test

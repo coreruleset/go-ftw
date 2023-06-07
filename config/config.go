@@ -142,6 +142,6 @@ func (c *FTWConfiguration) WithMaxMarkerRetries(retries int) {
 }
 
 // WithMaxMarkerLogLines sets the new amount of lines we go back in the logfile attempting to find markers.
-func (c *FTWConfiguration) WithMaxMarkerLogLines(retries int) {
-	c.MaxMarkerLogLines = retries
+func (c *FTWConfiguration) WithMaxMarkerLogLines(amount int) {
+	c.MaxMarkerLogLines = amount
 }

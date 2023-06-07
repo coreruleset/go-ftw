@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/coreruleset/go-ftw/utils"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -27,17 +29,24 @@ var expectedFailTests = []struct {
 
 type checkErrorTestSuite struct {
 	suite.Suite
+	cfg *config.FTWConfiguration
 }
 
 func TestCheckErrorTestSuite(t *testing.T) {
 	suite.Run(t, new(checkErrorTestSuite))
 }
 
-func (s *checkErrorTestSuite) TestAssertResponseErrorOK() {
-	cfg, err := config.NewConfigFromString(yamlApacheConfig)
-	s.NoError(err)
+func (s *checkErrorTestSuite) SetupTest() {
+	var err error
+	s.cfg = config.NewDefaultConfig()
 
-	c := NewCheck(cfg)
+	logName, err := utils.CreateTempFileWithContent(logText, "test-*.log")
+	s.NoError(err)
+	s.cfg.WithLogfile(logName)
+}
+func (s *checkErrorTestSuite) TestAssertResponseErrorOK() {
+	c, err := NewCheck(s.cfg)
+	s.NoError(err)
 	for _, e := range expectedOKTests {
 		c.SetExpectError(e.expected)
 		s.Equal(e.expected, c.AssertExpectError(e.err))
@@ -45,10 +54,8 @@ func (s *checkErrorTestSuite) TestAssertResponseErrorOK() {
 }
 
 func (s *checkErrorTestSuite) TestAssertResponseFail() {
-	cfg, err := config.NewConfigFromString(yamlApacheConfig)
+	c, err := NewCheck(s.cfg)
 	s.NoError(err)
-
-	c := NewCheck(cfg)
 
 	for _, e := range expectedFailTests {
 		c.SetExpectError(e.expected)

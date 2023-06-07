@@ -3,6 +3,8 @@ package check
 import (
 	"testing"
 
+	"github.com/coreruleset/go-ftw/utils"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -20,21 +22,29 @@ var expectedResponseFailTests = []struct {
 	expected string
 }{
 	{`<html><title></title><body></body></html>`, "not found"},
+	{``, `empty should return false`},
 }
 
 type checkResponseTestSuite struct {
 	suite.Suite
+	cfg *config.FTWConfiguration
 }
 
 func TestCheckResponseTestSuite(t *testing.T) {
 	suite.Run(t, new(checkResponseTestSuite))
 }
 
-func (s *checkResponseTestSuite) TestAssertResponseTextErrorOK() {
-	cfg, err := config.NewConfigFromString(yamlApacheConfig)
+func (s *checkResponseTestSuite) SetupTest() {
+	var err error
+	s.cfg = config.NewDefaultConfig()
+	logName, err := utils.CreateTempFileWithContent(logText, "test-*.log")
 	s.NoError(err)
+	s.cfg.WithLogfile(logName)
+}
 
-	c := NewCheck(cfg)
+func (s *checkResponseTestSuite) TestAssertResponseTextErrorOK() {
+	c, err := NewCheck(s.cfg)
+	s.NoError(err)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)
 		s.Truef(c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
@@ -42,10 +52,8 @@ func (s *checkResponseTestSuite) TestAssertResponseTextErrorOK() {
 }
 
 func (s *checkResponseTestSuite) TestAssertResponseTextFailOK() {
-	cfg, err := config.NewConfigFromString(yamlApacheConfig)
+	c, err := NewCheck(s.cfg)
 	s.NoError(err)
-
-	c := NewCheck(cfg)
 	for _, e := range expectedResponseFailTests {
 		c.SetExpectResponse(e.expected)
 		s.Falsef(c.AssertResponseContains(e.response), "response shouldn't contain text %v", e.response)
@@ -53,12 +61,18 @@ func (s *checkResponseTestSuite) TestAssertResponseTextFailOK() {
 }
 
 func (s *checkResponseTestSuite) TestAssertResponseTextChecksFullResponseOK() {
-	cfg, err := config.NewConfigFromString(yamlApacheConfig)
+	c, err := NewCheck(s.cfg)
 	s.NoError(err)
-
-	c := NewCheck(cfg)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)
 		s.Truef(c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
 	}
+}
+
+func (s *checkResponseTestSuite) TestAssertResponseContainsRequired() {
+	c, err := NewCheck(s.cfg)
+	s.NoError(err)
+	c.SetExpectResponse("")
+	s.False(c.AssertResponseContains(""), "response shouldn't contain text")
+	s.False(c.ResponseContainsRequired(), "response shouldn't contain text")
 }
