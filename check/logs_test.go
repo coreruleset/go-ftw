@@ -18,30 +18,48 @@ var logText = `[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 1396834345
 
 type checkLogsTestSuite struct {
 	suite.Suite
+	cfg     *config.FTWConfiguration
+	logName string
 }
 
 func TestCheckLogsTestSuite(t *testing.T) {
 	suite.Run(t, new(checkLogsTestSuite))
 }
 
-func (s *checkLogsTestSuite) TestAssertLogContainsOK() {
-	cfg, err := config.NewConfigFromString(yamlApacheConfig)
+func (s *checkLogsTestSuite) SetupTest() {
+	var err error
+	s.cfg = config.NewDefaultConfig()
+
+	s.logName, err = utils.CreateTempFileWithContent(logText, "test-*.log")
 	s.NoError(err)
+	s.cfg.WithLogfile(s.logName)
+}
 
-	logName, _ := utils.CreateTempFileWithContent(logText, "test-*.log")
-	defer os.Remove(logName)
-	cfg.WithLogfile(logName)
-
-	c := NewCheck(cfg)
+func (s *checkLogsTestSuite) TearDownTest() {
+	err := os.Remove(s.logName)
+	s.NoError(err)
+}
+func (s *checkLogsTestSuite) TestAssertLogContainsOK() {
+	c, err := NewCheck(s.cfg)
+	s.NoError(err)
 
 	c.SetLogContains(`id "920300"`)
 	s.True(c.AssertLogContains(), "did not find expected content 'id \"920300\"'")
+
 	c.SetLogContains(`SOMETHING`)
 	s.False(c.AssertLogContains(), "found something that is not there")
+	s.True(c.LogContainsRequired(), "if LogContains is not empty it should return true")
+
+	c.SetLogContains("")
+	s.False(c.AssertLogContains(), "empty LogContains should return false")
 
 	c.SetNoLogContains("SOMETHING")
 	s.True(c.AssertNoLogContains(), "found something that is not there")
+
 	c.SetNoLogContains(`id "920300"`)
 	s.False(c.AssertNoLogContains(), "did not find expected content")
 
+	c.SetNoLogContains("")
+	s.False(c.AssertNoLogContains(), "should return false when empty string is passed")
+	s.False(c.NoLogContainsRequired(), "if NoLogContains is an empty string is passed should return false")
 }

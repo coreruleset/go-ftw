@@ -93,7 +93,10 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 		}
 		// Iterate over stages
 		for _, stage := range testCase.Stages {
-			ftwCheck := check.NewCheck(runContext.Config)
+			ftwCheck, err := check.NewCheck(runContext.Config)
+			if err != nil {
+				return err
+			}
 			if err := RunStage(runContext, ftwCheck, testCase, stage.Stage); err != nil {
 				return err
 			}

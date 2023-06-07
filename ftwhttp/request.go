@@ -170,7 +170,7 @@ func buildRequest(r *Request) ([]byte, error) {
 			r.AddStandardHeaders()
 		}
 
-		err = r.Headers().WriteBytes(&b)
+		_, err := r.Headers().WriteBytes(&b)
 		if err != nil {
 			log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
 			return nil, err
@@ -185,10 +185,17 @@ func buildRequest(r *Request) ([]byte, error) {
 
 		// After headers, we need one blank line
 		_, err = fmt.Fprintf(&b, "\r\n")
-
+		if err != nil {
+			log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
+			return nil, err
+		}
 		// Now the body, if anything
 		if utils.IsNotEmpty(r.data) {
 			_, err = fmt.Fprintf(&b, "%s", r.data)
+			if err != nil {
+				log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
+				return nil, err
+			}
 		}
 	} else {
 		dumpRawData(&b, r.raw)

@@ -91,18 +91,20 @@ func (h Header) Write(w io.Writer) error {
 }
 
 // WriteBytes writes a header in a ByteWriter.
-func (h Header) WriteBytes(b *bytes.Buffer) error {
+func (h Header) WriteBytes(b *bytes.Buffer) (int, error) {
 	sorted := h.getSortedHeadersByName()
-
+	count := 0
 	for _, key := range sorted {
 		// we want all headers "as-is"
 		s := key + ": " + h[key] + "\r\n"
-		if _, err := b.Write([]byte(s)); err != nil {
-			return err
+		n, err := b.Write([]byte(s))
+		count += n
+		if err != nil {
+			return count, err
 		}
 	}
 
-	return nil
+	return count, nil
 
 }
 
