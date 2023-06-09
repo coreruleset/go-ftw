@@ -11,7 +11,6 @@ package ftwhttp
 import (
 	"bytes"
 	"errors"
-	"github.com/rs/zerolog/log"
 	"io"
 	"testing"
 
@@ -70,11 +69,10 @@ func TestHeaderTestSuite(t *testing.T) {
 
 func (s *headerTestSuite) TestHeaderWrite() {
 	for _, test := range headerWriteTests {
-		sorted := test.h.getSortedHeadersByName()
 		err := test.h.Write(io.Discard)
 		s.NoError(err)
 		err = test.h.Write(BadWriter{err: errors.New("fake error")})
-		if len(sorted) > 0 {
+		if len(test.h) > 0 {
 			s.EqualErrorf(err, "fake error", "Write: got %v, want %v", err, "fake error")
 		} else {
 			s.NoErrorf(err, "Write: got %v", err)
@@ -83,14 +81,14 @@ func (s *headerTestSuite) TestHeaderWrite() {
 }
 
 func (s *headerTestSuite) TestHeaderWriteBytes() {
-	var buf bytes.Buffer
 	for i, test := range headerWriteTests {
+		var buf bytes.Buffer
+
 		n, err := test.h.WriteBytes(&buf)
-		w := buf.Bytes()
-		log.Info().Msgf("buf: %s", w)
+		w := buf.String()
 		s.Lenf(w, n, "#%d: WriteBytes: got %d, want %d", i, n, len(w))
 		s.NoErrorf(err, "#%d: WriteBytes: got %v", i, err)
-		s.Equalf(test.expected, string(w), "#%d: WriteBytes: got %q, want %q", i, w, test.expected)
+		s.Equalf(test.expected, w, "#%d: WriteBytes: got %q, want %q", i, w, test.expected)
 		buf.Reset()
 	}
 }
@@ -117,10 +115,12 @@ func (s *headerTestSuite) TestHeaderSetGet() {
 
 func (s *headerTestSuite) TestHeaderDel() {
 	for i, test := range headerWriteTests {
-		expected := test.h.Get("Content-Type")
+		// we clone it because we are modifying the original
+		headerCopy := test.h.Clone()
+		expected := headerCopy.Get("Content-Type")
 		if expected != "" {
-			test.h.Del("Content-Type")
-			value := test.h.Get("Content-Type")
+			headerCopy.Del("Content-Type")
+			value := headerCopy.Get("Content-Type")
 			s.Equalf("", value, "#%d: got: %s, want: %s\n", i, value, "")
 		}
 	}

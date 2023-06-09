@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"io"
 	"sort"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -97,6 +99,7 @@ func (h Header) WriteBytes(b *bytes.Buffer) (int, error) {
 	for _, key := range sorted {
 		// we want all headers "as-is"
 		s := key + ": " + h[key] + "\r\n"
+		log.Info().Msgf("Writing header: %s", s)
 		n, err := b.Write([]byte(s))
 		count += n
 		if err != nil {

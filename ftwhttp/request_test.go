@@ -21,10 +21,10 @@ func generateBaseRequestForTesting() *Request {
 	rl := &RequestLine{
 		Method:  "UNEXISTENT",
 		URI:     "/this/path",
-		Version: "1.4",
+		Version: "HTTP/1.4",
 	}
 
-	h := Header{"This": "Header", "Connection": "Not-Closed"}
+	h := Header{"Host": "localhost", "This": "Header", "Connection": "Not-Closed"}
 
 	req = NewRequest(rl, h, []byte("Data"), true)
 
