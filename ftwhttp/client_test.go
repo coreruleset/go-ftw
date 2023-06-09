@@ -40,7 +40,11 @@ func (s *clientTestSuite) TearDownTest() {
 
 func (s *clientTestSuite) httpHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		if r.URL.Path == "/not-found" {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			w.WriteHeader(http.StatusOK)
+		}
 		resp := new(bytes.Buffer)
 		for key, value := range r.Header {
 			_, err := fmt.Fprintf(resp, "%s=%s,", key, value)
@@ -53,6 +57,9 @@ func (s *clientTestSuite) httpHandler() http.HandlerFunc {
 }
 
 func (s *clientTestSuite) httpTestServer(secure bool) {
+	s.HTTPStatusCode(s.httpHandler(), http.MethodGet, "/", nil, http.StatusOK)
+	s.HTTPStatusCode(s.httpHandler(), http.MethodGet, "/not-found", nil, http.StatusNotFound)
+
 	if secure {
 		s.ts = httptest.NewTLSServer(s.httpHandler())
 	} else {
@@ -80,24 +87,12 @@ func (s *clientTestSuite) TestDoRequest() {
 	s.NoError(err, "This should not error")
 	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
 	req := generateBaseRequestForTesting()
+	req.requestLine.URI = "/not-found"
 	err = s.client.NewConnection(*d)
 	s.NoError(err, "This should not error")
-
 	response, err := s.client.Do(*req)
-
-	// I'm getting consistently 400 Bad Request from the httpsTestServer's response,
-	// so I'm commenting this out for now.
-	// Example call used to test this:
-	// nc httpbin.org 80
-	// UNEXISTENT /bad/path HTTP/1.4
-	// Host: httpbin.org
-	// User-Agent: curl/7.88.1
-	// Accept: */*
-	//
-	// Will return HTTP/1.1 404 NOT FOUND from upstream.
-	// The same call to the httpsTestServer will return HTTP/1.1 400 Bad Request.
-	s.NoError(err, "This should not error")
-	s.Equal(response.Parsed.StatusCode, http.StatusBadRequest, "Error in calling website")
+	s.NoError(err, "This should error")
+	s.Equal(http.StatusNotFound, response.Parsed.StatusCode, "Error in calling website")
 }
 
 func (s *clientTestSuite) TestGetTrackedTime() {
