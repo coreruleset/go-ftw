@@ -2,10 +2,13 @@ package test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml/ast"
 	"github.com/rs/zerolog/log"
 	"github.com/yargevad/filepathx"
 )
@@ -56,11 +59,13 @@ func GetTestFromYaml(testYaml []byte) (ftwTest FTWTest, err error) {
 		return FTWTest{}, err
 	}
 
+	postProcess(testYaml, &ftwTest)
+
 	return ftwTest, nil
 }
 
 func readTestYaml(testYaml []byte) (t FTWTest, err error) {
-	err = yaml.Unmarshal([]byte(testYaml), &t)
+	err = yaml.Unmarshal(testYaml, &t)
 	return t, err
 }
 
@@ -104,4 +109,84 @@ func describeYamlError(yamlError error) string {
 	}
 
 	return "We do not have an extended explanation of this error."
+}
+
+// TODO: make more general (env, string)
+// TODO: also post process overrides
+func postProcess(testYaml []byte, ftwTest *FTWTest) error {
+	yamlString := string(testYaml)
+	for index, test := range ftwTest.Tests {
+		path, err := yaml.PathString(fmt.Sprintf("$.tests[%d]", index))
+		if err != nil {
+			return err
+		}
+		node, err := path.ReadNode(strings.NewReader(yamlString))
+		if err != nil {
+			return err
+		}
+		err = postProcessTest(node.(*ast.MappingNode), &test)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func postProcessTest(node *ast.MappingNode, test *Test) error {
+	nodeString := node.String()
+	for index, stage := range test.Stages {
+		path, err := yaml.PathString(fmt.Sprintf("$.stages[%d]", index))
+		if err != nil {
+			return err
+		}
+		stageNode, err := path.ReadNode(strings.NewReader(nodeString))
+		if err != nil {
+			return err
+		}
+		err = postProcessStage(stageNode.(*ast.MappingValueNode), &stage.Stage)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func postProcessStage(node *ast.MappingValueNode, stage *Stage) error {
+	return postProcessInput(node.Value.(*ast.MappingNode), &stage.Input)
+}
+
+func postProcessInput(node *ast.MappingNode, input *Input) error {
+	return postProcessNoAutocompleteHeaders(node, input)
+}
+
+func postProcessNoAutocompleteHeaders(node ast.Node, input *Input) error {
+	noAutocompleteHeadersMissing := false
+	stopMagicMissing := false
+	err := readField(node, "no_autocomplete_headers", &input.NoAutocompleteHeaders)
+	if err != nil {
+		noAutocompleteHeadersMissing = true
+	}
+	err = readField(node, "stop_magic", &input.StopMagic)
+	if err != nil {
+		stopMagicMissing = true
+	}
+
+	if noAutocompleteHeadersMissing && stopMagicMissing {
+		return nil
+	}
+	if noAutocompleteHeadersMissing && !stopMagicMissing {
+		input.NoAutocompleteHeaders = input.StopMagic
+		return nil
+	}
+	input.StopMagic = input.NoAutocompleteHeaders
+	return nil
+}
+
+func readField(node ast.Node, fieldName string, out interface{}) error {
+	path, err := yaml.PathString("$." + fieldName)
+	if err != nil {
+		return err
+	}
+	err = path.Read(strings.NewReader(node.String()), out)
+	return err
 }
