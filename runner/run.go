@@ -427,8 +427,17 @@ func applyInputOverride(o config.FTWTestOverride, testRequest *test.Input) error
 		testRequest.Data = overrides.Data
 	}
 
+	// TODO: postprocess
+	if overrides.SaveCookie != nil {
+		testRequest.SaveCookie = overrides.SaveCookie
+	}
+
 	if overrides.StopMagic != nil {
-		testRequest.StopMagic = *overrides.StopMagic
+		testRequest.StopMagic = overrides.StopMagic
+	}
+
+	if overrides.NoAutocompleteHeaders != nil {
+		testRequest.NoAutocompleteHeaders = overrides.NoAutocompleteHeaders
 	}
 
 	if overrides.EncodedRequest != nil {

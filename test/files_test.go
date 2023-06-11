@@ -23,6 +23,7 @@ var yamlTest = `
         -
           stage:
             input:
+              no_autocomplete_headers: false
               dest_addr: "127.0.0.1"
               port: 80
               headers:
