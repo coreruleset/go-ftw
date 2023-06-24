@@ -29,13 +29,13 @@ Host: "localhost"
 Content-Type: "application/x-www-form-urlencoded"
 data: "hi=test"
 protocol: "http"
-no_autocomplete_headers: true
+autocomplete_headers: true
 uri: "/"
 `
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
-	s.True(*input.NoAutocompleteHeaders)
+	s.True(*input.AutocompleteHeaders)
 }
 
 func (s *dataTestSuite) TestGetPartialDataFromYAML() {
@@ -50,14 +50,14 @@ Content-Type: "application/x-www-form-urlencoded"
 data: "hi=test"
 version: ""
 protocol: "http"
-no_autocomplete_headers: false
+autocomplete_headers: false
 uri: "/"
 `
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
 	s.Empty(*input.Version)
-	s.False(*input.NoAutocompleteHeaders)
+	s.False(*input.AutocompleteHeaders)
 }
 
 func (s *dataTestSuite) TestDataTemplateFromYAML() {
@@ -72,7 +72,7 @@ Content-Type: "application/x-www-form-urlencoded"
 data: 'foo=%3d{{ "+" | repeat 34 }}'
 version: ""
 protocol: "http"
-no_autocomplete_headers: true
+autocomplete_headers: true
 uri: "/"
 `
 	input := Input{}
@@ -83,5 +83,5 @@ uri: "/"
 	data = input.ParseData()
 	s.Equal([]byte(repeatTestSprig), data)
 
-	s.True(*input.NoAutocompleteHeaders)
+	s.True(*input.AutocompleteHeaders)
 }

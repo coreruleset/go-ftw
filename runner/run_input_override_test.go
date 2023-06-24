@@ -28,7 +28,7 @@ var configTemplate = `
 testoverride:
   input:
     {{ with .StopMagic }}stop_magic: {{ . }}{{ end }}
-    {{ with .NoAutocompleteHeaders }}no_autocomplete_headers: {{ . }}{{ end }}
+    {{ with .AutocompleteHeaders }}autocomplete_headers: {{ . }}{{ end }}
     {{ with .BrokenConfig }}this_does_not_exist: "test"{{ end }}
     {{ with .Port }}port: {{ . }}{{ end }}
     {{ with .DestAddr }}dest_addr: {{ . }}{{ end }}
@@ -95,8 +95,8 @@ var overrideConfigMap = map[string]interface{}{
 	"TestApplyInputOverrideStopMagic": map[string]interface{}{
 		"StopMagic": "true",
 	},
-	"TestApplyInputOverrideNoAutocompleteHeaders": map[string]interface{}{
-		"NoAutocompleteHeaders": "true",
+	"TestApplyInputOverrideAutocompleteHeaders": map[string]interface{}{
+		"AutocompleteHeaders": "true",
 	},
 }
 
@@ -299,18 +299,18 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideStopMagic() {
 	s.Equal(overrideStopMagic, *testInput.StopMagic, "`StopMagic` should have been overridden")
 }
 
-func (s *inputOverrideTestSuite) TestApplyInputOverrideNoAutocompleteHeaders() {
-	noAutocompleteHeadersBool, err := getOverrideConfigValue("NoAutocompleteHeaders")
+func (s *inputOverrideTestSuite) TestApplyInputOverrideAutocompleteHeaders() {
+	autocompleteHeadersBool, err := getOverrideConfigValue("AutocompleteHeaders")
 	s.NoError(err, "cannot get override value")
-	overrideNoAutocompleteHeaders, err := strconv.ParseBool(noAutocompleteHeadersBool)
-	s.NoError(err, "Failed to parse `NoAutocompleteHeaders` override value")
+	overrideAutocompleteHeaders, err := strconv.ParseBool(autocompleteHeadersBool)
+	s.NoError(err, "Failed to parse `AutocompleteHeaders` override value")
 	testInput := test.Input{
-		NoAutocompleteHeaders: func() *bool { b := false; return &b }(),
+		AutocompleteHeaders: func() *bool { b := false; return &b }(),
 	}
 	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
 
 	// nolint
-	s.Equal(overrideNoAutocompleteHeaders, *testInput.NoAutocompleteHeaders, "`NoAutocompleteHeaders` should have been overridden")
+	s.Equal(overrideAutocompleteHeaders, *testInput.AutocompleteHeaders, "`AutocompleteHeaders` should have been overridden")
 }
 
 func (s *inputOverrideTestSuite) TestApplyInputOverrideEncodedRequest() {

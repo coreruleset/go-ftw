@@ -14,7 +14,7 @@ func TestTypesTestSuite(t *testing.T) {
 	suite.Run(t, new(typesTestSuite))
 }
 
-var noAutocompleteHeadersDefaultYaml = `---
+var autocompleteHeadersDefaultYaml = `---
 meta:
   author: "tester"
   enabled: true
@@ -64,7 +64,7 @@ tests:
             status: [200]
 `
 
-var noAutocompleteHeadersFalseYaml = `---
+var autocompleteHeadersFalseYaml = `---
 meta:
   author: "tester"
   enabled: true
@@ -76,7 +76,7 @@ tests:
     stages:
       - stage:
           input:
-            no_autocomplete_headers: false
+            autocomplete_headers: false
             dest_addr: "localhost"
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
@@ -90,7 +90,7 @@ tests:
     stages:
       - stage:
           input:
-            no_autocomplete_headers: false
+            autocomplete_headers: false
             stop_magic: true
             dest_addr: "localhost"
             headers:
@@ -105,7 +105,7 @@ tests:
     stages:
       - stage:
           input:
-            no_autocomplete_headers: false
+            autocomplete_headers: false
             stop_magic: false
             dest_addr: "localhost"
             headers:
@@ -117,7 +117,7 @@ tests:
             status: [200]
 `
 
-var noAutocompleteHeadersTrueYaml = `---
+var autocompleteHeadersTrueYaml = `---
 meta:
   author: "tester"
   enabled: true
@@ -129,7 +129,7 @@ tests:
     stages:
       - stage:
           input:
-            no_autocomplete_headers: true
+            autocomplete_headers: true
             dest_addr: "localhost"
             headers:
               User-Agent: "ModSecurity CRS 3 Tests"
@@ -143,7 +143,7 @@ tests:
     stages:
       - stage:
           input:
-            no_autocomplete_headers: true
+            autocomplete_headers: true
             stop_magic: true
             dest_addr: "localhost"
             headers:
@@ -158,7 +158,7 @@ tests:
     stages:
       - stage:
           input:
-            no_autocomplete_headers: true
+            autocomplete_headers: true
             stop_magic: false
             dest_addr: "localhost"
             headers:
@@ -170,82 +170,82 @@ tests:
             status: [200]
 `
 
-func (s *typesTestSuite) TestNoAutocompleteHeadersDefault_StopMagicDefault() {
-	test, err := GetTestFromYaml([]byte(noAutocompleteHeadersDefaultYaml))
+func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicDefault() {
+	test, err := GetTestFromYaml([]byte(autocompleteHeadersDefaultYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
 	input := test.Tests[0].Stages[0].Stage.Input
-	s.False(*input.NoAutocompleteHeaders)
+	s.True(*input.AutocompleteHeaders)
 	s.False(*input.StopMagic)
 }
 
-func (s *typesTestSuite) TestNoAutocompleteHeadersDefault_StopMagicTrue() {
-	test, err := GetTestFromYaml([]byte(noAutocompleteHeadersDefaultYaml))
+func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicTrue() {
+	test, err := GetTestFromYaml([]byte(autocompleteHeadersDefaultYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
 	input := test.Tests[1].Stages[0].Stage.Input
-	s.True(*input.NoAutocompleteHeaders)
+	s.False(*input.AutocompleteHeaders)
 	s.True(*input.StopMagic)
 }
-func (s *typesTestSuite) TestNoAutocompleteHeadersDefault_StopMagicFalse() {
-	test, err := GetTestFromYaml([]byte(noAutocompleteHeadersDefaultYaml))
+func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicFalse() {
+	test, err := GetTestFromYaml([]byte(autocompleteHeadersDefaultYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
 	input := test.Tests[2].Stages[0].Stage.Input
-	s.False(*input.NoAutocompleteHeaders)
+	s.True(*input.AutocompleteHeaders)
 	s.False(*input.StopMagic)
 }
 
-func (s *typesTestSuite) TestNoAutocompleteHeadersFalse_StopMagicDefault() {
-	test, err := GetTestFromYaml([]byte(noAutocompleteHeadersFalseYaml))
+func (s *typesTestSuite) TestAutocompleteHeadersFalse_StopMagicDefault() {
+	test, err := GetTestFromYaml([]byte(autocompleteHeadersFalseYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
 	input := test.Tests[0].Stages[0].Stage.Input
-	s.False(*input.NoAutocompleteHeaders)
-	s.False(*input.StopMagic)
+	s.False(*input.AutocompleteHeaders)
+	s.True(*input.StopMagic)
 }
 
-func (s *typesTestSuite) TestNoAutocompleteHeadersFalse_StopMagicTrue() {
-	test, err := GetTestFromYaml([]byte(noAutocompleteHeadersFalseYaml))
+func (s *typesTestSuite) TestAutocompleteHeadersFalse_StopMagicTrue() {
+	test, err := GetTestFromYaml([]byte(autocompleteHeadersFalseYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
 	input := test.Tests[1].Stages[0].Stage.Input
-	s.False(*input.NoAutocompleteHeaders)
-	s.False(*input.StopMagic)
+	s.False(*input.AutocompleteHeaders)
+	s.True(*input.StopMagic)
 }
 
-func (s *typesTestSuite) TestNoAutocompleteHeadersFalse_StopMagicFalse() {
-	test, err := GetTestFromYaml([]byte(noAutocompleteHeadersFalseYaml))
+func (s *typesTestSuite) TestAutocompleteHeadersFalse_StopMagicFalse() {
+	test, err := GetTestFromYaml([]byte(autocompleteHeadersFalseYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
 	input := test.Tests[2].Stages[0].Stage.Input
-	s.False(*input.NoAutocompleteHeaders)
-	s.False(*input.StopMagic)
+	s.False(*input.AutocompleteHeaders)
+	s.True(*input.StopMagic)
 }
 
-func (s *typesTestSuite) TestNoAutocompleteHeadersTrue_StopMagicDefault() {
-	test, err := GetTestFromYaml([]byte(noAutocompleteHeadersTrueYaml))
+func (s *typesTestSuite) TestAutocompleteHeadersTrue_StopMagicDefault() {
+	test, err := GetTestFromYaml([]byte(autocompleteHeadersTrueYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
 	input := test.Tests[0].Stages[0].Stage.Input
-	s.True(*input.NoAutocompleteHeaders)
-	s.True(*input.StopMagic)
+	s.True(*input.AutocompleteHeaders)
+	s.False(*input.StopMagic)
 }
 
-func (s *typesTestSuite) TestNoAutocompleteHeadersTrue_StopMagicTrue() {
-	test, err := GetTestFromYaml([]byte(noAutocompleteHeadersTrueYaml))
+func (s *typesTestSuite) TestAutocompleteHeadersTrue_StopMagicTrue() {
+	test, err := GetTestFromYaml([]byte(autocompleteHeadersTrueYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
 	input := test.Tests[1].Stages[0].Stage.Input
-	s.True(*input.NoAutocompleteHeaders)
-	s.True(*input.StopMagic)
+	s.True(*input.AutocompleteHeaders)
+	s.False(*input.StopMagic)
 }
 
-func (s *typesTestSuite) TestNoAutocompleteHeadersTrue_StopMagicFalse() {
-	test, err := GetTestFromYaml([]byte(noAutocompleteHeadersTrueYaml))
+func (s *typesTestSuite) TestAutocompleteHeadersTrue_StopMagicFalse() {
+	test, err := GetTestFromYaml([]byte(autocompleteHeadersTrueYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
 	input := test.Tests[2].Stages[0].Stage.Input
-	s.True(*input.NoAutocompleteHeaders)
-	s.True(*input.StopMagic)
+	s.True(*input.AutocompleteHeaders)
+	s.False(*input.StopMagic)
 }

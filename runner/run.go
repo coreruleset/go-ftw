@@ -360,7 +360,7 @@ func getRequestFromTest(testInput test.Input) *ftwhttp.Request {
 
 	// If we use raw or encoded request, then we don't use other fields
 	if raw != nil {
-		req = ftwhttp.NewRawRequest(raw, !*testInput.NoAutocompleteHeaders)
+		req = ftwhttp.NewRawRequest(raw, !*testInput.AutocompleteHeaders)
 	} else {
 		rline := &ftwhttp.RequestLine{
 			Method:  testInput.GetMethod(),
@@ -371,7 +371,7 @@ func getRequestFromTest(testInput test.Input) *ftwhttp.Request {
 		data := testInput.ParseData()
 		// create a new request
 		req = ftwhttp.NewRequest(rline, testInput.Headers,
-			data, !*testInput.NoAutocompleteHeaders)
+			data, !*testInput.AutocompleteHeaders)
 
 	}
 	return req
