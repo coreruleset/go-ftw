@@ -68,4 +68,5 @@ func initConfig() {
 	if cloud {
 		cfg.RunMode = config.CloudRunMode
 	}
+
 }

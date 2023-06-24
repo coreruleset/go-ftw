@@ -35,7 +35,7 @@ uri: "/"
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
-	s.True(input.NoAutocompleteHeaders)
+	s.True(*input.NoAutocompleteHeaders)
 }
 
 func (s *dataTestSuite) TestGetPartialDataFromYAML() {
@@ -57,7 +57,7 @@ uri: "/"
 	err := yaml.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
 	s.Empty(*input.Version)
-	s.False(input.NoAutocompleteHeaders)
+	s.False(*input.NoAutocompleteHeaders)
 }
 
 func (s *dataTestSuite) TestDataTemplateFromYAML() {
@@ -83,5 +83,5 @@ uri: "/"
 	data = input.ParseData()
 	s.Equal([]byte(repeatTestSprig), data)
 
-	s.True(input.NoAutocompleteHeaders)
+	s.True(*input.NoAutocompleteHeaders)
 }

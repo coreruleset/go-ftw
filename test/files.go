@@ -2,13 +2,9 @@ package test
 
 import (
 	"errors"
-	"fmt"
 	"os"
-	"regexp"
-	"strings"
 
 	"github.com/goccy/go-yaml"
-	"github.com/goccy/go-yaml/ast"
 	"github.com/rs/zerolog/log"
 	"github.com/yargevad/filepathx"
 )
@@ -38,12 +34,12 @@ func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 		if err != nil {
 			log.Error().Msgf("Problem detected in file %s:\n%s\n%s",
 				fileName, yaml.FormatError(err, true, true),
-				describeYamlError(err))
+				DescribeYamlError(err))
 			return tests, err
 		}
 
 		ftwTest.FileName = fileName
-		tests = append(tests, ftwTest)
+		tests = append(tests, *ftwTest)
 	}
 
 	if len(tests) == 0 {
@@ -52,141 +48,10 @@ func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 	return tests, nil
 }
 
-// GetTestFromYaml will get the tests to be processed from a YAML string.
-func GetTestFromYaml(testYaml []byte) (ftwTest FTWTest, err error) {
-	ftwTest, err = readTestYaml(testYaml)
-	if err != nil {
-		return FTWTest{}, err
-	}
-
-	postProcess(testYaml, &ftwTest)
-
-	return ftwTest, nil
-}
-
-func readTestYaml(testYaml []byte) (t FTWTest, err error) {
-	err = yaml.Unmarshal(testYaml, &t)
-	return t, err
-}
-
 func readFileContents(fileName string) (contents []byte, err error) {
 	contents, err = os.ReadFile(fileName)
 	if err != nil {
 		log.Info().Caller().Err(err).Msgf("Failed to read contents of test file %s", fileName)
 	}
 	return contents, err
-}
-
-func describeYamlError(yamlError error) string {
-	matched, err := regexp.MatchString(`.*int was used where sequence is expected.*`, yamlError.Error())
-	if err != nil {
-		return err.Error()
-	}
-	if matched {
-		return "\nTip: This might refer to a \"status\" line being '200', where it should be '[200]'.\n" +
-			"The default \"status\" is a list now.\n" +
-			"A simple example would be like this:\n\n" +
-			"status: 403\n" +
-			"needs to be changed to:\n\n" +
-			"status: [403]\n\n"
-	}
-	matched, err = regexp.MatchString(`.*cannot unmarshal \[]interface {} into Go struct field FTWTest.Tests of type string.*`, yamlError.Error())
-	if err != nil {
-		return err.Error()
-	}
-	if matched {
-		return "\nTip: This might refer to \"data\" on the test being a list of strings instead of a proper YAML multiline.\n" +
-			"To fix this, convert this \"data\" string list to a multiline YAML and this will be fixed.\n" +
-			"A simple example would be like this:\n\n" +
-			"data:\n" +
-			"  - 'Hello'\n" +
-			"  - 'World'\n" +
-			"can be expressed as:\n\n" +
-			"data: |\n" +
-			"  Hello\n" +
-			"  World\n\n" +
-			"You can also remove single/double quotes from beggining and end of text, they are not needed. See https://yaml-multiline.info/ for additional help.\n"
-	}
-
-	return "We do not have an extended explanation of this error."
-}
-
-// TODO: make more general (env, string)
-// TODO: also post process overrides
-func postProcess(testYaml []byte, ftwTest *FTWTest) error {
-	yamlString := string(testYaml)
-	for index, test := range ftwTest.Tests {
-		path, err := yaml.PathString(fmt.Sprintf("$.tests[%d]", index))
-		if err != nil {
-			return err
-		}
-		node, err := path.ReadNode(strings.NewReader(yamlString))
-		if err != nil {
-			return err
-		}
-		err = postProcessTest(node.(*ast.MappingNode), &test)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func postProcessTest(node *ast.MappingNode, test *Test) error {
-	nodeString := node.String()
-	for index, stage := range test.Stages {
-		path, err := yaml.PathString(fmt.Sprintf("$.stages[%d]", index))
-		if err != nil {
-			return err
-		}
-		stageNode, err := path.ReadNode(strings.NewReader(nodeString))
-		if err != nil {
-			return err
-		}
-		err = postProcessStage(stageNode.(*ast.MappingValueNode), &stage.Stage)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func postProcessStage(node *ast.MappingValueNode, stage *Stage) error {
-	return postProcessInput(node.Value.(*ast.MappingNode), &stage.Input)
-}
-
-func postProcessInput(node *ast.MappingNode, input *Input) error {
-	return postProcessNoAutocompleteHeaders(node, input)
-}
-
-func postProcessNoAutocompleteHeaders(node ast.Node, input *Input) error {
-	noAutocompleteHeadersMissing := false
-	stopMagicMissing := false
-	err := readField(node, "no_autocomplete_headers", &input.NoAutocompleteHeaders)
-	if err != nil {
-		noAutocompleteHeadersMissing = true
-	}
-	err = readField(node, "stop_magic", &input.StopMagic)
-	if err != nil {
-		stopMagicMissing = true
-	}
-
-	if noAutocompleteHeadersMissing && stopMagicMissing {
-		return nil
-	}
-	if noAutocompleteHeadersMissing && !stopMagicMissing {
-		input.NoAutocompleteHeaders = input.StopMagic
-		return nil
-	}
-	input.StopMagic = input.NoAutocompleteHeaders
-	return nil
-}
-
-func readField(node ast.Node, fieldName string, out interface{}) error {
-	path, err := yaml.PathString("$." + fieldName)
-	if err != nil {
-		return err
-	}
-	err = path.Read(strings.NewReader(node.String()), out)
-	return err
 }

@@ -23,8 +23,8 @@ func getTestInputDefaults() *Input {
 	inputDefaults := Input{
 		Headers:               make(ftwhttp.Header),
 		Data:                  &data,
-		SaveCookie:            false,
-		NoAutocompleteHeaders: false,
+		SaveCookie:            func() *bool { b := false; return &b }(),
+		NoAutocompleteHeaders: func() *bool { b := false; return &b }(),
 	}
 	return &inputDefaults
 }
@@ -47,8 +47,8 @@ func getTestExampleInput() *Input {
 		Method:                &method,
 		Data:                  nil,
 		EncodedRequest:        "TXkgRGF0YQo=",
-		SaveCookie:            false,
-		NoAutocompleteHeaders: false,
+		SaveCookie:            func() *bool { b := false; return &b }(),
+		NoAutocompleteHeaders: func() *bool { b := false; return &b }(),
 	}
 
 	return &inputTest
@@ -75,8 +75,8 @@ Keep-Alive: 300
 Proxy-Connection: keep-alive
 User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727)
 		`,
-		SaveCookie:            false,
-		NoAutocompleteHeaders: true,
+		SaveCookie:            func() *bool { b := false; return &b }(),
+		NoAutocompleteHeaders: func() *bool { b := true; return &b }(),
 	}
 
 	return &inputTest
@@ -128,7 +128,7 @@ func (s *defaultsTestSuite) TestDefaultGetters() {
 func (s *defaultsTestSuite) TestRaw() {
 	raw := getRawInput()
 
-	s.True(raw.NoAutocompleteHeaders)
+	s.True(*raw.NoAutocompleteHeaders)
 
 	request, _ := raw.GetRawRequest()
 	s.NotEqual(2, bytes.Index(request, []byte("Acunetix")))

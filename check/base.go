@@ -47,7 +47,7 @@ func (c *FTWCheck) SetExpectResponse(response string) {
 
 // SetExpectError sets the boolean if we are expecting an error from the server
 func (c *FTWCheck) SetExpectError(expect bool) {
-	c.expected.ExpectError = expect
+	c.expected.ExpectError = &expect
 }
 
 // SetLogContains sets the string to look for in logs
