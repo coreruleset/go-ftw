@@ -17,11 +17,11 @@ type Input struct {
 	Method     *string        `yaml:"method,omitempty"`
 	Data       *string        `yaml:"data,omitempty"`
 	SaveCookie *bool          `yaml:"save_cookie,omitempty"`
-	// Deprecated: replaced with NoAutocompleteHeaders
-	StopMagic             *bool  `yaml:"stop_magic"`
-	NoAutocompleteHeaders *bool  `yaml:"no_autocomplete_headers"`
-	EncodedRequest        string `yaml:"encoded_request,omitempty"`
-	RAWRequest            string `yaml:"raw_request,omitempty"`
+	// Deprecated: replaced with AutocompleteHeaders
+	StopMagic           *bool  `yaml:"stop_magic"`
+	AutocompleteHeaders *bool  `yaml:"autocomplete_headers"`
+	EncodedRequest      string `yaml:"encoded_request,omitempty"`
+	RAWRequest          string `yaml:"raw_request,omitempty"`
 }
 
 // Overrides represents the overridden inputs that have to be applied to tests
@@ -35,9 +35,9 @@ type Overrides struct {
 	Method     *string        `yaml:"method,omitempty" koanf:"method,omitempty"`
 	Data       *string        `yaml:"data,omitempty" koanf:"data,omitempty"`
 	SaveCookie *bool          `yaml:"save_cookie,omitempty" koanf:"save_cookie,omitempty"`
-	// Deprecated: replaced with NoAutocompleteHeaders
+	// Deprecated: replaced with AutocompleteHeaders
 	StopMagic               *bool   `yaml:"stop_magic" koanf:"stop_magic,omitempty"`
-	NoAutocompleteHeaders   *bool   `yaml:"no_autocomplete_headers" koanf:"no_autocomplete_headers,omitempty"`
+	AutocompleteHeaders     *bool   `yaml:"autocomplete_headers" koanf:"autocomplete_headers,omitempty"`
 	EncodedRequest          *string `yaml:"encoded_request,omitempty" koanf:"encoded_request,omitempty"`
 	RAWRequest              *string `yaml:"raw_request,omitempty" koanf:"raw_request,omitempty"`
 	OverrideEmptyHostHeader *bool   `yaml:"override_empty_host_header,omitempty" koanf:"override_empty_host_header,omitempty"`
@@ -84,7 +84,7 @@ func ApplyInputOverrides(overrides *Overrides, input *Input) {
 	applySimpleOverrides(overrides, input)
 	applyDestAddrOverride(overrides, input)
 	applyHeadersOverride(overrides, input)
-	postProcessNoAutocompleteHeaders(overrides.NoAutocompleteHeaders, overrides.StopMagic, input)
+	postProcessAutocompleteHeaders(overrides.AutocompleteHeaders, overrides.StopMagic, input)
 }
 
 func applyDestAddrOverride(overrides *Overrides, input *Input) {
@@ -165,19 +165,22 @@ func postLoadStage(stage *Stage) {
 }
 
 func postLoadInput(input *Input) {
-	postProcessNoAutocompleteHeaders(input.NoAutocompleteHeaders, input.StopMagic, input)
+	postProcessAutocompleteHeaders(input.AutocompleteHeaders, input.StopMagic, input)
 }
 
-func postProcessNoAutocompleteHeaders(noAutocompleteHeaders *bool, stopMagic *bool, input *Input) {
-	noAutocompleteHeadersMissing := noAutocompleteHeaders == nil
+func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, input *Input) {
+	autocompleteHeadersMissing := autocompleteHeaders == nil
 	stopMagicMissing := stopMagic == nil
-	finalValue := false
+	// default value
+	finalValue := true
 
-	if noAutocompleteHeadersMissing && !stopMagicMissing {
-		finalValue = *stopMagic
-	} else if !noAutocompleteHeadersMissing {
-		finalValue = *noAutocompleteHeaders
+	if autocompleteHeadersMissing && !stopMagicMissing {
+		// StopMagic has the inverse boolean logic
+		finalValue = !*stopMagic
+	} else if !autocompleteHeadersMissing {
+		finalValue = *autocompleteHeaders
 	}
-	input.NoAutocompleteHeaders = &finalValue
-	input.StopMagic = &finalValue
+	input.AutocompleteHeaders = &finalValue
+	// StopMagic has the inverse boolean logic
+	input.StopMagic = func() *bool { b := !finalValue; return &b }()
 }
