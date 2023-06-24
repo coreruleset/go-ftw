@@ -3,6 +3,7 @@ package runner
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"runtime"
 	"strconv"
 	"strings"
@@ -27,6 +28,7 @@ var configTemplate = `
 testoverride:
   input:
     {{ with .StopMagic }}stop_magic: {{ . }}{{ end }}
+    {{ with .NoAutocompleteHeaders }}no_autocomplete_headers: {{ . }}{{ end }}
     {{ with .BrokenConfig }}this_does_not_exist: "test"{{ end }}
     {{ with .Port }}port: {{ . }}{{ end }}
     {{ with .DestAddr }}dest_addr: {{ . }}{{ end }}
@@ -93,6 +95,9 @@ var overrideConfigMap = map[string]interface{}{
 	"TestApplyInputOverrideStopMagic": map[string]interface{}{
 		"StopMagic": "true",
 	},
+	"TestApplyInputOverrideNoAutocompleteHeaders": map[string]interface{}{
+		"NoAutocompleteHeaders": "true",
+	},
 }
 
 // getOverrideConfigValue is useful to not repeat the text in the test itself
@@ -109,7 +114,12 @@ func getOverrideConfigValue(key string) (string, error) {
 			keyParts := strings.Split(key, ".")
 			return overrideConfigMap[name].(map[string]interface{})[keyParts[0]].(map[string]string)[keyParts[1]], nil
 		}
-		return overrideConfigMap[name].(map[string]interface{})[key].(string), nil
+		value, ok := overrideConfigMap[name].(map[string]interface{})[key]
+		if !ok {
+			return "", fmt.Errorf("Key '%s' not found four test '%s'", key, name)
+		}
+
+		return value.(string), nil
 	}
 	return "", errors.New("failed to determine calling function")
 }
@@ -150,13 +160,12 @@ func (s *inputOverrideTestSuite) TestSetHostFromDestAddr() {
 		TestOverride: config.FTWTestOverride{
 			Overrides: test.Overrides{
 				DestAddr:                &overrideHost,
-				OverrideEmptyHostHeader: true,
+				OverrideEmptyHostHeader: func() *bool { b := true; return &b }(),
 			},
 		},
 	}
 
-	err = applyInputOverride(cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
+	test.ApplyInputOverrides(&cfg.TestOverride.Overrides, &testInput)
 
 	s.Equal(overrideHost, *testInput.DestAddr, "`dest_addr` should have been overridden")
 
@@ -176,8 +185,7 @@ func (s *inputOverrideTestSuite) TestSetHostFromHostHeaderOverride() {
 		DestAddr: &originalDestAddr,
 	}
 
-	err = applyInputOverride(s.cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
 
 	hostHeader := testInput.Headers.Get("Host")
 	s.NotEqual("", hostHeader, "Host header must be set after overriding the `Host` header")
@@ -199,8 +207,7 @@ func (s *inputOverrideTestSuite) TestSetHeaderOverridingExistingOne() {
 
 	s.NotNil(testInput.Headers, "Header map must exist before overriding any header")
 
-	err = applyInputOverride(s.cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
 
 	overriddenHeader := testInput.Headers.Get("unique_id")
 	s.NotEqual("", overriddenHeader, "unique_id header must be set after overriding it")
@@ -218,8 +225,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrides() {
 
 	s.NotNil(testInput.Headers, "Header map must exist before overriding any header")
 
-	err = applyInputOverride(s.cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
 
 	overriddenHeader := testInput.Headers.Get("unique_id")
 	s.NotEqual("", overriddenHeader, "unique_id header must be set after overriding it")
@@ -235,8 +241,8 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideURI() {
 		URI: &originalURI,
 	}
 
-	err = applyInputOverride(s.cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
+
 	s.Equal(overrideURI, *testInput.URI, "`URI` should have been overridden")
 }
 
@@ -248,8 +254,8 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideVersion() {
 	testInput := test.Input{
 		Version: &originalVersion,
 	}
-	err = applyInputOverride(s.cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
+
 	s.Equal(overrideVersion, *testInput.Version, "`Version` should have been overridden")
 }
 
@@ -261,8 +267,8 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideMethod() {
 	testInput := test.Input{
 		Method: &originalMethod,
 	}
-	err = applyInputOverride(s.cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
+
 	s.Equal(overrideMethod, *testInput.Method, "`Method` should have been overridden")
 }
 
@@ -274,8 +280,8 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideData() {
 	testInput := test.Input{
 		Data: &originalData,
 	}
-	err = applyInputOverride(s.cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
+
 	s.Equal(overrideData, *testInput.Data, "`Data` should have been overridden")
 }
 
@@ -285,11 +291,26 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideStopMagic() {
 	overrideStopMagic, err := strconv.ParseBool(stopMagicBool)
 	s.Require().NoError(err, "Failed to parse `StopMagic` override value")
 	testInput := test.Input{
-		StopMagic: false,
+		StopMagic: func() *bool { b := false; return &b }(),
 	}
-	err = applyInputOverride(s.cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
-	s.Equal(overrideStopMagic, testInput.StopMagic, "`StopMagic` should have been overridden")
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
+
+	// nolint
+	s.Equal(overrideStopMagic, *testInput.StopMagic, "`StopMagic` should have been overridden")
+}
+
+func (s *inputOverrideTestSuite) TestApplyInputOverrideNoAutocompleteHeaders() {
+	noAutocompleteHeadersBool, err := getOverrideConfigValue("NoAutocompleteHeaders")
+	s.NoError(err, "cannot get override value")
+	overrideNoAutocompleteHeaders, err := strconv.ParseBool(noAutocompleteHeadersBool)
+	s.NoError(err, "Failed to parse `NoAutocompleteHeaders` override value")
+	testInput := test.Input{
+		NoAutocompleteHeaders: func() *bool { b := false; return &b }(),
+	}
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
+
+	// nolint
+	s.Equal(overrideNoAutocompleteHeaders, *testInput.NoAutocompleteHeaders, "`NoAutocompleteHeaders` should have been overridden")
 }
 
 func (s *inputOverrideTestSuite) TestApplyInputOverrideEncodedRequest() {
@@ -299,8 +320,8 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideEncodedRequest() {
 	testInput := test.Input{
 		EncodedRequest: originalEncodedRequest,
 	}
-	err = applyInputOverride(s.cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
+	s.NoError(err, "Failed to apply input overrides")
 	s.Equal(overrideEncodedRequest, testInput.EncodedRequest, "`EncodedRequest` should have been overridden")
 }
 
@@ -313,7 +334,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideRAWRequest() {
 		RAWRequest: originalRAWRequest,
 	}
 
-	err = applyInputOverride(s.cfg.TestOverride, &testInput)
-	s.Require().NoError(err, "Failed to apply input overrides")
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
+
 	s.Equal(overrideRAWRequest, testInput.RAWRequest, "`RAWRequest` should have been overridden")
 }

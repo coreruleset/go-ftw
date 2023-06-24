@@ -19,7 +19,7 @@ import (
 	"github.com/coreruleset/go-ftw/waflog"
 )
 
-var errBadTestRequest = errors.New("ftw/run: bad test: choose between data, encoded_request, or raw_request")
+var errBadTestInput = errors.New("ftw/run: bad test input: choose between data, encoded_request, or raw_request")
 
 // Run runs your tests with the specified Config.
 func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
@@ -75,9 +75,9 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 
 	for _, testCase := range ftwTest.Tests {
 		// if we received a particular testid, skip until we find it
-		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
+		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, *ftwTest.Meta.Enabled) {
 			runContext.Stats.addResultToStats(Skipped, testCase.TestTitle, 0)
-			if !ftwTest.Meta.Enabled && !runContext.ShowOnlyFailed {
+			if !*ftwTest.Meta.Enabled && !runContext.ShowOnlyFailed {
 				runContext.Output.Println("\tskipping %s - (enabled: false) in file.", testCase.TestTitle)
 			}
 			continue
@@ -115,16 +115,13 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	stageStartTime := time.Now()
 	stageID := uuid.NewString()
 	// Apply global overrides initially
-	testRequest := stage.Input
-	err := applyInputOverride(runContext.Config.TestOverride, &testRequest)
-	if err != nil {
-		log.Debug().Msgf("ftw/run: problem overriding input: %s", err.Error())
-	}
+	testInput := stage.Input
+	test.ApplyInputOverrides(&runContext.Config.TestOverride.Overrides, &testInput)
 	expectedOutput := stage.Output
 
 	// Check sanity first
-	if checkTestSanity(testRequest) {
-		return errBadTestRequest
+	if checkTestSanity(testInput) {
+		return errBadTestInput
 	}
 
 	// Do not even run test if result is overridden. Just use the override and display the overridden result.
@@ -138,24 +135,24 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 
 	// Destination is needed for a request
 	dest := &ftwhttp.Destination{
-		DestAddr: testRequest.GetDestAddr(),
-		Port:     testRequest.GetPort(),
-		Protocol: testRequest.GetProtocol(),
+		DestAddr: testInput.GetDestAddr(),
+		Port:     testInput.GetPort(),
+		Protocol: testInput.GetProtocol(),
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
 		startMarker, err := markAndFlush(runContext, dest, stageID)
-		if err != nil && !expectedOutput.ExpectError {
+		if err != nil && !*expectedOutput.ExpectError {
 			return fmt.Errorf("failed to find start marker: %w", err)
 		}
 		ftwCheck.SetStartMarker(startMarker)
 	}
 
-	req = getRequestFromTest(testRequest)
+	req = getRequestFromTest(testInput)
 
-	err = runContext.Client.NewConnection(*dest)
+	err := runContext.Client.NewConnection(*dest)
 
-	if err != nil && !expectedOutput.ExpectError {
+	if err != nil && !*expectedOutput.ExpectError {
 		return fmt.Errorf("can't connect to destination %+v: %w", dest, err)
 	}
 	runContext.Client.StartTrackingTime()
@@ -163,13 +160,13 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	response, responseErr := runContext.Client.Do(*req)
 
 	runContext.Client.StopTrackingTime()
-	if responseErr != nil && !expectedOutput.ExpectError {
+	if responseErr != nil && !*expectedOutput.ExpectError {
 		return fmt.Errorf("failed sending request to destination %+v: %w", dest, responseErr)
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
 		endMarker, err := markAndFlush(runContext, dest, stageID)
-		if err != nil && !expectedOutput.ExpectError {
+		if err != nil && !*expectedOutput.ExpectError {
 			return fmt.Errorf("failed to find end marker: %w", err)
 
 		}
@@ -270,10 +267,10 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string
 	return result
 }
 
-func checkTestSanity(testRequest test.Input) bool {
-	return (utils.IsNotEmpty(testRequest.Data) && testRequest.EncodedRequest != "") ||
-		(utils.IsNotEmpty(testRequest.Data) && testRequest.RAWRequest != "") ||
-		(testRequest.EncodedRequest != "" && testRequest.RAWRequest != "")
+func checkTestSanity(testInput test.Input) bool {
+	return (utils.IsNotEmpty(testInput.Data) && testInput.EncodedRequest != "") ||
+		(utils.IsNotEmpty(testInput.Data) && testInput.RAWRequest != "") ||
+		(testInput.EncodedRequest != "" && testInput.RAWRequest != "")
 }
 
 func displayResult(rc *TestRunContext, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
@@ -353,102 +350,31 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 	return Success
 }
 
-func getRequestFromTest(testRequest test.Input) *ftwhttp.Request {
+func getRequestFromTest(testInput test.Input) *ftwhttp.Request {
 	var req *ftwhttp.Request
 	// get raw request, if anything
-	raw, err := testRequest.GetRawRequest()
+	raw, err := testInput.GetRawRequest()
 	if err != nil {
 		log.Error().Msgf("ftw/run: error getting raw data: %s\n", err.Error())
 	}
 
 	// If we use raw or encoded request, then we don't use other fields
 	if raw != nil {
-		req = ftwhttp.NewRawRequest(raw, !testRequest.NoAutocompleteHeaders)
+		req = ftwhttp.NewRawRequest(raw, !*testInput.NoAutocompleteHeaders)
 	} else {
 		rline := &ftwhttp.RequestLine{
-			Method:  testRequest.GetMethod(),
-			URI:     testRequest.GetURI(),
-			Version: testRequest.GetVersion(),
+			Method:  testInput.GetMethod(),
+			URI:     testInput.GetURI(),
+			Version: testInput.GetVersion(),
 		}
 
-		data := testRequest.ParseData()
+		data := testInput.ParseData()
 		// create a new request
-		req = ftwhttp.NewRequest(rline, testRequest.Headers,
-			data, !testRequest.NoAutocompleteHeaders)
+		req = ftwhttp.NewRequest(rline, testInput.Headers,
+			data, !*testInput.NoAutocompleteHeaders)
 
 	}
 	return req
-}
-
-// applyInputOverride will check if config had global overrides and write that into the test.
-func applyInputOverride(o config.FTWTestOverride, testRequest *test.Input) error {
-	overrides := o.Overrides
-
-	if overrides.DestAddr != nil {
-		testRequest.DestAddr = overrides.DestAddr
-		if testRequest.Headers == nil {
-			testRequest.Headers = ftwhttp.Header{}
-		}
-		if overrides.OverrideEmptyHostHeader && testRequest.Headers.Get("Host") == "" {
-			testRequest.Headers.Set("Host", *overrides.DestAddr)
-		}
-	}
-
-	if overrides.Port != nil {
-		testRequest.Port = overrides.Port
-	}
-
-	if overrides.Protocol != nil {
-		testRequest.Protocol = overrides.Protocol
-	}
-
-	if overrides.URI != nil {
-		testRequest.URI = overrides.URI
-	}
-
-	if overrides.Version != nil {
-		testRequest.Version = overrides.Version
-	}
-
-	if overrides.Headers != nil {
-		if testRequest.Headers == nil {
-			testRequest.Headers = ftwhttp.Header{}
-		}
-		for k, v := range overrides.Headers {
-			testRequest.Headers.Set(k, v)
-		}
-	}
-
-	if overrides.Method != nil {
-		testRequest.Method = overrides.Method
-	}
-
-	if overrides.Data != nil {
-		testRequest.Data = overrides.Data
-	}
-
-	// TODO: postprocess
-	if overrides.SaveCookie != nil {
-		testRequest.SaveCookie = overrides.SaveCookie
-	}
-
-	if overrides.StopMagic != nil {
-		testRequest.StopMagic = overrides.StopMagic
-	}
-
-	if overrides.NoAutocompleteHeaders != nil {
-		testRequest.NoAutocompleteHeaders = overrides.NoAutocompleteHeaders
-	}
-
-	if overrides.EncodedRequest != nil {
-		testRequest.EncodedRequest = *overrides.EncodedRequest
-	}
-
-	if overrides.RAWRequest != nil {
-		testRequest.RAWRequest = *overrides.RAWRequest
-	}
-
-	return nil
 }
 
 func notRunningInCloudMode(c *check.FTWCheck) bool {

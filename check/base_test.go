@@ -62,11 +62,11 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 		ResponseContains: "",
 		LogContains:      "nothing",
 		NoLogContains:    "",
-		ExpectError:      true,
+		ExpectError:      func() *bool { b := true; return &b }(),
 	}
 	c.SetExpectTestOutput(&to)
 
-	s.True(c.expected.ExpectError, "Problem setting expected output")
+	s.True(*c.expected.ExpectError, "Problem setting expected output")
 
 	c.SetNoLogContains("nologcontains")
 
