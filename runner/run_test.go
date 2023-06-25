@@ -129,7 +129,7 @@ func (s *runTestSuite) setUpLogFileForTestServer() {
 	// if no file has been configured, create one and handle cleanup
 	if s.logFilePath == "" {
 		file, err := os.CreateTemp("", "go-ftw-test-*.log")
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.logFilePath = file.Name()
 	}
 }
@@ -143,13 +143,13 @@ func (s *runTestSuite) writeTestServerLog(logLines string, r *http.Request) {
 		logMessage = fmt.Sprintf("request line: %s %s %s, headers: %s\n", r.Method, r.RequestURI, r.Proto, r.Header)
 	}
 	file, err := os.OpenFile(s.logFilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
-	s.NoError(err, "cannot open file")
+	s.Require().NoError(err, "cannot open file")
 
 	defer file.Close()
 
 	n, err := file.WriteString(logMessage)
 	s.Len(logMessage, n, "cannot write log message to file")
-	s.NoError(err, "cannot write log message to file")
+	s.Require().NoError(err, "cannot write log message to file")
 }
 
 func (s *runTestSuite) SetupTest() {
@@ -182,7 +182,7 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	// else use the default destination
 	if s.dest == nil {
 		s.dest, err = ftwhttp.DestinationFromString(destinationMap[name])
-		s.NoError(err)
+		s.Require().NoError(err)
 	}
 
 	log.Info().Msgf("Using port %d and addr '%s'", s.dest.Port, s.dest.DestAddr)
@@ -195,37 +195,37 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 
 	// set up configuration from template
 	configTmpl, err := template.New("config-test").Parse(cfg)
-	s.NoError(err, "cannot parse template")
+	s.Require().NoError(err, "cannot parse template")
 	buf := &bytes.Buffer{}
 	err = configTmpl.Execute(buf, vars)
-	s.NoError(err, "cannot execute template")
+	s.Require().NoError(err, "cannot execute template")
 	s.cfg, err = config.NewConfigFromString(buf.String())
-	s.NoError(err, "cannot get config from string")
+	s.Require().NoError(err, "cannot get config from string")
 	if s.logFilePath != "" {
 		s.cfg.WithLogfile(s.logFilePath)
 	}
 	// get tests template from file
 	tmpl, err := template.ParseFiles(fmt.Sprintf("testdata/%s.yaml", name))
-	s.NoError(err)
+	s.Require().NoError(err)
 	// create a temporary file to hold the test
 	testFileContents, err := os.CreateTemp("testdata", "mock-test-*.yaml")
-	s.NoError(err, "cannot create temporary file")
+	s.Require().NoError(err, "cannot create temporary file")
 	err = tmpl.Execute(testFileContents, vars)
-	s.NoError(err, "cannot execute template")
+	s.Require().NoError(err, "cannot execute template")
 	// get tests from file
 	s.ftwTests, err = test.GetTestsFromFiles(testFileContents.Name())
-	s.NoError(err, "cannot get tests from file")
+	s.Require().NoError(err, "cannot get tests from file")
 	// save the name of the temporary file so we can delete it later
 	s.tempFileName = testFileContents.Name()
 }
 
 func (s *runTestSuite) AfterTest(_ string, _ string) {
 	err := os.Remove(s.logFilePath)
-	s.NoError(err, "cannot remove log file")
+	s.Require().NoError(err, "cannot remove log file")
 	log.Info().Msgf("Deleting temporary file '%s'", s.logFilePath)
 	if s.tempFileName != "" {
 		err = os.Remove(s.tempFileName)
-		s.NoError(err, "cannot remove test file")
+		s.Require().NoError(err, "cannot remove test file")
 		s.tempFileName = ""
 	}
 }
@@ -240,7 +240,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 			ShowTime: true,
 			Output:   output.Quiet,
 		}, s.out)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.Equalf(res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
 	})
 
@@ -249,7 +249,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 			Include:  regexp.MustCompile("0*"),
 			ShowTime: true,
 		}, s.out)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.Equal(res.Stats.TotalFailed(), 0, "verbose and execute all failed")
 	})
 
@@ -257,7 +257,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
 			Include: regexp.MustCompile("0*"),
 		}, s.out)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.Equal(res.Stats.TotalFailed(), 0, "do not show time and execute all failed")
 	})
 
@@ -266,7 +266,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 			Include: regexp.MustCompile("008"),
 			Exclude: regexp.MustCompile("0*"),
 		}, s.out)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.Equal(res.Stats.TotalFailed(), 0, "do not show time and execute all failed")
 	})
 
@@ -274,7 +274,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
 			Exclude: regexp.MustCompile("010"),
 		}, s.out)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.Equal(res.Stats.TotalFailed(), 0, "failed to exclude test")
 	})
 
@@ -284,7 +284,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 			Exclude: regexp.MustCompile("0*"),
 			Output:  output.Quiet,
 		}, s.out)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.Equal(res.Stats.TotalFailed(), 0, "failed to test exceptions")
 	})
 }
@@ -294,7 +294,7 @@ func (s *runTestSuite) TestRunMultipleMatches() {
 		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
 			Output: output.Quiet,
 		}, s.out)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.Equalf(res.Stats.TotalFailed(), 1, "Oops, %d tests failed to run! Expected 1 failing test", res.Stats.TotalFailed())
 	})
 }
@@ -303,44 +303,44 @@ func (s *runTestSuite) TestOverrideRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
 		Output: output.Quiet,
 	}, s.out)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestBrokenOverrideRun() {
 	// the test should succeed, despite the unknown override property
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestBrokenPortOverrideRun() {
 	// the test should succeed, despite the unknown override property
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestDisabledRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestLogsRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestFailedTestsRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal(1, res.Stats.TotalFailed())
 }
 
 func (s *runTestSuite) TestIgnoredTestsRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal(res.Stats.TotalFailed(), 1, "Oops, test run failed!")
 }

@@ -41,12 +41,12 @@ func (s *checkErrorTestSuite) SetupTest() {
 	s.cfg = config.NewDefaultConfig()
 
 	logName, err := utils.CreateTempFileWithContent(logText, "test-*.log")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.cfg.WithLogfile(logName)
 }
 func (s *checkErrorTestSuite) TestAssertResponseErrorOK() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 	for _, e := range expectedOKTests {
 		c.SetExpectError(e.expected)
 		s.Equal(e.expected, c.AssertExpectError(e.err))
@@ -55,7 +55,7 @@ func (s *checkErrorTestSuite) TestAssertResponseErrorOK() {
 
 func (s *checkErrorTestSuite) TestAssertResponseFail() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	for _, e := range expectedFailTests {
 		c.SetExpectError(e.expected)

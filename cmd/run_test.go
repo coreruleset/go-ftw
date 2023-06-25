@@ -56,36 +56,36 @@ func (s *runCmdTestSuite) setupMockHTTPServer() *httptest.Server {
 		resp := new(bytes.Buffer)
 		for key, value := range r.Header {
 			_, err := fmt.Fprintf(resp, "%s=%s,", key, value)
-			s.NoError(err)
+			s.Require().NoError(err)
 		}
 
 		_, err := w.Write(resp.Bytes())
-		s.NoError(err)
+		s.Require().NoError(err)
 	}))
 	return server
 }
 
 func (s *runCmdTestSuite) SetupTest() {
 	tempDir, err := os.MkdirTemp("", "go-ftw-tests")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.tempDir = tempDir
 
 	s.testHTTPServer = s.setupMockHTTPServer()
 	err = os.MkdirAll(s.tempDir, fs.ModePerm)
-	s.NoError(err)
+	s.Require().NoError(err)
 	testUrl, err := url.Parse(s.testHTTPServer.URL)
-	s.NoError(err)
+	s.Require().NoError(err)
 	port, err := strconv.Atoi(testUrl.Port())
-	s.NoError(err)
+	s.Require().NoError(err)
 	vars := map[string]int{
 		"Port": port,
 	}
 	testFileContents, err := os.CreateTemp(s.tempDir, "mock-test-*.yaml")
-	s.NoError(err)
+	s.Require().NoError(err)
 	tmpl, err := template.New("mock-test").Parse(testFileContentsTemplate)
-	s.NoError(err)
+	s.Require().NoError(err)
 	err = tmpl.Execute(testFileContents, vars)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	s.rootCmd = NewRootCommand()
 	s.rootCmd.AddCommand(NewRunCommand())
@@ -93,7 +93,7 @@ func (s *runCmdTestSuite) SetupTest() {
 
 func (s *runCmdTestSuite) TearDownTest() {
 	err := os.RemoveAll(s.tempDir)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.testHTTPServer.Close()
 }
 
@@ -114,7 +114,7 @@ func (s *runCmdTestSuite) TestHTTPConnectionSuccess() {
 	s.rootCmd.SetArgs([]string{"run", "--cloud", "-d", s.tempDir, "--wait-for-host", s.testHTTPServer.URL})
 	_, err := s.rootCmd.ExecuteContextC(context.Background())
 
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *runCmdTestSuite) TestHTTPConnectionFail() {
@@ -133,5 +133,5 @@ func (s *runCmdTestSuite) TestHTTPRequestHeaderSuccess() {
 	})
 	_, err := s.rootCmd.ExecuteContextC(context.Background())
 
-	s.NoError(err)
+	s.Require().NoError(err)
 }

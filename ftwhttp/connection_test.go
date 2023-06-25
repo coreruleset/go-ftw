@@ -16,7 +16,7 @@ func TestConnectionTestSuite(t *testing.T) {
 
 func (s *connectionTestSuite) TestDestinationFromString() {
 	d, err := DestinationFromString("http://example.com:80")
-	s.NoError(err, "This should not error")
+	s.Require().NoError(err, "This should not error")
 	s.Equal("example.com", d.DestAddr, "Error parsing destination")
 	s.Equal(80, d.Port, "Error parsing destination")
 	s.Equal("http", d.Protocol, "Error parsing destination")

@@ -70,12 +70,12 @@ func TestHeaderTestSuite(t *testing.T) {
 func (s *headerTestSuite) TestHeaderWrite() {
 	for _, test := range headerWriteTests {
 		err := test.h.Write(io.Discard)
-		s.NoError(err)
+		s.Require().NoError(err)
 		err = test.h.Write(BadWriter{err: errors.New("fake error")})
 		if len(test.h) > 0 {
 			s.EqualErrorf(err, "fake error", "Write: got %v, want %v", err, "fake error")
 		} else {
-			s.NoErrorf(err, "Write: got %v", err)
+			s.Require().NoErrorf(err, "Write: got %v", err)
 		}
 	}
 }
@@ -87,7 +87,7 @@ func (s *headerTestSuite) TestHeaderWriteBytes() {
 		n, err := test.h.WriteBytes(&buf)
 		w := buf.String()
 		s.Lenf(w, n, "#%d: WriteBytes: got %d, want %d", i, n, len(w))
-		s.NoErrorf(err, "#%d: WriteBytes: got %v", i, err)
+		s.Require().NoErrorf(err, "#%d: WriteBytes: got %v", i, err)
 		s.Equalf(test.expected, w, "#%d: WriteBytes: got %q, want %q", i, w, test.expected)
 		buf.Reset()
 	}
@@ -99,7 +99,7 @@ func (s *headerTestSuite) TestHeaderWriteString() {
 	for i, test := range headerWriteTests {
 		expected := test.h.Get("Content-Type")
 		n, err := sw.WriteString(expected)
-		s.NoErrorf(err, "#%d: WriteString: %v", i, err)
+		s.Require().NoErrorf(err, "#%d: WriteString: %v", i, err)
 		s.Equalf(len(expected), n, "#%d: WriteString: got %d, want %d", i, n, len(expected))
 	}
 }

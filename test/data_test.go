@@ -34,7 +34,7 @@ uri: "/"
 `
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(input.StopMagic)
 }
 
@@ -55,7 +55,7 @@ uri: "/"
 `
 	input := Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Empty(*input.Version)
 }
 
@@ -78,7 +78,7 @@ uri: "/"
 	var data []byte
 	err := yaml.Unmarshal([]byte(yamlString), &input)
 
-	s.NoError(err)
+	s.Require().NoError(err)
 	data = input.ParseData()
 	s.Equal([]byte(repeatTestSprig), data)
 }

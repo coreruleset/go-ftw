@@ -31,17 +31,17 @@ func (s *checkLogsTestSuite) SetupTest() {
 	s.cfg = config.NewDefaultConfig()
 
 	s.logName, err = utils.CreateTempFileWithContent(logText, "test-*.log")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.cfg.WithLogfile(s.logName)
 }
 
 func (s *checkLogsTestSuite) TearDownTest() {
 	err := os.Remove(s.logName)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 func (s *checkLogsTestSuite) TestAssertLogContainsOK() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	c.SetLogContains(`id "920300"`)
 	s.True(c.AssertLogContains(), "did not find expected content 'id \"920300\"'")

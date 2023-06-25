@@ -28,7 +28,7 @@ func (s *readTestSuite) TearDownSuite() {
 
 func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	cfg, err := config.NewConfigFromEnv()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
@@ -40,12 +40,12 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 `
 	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
 
 	ll, err := NewFTWLogLines(cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 	ll.WithStartMarker([]byte(markerLine))
 	marker := ll.CheckLogForMarker(stageID, 100)
 	s.Equal(string(marker), strings.ToLower(markerLine), "unexpectedly found marker")
@@ -53,7 +53,7 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 
 func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 	cfg, err := config.NewConfigFromEnv()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
@@ -64,13 +64,13 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 ` + markerLine
 	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
 
 	ll, err := NewFTWLogLines(cfg)
 	ll.WithStartMarker([]byte(markerLine))
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	marker := ll.CheckLogForMarker(stageID, 100)
 	s.NotNil(marker, "no marker found")
@@ -80,7 +80,7 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 
 func (s *readTestSuite) TestReadGetMarkedLines() {
 	cfg, err := config.NewConfigFromEnv()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
@@ -92,12 +92,12 @@ func (s *readTestSuite) TestReadGetMarkedLines() {
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
 	logLines := fmt.Sprintf("%s\n%s\n%s", startMarkerLine, logLinesOnly, endMarkerLine)
 	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
 
 	ll, err := NewFTWLogLines(cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
@@ -117,7 +117,7 @@ func (s *readTestSuite) TestReadGetMarkedLines() {
 
 func (s *readTestSuite) TestReadGetMarkedLinesWithTrailingEmptyLines() {
 	cfg, err := config.NewConfigFromEnv()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
@@ -129,12 +129,12 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithTrailingEmptyLines() {
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
 	logLines := fmt.Sprintf("%s\n%s\n%s\n\n\n", startMarkerLine, logLinesOnly, endMarkerLine)
 	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
 
 	ll, err := NewFTWLogLines(cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
@@ -154,7 +154,7 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithTrailingEmptyLines() {
 
 func (s *readTestSuite) TestReadGetMarkedLinesWithPrecedingLines() {
 	cfg, err := config.NewConfigFromEnv()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
@@ -169,12 +169,12 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithPrecedingLines() {
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
 	logLines := fmt.Sprintf("%s\n%s\n%s\n%s\n", precedingLines, startMarkerLine, logLinesOnly, endMarkerLine)
 	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
 
 	ll, err := NewFTWLogLines(cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
@@ -194,7 +194,7 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithPrecedingLines() {
 
 func (s *readTestSuite) TestFTWLogLines_Contains() {
 	cfg, err := config.NewConfigFromEnv()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
@@ -205,11 +205,11 @@ func (s *readTestSuite) TestFTWLogLines_Contains() {
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 ` + markerLine
 	s.filename, err = utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
 	log, err := os.Open(s.filename)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	type fields struct {
 		logFile             *os.File
@@ -266,7 +266,7 @@ func (s *readTestSuite) TestFTWLogLines_Contains() {
 
 func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 	cfg, err := config.NewConfigFromEnv()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
@@ -278,11 +278,11 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 		`[2022-11-12 23:08:18.013007] [core:info] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 AH00128: File does not exist: /apache/htdocs/status/200`,
 		"\n", markerLine)
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	cfg.LogFile = filename
 	log, err := os.Open(filename)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	type fields struct {
 		logFile             *os.File
@@ -331,7 +331,7 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 
 func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	cfg, err := config.NewConfigFromEnv()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
@@ -343,11 +343,11 @@ func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 		`[2022-11-12 23:08:18.013007] [core:info] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 AH00128: File does not exist: /apache/htdocs/status/200`,
 		"\n", markerLine)
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	cfg.LogFile = filename
 	log, err := os.Open(filename)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	ll := &FTWLogLines{
 		logFile:             log,

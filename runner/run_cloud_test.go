@@ -40,7 +40,7 @@ func (s *runCloudTestSuite) TearDownTest() {
 	s.ts.Close()
 	if s.tempFileName != "" {
 		err := os.Remove(s.tempFileName)
-		s.NoError(err, "cannot remove test file")
+		s.Require().NoError(err, "cannot remove test file")
 		s.tempFileName = ""
 	}
 }
@@ -52,7 +52,7 @@ func (s *runCloudTestSuite) BeforeTest(_ string, name string) {
 	// else use the default destination
 	if s.dest == nil {
 		s.dest, err = ftwhttp.DestinationFromString(destinationMap[name])
-		s.NoError(err)
+		s.Require().NoError(err)
 	}
 
 	log.Info().Msgf("Using port %d and addr '%s'", s.dest.Port, s.dest.DestAddr)
@@ -66,15 +66,15 @@ func (s *runCloudTestSuite) BeforeTest(_ string, name string) {
 	s.cfg = config.NewCloudConfig()
 	// get tests template from file
 	tmpl, err := template.ParseFiles(fmt.Sprintf("testdata/%s.yaml", name))
-	s.NoError(err)
+	s.Require().NoError(err)
 	// create a temporary file to hold the test
 	testFileContents, err := os.CreateTemp("testdata", "mock-test-*.yaml")
-	s.NoError(err, "cannot create temporary file")
+	s.Require().NoError(err, "cannot create temporary file")
 	err = tmpl.Execute(testFileContents, vars)
-	s.NoError(err, "cannot execute template")
+	s.Require().NoError(err, "cannot execute template")
 	// get tests from file
 	s.ftwTests, err = test.GetTestsFromFiles(testFileContents.Name())
-	s.NoError(err, "cannot get tests from file")
+	s.Require().NoError(err, "cannot get tests from file")
 	// save the name of the temporary file so we can delete it later
 	s.tempFileName = testFileContents.Name()
 }
@@ -106,7 +106,7 @@ func (s *runCloudTestSuite) TestCloudRun() {
 			ShowTime: true,
 			Output:   output.Quiet,
 		}, s.out)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.Equalf(res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
 	})
 }

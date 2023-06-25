@@ -39,9 +39,9 @@ func (s *checkBaseTestSuite) BeforeTest(_, name string) {
 	var err error
 	var logName string
 	s.cfg, err = config.NewConfigFromString(configMap[name])
-	s.NoError(err)
+	s.Require().NoError(err)
 	logName, err = utils.CreateTempFileWithContent(logText, "test-*.log")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.cfg.WithLogfile(logName)
 }
 
@@ -51,7 +51,7 @@ func TestCheckBaseTestSuite(t *testing.T) {
 
 func (s *checkBaseTestSuite) TestNewCheck() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	for _, text := range c.cfg.TestOverride.Ignore {
 		s.Equal(text, "Ignore Me", "Well, didn't match Ignore Me")
@@ -75,7 +75,7 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 
 func (s *checkBaseTestSuite) TestForced() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	s.True(c.ForcedIgnore("942200-1"), "Can't find ignored value")
 
@@ -94,7 +94,7 @@ func (s *checkBaseTestSuite) TestForced() {
 
 func (s *checkBaseTestSuite) TestCloudMode() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	s.True(c.CloudMode(), "couldn't detect cloud mode")
 
@@ -128,7 +128,7 @@ func (s *checkBaseTestSuite) TestCloudMode() {
 
 func (s *checkBaseTestSuite) TestSetMarkers() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	c.SetStartMarker([]byte("TesTingStArtMarKer"))
 	c.SetEndMarker([]byte("TestIngEnDMarkeR"))
