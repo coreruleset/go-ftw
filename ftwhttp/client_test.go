@@ -28,7 +28,7 @@ func TestClientTestSuite(t *testing.T) {
 func (s *clientTestSuite) SetupTest() {
 	var err error
 	s.client, err = NewClient(NewClientConfig())
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Nil(s.client.Transport, "Transport not expected to be initialized yet")
 }
 
@@ -48,11 +48,11 @@ func (s *clientTestSuite) httpHandler() http.HandlerFunc {
 		resp := new(bytes.Buffer)
 		for key, value := range r.Header {
 			_, err := fmt.Fprintf(resp, "%s=%s,", key, value)
-			s.NoError(err)
+			s.Require().NoError(err)
 		}
 
 		_, err := w.Write(resp.Bytes())
-		s.NoError(err)
+		s.Require().NoError(err)
 	}
 }
 
@@ -74,24 +74,24 @@ func (s *clientTestSuite) TestNewClient() {
 func (s *clientTestSuite) TestConnectDestinationHTTPS() {
 	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
-	s.NoError(err, "This should not error")
+	s.Require().NoError(err, "This should not error")
 	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
 	err = s.client.NewConnection(*d)
-	s.NoError(err, "This should not error")
+	s.Require().NoError(err, "This should not error")
 	s.Equal("https", s.client.Transport.protocol, "Error connecting to example.com using https")
 }
 
 func (s *clientTestSuite) TestDoRequest() {
 	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
-	s.NoError(err, "This should not error")
+	s.Require().NoError(err, "This should not error")
 	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
 	req := generateBaseRequestForTesting()
 	req.requestLine.URI = "/not-found"
 	err = s.client.NewConnection(*d)
-	s.NoError(err, "This should not error")
+	s.Require().NoError(err, "This should not error")
 	response, err := s.client.Do(*req)
-	s.NoError(err, "This should error")
+	s.Require().NoError(err, "This should error")
 	s.Equal(http.StatusNotFound, response.Parsed.StatusCode, "Error in calling website")
 }
 
@@ -114,7 +114,7 @@ func (s *clientTestSuite) TestGetTrackedTime() {
 	req := NewRequest(rl, h, data, true)
 
 	err := s.client.NewConnection(*d)
-	s.NoError(err, "This should not error")
+	s.Require().NoError(err, "This should not error")
 
 	s.client.StartTrackingTime()
 
@@ -122,7 +122,7 @@ func (s *clientTestSuite) TestGetTrackedTime() {
 
 	s.client.StopTrackingTime()
 
-	s.NoError(err, "This should not error")
+	s.Require().NoError(err, "This should not error")
 	s.Equal(http.StatusOK, resp.Parsed.StatusCode, "Error in calling website")
 
 	rtt := s.client.GetRoundTripTime()
@@ -132,7 +132,7 @@ func (s *clientTestSuite) TestGetTrackedTime() {
 func (s *clientTestSuite) TestClientMultipartFormDataRequest() {
 	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
-	s.NoError(err, "This should not error")
+	s.Require().NoError(err, "This should not error")
 
 	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
 
@@ -157,7 +157,7 @@ Some-file-test-here
 	req := NewRequest(rl, h, data, true)
 
 	err = s.client.NewConnection(*d)
-	s.NoError(err, "This should not error")
+	s.Require().NoError(err, "This should not error")
 
 	s.client.StartTrackingTime()
 
@@ -165,7 +165,7 @@ Some-file-test-here
 
 	s.client.StopTrackingTime()
 
-	s.NoError(err, "This should not error")
+	s.Require().NoError(err, "This should not error")
 	s.Equal(http.StatusOK, resp.Parsed.StatusCode, "Error in calling website")
 
 }
@@ -173,10 +173,10 @@ Some-file-test-here
 func (s *clientTestSuite) TestNewConnectionCreatesTransport() {
 	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
-	s.NoError(err, "Failed to construct destination from test server")
+	s.Require().NoError(err, "Failed to construct destination from test server")
 	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
 	err = s.client.NewConnection(*d)
-	s.NoError(err, "Failed to create new connection")
+	s.Require().NoError(err, "Failed to create new connection")
 	s.NotNil(s.client.Transport, "Transport expected to be initialized")
 	s.NotNil(s.client.Transport.connection, "Connection expected to be initialized")
 }
@@ -184,10 +184,10 @@ func (s *clientTestSuite) TestNewConnectionCreatesTransport() {
 func (s *clientTestSuite) TestNewOrReusedConnectionCreatesTransport() {
 	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
-	s.NoError(err, "Failed to construct destination from test server")
+	s.Require().NoError(err, "Failed to construct destination from test server")
 	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
 	err = s.client.NewOrReusedConnection(*d)
-	s.NoError(err, "Failed to create new or to reuse connection")
+	s.Require().NoError(err, "Failed to create new or to reuse connection")
 	s.NotNil(s.client.Transport, "Transport expected to be initialized")
 	s.NotNil(s.client.Transport.connection, "Connection expected to be initialized")
 }
@@ -195,16 +195,16 @@ func (s *clientTestSuite) TestNewOrReusedConnectionCreatesTransport() {
 func (s *clientTestSuite) TestNewOrReusedConnectionReusesTransport() {
 	s.httpTestServer(insecureServer)
 	d, err := DestinationFromString(s.ts.URL)
-	s.NoError(err, "Failed to construct destination from test server")
+	s.Require().NoError(err, "Failed to construct destination from test server")
 
 	err = s.client.NewOrReusedConnection(*d)
-	s.NoError(err, "Failed to create new or to reuse connection")
+	s.Require().NoError(err, "Failed to create new or to reuse connection")
 	s.NotNil(s.client.Transport, "Transport expected to be initialized")
 	s.NotNil(s.client.Transport.connection, "Connection expected to be initialized")
 
 	begin := s.client.Transport.duration.begin
 	err = s.client.NewOrReusedConnection(*d)
-	s.NoError(err, "Failed to reuse connection")
+	s.Require().NoError(err, "Failed to reuse connection")
 
 	s.Equal(begin, s.client.Transport.duration.begin, "Transport must not be reinitialized when reusing connection")
 }

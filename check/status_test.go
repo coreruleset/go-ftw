@@ -36,7 +36,7 @@ func (s *checkStatusTestSuite) SetupTest() {
 	var err error
 	s.cfg = config.NewDefaultConfig()
 	logName, err := utils.CreateTempFileWithContent(logText, "test-*.log")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.cfg.WithLogfile(logName)
 }
 
@@ -46,7 +46,7 @@ func TestCheckStatusTestSuite(t *testing.T) {
 
 func (s *checkStatusTestSuite) TestStatusOK() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	for _, expected := range statusOKTests {
 		c.SetExpectStatus(expected.expectedStatus)
@@ -56,7 +56,7 @@ func (s *checkStatusTestSuite) TestStatusOK() {
 
 func (s *checkStatusTestSuite) TestStatusFail() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	for _, expected := range statusFailTests {
 		c.SetExpectStatus(expected.expectedStatus)
@@ -66,7 +66,7 @@ func (s *checkStatusTestSuite) TestStatusFail() {
 
 func (s *checkStatusTestSuite) TestStatusCodeRequired() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	c.SetExpectStatus([]int{200})
 	s.True(c.StatusCodeRequired(), "status code should be required")

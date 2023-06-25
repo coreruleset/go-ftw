@@ -42,7 +42,7 @@ func (s *outputTestSuite) TestOutput() {
 		o := NewOutput(test.oType, &b)
 
 		err := o.Printf(format, testString)
-		s.NoError(err, "Error! in test %d", i)
+		s.Require().NoError(err, "Error! in test %d", i)
 	}
 }
 

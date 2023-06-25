@@ -70,7 +70,7 @@ func generateRequestWithCookiesForTesting() *Request {
 
 func (s *responseTestSuite) helloClient(w http.ResponseWriter, r *http.Request) {
 	n, err := fmt.Fprintln(w, "Hello, client")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal(14, n)
 }
 
@@ -80,10 +80,10 @@ func (s *responseTestSuite) testEchoServer(w http.ResponseWriter, r *http.Reques
 	resp := new(bytes.Buffer)
 	for key, value := range r.Header {
 		_, err := fmt.Fprintf(resp, "%s=%s,", key, value)
-		s.NoError(err)
+		s.Require().NoError(err)
 	}
 	_, err := w.Write(resp.Bytes())
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *responseTestSuite) responseWithCookies(w http.ResponseWriter, r *http.Request) {
@@ -91,14 +91,14 @@ func (s *responseTestSuite) responseWithCookies(w http.ResponseWriter, r *http.R
 	cookie := http.Cookie{Name: "username", Value: "go-ftw", Expires: expiration}
 	http.SetCookie(w, &cookie)
 	n, err := fmt.Fprintln(w, "Setting Cookies!")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal(17, n)
 }
 
 func (s *responseTestSuite) SetupTest() {
 	var err error
 	s.client, err = NewClient(NewClientConfig())
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *responseTestSuite) TearDownTest() {
@@ -122,48 +122,48 @@ func (s *responseTestSuite) BeforeTest(_, testName string) {
 
 func (s *responseTestSuite) TestResponse() {
 	d, err := DestinationFromString(s.ts.URL)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	req := generateRequestForTesting(true)
 
 	err = s.client.NewConnection(*d)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	response, err := s.client.Do(*req)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	s.Contains(response.GetFullResponse(), "Hello, client\n")
 }
 
 func (s *responseTestSuite) TestResponseWithCookies() {
 	d, err := DestinationFromString(s.ts.URL)
-	s.NoError(err)
+	s.Require().NoError(err)
 	req := generateRequestForTesting(true)
 
 	err = s.client.NewConnection(*d)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	response, err := s.client.Do(*req)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	s.Contains(response.GetFullResponse(), "Setting Cookies!\n")
 
 	cookiereq := generateRequestWithCookiesForTesting()
 
 	_, err = s.client.Do(*cookiereq)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *responseTestSuite) TestResponseChecksFullResponse() {
 	d, err := DestinationFromString(s.ts.URL)
-	s.NoError(err)
+	s.Require().NoError(err)
 	req := generateRequestForTesting(true)
 
 	err = s.client.NewConnection(*d)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	response, err := s.client.Do(*req)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	s.Contains(response.GetFullResponse(), "X-Powered-By: go-ftw")
 	s.Contains(response.GetFullResponse(), "User-Agent=[Go Tests]")

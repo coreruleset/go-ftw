@@ -44,15 +44,15 @@ type checkCmdTestSuite struct {
 
 func (s *checkCmdTestSuite) SetupTest() {
 	tempDir, err := os.MkdirTemp("", "go-ftw-tests")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.tempDir = tempDir
 
 	err = os.MkdirAll(s.tempDir, fs.ModePerm)
-	s.NoError(err)
+	s.Require().NoError(err)
 	testFileContents, err := os.CreateTemp(s.tempDir, "mock-test-*.yaml")
-	s.NoError(err)
+	s.Require().NoError(err)
 	n, err := testFileContents.WriteString(checkFileContents)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal(len(checkFileContents), n)
 
 	s.rootCmd = NewRootCommand()
@@ -61,7 +61,7 @@ func (s *checkCmdTestSuite) SetupTest() {
 
 func (s *checkCmdTestSuite) TearDownTest() {
 	err := os.RemoveAll(s.tempDir)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func TestCheckChoreTestSuite(t *testing.T) {
@@ -71,6 +71,6 @@ func TestCheckChoreTestSuite(t *testing.T) {
 func (s *checkCmdTestSuite) TestCheckCommand() {
 	s.rootCmd.SetArgs([]string{"check", "-d", s.tempDir})
 	cmd, err := s.rootCmd.ExecuteContextC(context.Background())
-	s.NoError(err, "check command should not return an error")
+	s.Require().NoError(err, "check command should not return an error")
 	s.Equal("check", cmd.Name(), "check command should have the name 'check'")
 }

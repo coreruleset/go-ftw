@@ -240,7 +240,7 @@ func (s *requestTestSuite) TestRequestData() {
 
 	err := req.SetData([]byte("This is the data now"))
 
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal([]byte("This is the data now"), req.Data(), "failed to set data")
 }
 
@@ -258,7 +258,7 @@ func (s *requestTestSuite) TestRequestRawData() {
 	req := generateBaseRawRequestForTesting()
 
 	err := req.SetRawData([]byte("This is the RAW data now"))
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	s.Equal([]byte("This is the RAW data now"), req.RawData())
 }
@@ -279,7 +279,7 @@ func (s *requestTestSuite) TestRequestURLParse() {
 	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
 	// Test adding semicolons to test parse
 	err := req.SetData([]byte("test=This&test=nothing"))
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *requestTestSuite) TestRequestURLParseFail() {
@@ -289,7 +289,7 @@ func (s *requestTestSuite) TestRequestURLParseFail() {
 	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
 	// Test adding semicolons to test parse
 	err := req.SetData([]byte("test=This&that=but with;;;;;; data now"))
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *requestTestSuite) TestRequestEncodesPostData() {
@@ -333,9 +333,9 @@ func (s *requestTestSuite) TestRequestEncodesPostData() {
 			h := req.Headers()
 			h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
 			err := req.SetData([]byte(tt.raw))
-			s.NoError(err)
+			s.Require().NoError(err)
 			result, err := encodeDataParameters(h, req.Data())
-			s.NoError(err, "Failed to encode %s", req.Data())
+			s.Require().NoError(err, "Failed to encode %s", req.Data())
 
 			expected := tt.encoded
 			actual := string(result)

@@ -22,7 +22,7 @@ func (s *testFilesTestSuite) TestCreateTempFile() {
 	// Remember to clean up the file afterwards
 	defer os.Remove(filename)
 
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *testFilesTestSuite) TestCreateBadTempFile() {

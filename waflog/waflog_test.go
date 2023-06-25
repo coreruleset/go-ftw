@@ -28,5 +28,5 @@ func (s *waflogTestSuite) TestNewFTWLogLines() {
 	s.NotNil(ll.StartMarker, "Failed! StartMarker must be set")
 	s.NotNil(ll.EndMarker, "Failed! EndMarker must be set")
 	err := ll.Cleanup()
-	s.NoError(err)
+	s.Require().NoError(err)
 }

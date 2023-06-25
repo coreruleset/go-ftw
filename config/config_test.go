@@ -64,14 +64,14 @@ func (s *fileTestSuite) BeforeTest(_, name string) {
 	var err error
 	s.filename, _ = utils.CreateTempFileWithContent(testData[name], "test-*.yaml")
 	s.cfg, err = NewConfigFromFile(s.filename)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(s.cfg)
 }
 
 func (s *fileTestSuite) TearDownTest() {
 	if s.filename != "" {
 		err := os.Remove(s.filename)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.filename = ""
 	}
 }
@@ -79,14 +79,14 @@ func (s *fileTestSuite) TearDownTest() {
 func (s *baseTestSuite) TestBaseUnmarshalText() {
 	var ftwRegexp FTWRegexp
 	err := ftwRegexp.UnmarshalText([]byte("test"))
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(ftwRegexp)
 	s.True(ftwRegexp.MatchString("This is a test for unmarshalling"), "looks like we could not match string")
 }
 
 func (s *baseTestSuite) TestBaseNewFTWRegexpText() {
 	ftwRegexp, err := NewFTWRegexp("test")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(ftwRegexp)
 	s.True(ftwRegexp.MatchString("This is a test"), "looks like we could not match string")
 }
@@ -108,7 +108,7 @@ func (s *fileTestSuite) TestNewConfigBadFileConfig() {
 	filename, _ := utils.CreateTempFileWithContent(testData["jsonConfig"], "test-*.yaml")
 	defer os.Remove(filename)
 	cfg, err := NewConfigFromFile(filename)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 }
 
@@ -136,13 +136,13 @@ func (s *fileTestSuite) TestNewConfigDefaultConfig() {
 	_ = os.WriteFile(s.filename, []byte(testData["ok"]), 0644)
 
 	cfg, err := NewConfigFromFile("")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 }
 
 func (s *fileTestSuite) TestNewConfigFromString() {
 	cfg, err := NewConfigFromString(testData["ok"])
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 }
 
@@ -157,14 +157,14 @@ func (s *fileTestSuite) TestNewConfigFromEnv() {
 	os.Setenv("FTW_LOGFILE", "koanf")
 
 	cfg, err := NewConfigFromEnv()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 	s.Equal("koanf", cfg.LogFile)
 }
 
 func (s *fileTestSuite) TestNewConfigFromEnvHasDefaults() {
 	cfg, err := NewConfigFromEnv()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 
 	s.Equalf(DefaultRunMode, cfg.RunMode,
@@ -183,7 +183,7 @@ func (s *fileTestSuite) TestNewConfigFromFileHasDefaults() {
 
 func (s *fileTestSuite) TestNewConfigFromStringHasDefaults() {
 	cfg, err := NewConfigFromString("")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(cfg)
 	s.Equalf(DefaultRunMode, cfg.RunMode,
 		"unexpected default value '%s' for run mode", cfg.RunMode)

@@ -38,13 +38,13 @@ func (s *checkResponseTestSuite) SetupTest() {
 	var err error
 	s.cfg = config.NewDefaultConfig()
 	logName, err := utils.CreateTempFileWithContent(logText, "test-*.log")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.cfg.WithLogfile(logName)
 }
 
 func (s *checkResponseTestSuite) TestAssertResponseTextErrorOK() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)
 		s.Truef(c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
@@ -53,7 +53,7 @@ func (s *checkResponseTestSuite) TestAssertResponseTextErrorOK() {
 
 func (s *checkResponseTestSuite) TestAssertResponseTextFailOK() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 	for _, e := range expectedResponseFailTests {
 		c.SetExpectResponse(e.expected)
 		s.Falsef(c.AssertResponseContains(e.response), "response shouldn't contain text %v", e.response)
@@ -62,7 +62,7 @@ func (s *checkResponseTestSuite) TestAssertResponseTextFailOK() {
 
 func (s *checkResponseTestSuite) TestAssertResponseTextChecksFullResponseOK() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)
 		s.Truef(c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
@@ -71,7 +71,7 @@ func (s *checkResponseTestSuite) TestAssertResponseTextChecksFullResponseOK() {
 
 func (s *checkResponseTestSuite) TestAssertResponseContainsRequired() {
 	c, err := NewCheck(s.cfg)
-	s.NoError(err)
+	s.Require().NoError(err)
 	c.SetExpectResponse("")
 	s.False(c.AssertResponseContains(""), "response shouldn't contain text")
 	s.False(c.ResponseContainsRequired(), "response shouldn't contain text")
