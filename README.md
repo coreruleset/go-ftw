@@ -10,18 +10,13 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=coreruleset_go-ftw&metric=alert_status)](https://sonarcloud.io/dashboard?id=coreruleset_go-ftw)
 
 
-This software should be compatible with the [Python version](https://pypi.org/project/ftw/).
+Go-FTW is a replacement for [FTW](https://pypi.org/project/ftw/) which had reached its limits in terms of maintainability and performance.
 
-I wrote this one to get more insights on the original version, and trying to shed some light on the internals. There are many assumptions on the inner workings that I needed to dig into the code to know how they worked.
-
-My goals are:
-- get a compatible `ftw` version, with no dependencies and easy to deploy
-- be extremely CI/CD friendly
-- be fast (if possible)
-- add features like:
-  - syntax checking on the test files
-  - use docker API to get logs (if possible), so there is no need to read files
-  - add different outputs for CI (junit xml?, github, gitlab, etc.)
+Features of Go-FTW include:
+  - fully customizable HTTP traffic
+  - CI/CD friendly
+  - fast (at least faster than FTW was)
+  - syntax checking of test files
 
 ## Install
 
@@ -308,7 +303,7 @@ Other interesting functions you can use are: `randBytes`, `htpasswd`, `encryptAE
 
 ## Overriding tests
 
-Sometimes you have tests that work well for some platform combinations, e.g. Apache + modsecurity2, but fail for others, e.g. NGiNX + modsecurity3. Taking that into account, you can override test results using the `testoverride` config param. The test will be skipped, and the result forced as configured.
+Sometimes you have tests that work well for some platform combinations, e.g. Apache + ModSecurity 2, but fail for others, e.g. NGiNX + ModSecurity 3. Taking that into account, you can override test results using the `testoverride` config param. The test will be skipped, and the result forced as configured.
 
 Tests can be altered using four lists:
 - `input` allows you to override global parameters in tests. The following ones can be overridden:
@@ -321,7 +316,7 @@ Tests can be altered using four lists:
   - `headers`: overrides headers, the format is a map of strings
   - `method`: overrides the method used to perform the request
   - `data`: overrides data sent in the request
-  - `autocomplete_headers`: prevent header autocompletion (currently sets `Connection: close` and `Content-Length` for requests with body data)
+  - `autocomplete_headers`: overrides header autocompletion (currently sets `Connection: close` and `Content-Length` for requests with body data)
   - `encodedrequest`: overrides base64 encoded request
   - `rawrequest`: permits to provide a raw request. `method`, `uri` and `version` values will be ignored
 - `ignore` is for tests you want to ignore. You should add a comment on why you ignore the test
