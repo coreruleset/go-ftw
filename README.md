@@ -12,7 +12,7 @@
 
 Go-FTW is a replacement for [FTW](https://pypi.org/project/ftw/) which had reached its limits in terms of maintainability and performance.
 
-Featuers of Go-FTW include:
+Features of Go-FTW include:
   - fully customizable HTTP traffic
   - CI/CD friendly
   - fast (at least faster than FTW was)
