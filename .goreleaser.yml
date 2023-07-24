@@ -75,11 +75,17 @@ nfpms:
     bindir: /usr/bin
     overrides:
       rpm:
-        replacements:
-          amd64: x86_64
-        file_name_template: "{{ .ProjectName }}-{{ .Version }}.{{ .Arch }}"
+        file_name_template: >-
+          {{ .ProjectName }}-
+          {{- .Version }}.
+          {{- if eq .Arch "amd64" }}x86_64
+          {{- else }}{{ .Arch }}
+          {{- end }}
       deb:
-        file_name_template: "{{ .ProjectName }}-{{ .Version }}_{{ .Arch }}"
+        file_name_template: >-
+          {{ .ProjectName }}-
+          {{- .Version }}_
+          {{- .Arch }}
     vendor:
     homepage: https://github.com/coreruleset/go-ftw
     maintainer: felipe.zipitria@owasp.org
