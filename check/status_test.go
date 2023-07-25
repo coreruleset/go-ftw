@@ -1,13 +1,15 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 package check
 
 import (
 	"testing"
 
-	"github.com/coreruleset/go-ftw/utils"
-
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/utils"
 )
 
 var statusOKTests = []struct {
