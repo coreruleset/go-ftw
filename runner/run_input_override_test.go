@@ -1,3 +1,6 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 package runner
 
 import (
@@ -11,10 +14,11 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/test"
-	"github.com/stretchr/testify/suite"
 )
 
 type inputOverrideTestSuite struct {

@@ -1,3 +1,6 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 // Package output provides an interface for showing test results in different formats.
 package output
 

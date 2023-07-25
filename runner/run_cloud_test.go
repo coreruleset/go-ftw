@@ -1,3 +1,6 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 package runner
 
 import (
@@ -9,12 +12,13 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/rs/zerolog/log"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/test"
-	"github.com/rs/zerolog/log"
-	"github.com/stretchr/testify/suite"
 )
 
 type runCloudTestSuite struct {

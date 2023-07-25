@@ -1,11 +1,15 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 package runner
 
 import (
 	"encoding/json"
 	"time"
 
-	"github.com/coreruleset/go-ftw/output"
 	"github.com/rs/zerolog/log"
+
+	"github.com/coreruleset/go-ftw/output"
 )
 
 // TestResult type are the values that the result of a test can have

@@ -1,3 +1,6 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 package check
 
 // AssertStatus will match the expected status list with the one received in the response

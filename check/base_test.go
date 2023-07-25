@@ -1,15 +1,17 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 package check
 
 import (
 	"sort"
 	"testing"
 
-	"github.com/coreruleset/go-ftw/utils"
-
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/test"
+	"github.com/coreruleset/go-ftw/utils"
 )
 
 var configMap = map[string]string{

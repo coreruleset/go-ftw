@@ -1,3 +1,6 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 package runner
 
 import (
@@ -6,12 +9,11 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/coreruleset/go-ftw/config"
-
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/check"
+	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/test"
