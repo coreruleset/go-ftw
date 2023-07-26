@@ -10,6 +10,7 @@ require (
 	github.com/icza/backscanner v0.0.0-20220812133752-2e60bffed4a2
 	github.com/knadh/koanf v1.5.0
 	github.com/kyokomi/emoji v2.2.4+incompatible
+	github.com/magefile/mage v1.15.0
 	github.com/rs/zerolog v1.29.1
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4

@@ -1,11 +1,13 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 package test
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/suite"
-
 	"github.com/goccy/go-yaml"
+	"github.com/stretchr/testify/suite"
 )
 
 var repeatTestSprig = `foo=%3d++++++++++++++++++++++++++++++++++`

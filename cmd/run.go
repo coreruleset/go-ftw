@@ -1,3 +1,6 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
@@ -9,15 +12,14 @@ import (
 
 	"github.com/go-logr/zerologr"
 	"github.com/rs/zerolog/log"
-	"wait4x.dev/v2/waiter"
-
+	"github.com/spf13/cobra"
 	"wait4x.dev/v2/checker"
 	"wait4x.dev/v2/checker/http"
+	"wait4x.dev/v2/waiter"
 
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/runner"
 	"github.com/coreruleset/go-ftw/test"
-	"github.com/spf13/cobra"
 )
 
 // NewRunCmd represents the run command

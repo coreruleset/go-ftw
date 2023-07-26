@@ -1,11 +1,15 @@
+// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// SPDX-License-Identifier: Apache-2.0
+
 package cmd
 
 import (
 	"fmt"
 
-	"github.com/coreruleset/go-ftw/test"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+
+	"github.com/coreruleset/go-ftw/test"
 )
 
 // NewCheckCmd represents the check command
