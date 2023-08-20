@@ -360,6 +360,8 @@ func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
 		Method:              &method,
 		Headers:             ftwhttp.Header{},
 		DestAddr:            &s.dest.DestAddr,
+		Port:                &s.dest.Port,
+		Protocol:            &s.dest.Protocol,
 	}
 	request := getRequestFromTest(input)
 
@@ -388,6 +390,8 @@ func (s *runTestSuite) TestGetRawRequestFromTestWithAutocompleteHeaders() {
 		Method:              &method,
 		Headers:             ftwhttp.Header{},
 		DestAddr:            &s.dest.DestAddr,
+		Port:                &s.dest.Port,
+		Protocol:            &s.dest.Protocol,
 		RAWRequest:          "POST / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: test\r\n\r\n",
 	}
 	request := getRequestFromTest(input)
@@ -417,6 +421,8 @@ func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
 		Method:              &method,
 		Headers:             ftwhttp.Header{},
 		DestAddr:            &s.dest.DestAddr,
+		Port:                &s.dest.Port,
+		Protocol:            &s.dest.Protocol,
 	}
 	request := getRequestFromTest(input)
 
