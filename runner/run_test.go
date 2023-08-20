@@ -209,7 +209,11 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	}
 	// get tests template from file
 	tmpl, err := template.ParseFiles(fmt.Sprintf("testdata/%s.yaml", name))
-	s.Require().NoError(err)
+	if err != nil {
+		log.Info().Msgf("No test data found for test %s, assuming that's ok", name)
+		return
+	}
+
 	// create a temporary file to hold the test
 	testFileContents, err := os.CreateTemp("testdata", "mock-test-*.yaml")
 	s.Require().NoError(err, "cannot create temporary file")
@@ -346,4 +350,89 @@ func (s *runTestSuite) TestIgnoredTestsRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
 	s.Require().NoError(err)
 	s.Equal(res.Stats.TotalFailed(), 1, "Oops, test run failed!")
+}
+
+func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
+	boolean := true
+	method := "POST"
+	input := test.Input{
+		AutocompleteHeaders: &boolean,
+		Method:              &method,
+		Headers:             ftwhttp.Header{},
+		DestAddr:            &s.dest.DestAddr,
+	}
+	request := getRequestFromTest(input)
+
+	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
+	s.Require().NoError(err)
+
+	dest := &ftwhttp.Destination{
+		DestAddr: input.GetDestAddr(),
+		Port:     input.GetPort(),
+		Protocol: input.GetProtocol(),
+	}
+	err = client.NewConnection(*dest)
+	s.Require().NoError(err)
+	_, err = client.Do(*request)
+	s.Require().NoError(err)
+
+	s.Equal("0", request.Headers().Get("Content-Length"), "Autocompletion should add 'Content-Length' header to POST requests")
+	s.Equal("close", request.Headers().Get("Connection"), "Autocompletion should add 'Connection: close' header")
+}
+
+func (s *runTestSuite) TestGetRawRequestFromTestWithAutocompleteHeaders() {
+	boolean := true
+	method := "POST"
+	input := test.Input{
+		AutocompleteHeaders: &boolean,
+		Method:              &method,
+		Headers:             ftwhttp.Header{},
+		DestAddr:            &s.dest.DestAddr,
+		RAWRequest:          "POST / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: test\r\n\r\n",
+	}
+	request := getRequestFromTest(input)
+
+	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
+	s.Require().NoError(err)
+
+	dest := &ftwhttp.Destination{
+		DestAddr: input.GetDestAddr(),
+		Port:     input.GetPort(),
+		Protocol: input.GetProtocol(),
+	}
+	err = client.NewConnection(*dest)
+	s.Require().NoError(err)
+	_, err = client.Do(*request)
+	s.Require().NoError(err)
+
+	s.Equal("", request.Headers().Get("Content-Length"), "Raw requests should not be modified")
+	s.Equal("", request.Headers().Get("Connection"), "Raw requests should not be modified")
+}
+
+func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
+	boolean := false
+	method := "POST"
+	input := test.Input{
+		AutocompleteHeaders: &boolean,
+		Method:              &method,
+		Headers:             ftwhttp.Header{},
+		DestAddr:            &s.dest.DestAddr,
+	}
+	request := getRequestFromTest(input)
+
+	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
+	s.Require().NoError(err)
+
+	dest := &ftwhttp.Destination{
+		DestAddr: input.GetDestAddr(),
+		Port:     input.GetPort(),
+		Protocol: input.GetProtocol(),
+	}
+	err = client.NewConnection(*dest)
+	s.Require().NoError(err)
+	_, err = client.Do(*request)
+	s.Require().NoError(err)
+
+	s.Equal("", request.Headers().Get("Content-Length"), "Autocompletion is disabled")
+	s.Equal("", request.Headers().Get("Connection"), "Autocompletion is disabled")
 }
