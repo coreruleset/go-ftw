@@ -120,6 +120,10 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	testInput := stage.Input
 	test.ApplyInputOverrides(&runContext.Config.TestOverride.Overrides, &testInput)
 	expectedOutput := stage.Output
+	expectErr := false
+	if expectedOutput.ExpectError != nil {
+		expectErr = *expectedOutput.ExpectError
+	}
 
 	// Check sanity first
 	if checkTestSanity(testInput) {
@@ -144,7 +148,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 
 	if notRunningInCloudMode(ftwCheck) {
 		startMarker, err := markAndFlush(runContext, dest, stageID)
-		if err != nil && !*expectedOutput.ExpectError {
+		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find start marker: %w", err)
 		}
 		ftwCheck.SetStartMarker(startMarker)
@@ -154,7 +158,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 
 	err := runContext.Client.NewConnection(*dest)
 
-	if err != nil && !*expectedOutput.ExpectError {
+	if err != nil && !expectErr {
 		return fmt.Errorf("can't connect to destination %+v: %w", dest, err)
 	}
 	runContext.Client.StartTrackingTime()
@@ -162,13 +166,13 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	response, responseErr := runContext.Client.Do(*req)
 
 	runContext.Client.StopTrackingTime()
-	if responseErr != nil && !*expectedOutput.ExpectError {
+	if responseErr != nil && !expectErr {
 		return fmt.Errorf("failed sending request to destination %+v: %w", dest, responseErr)
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
 		endMarker, err := markAndFlush(runContext, dest, stageID)
-		if err != nil && !*expectedOutput.ExpectError {
+		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find end marker: %w", err)
 
 		}
