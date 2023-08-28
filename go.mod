@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/go-logr/zerologr v1.2.3
 	github.com/goccy/go-yaml v1.11.0
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/icza/backscanner v0.0.0-20220812133752-2e60bffed4a2
 	github.com/knadh/koanf v1.5.0
 	github.com/kyokomi/emoji v2.2.4+incompatible
