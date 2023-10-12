@@ -15,7 +15,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.8.4
 	github.com/yargevad/filepathx v1.0.0
-	golang.org/x/net v0.16.0
+	golang.org/x/net v0.17.0
 	wait4x.dev/v2 v2.13.0
 )
 
