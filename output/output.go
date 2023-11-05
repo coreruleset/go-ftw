@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/kyokomi/emoji"
+	"github.com/kyokomi/emoji/v2"
 	"github.com/rs/zerolog/log"
 )
 
