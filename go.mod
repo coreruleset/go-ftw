@@ -9,10 +9,10 @@ require (
 	github.com/google/uuid v1.4.0
 	github.com/icza/backscanner v0.0.0-20220812133752-2e60bffed4a2
 	github.com/knadh/koanf v1.5.0
-	github.com/kyokomi/emoji v2.2.4+incompatible
+	github.com/kyokomi/emoji v2.2.12+incompatible
 	github.com/magefile/mage v1.15.0
 	github.com/rs/zerolog v1.31.0
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/net v0.17.0
