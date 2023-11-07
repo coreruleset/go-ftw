@@ -87,7 +87,9 @@ func ApplyInputOverrides(overrides *Overrides, input *Input) {
 	applySimpleOverrides(overrides, input)
 	applyDestAddrOverride(overrides, input)
 	applyHeadersOverride(overrides, input)
-	postProcessAutocompleteHeaders(overrides.AutocompleteHeaders, overrides.StopMagic, input)
+	if overrides.AutocompleteHeaders != nil || overrides.StopMagic != nil {
+		postProcessAutocompleteHeaders(overrides.AutocompleteHeaders, overrides.StopMagic, input)
+	}
 }
 
 func applyDestAddrOverride(overrides *Overrides, input *Input) {
