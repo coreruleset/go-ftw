@@ -355,13 +355,20 @@ Most of the tests rely on having access to a logfile to check for success or fai
 
 With cloud mode, we move the decision on test failure or success to the HTTP status code received after performing the test. The general idea is that you set up your WAF in blocking mode, so anything matching will return a block status (e.g. 403), and if not we expect a 2XX return code.
 
+You will also want to override the IP configured in the tests, and use the one from your cloud provider instead.
+
 An example config file for this is:
-```
+```yaml
 ---
 mode: 'cloud'
+testoverride:
+  input:
+    dest_addr: "<your cloud WAF IP>"
+    port: 80
 ```
+Save this file as `cloud-test.yaml` and edit the WAF IP
 
-Or you can just run: `./ftw run --cloud`
+Or you can just run: `./ftw run --config cloud-test.yaml`
 
 ## How log parsing works
 
