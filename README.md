@@ -366,9 +366,9 @@ testoverride:
     dest_addr: "<your cloud WAF IP>"
     port: 80
 ```
-Save this file as `cloud-test.yaml` and edit the WAF IP
+Save this file as `cloud-test.yaml` and edit the WAF IP.
 
-Or you can just run: `./ftw run --config cloud-test.yaml`
+Then run: `./ftw run --config cloud-test.yaml`
 
 ## How log parsing works
 
