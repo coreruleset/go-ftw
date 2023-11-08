@@ -317,6 +317,28 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideAutocompleteHeaders() {
 	s.Equal(overrideAutocompleteHeaders, *testInput.AutocompleteHeaders, "`AutocompleteHeaders` should have been overridden")
 }
 
+func (s *inputOverrideTestSuite) TestApplyInputOverrideNoAutocompleteHeaders() {
+	testInput := test.Input{
+		AutocompleteHeaders: func() *bool { b := false; return &b }(),
+	}
+	s.Nil(s.cfg.TestOverride.Overrides.AutocompleteHeaders)
+	s.Nil(s.cfg.TestOverride.Overrides.StopMagic)
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
+
+	s.False(*testInput.AutocompleteHeaders, "`AutocompleteHeaders` should not have been overridden")
+}
+
+func (s *inputOverrideTestSuite) TestApplyInputOverrideNoStopMagic() {
+	testInput := test.Input{
+		StopMagic: func() *bool { b := true; return &b }(),
+	}
+	s.Nil(s.cfg.TestOverride.Overrides.AutocompleteHeaders)
+	s.Nil(s.cfg.TestOverride.Overrides.StopMagic)
+	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
+
+	s.True(*testInput.StopMagic, "`AutocompleteHeaders` should not have been overridden")
+}
+
 func (s *inputOverrideTestSuite) TestApplyInputOverrideEncodedRequest() {
 	originalEncodedRequest := "originalbase64"
 	overrideEncodedRequest, err := getOverrideConfigValue("EncodedRequest")
