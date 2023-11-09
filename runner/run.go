@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
+	"github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
@@ -24,7 +25,7 @@ import (
 var errBadTestInput = errors.New("ftw/run: bad test input: choose between data, encoded_request, or raw_request")
 
 // Run runs your tests with the specified Config.
-func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
+func Run(cfg *config.FTWConfiguration, tests []types.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
 
 	logLines, err := waflog.NewFTWLogLines(cfg)
@@ -72,12 +73,12 @@ func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out
 // RunTest runs an individual test.
 // runContext contains information for the current test run
 // ftwTest is the test you want to run
-func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
+func RunTest(runContext *TestRunContext, ftwTest types.FTWTest) error {
 	changed := true
 
 	for _, testCase := range ftwTest.Tests {
 		// if we received a particular testid, skip until we find it
-		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, *ftwTest.Meta.Enabled) {
+		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
 			runContext.Stats.addResultToStats(Skipped, testCase.TestTitle, 0)
 			if !*ftwTest.Meta.Enabled && !runContext.ShowOnlyFailed {
 				runContext.Output.Println("\tskipping %s - (enabled: false) in file.", testCase.TestTitle)
@@ -113,13 +114,13 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 // ftwCheck is the current check utility
 // testCase is the test case the stage belongs to
 // stage is the stage you want to run
-func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase test.Test, stage test.Stage) error {
+func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase types.Test, stage types.Stage) error {
 	stageStartTime := time.Now()
 	stageID := uuid.NewString()
 	// Apply global overrides initially
-	testInput := stage.Input
+	testInput := stage.SD.Input
 	test.ApplyInputOverrides(&runContext.Config.TestOverride.Overrides, &testInput)
-	expectedOutput := stage.Output
+	expectedOutput := stage.SD.Output
 	expectErr := false
 	if expectedOutput.ExpectError != nil {
 		expectErr = *expectedOutput.ExpectError
@@ -273,7 +274,7 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string
 	return result
 }
 
-func checkTestSanity(testInput test.Input) bool {
+func checkTestSanity(testInput types.Input) bool {
 	return (utils.IsNotEmpty(testInput.Data) && testInput.EncodedRequest != "") ||
 		(utils.IsNotEmpty(testInput.Data) && testInput.RAWRequest != "") ||
 		(testInput.EncodedRequest != "" && testInput.RAWRequest != "")
@@ -356,7 +357,7 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 	return Success
 }
 
-func getRequestFromTest(testInput test.Input) *ftwhttp.Request {
+func getRequestFromTest(testInput types.Input) *ftwhttp.Request {
 	var req *ftwhttp.Request
 	// get raw request, if anything
 	raw, err := testInput.GetRawRequest()

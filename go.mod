@@ -1,9 +1,10 @@
 module github.com/coreruleset/go-ftw
 
-go 1.18
+go 1.21
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
+	github.com/coreruleset/ftw-tests-schema v1.0.0
 	github.com/go-logr/zerologr v1.2.3
 	github.com/goccy/go-yaml v1.9.2
 	github.com/google/uuid v1.4.0
