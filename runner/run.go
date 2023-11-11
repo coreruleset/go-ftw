@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
+	"github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
@@ -99,7 +100,7 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 			if err != nil {
 				return err
 			}
-			if err := RunStage(runContext, ftwCheck, testCase, stage.Stage); err != nil {
+			if err := RunStage(runContext, ftwCheck, testCase, stage.SD); err != nil {
 				return err
 			}
 		}
@@ -113,11 +114,11 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 // ftwCheck is the current check utility
 // testCase is the test case the stage belongs to
 // stage is the stage you want to run
-func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase test.Test, stage test.Stage) error {
+func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase types.Test, stage types.StageData) error {
 	stageStartTime := time.Now()
 	stageID := uuid.NewString()
 	// Apply global overrides initially
-	testInput := stage.Input
+	testInput := (test.Input)(stage.Input)
 	test.ApplyInputOverrides(&runContext.Config.TestOverride.Overrides, &testInput)
 	expectedOutput := stage.Output
 	expectErr := false
@@ -180,7 +181,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	}
 
 	// Set expected test output in check
-	ftwCheck.SetExpectTestOutput(&expectedOutput)
+	ftwCheck.SetExpectTestOutput((*test.Output)(&expectedOutput))
 
 	// now get the test result based on output
 	testResult := checkResult(ftwCheck, response, responseErr)
