@@ -105,7 +105,14 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 				return err
 			}
 			if err := RunStage(runContext, ftwCheck, testCase, stage.SD); err != nil {
-				return err
+				if err.Error() == "retry-once" {
+					log.Info().Msgf("Retrying test once: %s", testCase.TestTitle)
+					if err = RunStage(runContext, ftwCheck, testCase, stage.SD); err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
 			}
 		}
 	}
@@ -118,6 +125,8 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 // ftwCheck is the current check utility
 // testCase is the test case the stage belongs to
 // stage is the stage you want to run
+//
+//gocyclo:ignore
 func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase types.Test, stage types.StageData) error {
 	stageStartTime := time.Now()
 	stageID := uuid.NewString()
@@ -189,6 +198,9 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase typ
 
 	// now get the test result based on output
 	testResult := checkResult(ftwCheck, response, responseErr)
+	if testResult == Failed && expectedOutput.RetryOnce != nil && *expectedOutput.RetryOnce {
+		return errors.New("retry-once")
+	}
 
 	roundTripTime := runContext.Client.GetRoundTripTime().RoundTripDuration()
 	stageTime := time.Since(stageStartTime)
