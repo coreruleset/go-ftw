@@ -78,7 +78,7 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 
 	for _, testCase := range ftwTest.Tests {
 		// if we received a particular testid, skip until we find it
-		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, ftwTest.Meta.Enabled) {
+		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, *ftwTest.Meta.Enabled) {
 			runContext.Stats.addResultToStats(Skipped, testCase.TestTitle, 0)
 			if !*ftwTest.Meta.Enabled && !runContext.ShowOnlyFailed {
 				runContext.Output.Println("\tskipping %s - (enabled: false) in file.", testCase.TestTitle)
@@ -240,9 +240,9 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.Config.LogFile)
 }
 
-func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string, enabled *bool) bool {
+func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string, enabled bool) bool {
 	// skip disabled tests
-	if enabled != nil && !*enabled {
+	if !enabled {
 		return true
 	}
 
