@@ -28,7 +28,7 @@ type Overrides struct {
 }
 
 // ApplyInputOverride will check if config had global overrides and write that into the test.
-func ApplyInputOverrides(overrides *Overrides, input *types.Input) {
+func ApplyInputOverrides(overrides *Overrides, input *Input) {
 	applySimpleOverrides(overrides, input)
 	applyDestAddrOverride(overrides, input)
 	applyHeadersOverride(overrides, input)
@@ -37,19 +37,21 @@ func ApplyInputOverrides(overrides *Overrides, input *types.Input) {
 	}
 }
 
-func applyDestAddrOverride(overrides *Overrides, input *types.Input) {
+func applyDestAddrOverride(overrides *Overrides, input *Input) {
 	if overrides.DestAddr != nil {
 		input.DestAddr = overrides.DestAddr
 		if input.Headers == nil {
 			input.Headers = ftwhttp.Header{}
 		}
-		if overrides.OverrideEmptyHostHeader != nil && *overrides.OverrideEmptyHostHeader && input.Headers.Get("Host") == "" {
-			input.Headers.Set("Host", *overrides.DestAddr)
+		if overrides.OverrideEmptyHostHeader != nil &&
+			*overrides.OverrideEmptyHostHeader &&
+			input.GetHeaders().Get("Host") == "" {
+			input.GetHeaders().Set("Host", *overrides.DestAddr)
 		}
 	}
 }
 
-func applySimpleOverrides(overrides *Overrides, input *types.Input) {
+func applySimpleOverrides(overrides *Overrides, input *Input) {
 	if overrides.Port != nil {
 		input.Port = overrides.Port
 	}
@@ -87,18 +89,18 @@ func applySimpleOverrides(overrides *Overrides, input *types.Input) {
 	}
 }
 
-func applyHeadersOverride(overrides *Overrides, input *types.Input) {
+func applyHeadersOverride(overrides *Overrides, input *Input) {
 	if overrides.Headers != nil {
 		if input.Headers == nil {
 			input.Headers = ftwhttp.Header{}
 		}
 		for k, v := range overrides.Headers {
-			input.Headers.Set(k, v)
+			input.GetHeaders().Set(k, v)
 		}
 	}
 }
 
-func postLoadTestFTWTest(ftwTest *types.FTWTest) {
+func postLoadTestFTWTest(ftwTest *FTWTest) {
 	for _, test := range ftwTest.Tests {
 		postLoadTest(&test)
 	}
@@ -106,19 +108,19 @@ func postLoadTestFTWTest(ftwTest *types.FTWTest) {
 
 func postLoadTest(test *types.Test) {
 	for index := range test.Stages {
-		postLoadStage(&test.Stages[index].Stage)
+		postLoadStage(&test.Stages[index].SD)
 	}
 }
 
-func postLoadStage(stage *types.Stage) {
-	postLoadInput(&stage.Input)
+func postLoadStage(stage *types.StageData) {
+	postLoadInput((*Input)(&stage.Input))
 }
 
-func postLoadInput(input *types.Input) {
+func postLoadInput(input *Input) {
 	postProcessAutocompleteHeaders(input.AutocompleteHeaders, input.StopMagic, input)
 }
 
-func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, input *types.Input) {
+func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, input *Input) {
 	autocompleteHeadersMissing := autocompleteHeaders == nil
 	stopMagicMissing := stopMagic == nil
 	// default value

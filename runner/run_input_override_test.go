@@ -175,7 +175,7 @@ func (s *inputOverrideTestSuite) TestSetHostFromDestAddr() {
 
 	s.NotNil(testInput.Headers, "Header map must exist after overriding `dest_addr`")
 
-	hostHeader := testInput.Headers.Get("Host")
+	hostHeader := testInput.GetHeaders().Get("Host")
 	s.NotEqual("", hostHeader, "Host header must be set after overriding `dest_addr`")
 	s.Equal(overrideHost, hostHeader, "Host header must be identical to `dest_addr` after overrding `dest_addr`")
 }
@@ -191,7 +191,7 @@ func (s *inputOverrideTestSuite) TestSetHostFromHostHeaderOverride() {
 
 	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
 
-	hostHeader := testInput.Headers.Get("Host")
+	hostHeader := testInput.GetHeaders().Get("Host")
 	s.NotEqual("", hostHeader, "Host header must be set after overriding the `Host` header")
 	if hostHeader == overrideHostHeader {
 		s.Equal(overrideHostHeader, hostHeader, "Host header override must take precence over OverrideEmptyHostHeader")
@@ -213,7 +213,7 @@ func (s *inputOverrideTestSuite) TestSetHeaderOverridingExistingOne() {
 
 	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
 
-	overriddenHeader := testInput.Headers.Get("unique_id")
+	overriddenHeader := testInput.GetHeaders().Get("unique_id")
 	s.NotEqual("", overriddenHeader, "unique_id header must be set after overriding it")
 	s.Equal(overrideHeaderValue, overriddenHeader, "Host header must be identical to overridden `Host` header.")
 }
@@ -231,7 +231,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrides() {
 
 	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
 
-	overriddenHeader := testInput.Headers.Get("unique_id")
+	overriddenHeader := testInput.GetHeaders().Get("unique_id")
 	s.NotEqual("", overriddenHeader, "unique_id header must be set after overriding it")
 	s.Equal(overrideHeaderValue, overriddenHeader, "Host header must be identical to overridden `Host` header.")
 }

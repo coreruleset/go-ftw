@@ -25,7 +25,7 @@ import (
 var errBadTestInput = errors.New("ftw/run: bad test input: choose between data, encoded_request, or raw_request")
 
 // Run runs your tests with the specified Config.
-func Run(cfg *config.FTWConfiguration, tests []types.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
+func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
 
 	logLines, err := waflog.NewFTWLogLines(cfg)
@@ -73,7 +73,7 @@ func Run(cfg *config.FTWConfiguration, tests []types.FTWTest, c RunnerConfig, ou
 // RunTest runs an individual test.
 // runContext contains information for the current test run
 // ftwTest is the test you want to run
-func RunTest(runContext *TestRunContext, ftwTest types.FTWTest) error {
+func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 	changed := true
 
 	for _, testCase := range ftwTest.Tests {
@@ -100,7 +100,7 @@ func RunTest(runContext *TestRunContext, ftwTest types.FTWTest) error {
 			if err != nil {
 				return err
 			}
-			if err := RunStage(runContext, ftwCheck, testCase, stage.Stage); err != nil {
+			if err := RunStage(runContext, ftwCheck, testCase, stage.SD); err != nil {
 				return err
 			}
 		}
@@ -114,13 +114,13 @@ func RunTest(runContext *TestRunContext, ftwTest types.FTWTest) error {
 // ftwCheck is the current check utility
 // testCase is the test case the stage belongs to
 // stage is the stage you want to run
-func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase types.Test, stage types.Stage) error {
+func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase types.Test, stage types.StageData) error {
 	stageStartTime := time.Now()
 	stageID := uuid.NewString()
 	// Apply global overrides initially
-	testInput := stage.SD.Input
+	testInput := (test.Input)(stage.Input)
 	test.ApplyInputOverrides(&runContext.Config.TestOverride.Overrides, &testInput)
-	expectedOutput := stage.SD.Output
+	expectedOutput := stage.Output
 	expectErr := false
 	if expectedOutput.ExpectError != nil {
 		expectErr = *expectedOutput.ExpectError
@@ -181,7 +181,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase typ
 	}
 
 	// Set expected test output in check
-	ftwCheck.SetExpectTestOutput(&expectedOutput)
+	ftwCheck.SetExpectTestOutput((*test.Output)(&expectedOutput))
 
 	// now get the test result based on output
 	testResult := checkResult(ftwCheck, response, responseErr)
@@ -240,9 +240,9 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.Config.LogFile)
 }
 
-func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string, enabled bool) bool {
+func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string, enabled *bool) bool {
 	// skip disabled tests
-	if !enabled {
+	if enabled != nil && !*enabled {
 		return true
 	}
 
@@ -274,7 +274,7 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string
 	return result
 }
 
-func checkTestSanity(testInput types.Input) bool {
+func checkTestSanity(testInput test.Input) bool {
 	return (utils.IsNotEmpty(testInput.Data) && testInput.EncodedRequest != "") ||
 		(utils.IsNotEmpty(testInput.Data) && testInput.RAWRequest != "") ||
 		(testInput.EncodedRequest != "" && testInput.RAWRequest != "")
@@ -357,7 +357,7 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 	return Success
 }
 
-func getRequestFromTest(testInput types.Input) *ftwhttp.Request {
+func getRequestFromTest(testInput test.Input) *ftwhttp.Request {
 	var req *ftwhttp.Request
 	// get raw request, if anything
 	raw, err := testInput.GetRawRequest()
