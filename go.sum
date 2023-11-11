@@ -9,8 +9,8 @@ github.com/antchfx/htmlquery v1.3.0/go.mod h1:zKPDVTMhfOmcwxheXUsx4rKJy8KEY/PU6e
 github.com/antchfx/xpath v1.2.3 h1:CCZWOzv5bAqjVv0offZ2LVgVYFbeldKQVuLNbViZdes=
 github.com/antchfx/xpath v1.2.3/go.mod h1:i54GszH55fYfBmoZXapTHN8T8tkcHfRgLyVwwqzXNcs=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
-github.com/coreruleset/ftw-tests-schema v1.0.1-0.20231111145830-87a7096e32e1 h1:7qEBrJOMPvIp+Vnl5ASi1egZy+gQlLNaKM4TZfuBIgU=
-github.com/coreruleset/ftw-tests-schema v1.0.1-0.20231111145830-87a7096e32e1/go.mod h1:eGixZc1HY61s6ze0f3TExkILnvmXwix4GS10iUXbDmU=
+github.com/coreruleset/ftw-tests-schema v1.1.0 h1:3+NYrdLE3HVmOc3nGrisRBBvY9lGjePUrV+YkT5Ay3s=
+github.com/coreruleset/ftw-tests-schema v1.1.0/go.mod h1:gRd9wBxjUI85HypWRDxJzbk1JqHC4KTxl0l/Y2p9QK4=
 github.com/cpuguy83/go-md2man/v2 v2.0.3/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
