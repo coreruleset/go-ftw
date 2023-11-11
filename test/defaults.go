@@ -83,7 +83,7 @@ func (i *Input) GetRawRequest() ([]byte, error) {
 	return nil, nil
 }
 
-// GetAutocompleteHeaders returns the proper the autocompleteHeaders value, defaults to true
+// GetAutocompleteHeaders returns the autocompleteHeaders value, defaults to true
 func (i *Input) GetAutocompleteHeaders() bool {
 	if i.AutocompleteHeaders == nil {
 		return true
