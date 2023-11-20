@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/rawbytes"
-	"github.com/knadh/koanf/v2"
 )
 
 // NewDefaultConfig initializes the configuration with default values
