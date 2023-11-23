@@ -177,7 +177,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicDefault() {
 	test, err := GetTestFromYaml([]byte(autocompleteHeadersDefaultYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
-	input := test.Tests[0].Stages[0].Stage.Input
+	input := test.Tests[0].Stages[0].SD.Input
 	s.True(*input.AutocompleteHeaders)
 	s.False(*input.StopMagic)
 }
@@ -186,7 +186,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicTrue() {
 	test, err := GetTestFromYaml([]byte(autocompleteHeadersDefaultYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
-	input := test.Tests[1].Stages[0].Stage.Input
+	input := test.Tests[1].Stages[0].SD.Input
 	s.False(*input.AutocompleteHeaders)
 	s.True(*input.StopMagic)
 }
@@ -194,7 +194,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicFalse() {
 	test, err := GetTestFromYaml([]byte(autocompleteHeadersDefaultYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
-	input := test.Tests[2].Stages[0].Stage.Input
+	input := test.Tests[2].Stages[0].SD.Input
 	s.True(*input.AutocompleteHeaders)
 	s.False(*input.StopMagic)
 }
@@ -203,7 +203,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersFalse_StopMagicDefault() {
 	test, err := GetTestFromYaml([]byte(autocompleteHeadersFalseYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
-	input := test.Tests[0].Stages[0].Stage.Input
+	input := test.Tests[0].Stages[0].SD.Input
 	s.False(*input.AutocompleteHeaders)
 	s.True(*input.StopMagic)
 }
@@ -212,7 +212,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersFalse_StopMagicTrue() {
 	test, err := GetTestFromYaml([]byte(autocompleteHeadersFalseYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
-	input := test.Tests[1].Stages[0].Stage.Input
+	input := test.Tests[1].Stages[0].SD.Input
 	s.False(*input.AutocompleteHeaders)
 	s.True(*input.StopMagic)
 }
@@ -221,7 +221,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersFalse_StopMagicFalse() {
 	test, err := GetTestFromYaml([]byte(autocompleteHeadersFalseYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
-	input := test.Tests[2].Stages[0].Stage.Input
+	input := test.Tests[2].Stages[0].SD.Input
 	s.False(*input.AutocompleteHeaders)
 	s.True(*input.StopMagic)
 }
@@ -230,7 +230,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersTrue_StopMagicDefault() {
 	test, err := GetTestFromYaml([]byte(autocompleteHeadersTrueYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
-	input := test.Tests[0].Stages[0].Stage.Input
+	input := test.Tests[0].Stages[0].SD.Input
 	s.True(*input.AutocompleteHeaders)
 	s.False(*input.StopMagic)
 }
@@ -239,7 +239,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersTrue_StopMagicTrue() {
 	test, err := GetTestFromYaml([]byte(autocompleteHeadersTrueYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
-	input := test.Tests[1].Stages[0].Stage.Input
+	input := test.Tests[1].Stages[0].SD.Input
 	s.True(*input.AutocompleteHeaders)
 	s.False(*input.StopMagic)
 }
@@ -248,7 +248,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersTrue_StopMagicFalse() {
 	test, err := GetTestFromYaml([]byte(autocompleteHeadersTrueYaml))
 	s.NoError(err, "Parsing YAML shouldn't fail")
 
-	input := test.Tests[2].Stages[0].Stage.Input
+	input := test.Tests[2].Stages[0].SD.Input
 	s.True(*input.AutocompleteHeaders)
 	s.False(*input.StopMagic)
 }
