@@ -11,7 +11,7 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/rawbytes"
-	"github.com/knadh/koanf/v2"
+	koanfv2 "github.com/knadh/koanf/v2"
 )
 
 // NewDefaultConfig initializes the configuration with default values
@@ -128,9 +128,9 @@ func (c *FTWConfiguration) WithMaxMarkerLogLines(amount int) {
 }
 
 // Unmarshal the loaded koanf instance into a configuration object
-func unmarshal(k *koanf.Koanf) (*FTWConfiguration, error) {
+func unmarshal(k *koanfv2.Koanf) (*FTWConfiguration, error) {
 	config := NewDefaultConfig()
-	err := k.UnmarshalWithConf("", config, koanf.UnmarshalConf{Tag: "koanf"})
+	err := k.UnmarshalWithConf("", config, koanfv2.UnmarshalConf{Tag: "koanf"})
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func unmarshal(k *koanf.Koanf) (*FTWConfiguration, error) {
 }
 
 // Get the global koanf instance
-func getKoanfInstance() *koanf.Koanf {
+func getKoanfInstance() *koanfv2.Koanf {
 	// Use "." as the key path delimiter. This can be "/" or any character.
-	return koanf.New(".")
+	return koanfv2.New(".")
 }
