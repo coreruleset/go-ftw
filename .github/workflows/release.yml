@@ -5,9 +5,16 @@ on:
     tags:
       - '*'
 
+# Declare default permissions as read only.
+permissions: read-all
+
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      # https://goreleaser.com/ci/actions/#token-permissions
+      contents: write
+
     steps:
       -
         name: Checkout
