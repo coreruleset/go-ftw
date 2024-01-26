@@ -1,25 +1,40 @@
 repos:
-- repo: https://github.com/dnephin/pre-commit-golang
-  rev: v0.5.0
+- repo: https://github.com/tekwizely/pre-commit-golang
+  rev: v1.0.0-rc.1
   hooks:
     - id: go-fmt
     - id: go-vet
     - id: go-imports
-    - id: go-cyclo
-      args: [-over=15]
-    - id: validate-toml
-    - id: no-go-testing
     - id: golangci-lint
     - id: go-critic
-    - id: go-unit-tests
-    - id: go-build
+    - id: go-test-mod
+    - id: go-build-mod
     - id: go-mod-tidy
+    - id: my-cmd
+      name: go-cyclo
+      alias: go-cyclo
+      args: [ go, cyclo, -over=15]
+    - id: my-cmd
+      name: "Check files aren't using go's testing package"
+      entry: 'testing\.T'
+      files: 'test_.*\.go$'
+      language: 'pygrep'
+      description: >
+        Checks that no files are using `testing.T`, if you want developers to use
+        a different testing framework
+    - id: my-cmd
+      name: 'validate toml'
+      entry: 'tomlv'
+      files: '\.toml$'
+      language: 'system'
+      description: >
+        Runs `tomlv`, requires https://github.com/BurntSushi/toml/tree/master/cmd/tomlv"
 - repo: https://github.com/gitleaks/gitleaks
-  rev: v8.16.3
+  rev: v8.18.1
   hooks:
     - id: gitleaks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
+  rev: v4.5.0
   hooks:
     - id: end-of-file-fixer
     - id: trailing-whitespace
