@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/coreruleset/ftw-tests-schema v1.1.0
 	github.com/go-logr/zerologr v1.2.3
-	github.com/goccy/go-yaml v1.11.3
+	github.com/goccy/go-yaml v1.9.2
 	github.com/google/uuid v1.6.0
 	github.com/icza/backscanner v0.0.0-20230330133933-bf6beb754c70
 	github.com/knadh/koanf/parsers/yaml v0.1.0
