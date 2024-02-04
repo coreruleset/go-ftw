@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/coreruleset/ftw-tests-schema v1.1.0
 	github.com/go-logr/zerologr v1.2.3
-	github.com/goccy/go-yaml v1.9.2
+	github.com/goccy/go-yaml v1.11.3
 	github.com/google/uuid v1.6.0
 	github.com/icza/backscanner v0.0.0-20230330133933-bf6beb754c70
 	github.com/knadh/koanf/parsers/yaml v0.1.0
@@ -16,7 +16,7 @@ require (
 	github.com/knadh/koanf/v2 v2.0.2
 	github.com/kyokomi/emoji/v2 v2.2.12
 	github.com/magefile/mage v1.15.0
-	github.com/rs/zerolog v1.31.0
+	github.com/rs/zerolog v1.32.0
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/yargevad/filepathx v1.0.0
