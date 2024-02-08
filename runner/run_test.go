@@ -100,7 +100,7 @@ var destinationMap = map[string]string{
 type runTestSuite struct {
 	suite.Suite
 	cfg          *config.FTWConfiguration
-	ftwTests     []test.FTWTest
+	ftwTests     []*test.FTWTest
 	logFilePath  string
 	out          *output.Output
 	ts           *httptest.Server

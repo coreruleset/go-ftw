@@ -25,7 +25,7 @@ import (
 var errBadTestInput = errors.New("ftw/run: bad test input: choose between data, encoded_request, or raw_request")
 
 // Run runs your tests with the specified Config.
-func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
+func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
 
 	logLines, err := waflog.NewFTWLogLines(cfg)
@@ -73,7 +73,7 @@ func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out
 // RunTest runs an individual test.
 // runContext contains information for the current test run
 // ftwTest is the test you want to run
-func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
+func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 	changed := true
 
 	for _, testCase := range ftwTest.Tests {

@@ -24,7 +24,7 @@ import (
 type runCloudTestSuite struct {
 	suite.Suite
 	cfg          *config.FTWConfiguration
-	ftwTests     []test.FTWTest
+	ftwTests     []*test.FTWTest
 	out          *output.Output
 	ts           *httptest.Server
 	dest         *ftwhttp.Destination
