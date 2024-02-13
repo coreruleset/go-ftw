@@ -265,7 +265,7 @@ The list of supported outputs is:
 
 #### Only show failures
 
-If you are only interested to see when tests fail, there is a new flag `--show-only-failures` that does exactly that.
+If you are only interested to see when tests fail, there is a new flag `--show-failures-only` that does exactly that.
 This is helpful when running in CI/CD systems like GHA to get shorter outputs.
 
 ## Additional features
