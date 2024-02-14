@@ -13,7 +13,7 @@ repos:
     - id: my-cmd
       name: go-cyclo
       alias: go-cyclo
-      args: [ go, cyclo, -over=15]
+      args: [ gocyclo, -over=15]
     - id: my-cmd
       name: "Check files aren't using go's testing package"
       entry: 'testing\.T'

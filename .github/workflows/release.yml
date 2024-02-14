@@ -14,6 +14,7 @@ jobs:
     permissions:
       # https://goreleaser.com/ci/actions/#token-permissions
       contents: write
+      packages: write
 
     steps:
       -
@@ -50,4 +51,3 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

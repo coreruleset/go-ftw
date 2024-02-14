@@ -15,8 +15,8 @@ import (
 // GetTestsFromFiles will get the files to be processed.
 // If some file has yaml error, will stop processing and
 // return the error with the partial list of files read.
-func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
-	var tests []FTWTest
+func GetTestsFromFiles(globPattern string) ([]*FTWTest, error) {
+	var tests []*FTWTest
 	var err error
 
 	log.Trace().Msgf("ftw/test: using glob pattern %s", globPattern)
@@ -42,7 +42,7 @@ func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 		}
 
 		ftwTest.FileName = fileName
-		tests = append(tests, *ftwTest)
+		tests = append(tests, ftwTest)
 	}
 
 	if len(tests) == 0 {
