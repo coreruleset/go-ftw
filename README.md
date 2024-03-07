@@ -5,7 +5,6 @@
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/coreruleset/go-ftw)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/coreruleset/go-ftw)](https://pkg.go.dev/github.com/coreruleset/go-ftw)
 [![Release](https://img.shields.io/github/v/release/coreruleset/go-ftw.svg?style=flat-square)](https://github.com/coreruleset/go-ftw/releases/latest)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/coreruleset/go-ftw.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/coreruleset/go-ftw/alerts/)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=coreruleset_go-ftw&metric=coverage)](https://sonarcloud.io/dashboard?id=coreruleset_go-ftw)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=coreruleset_go-ftw&metric=alert_status)](https://sonarcloud.io/dashboard?id=coreruleset_go-ftw)
 
