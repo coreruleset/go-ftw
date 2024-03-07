@@ -7,7 +7,7 @@
 [![Release](https://img.shields.io/github/v/release/coreruleset/go-ftw.svg?style=flat-square)](https://github.com/coreruleset/go-ftw/releases/latest)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=coreruleset_go-ftw&metric=coverage)](https://sonarcloud.io/dashboard?id=coreruleset_go-ftw)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=coreruleset_go-ftw&metric=alert_status)](https://sonarcloud.io/dashboard?id=coreruleset_go-ftw)
-
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/coreruleset/go-ftw/badge)](https://securityscorecards.dev/viewer/?uri=github.com/coreruleset/go-ftw)
 
 Go-FTW is a replacement for [FTW](https://pypi.org/project/ftw/) which had reached its limits in terms of maintainability and performance.
 
