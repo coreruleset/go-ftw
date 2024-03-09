@@ -18,7 +18,7 @@ tests:
               Host: "{{ .TestAddr }}"
           output:
             expect_error: False
-            status: [200]
+            status: 200
   - test_title: "008"
     description: "this test is number 8"
     stages:
@@ -31,7 +31,7 @@ tests:
               Accept: "*/*"
               Host: "localhost"
           output:
-            status: [200]
+            status: 200
   - test_title: "010"
     stages:
       - stage:

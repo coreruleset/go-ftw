@@ -3,17 +3,32 @@
 
 package check
 
+import "slices"
+
+var negativeExpectedStatuses = []int{200, 404, 405}
+
 // AssertStatus will match the expected status list with the one received in the response
 func (c *FTWCheck) AssertStatus(status int) bool {
-	for _, i := range c.expected.Status {
-		if i == status {
-			return true
-		}
+	// No status code expectation defined
+	if c.expected.Status == 0 {
+		return true
 	}
-	return false
+
+	if c.CloudMode() {
+		return c.assertCloudStatus(status)
+	}
+
+	return c.expected.Status == status
+
 }
 
-// StatusCodeRequired checks that the test requires to check the returned status code
-func (c *FTWCheck) StatusCodeRequired() bool {
-	return c.expected.Status != nil
+func (c *FTWCheck) assertCloudStatus(status int) bool {
+	logExpectations := c.expected.Log
+	if (logExpectations.MatchRegex != "" || logExpectations.ExpectId != 0) && status == 403 {
+		return true
+	}
+	if (logExpectations.NoMatchRegex != "" || logExpectations.NoExpectId != 0) && slices.Contains(negativeExpectedStatuses, status) {
+		return true
+	}
+	return c.expected.Status == status
 }

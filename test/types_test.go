@@ -36,7 +36,7 @@ tests:
               Host: "localhost"
           output:
             expect_error: False
-            status: [200]
+            status: 200
   - test_title: "002"
     description: "autocomplete headers by default"
     stages:
@@ -50,7 +50,7 @@ tests:
               Host: "localhost"
           output:
             expect_error: False
-            status: [200]
+            status: 200
   - test_title: "003"
     description: "autocomplete headers by default"
     stages:
@@ -64,7 +64,7 @@ tests:
               Host: "localhost"
           output:
             expect_error: False
-            status: [200]
+            status: 200
 `
 
 var autocompleteHeadersFalseYaml = `---
@@ -87,7 +87,7 @@ tests:
               Host: "localhost"
           output:
             expect_error: False
-            status: [200]
+            status: 200
   - test_title: "002"
     description: "autocomplete headers explicitly"
     stages:
@@ -102,7 +102,7 @@ tests:
               Host: "localhost"
           output:
             expect_error: False
-            status: [200]
+            status: 200
   - test_title: "003"
     description: "autocomplete headers explicitly"
     stages:
@@ -117,7 +117,7 @@ tests:
               Host: "localhost"
           output:
             expect_error: False
-            status: [200]
+            status: 200
 `
 
 var autocompleteHeadersTrueYaml = `---
@@ -140,7 +140,7 @@ tests:
               Host: "localhost"
           output:
             expect_error: False
-            status: [200]
+            status: 200
   - test_title: "002"
     description: "do not autocomplete headers explicitly"
     stages:
@@ -155,7 +155,7 @@ tests:
               Host: "localhost"
           output:
             expect_error: False
-            status: [200]
+            status: 200
   - test_title: "003"
     description: "do not autocomplete headers explicitly"
     stages:
@@ -170,7 +170,7 @@ tests:
               Host: "localhost"
           output:
             expect_error: False
-            status: [200]
+            status: 200
 `
 
 func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicDefault() {

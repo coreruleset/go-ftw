@@ -16,4 +16,4 @@ tests:
               Host: "{{ .TestAddr }}"
           output:
             expect_error: False
-            status: [200]
+            status: 200

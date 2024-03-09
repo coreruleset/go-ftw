@@ -43,7 +43,7 @@ tests:
             uri: "/"
             version: "HTTP/1.1"
           output:
-            status: [200]
+            status: 200
 `
 
 type runCmdTestSuite struct {

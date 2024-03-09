@@ -338,35 +338,32 @@ func overriddenTestResult(c *check.FTWCheck, id string) TestResult {
 // checkResult has the logic for verifying the result for the test sent
 func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError error) TestResult {
 	// Request might return an error, but it could be expected, we check that first
-	if responseError != nil && c.AssertExpectError(responseError) {
-		return Success
+	if expected, succeeded := c.AssertExpectError(responseError); expected {
+		if succeeded {
+			return Success
+		}
+		return Failed
 	}
 
-	// If there was no error, perform the remaining checks
+	// In case of an unexpected error skip other checks
 	if responseError != nil {
 		return Failed
 	}
-	if c.CloudMode() {
-		// Cloud mode assumes that we cannot read logs. So we rely entirely on status code and response
-		c.SetCloudMode()
-	}
 
-	// If we didn't expect an error, check the actual response from the waf
-	if response != nil {
-		if c.StatusCodeRequired() && !c.AssertStatus(response.Parsed.StatusCode) {
-			return Failed
-		}
-		// Check if text is contained in the full raw response
-		if c.ResponseContainsRequired() && !c.AssertResponseContains(response.GetFullResponse()) {
-			return Failed
-		}
-	}
-	// Lastly, check logs
-	if c.LogContainsRequired() && !c.AssertLogContains() {
+	// We should have a response here
+	if response == nil {
+		log.Error().Msg("No response to check")
 		return Failed
 	}
-	// We assume that they were already setup, for comparing
-	if c.NoLogContainsRequired() && !c.AssertNoLogContains() {
+
+	if !c.AssertStatus(response.Parsed.StatusCode) {
+		return Failed
+	}
+	if !c.AssertResponseContains(response.GetFullResponse()) {
+		return Failed
+	}
+	// Lastly, check logs
+	if !c.AssertLogs() {
 		return Failed
 	}
 

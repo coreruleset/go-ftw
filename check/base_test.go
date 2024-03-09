@@ -4,7 +4,6 @@
 package check
 
 import (
-	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -60,7 +59,7 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 	}
 
 	to := test.Output{
-		Status:           []int{200},
+		Status:           200,
 		ResponseContains: "",
 		LogContains:      "nothing",
 		NoLogContains:    "",
@@ -91,40 +90,6 @@ func (s *checkBaseTestSuite) TestForced() {
 
 	s.cfg.TestOverride.Ignore = make(map[*config.FTWRegexp]string)
 	s.Falsef(c.ForcedIgnore("anything"), "Should not find ignored value in empty map")
-
-}
-
-func (s *checkBaseTestSuite) TestCloudMode() {
-	c, err := NewCheck(s.cfg)
-	s.Require().NoError(err)
-
-	s.True(c.CloudMode(), "couldn't detect cloud mode")
-
-	status := []int{200, 301}
-	c.SetExpectStatus(status)
-	c.SetLogContains("this text")
-	// this should override logcontains
-	c.SetCloudMode()
-
-	cloudStatus := c.expected.Status
-	sort.Ints(cloudStatus)
-	res := sort.SearchInts(cloudStatus, 403)
-	s.Equalf(2, res, "couldn't find expected 403 status in %#v -> %d", cloudStatus, res)
-
-	c.SetLogContains("")
-	c.SetNoLogContains("no log contains")
-	// this should override logcontains
-	c.SetCloudMode()
-
-	cloudStatus = c.expected.Status
-	sort.Ints(cloudStatus)
-	found := false
-	for _, n := range cloudStatus {
-		if n == 200 {
-			found = true
-		}
-	}
-	s.True(found, "couldn't find expected 200 status")
 
 }
 

@@ -19,7 +19,7 @@ tests:
               Host: "{{ .TestAddr }}"
           output:
             expect_error: False
-            status: [200]
+            status: 200
   - test_title: "403"
     description: "using log_contains should return a 403 response."
     stages:
@@ -61,7 +61,7 @@ tests:
               Accept: "*/*"
               Host: "localhost"
           output:
-            status: [200]
+            status: 200
   - test_title: "010"
     stages:
       - stage:

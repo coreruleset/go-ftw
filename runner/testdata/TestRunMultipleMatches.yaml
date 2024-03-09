@@ -18,5 +18,5 @@ tests:
                         Accept: "*/*"
                         Host: "{{ .TestAddr }}"
                 output:
-                    status: [200]
+                    status: 200
                     response_contains: "Not contains this"

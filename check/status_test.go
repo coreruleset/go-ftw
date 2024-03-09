@@ -4,6 +4,7 @@
 package check
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -11,23 +12,6 @@ import (
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/utils"
 )
-
-var statusOKTests = []struct {
-	status         int
-	expectedStatus []int
-}{
-	{400, []int{0, 100, 200, 400}},
-	{400, []int{400}},
-}
-
-var statusFailTests = []struct {
-	status         int
-	expectedStatus []int
-}{
-	{400, []int{0, 100, 200}},
-	{200, []int{400}},
-	{200, []int{0}},
-}
 
 type checkStatusTestSuite struct {
 	suite.Suite
@@ -50,26 +34,122 @@ func (s *checkStatusTestSuite) TestStatusOK() {
 	c, err := NewCheck(s.cfg)
 	s.Require().NoError(err)
 
-	for _, expected := range statusOKTests {
-		c.SetExpectStatus(expected.expectedStatus)
-		s.True(c.AssertStatus(expected.status))
-	}
+	c.SetExpectStatus(0)
+	s.checkStatus(c, []int{})
+
+	c.SetExpectStatus(200)
+	s.checkStatus(c, []int{200})
+
+	c.SetExpectStatus(303)
+	s.checkStatus(c, []int{303})
+
+	c.SetExpectStatus(400)
+	s.checkStatus(c, []int{400})
+
+	c.SetExpectStatus(403)
+	s.checkStatus(c, []int{403})
+
+	c.SetExpectStatus(500)
+	s.checkStatus(c, []int{500})
 }
 
-func (s *checkStatusTestSuite) TestStatusFail() {
+// always match since no status expectation set
+func (s *checkStatusTestSuite) TestCloudModePositiveMatch_AlwaysMatch() {
 	c, err := NewCheck(s.cfg)
 	s.Require().NoError(err)
+	c.cfg.RunMode = config.CloudRunMode
+	s.True(c.CloudMode(), "couldn't detect cloud mode")
 
-	for _, expected := range statusFailTests {
-		c.SetExpectStatus(expected.expectedStatus)
-		s.False(c.AssertStatus(expected.status))
-	}
+	// negative regex match set
+	c.SetLogContains("log contains")
+	s.checkStatus(c, []int{})
+
+	// negative regex match and ID negative ID match set
+	c.expected.Log.ExpectId = 123456
+	s.checkStatus(c, []int{})
+
+	// negative ID match set
+	c.SetLogContains("")
+	s.checkStatus(c, []int{})
 }
 
-func (s *checkStatusTestSuite) TestStatusCodeRequired() {
+func (s *checkStatusTestSuite) TestCloudModePositiveMatch() {
 	c, err := NewCheck(s.cfg)
 	s.Require().NoError(err)
+	c.cfg.RunMode = config.CloudRunMode
+	s.True(c.CloudMode(), "couldn't detect cloud mode")
 
-	c.SetExpectStatus([]int{200})
-	s.True(c.StatusCodeRequired(), "status code should be required")
+	// nothing set
+	c.SetExpectStatus(418) // I'm a teapot
+	s.checkStatus(c, []int{418})
+
+	// regex match set
+	c.SetLogContains("this text")
+	s.checkStatus(c, []int{403, 418})
+
+	// regex match and ID match set
+	c.expected.Log.ExpectId = 123456
+	s.checkStatus(c, []int{403, 418})
+
+	// ID match set
+	c.SetLogContains("")
+	s.checkStatus(c, []int{403, 418})
+}
+
+// always match since no status expectation set
+func (s *checkStatusTestSuite) TestCloudModeNegativeMatch_AlwaysMatch() {
+	c, err := NewCheck(s.cfg)
+	s.Require().NoError(err)
+	c.cfg.RunMode = config.CloudRunMode
+	s.True(c.CloudMode(), "couldn't detect cloud mode")
+
+	// negative regex match set
+	c.SetNoLogContains("no log contains")
+	s.checkStatus(c, []int{})
+
+	// negative regex match and ID negative ID match set
+	c.expected.Log.NoExpectId = 123456
+	s.checkStatus(c, []int{})
+
+	// negative ID match set
+	c.SetNoLogContains("")
+	s.checkStatus(c, []int{})
+}
+
+// status expectation set, only match specific statuses
+func (s *checkStatusTestSuite) TestCloudModeNegativeMatch_SpecificMatch() {
+	c, err := NewCheck(s.cfg)
+	s.Require().NoError(err)
+	c.cfg.RunMode = config.CloudRunMode
+	s.True(c.CloudMode(), "couldn't detect cloud mode")
+
+	// nothing set
+	c.SetExpectStatus(418) // I'm a teapot
+	s.checkStatus(c, []int{418})
+
+	// negative regex match set
+	c.SetNoLogContains("no log contains")
+	s.checkStatus(c, []int{200, 404, 418, 405})
+
+	// negative regex match and ID negative ID match set
+	c.expected.Log.NoExpectId = 123456
+	s.checkStatus(c, []int{200, 404, 418, 405})
+
+	// negative ID match set
+	c.SetNoLogContains("")
+	s.checkStatus(c, []int{200, 404, 418, 405})
+}
+
+func (s *checkStatusTestSuite) checkStatus(c *FTWCheck, expectedSuccesses []int) {
+	if len(expectedSuccesses) == 0 {
+		s.True(c.AssertStatus(-1), "Expected successful check because no expectation set")
+		return
+	}
+	for status := 100; status < 600; status++ {
+		if slices.Contains(expectedSuccesses, status) {
+			s.True(c.AssertStatus(status), "Unexpected result for status %d", status)
+		} else {
+			s.False(c.AssertStatus(status), "Unexpected result for status %d", status)
+		}
+	}
 }

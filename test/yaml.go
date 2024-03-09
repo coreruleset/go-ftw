@@ -33,7 +33,7 @@ func DescribeYamlError(yamlError error) string {
 			"A simple example would be like this:\n\n" +
 			"status: 403\n" +
 			"needs to be changed to:\n\n" +
-			"status: [403]\n\n"
+			"status: 403\n\n"
 	}
 	matched, err = regexp.MatchString(`.*cannot unmarshal \[]interface {} into Go struct field FTWTest.Tests of type string.*`, yamlError.Error())
 	if err != nil {

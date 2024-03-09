@@ -16,4 +16,4 @@ tests:
               User-Agent: "ModSecurity CRS 3 Tests"
               Host: "{{ .TestAddr }}"
           output:
-            status: [1234]
+            status: 1234
