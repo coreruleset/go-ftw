@@ -6,6 +6,7 @@ package runner
 import (
 	"errors"
 	"fmt"
+	"golang.org/x/time/rate"
 	"regexp"
 	"time"
 
@@ -39,6 +40,9 @@ func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c RunnerConfig, ou
 	}
 	if c.ReadTimeout != 0 {
 		conf.ReadTimeout = c.ReadTimeout
+	}
+	if c.RateLimit != 0 {
+		conf.Ratelimiter = rate.NewLimiter(rate.Every(c.RateLimit), 1)
 	}
 	client, err := ftwhttp.NewClient(conf)
 	if err != nil {

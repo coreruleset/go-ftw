@@ -6,9 +6,11 @@ package ftwhttp
 import (
 	"bytes"
 	"fmt"
+	"golang.org/x/time/rate"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -32,6 +34,7 @@ func (s *clientTestSuite) SetupTest() {
 	var err error
 	s.client, err = NewClient(NewClientConfig())
 	s.Require().NoError(err)
+	s.Require().Equal(s.client.config.Ratelimiter, rate.NewLimiter(rate.Inf, 1))
 	s.Nil(s.client.Transport, "Transport not expected to be initialized yet")
 }
 
@@ -72,6 +75,18 @@ func (s *clientTestSuite) httpTestServer(secure bool) {
 
 func (s *clientTestSuite) TestNewClient() {
 	s.NotNil(s.client.Jar, "Error creating Client")
+}
+
+func (s *clientTestSuite) TestSetRootCAs() {
+	s.client.SetRootCAs(nil)
+	s.Nil(s.client.config.RootCAs, "Error setting RootCAs")
+}
+
+func (s *clientTestSuite) TestSetRateLimiter() {
+	newRateLimiter := rate.NewLimiter(rate.Every(10*time.Second), 100)
+	s.client.SetRateLimiter(newRateLimiter)
+	rl := s.client.config.Ratelimiter
+	s.Require().Equal(newRateLimiter, rl, "Error setting RateLimiter")
 }
 
 func (s *clientTestSuite) TestConnectDestinationHTTPS() {
@@ -210,4 +225,34 @@ func (s *clientTestSuite) TestNewOrReusedConnectionReusesTransport() {
 	s.Require().NoError(err, "Failed to reuse connection")
 
 	s.Equal(begin, s.client.Transport.duration.begin, "Transport must not be reinitialized when reusing connection")
+}
+
+// TestClientRateLimits tests the rate limiter functionality of the client. Test should take at least 5 seconds to run.
+func (s *clientTestSuite) TestClientRateLimits() {
+	waitTime := 3 * time.Second
+	s.httpTestServer(insecureServer)
+	d, err := DestinationFromString(s.ts.URL)
+	s.Require().NoError(err, "Failed to construct destination from test server")
+
+	newRateLimiter := rate.NewLimiter(rate.Every(waitTime), 1)
+	s.client.SetRateLimiter(newRateLimiter)
+	err = s.client.NewOrReusedConnection(*d)
+	s.Require().NoError(err, "Failed to create new or to reuse connection")
+
+	rl := &RequestLine{
+		Method:  "GET",
+		URI:     "/get",
+		Version: "HTTP/1.1",
+	}
+
+	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	req := NewRequest(rl, h, nil, true)
+
+	// We need to do at least 2 calls so there is a wait between both.
+	before := time.Now()
+	_, err = s.client.Do(*req)
+	_, err = s.client.Do(*req)
+	after := time.Now()
+
+	s.GreaterOrEqual(after.Sub(before), waitTime, "Rate limiter did not work as expected")
 }
