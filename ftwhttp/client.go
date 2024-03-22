@@ -23,7 +23,7 @@ func NewClientConfig() ClientConfig {
 	return ClientConfig{
 		ConnectTimeout: 3 * time.Second,
 		ReadTimeout:    1 * time.Second,
-		Ratelimiter:    rate.NewLimiter(rate.Inf, 1),
+		RateLimiter:    rate.NewLimiter(rate.Inf, 1),
 	}
 }
 
@@ -49,7 +49,7 @@ func (c *Client) SetRootCAs(cas *x509.CertPool) {
 
 // SetRateLimiter sets the rate limiter for the client.
 func (c *Client) SetRateLimiter(limiter *rate.Limiter) {
-	c.config.Ratelimiter = limiter
+	c.config.RateLimiter = limiter
 }
 
 // NewConnection creates a new Connection based on a Destination
@@ -118,7 +118,7 @@ func (c *Client) dial(d Destination) (net.Conn, error) {
 func (c *Client) Do(req Request) (*Response, error) {
 	var response *Response
 
-	err := c.config.Ratelimiter.Wait(context.Background()) // This is a blocking call. Honors the rate limit
+	err := c.config.RateLimiter.Wait(context.Background()) // This is a blocking call. Honors the rate limit
 	if err != nil {
 		log.Error().Msgf("http/client: error waiting on rate limiter: %s\n", err.Error())
 		return response, err

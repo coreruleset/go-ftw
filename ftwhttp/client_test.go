@@ -34,7 +34,7 @@ func (s *clientTestSuite) SetupTest() {
 	var err error
 	s.client, err = NewClient(NewClientConfig())
 	s.Require().NoError(err)
-	s.Require().Equal(s.client.config.Ratelimiter, rate.NewLimiter(rate.Inf, 1))
+	s.Require().Equal(s.client.config.RateLimiter, rate.NewLimiter(rate.Inf, 1))
 	s.Nil(s.client.Transport, "Transport not expected to be initialized yet")
 }
 
@@ -85,7 +85,7 @@ func (s *clientTestSuite) TestSetRootCAs() {
 func (s *clientTestSuite) TestSetRateLimiter() {
 	newRateLimiter := rate.NewLimiter(rate.Every(10*time.Second), 100)
 	s.client.SetRateLimiter(newRateLimiter)
-	rl := s.client.config.Ratelimiter
+	rl := s.client.config.RateLimiter
 	s.Require().Equal(newRateLimiter, rl, "Error setting RateLimiter")
 }
 

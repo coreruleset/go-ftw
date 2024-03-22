@@ -42,7 +42,7 @@ func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c RunnerConfig, ou
 		conf.ReadTimeout = c.ReadTimeout
 	}
 	if c.RateLimit != 0 {
-		conf.Ratelimiter = rate.NewLimiter(rate.Every(c.RateLimit), 1)
+		conf.RateLimiter = rate.NewLimiter(rate.Every(c.RateLimit), 1)
 	}
 	client, err := ftwhttp.NewClient(conf)
 	if err != nil {
