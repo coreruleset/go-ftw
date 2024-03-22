@@ -227,7 +227,7 @@ func (s *clientTestSuite) TestNewOrReusedConnectionReusesTransport() {
 	s.Equal(begin, s.client.Transport.duration.begin, "Transport must not be reinitialized when reusing connection")
 }
 
-// TestClientRateLimits tests the rate limiter functionality of the client. Test should take at least 5 seconds to run.
+// TestClientRateLimits tests the rate limiter functionality of the client. Test should take at least 3 seconds to run.
 func (s *clientTestSuite) TestClientRateLimits() {
 	waitTime := 3 * time.Second
 	s.httpTestServer(insecureServer)

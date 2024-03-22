@@ -21,7 +21,7 @@ type ClientConfig struct {
 	// RootCAs is the set of root CA certificates that is used to verify server
 	RootCAs *x509.CertPool
 	// RateLimiter is the rate limiter to use for requests.
-	Ratelimiter *rate.Limiter
+	RateLimiter *rate.Limiter
 }
 
 // Client is the top level abstraction in http
