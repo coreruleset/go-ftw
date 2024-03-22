@@ -31,8 +31,8 @@ func NewRunCommand() *cobra.Command {
 		RunE:  runE,
 	}
 
-	runCmd.Flags().StringP("exclude", "e", "", "exclude tests matching this Go regexp (e.g. to exclude all tests beginning with \"91\", use \"91.*\"). \nIf you want more permanent exclusion, check the 'exclude' option in the config file.")
-	runCmd.Flags().StringP("include", "i", "", "include only tests matching this Go regexp (e.g. to include only tests beginning with \"91\", use \"91.*\"). \\nIf you want more permanent inclusion, check the 'include' option in the config file.\"")
+	runCmd.Flags().StringP("exclude", "e", "", "exclude tests matching this Go regular expression (e.g. to exclude all tests beginning with \"91\", use \"^91.*\"). \nIf you want more permanent exclusion, check the 'exclude' option in the config file.")
+	runCmd.Flags().StringP("include", "i", "", "include only tests matching this Go regular expression (e.g. to include only tests beginning with \"91\", use \"^91.*\"). \\nIf you want more permanent inclusion, check the 'include' option in the config file.\"")
 	_ = runCmd.Flags().MarkDeprecated("id", "This flag will be removed in v2.0. Use --include matching your test only.")
 	runCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
 	runCmd.Flags().StringP("output", "o", "normal", "output type for ftw tests. \"normal\" is the default.")

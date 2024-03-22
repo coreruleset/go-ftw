@@ -18,7 +18,7 @@ var testData = map[string]string{
 	"TestNewConfigFromFile": `---
 logfile: 'tests/logs/modsec2-apache/apache2/error.log'
 include:
-    '9*': 'Include all tests starting with 9'
+    '^9.*': 'Include all tests starting with 9'
 exclude:
     '^920400-2$': 'Exclude this test'
 testoverride:
@@ -129,7 +129,7 @@ func (s *fileTestSuite) TestNewConfigFromFile() {
 	s.NotEmpty(s.cfg.TestOverride.Overrides, "Ignore list must not be empty")
 
 	for id, text := range s.cfg.IncludeTests {
-		s.Require().Contains((*regexp.Regexp)(id).String(), "9*", "Looks like we could not find item to include")
+		s.Require().Contains((*regexp.Regexp)(id).String(), "^9.*", "Looks like we could not find item to include")
 		s.Require().Equal("Include all tests starting with 9", text, "Text doesn't match")
 	}
 	for id, text := range s.cfg.TestOverride.Ignore {
