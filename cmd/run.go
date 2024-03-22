@@ -54,6 +54,7 @@ func NewRunCommand() *cobra.Command {
 	runCmd.Flags().Duration("wait-for-connection-timeout", http.DefaultConnectionTimeout, "Http connection timeout, The timeout includes connection time, any redirects, and reading the response body.")
 	runCmd.Flags().Bool("wait-for-insecure-skip-tls-verify", http.DefaultInsecureSkipTLSVerify, "Skips tls certificate checks for the HTTPS request.")
 	runCmd.Flags().Bool("wait-for-no-redirect", http.DefaultNoRedirect, "Do not follow HTTP 3xx redirects.")
+	runCmd.Flags().DurationP("rate-limit", "r", 0, "Limit the request rate to the server to 1 request per specified duration. 0 is the default, and disables rate limiting.")
 
 	return runCmd
 }
@@ -83,6 +84,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	connectionTimeout, _ := cmd.Flags().GetDuration("wait-for-connection-timeout")
 	insecureSkipTLSVerify, _ := cmd.Flags().GetBool("wait-for-insecure-skip-tls-verify")
 	noRedirect, _ := cmd.Flags().GetBool("wait-for-no-redirect")
+	rateLimit, _ := cmd.Flags().GetDuration("rate-limit")
 
 	if exclude != "" && include != "" {
 		cmd.SilenceUsage = false
@@ -161,6 +163,7 @@ func runE(cmd *cobra.Command, args []string) error {
 		ShowOnlyFailed: showOnlyFailed,
 		ConnectTimeout: connectTimeout,
 		ReadTimeout:    readTimeout,
+		RateLimit:      rateLimit,
 	}, out)
 
 	if err != nil {

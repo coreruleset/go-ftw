@@ -29,6 +29,8 @@ type RunnerConfig struct {
 	ConnectTimeout time.Duration
 	// ReadTimeout is the timeout for receiving responses during test execution.
 	ReadTimeout time.Duration
+	// RateLimit is the rate limit for requests to the server. 0 is unlimited.
+	RateLimit time.Duration
 }
 
 // TestRunContext carries information about the current test run.

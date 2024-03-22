@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 // ClientConfig provides configuration options for the HTTP client.
@@ -18,6 +20,8 @@ type ClientConfig struct {
 	ReadTimeout time.Duration
 	// RootCAs is the set of root CA certificates that is used to verify server
 	RootCAs *x509.CertPool
+	// RateLimiter is the rate limiter to use for requests.
+	RateLimiter *rate.Limiter
 }
 
 // Client is the top level abstraction in http
