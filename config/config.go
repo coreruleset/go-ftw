@@ -23,6 +23,8 @@ func NewDefaultConfig() *FTWConfiguration {
 		RunMode:             DefaultRunMode,
 		MaxMarkerRetries:    DefaultMaxMarkerRetries,
 		MaxMarkerLogLines:   DefaultMaxMarkerLogLines,
+		IncludeTests:        make(map[*FTWRegexp]string),
+		ExcludeTests:        make(map[*FTWRegexp]string),
 	}
 	return cfg
 }

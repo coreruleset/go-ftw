@@ -17,12 +17,16 @@ import (
 var testData = map[string]string{
 	"TestNewConfigFromFile": `---
 logfile: 'tests/logs/modsec2-apache/apache2/error.log'
+include:
+    '^9.*': 'Include all tests starting with 9'
+exclude:
+    '^920400-2$': 'Exclude this test'
 testoverride:
   input:
     dest_addr: 'httpbingo.org'
     port: '1234'
   ignore:
-    '920400-1$': 'This test must be ignored'
+    '920400-1$': 'This test result must be ignored'
 `,
 	"TestNewConfigFromFileRunMode": `---
 mode: 'cloud'
@@ -109,18 +113,28 @@ func (s *baseTestSuite) TestNewDefaultConfig() {
 
 func (s *fileTestSuite) TestNewConfigBadFileConfig() {
 	filename, _ := utils.CreateTempFileWithContent(testData["jsonConfig"], "test-*.yaml")
-	defer os.Remove(filename)
+	defer func(name string) {
+		err := os.Remove(name)
+		if err != nil {
+			s.T().Logf("Error removing file %s: %s", name, err.Error())
+		}
+	}(filename)
 	cfg, err := NewConfigFromFile(filename)
 	s.Require().NoError(err)
 	s.NotNil(cfg)
 }
 
 func (s *fileTestSuite) TestNewConfigFromFile() {
+	s.NotEmpty(s.cfg.IncludeTests, "Include list must not be empty")
 	s.NotEmpty(s.cfg.TestOverride.Overrides, "Ignore list must not be empty")
 
+	for id, text := range s.cfg.IncludeTests {
+		s.Require().Contains((*regexp.Regexp)(id).String(), "^9.*", "Looks like we could not find item to include")
+		s.Require().Equal("Include all tests starting with 9", text, "Text doesn't match")
+	}
 	for id, text := range s.cfg.TestOverride.Ignore {
 		s.Contains((*regexp.Regexp)(id).String(), "920400-1$", "Looks like we could not find item to ignore")
-		s.Equal("This test must be ignored", text, "Text doesn't match")
+		s.Equal("This test result must be ignored", text, "Text doesn't match")
 	}
 
 	overrides := s.cfg.TestOverride.Overrides
@@ -152,12 +166,13 @@ func (s *fileTestSuite) TestNewConfigFromString() {
 func (s *fileTestSuite) TestNewConfigFromNoneExistingFile() {
 	cfg, err := NewConfigFromFile("nonsense")
 	s.Error(err)
-	s.Nil(cfg)
+	s.Require().Nil(cfg)
 }
 
 func (s *fileTestSuite) TestNewConfigFromEnv() {
 	// Set some environment so it gets merged with conf
-	os.Setenv("FTW_LOGFILE", "koanf")
+	err := os.Setenv("FTW_LOGFILE", "koanf")
+	s.Require().NoError(err)
 
 	cfg, err := NewConfigFromEnv()
 	s.Require().NoError(err)
