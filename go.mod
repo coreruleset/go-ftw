@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/zerologr v1.2.3
 	github.com/goccy/go-yaml v1.9.2
 	github.com/google/uuid v1.6.0
-	github.com/icza/backscanner v0.0.0-20240221180818-f23e3ba0e79f
+	github.com/icza/backscanner v0.0.0-20240328210400-b40c3a86dec5
 	github.com/knadh/koanf/parsers/yaml v0.1.0
 	github.com/knadh/koanf/providers/env v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
