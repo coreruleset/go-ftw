@@ -322,6 +322,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideNoAutocompleteHeaders() {
 		AutocompleteHeaders: func() *bool { b := false; return &b }(),
 	}
 	s.Nil(s.cfg.TestOverride.Overrides.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.Nil(s.cfg.TestOverride.Overrides.StopMagic)
 	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
 
@@ -333,6 +334,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideNoStopMagic() {
 		StopMagic: func() *bool { b := true; return &b }(),
 	}
 	s.Nil(s.cfg.TestOverride.Overrides.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.Nil(s.cfg.TestOverride.Overrides.StopMagic)
 	test.ApplyInputOverrides(&s.cfg.TestOverride.Overrides, &testInput)
 
