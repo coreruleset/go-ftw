@@ -25,3 +25,27 @@ jobs:
 
       - name: Run Go Tests
         run: go test -coverprofile=coverage.out ./...
+
+      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+        with:
+          repository: coreruleset/coreruleset
+          path: coreruleset
+          fetch-depth: 0
+
+      - name: Run CRS regression tests
+        run: |
+          cd coreruleset
+          mkdir -p tests/logs/modsec2-apache/{nginx,apache2}
+          docker-compose -f ./tests/docker-compose.yml up -d modsec2-apache
+          docker-compose -f ./tests/docker-compose.yml logs
+          [ $(docker inspect modsec2-apache --format='{{.State.Running}}') = 'true' ]
+          cd ..
+          go run main.go check -d coreruleset/tests/regression/tests
+          go run main.go run -d coreruleset/tests/regression/tests --show-failures-only
+        env:
+          FTW_LOGFILE: 'coreruleset/tests/logs/modsec2-apache/error.log'
+
+      - name: Clean docker-compose
+        run: |
+          cd coreruleset
+          docker-compose -f ./tests/docker-compose.yml down -t 0
