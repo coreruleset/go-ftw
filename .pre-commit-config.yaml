@@ -3,9 +3,9 @@ repos:
   rev: v1.0.0-rc.1
   hooks:
     - id: go-fmt
-    - id: go-vet
+    - id: go-vet-mod
     - id: go-imports
-    - id: golangci-lint
+    - id: golangci-lint-mod
     - id: go-critic
     - id: go-test-mod
     - id: go-build-mod
