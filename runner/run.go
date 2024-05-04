@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	"github.com/coreruleset/ftw-tests-schema/types"
+	schema "github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
@@ -82,13 +82,14 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 
 	for _, testCase := range ftwTest.Tests {
 		// if we received a particular testid, skip until we find it
-		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, *ftwTest.Meta.Enabled) {
-			runContext.Stats.addResultToStats(Skipped, testCase.TestTitle, 0)
-			if !*ftwTest.Meta.Enabled && !runContext.ShowOnlyFailed {
-				runContext.Output.Println("\tskipping %s - (enabled: false) in file.", testCase.TestTitle)
+		if needToSkipTest(runContext.Include, runContext.Exclude, &testCase) {
+			runContext.Stats.addResultToStats(Skipped, &testCase, 0)
+			if !runContext.ShowOnlyFailed {
+				runContext.Output.Println("\tskipping %s - %s in file.", testCase.RuleId, testCase.TestId)
 			}
 			continue
 		}
+		test.ApplyPlatformOverrides(runContext.Config, &testCase)
 		// this is just for printing once the next test
 		if changed && !runContext.ShowOnlyFailed {
 			runContext.Output.Println(runContext.Output.Message("=> executing tests in file %s"), ftwTest.Meta.Name)
@@ -104,10 +105,10 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 			if err != nil {
 				return err
 			}
-			if err := RunStage(runContext, ftwCheck, testCase, stage.SD); err != nil {
+			if err := RunStage(runContext, ftwCheck, testCase, stage); err != nil {
 				if err.Error() == "retry-once" {
-					log.Info().Msgf("Retrying test once: %s", testCase.TestTitle)
-					if err = RunStage(runContext, ftwCheck, testCase, stage.SD); err != nil {
+					log.Info().Msgf("Retrying test once: %s", testCase.IdString())
+					if err = RunStage(runContext, ftwCheck, testCase, stage); err != nil {
 						return err
 					}
 				} else {
@@ -127,12 +128,12 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 // stage is the stage you want to run
 //
 //gocyclo:ignore
-func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase types.Test, stage types.StageData) error {
+func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase schema.Test, stage schema.Stage) error {
 	stageStartTime := time.Now()
 	stageID := uuid.NewString()
 	// Apply global overrides initially
 	testInput := (test.Input)(stage.Input)
-	test.ApplyInputOverrides(&runContext.Config.TestOverride.Overrides, &testInput)
+	test.ApplyInputOverrides(runContext.Config, &testInput)
 	expectedOutput := stage.Output
 	expectErr := false
 	if expectedOutput.ExpectError != nil {
@@ -145,8 +146,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase typ
 	}
 
 	// Do not even run test if result is overridden. Just use the override and display the overridden result.
-	if overridden := overriddenTestResult(ftwCheck, testCase.TestTitle); overridden != Failed {
-		runContext.Stats.addResultToStats(overridden, testCase.TestTitle, 0)
+	if overridden := overriddenTestResult(ftwCheck, &testCase); overridden != Failed {
+		runContext.Stats.addResultToStats(overridden, &testCase, 0)
 		displayResult(runContext, overridden, time.Duration(0), time.Duration(0))
 		return nil
 	}
@@ -205,7 +206,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase typ
 	roundTripTime := runContext.Client.GetRoundTripTime().RoundTripDuration()
 	stageTime := time.Since(stageStartTime)
 
-	runContext.Stats.addResultToStats(testResult, testCase.TestTitle, stageTime)
+	runContext.Stats.addResultToStats(testResult, &testCase, stageTime)
 
 	runContext.Result = testResult
 
@@ -256,15 +257,10 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.Config.LogFile)
 }
 
-func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string, enabled bool) bool {
-	// skip disabled tests
-	if !enabled {
-		return true
-	}
-
+func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, testCase *schema.Test) bool {
 	// never skip enabled explicit inclusions
 	if include != nil {
-		if include.MatchString(title) {
+		if include.MatchString(testCase.IdString()) {
 			// inclusion always wins over exclusion
 			return false
 		}
@@ -274,7 +270,7 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string
 	// if we need to exclude tests, and the title matches,
 	// it needs to be skipped
 	if exclude != nil {
-		if exclude.MatchString(title) {
+		if exclude.MatchString(testCase.IdString()) {
 			result = true
 		}
 	}
@@ -282,7 +278,7 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string
 	// if we need to include tests, but the title does not match
 	// it needs to be skipped
 	if include != nil {
-		if !include.MatchString(title) {
+		if !include.MatchString(testCase.IdString()) {
 			result = true
 		}
 	}
@@ -319,16 +315,16 @@ func displayResult(rc *TestRunContext, result TestResult, roundTripTime time.Dur
 	}
 }
 
-func overriddenTestResult(c *check.FTWCheck, id string) TestResult {
-	if c.ForcedIgnore(id) {
+func overriddenTestResult(c *check.FTWCheck, testCase *schema.Test) TestResult {
+	if c.ForcedIgnore(testCase) {
 		return Ignored
 	}
 
-	if c.ForcedFail(id) {
+	if c.ForcedFail(testCase) {
 		return ForceFail
 	}
 
-	if c.ForcedPass(id) {
+	if c.ForcedPass(testCase) {
 		return ForcePass
 	}
 

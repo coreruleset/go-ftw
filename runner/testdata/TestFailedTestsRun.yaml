@@ -5,17 +5,15 @@ meta:
   name: "TestFailedTestsRun.yaml"
   description: "Example Test"
 tests:
-  - test_title: "990"
+  - test_id: 990
     description: test that fails
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            # -1 designates port value must be replaced by test setup
-            port: {{ .TestPort }}
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Accept: "*/*"
-              Host: "none.host"
-          output:
-            status: 413
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "none.host"
+        output:
+          status: 413

@@ -24,10 +24,10 @@ func (c *FTWCheck) AssertStatus(status int) bool {
 
 func (c *FTWCheck) assertCloudStatus(status int) bool {
 	logExpectations := c.expected.Log
-	if (logExpectations.MatchRegex != "" || logExpectations.ExpectId != 0) && status == 403 {
+	if (logExpectations.MatchRegex != "" || len(logExpectations.ExpectIds) > 0) && status == 403 {
 		return true
 	}
-	if (logExpectations.NoMatchRegex != "" || logExpectations.NoExpectId != 0) && slices.Contains(negativeExpectedStatuses, status) {
+	if (logExpectations.NoMatchRegex != "" || len(logExpectations.NoExpectIds) > 0) && slices.Contains(negativeExpectedStatuses, status) {
 		return true
 	}
 	return c.expected.Status == status

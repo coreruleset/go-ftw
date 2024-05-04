@@ -28,22 +28,21 @@ meta:
   description: "Test file for go-ftw"
 tests:
   - # Standard GET request
-    test_title: 1234
+    test_id: 1234
     stages:
-      - stage:
-          input:
-            dest_addr: "127.0.0.1"
-            method: "GET"
-            port: {{ .Port }}
-            headers:
-              User-Agent: "OWASP CRS test agent"
-              Host: "localhost"
-              Accept: "*/*"
-            protocol: "http"
-            uri: "/"
-            version: "HTTP/1.1"
-          output:
-            status: 200
+      - input:
+          dest_addr: "127.0.0.1"
+          method: "GET"
+          port: {{ .Port }}
+          headers:
+            User-Agent: "OWASP CRS test agent"
+            Host: "localhost"
+            Accept: "*/*"
+          protocol: "http"
+          uri: "/"
+          version: "HTTP/1.1"
+        output:
+          status: 200
 `
 
 type runCmdTestSuite struct {
@@ -69,12 +68,10 @@ func (s *runCmdTestSuite) setupMockHTTPServer() *httptest.Server {
 }
 
 func (s *runCmdTestSuite) SetupTest() {
-	tempDir, err := os.MkdirTemp("", "go-ftw-tests")
-	s.Require().NoError(err)
-	s.tempDir = tempDir
+	s.tempDir = s.T().TempDir()
 
 	s.testHTTPServer = s.setupMockHTTPServer()
-	err = os.MkdirAll(s.tempDir, fs.ModePerm)
+	err := os.MkdirAll(s.tempDir, fs.ModePerm)
 	s.Require().NoError(err)
 	testUrl, err := url.Parse(s.testHTTPServer.URL)
 	s.Require().NoError(err)

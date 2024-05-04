@@ -5,15 +5,14 @@ meta:
   name: "TestDisabledRun.yaml"
   description: "we do not care, this test is disabled"
 tests:
-  - test_title: "001"
+  - test_id: 1
     description: "access real external site"
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            port:  {{ .TestPort }}
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Host: "{{ .TestAddr }}"
-          output:
-            status: 1234
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port:  {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Host: "{{ .TestAddr }}"
+        output:
+          status: 1234

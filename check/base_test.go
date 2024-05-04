@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	schema "github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/utils"
@@ -78,18 +79,18 @@ func (s *checkBaseTestSuite) TestForced() {
 	c, err := NewCheck(s.cfg)
 	s.Require().NoError(err)
 
-	s.True(c.ForcedIgnore("942200-1"), "Can't find ignored value")
+	s.True(c.ForcedIgnore(&schema.Test{RuleId: 942200, TestId: 1}), "Can't find ignored value")
 
-	s.False(c.ForcedFail("1245"), "Value should not be found")
+	s.False(c.ForcedFail(&schema.Test{RuleId: 12345, TestId: 1}), "Value should not be found")
 
-	s.False(c.ForcedPass("1234"), "Value should not be found")
+	s.False(c.ForcedPass(&schema.Test{RuleId: 12345, TestId: 1}), "Value should not be found")
 
-	s.True(c.ForcedPass("1245"), "Value should be found")
+	s.True(c.ForcedPass(&schema.Test{RuleId: 1245, TestId: 1}), "Value should be found")
 
-	s.True(c.ForcedFail("6789"), "Value should be found")
+	s.True(c.ForcedFail(&schema.Test{RuleId: 6789, TestId: 1}), "Value should be found")
 
 	s.cfg.TestOverride.Ignore = make(map[*config.FTWRegexp]string)
-	s.Falsef(c.ForcedIgnore("anything"), "Should not find ignored value in empty map")
+	s.Falsef(c.ForcedIgnore(&schema.Test{RuleId: 1234, TestId: 1}), "Should not find ignored value in empty map")
 
 }
 

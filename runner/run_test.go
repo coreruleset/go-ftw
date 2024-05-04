@@ -52,11 +52,11 @@ testoverride:
 	"TestIgnoredTestsRun": `---
 testoverride:
   ignore:
-    "001": "This test result must be ignored"
+    ".*-1": "This test result must be ignored"
   forcefail:
-    "008": "This test should pass, but it is going to fail"
+    ".*-8": "This test should pass, but it is going to fail"
   forcepass:
-    "099": "This test failed, but it shall pass!"
+    ".*-99": "This test failed, but it shall pass!"
 `,
 	"TestOverrideRun": `---
 testoverride:
@@ -236,7 +236,8 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	}
 
 	// create a temporary file to hold the test
-	testFileContents, err := os.CreateTemp("testdata", "mock-test-*.yaml")
+	tempDir := s.T().TempDir()
+	testFileContents, err := os.CreateTemp(tempDir, "mock-test-*.yaml")
 	s.Require().NoError(err, "cannot create temporary file")
 	err = tmpl.Execute(testFileContents, vars)
 	s.Require().NoError(err, "cannot execute template")

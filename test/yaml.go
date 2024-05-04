@@ -10,14 +10,14 @@ import (
 )
 
 // GetTestFromYaml will get the tests to be processed from a YAML string.
-func GetTestFromYaml(testYaml []byte) (ftwTest *FTWTest, err error) {
+func GetTestFromYaml(testYaml []byte, fileName string) (ftwTest *FTWTest, err error) {
 	ftwTest = &FTWTest{}
 	err = yaml.Unmarshal(testYaml, ftwTest)
 	if err != nil {
 		return &FTWTest{}, err
 	}
 
-	postLoadTestFTWTest(ftwTest)
+	postLoadTestFTWTest(ftwTest, fileName)
 
 	return ftwTest, nil
 }

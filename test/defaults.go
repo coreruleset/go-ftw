@@ -13,7 +13,10 @@ import (
 
 type Input schema.Input
 type Output schema.Output
-type FTWTest schema.FTWTest
+type FTWTest struct {
+	schema.FTWTest `yaml:",inline"`
+	FileName       string
+}
 
 // GetMethod returns the proper semantic when the field is empty
 func (i *Input) GetMethod() string {

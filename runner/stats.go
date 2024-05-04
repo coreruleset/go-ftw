@@ -9,6 +9,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	schema "github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/coreruleset/go-ftw/output"
 )
 
@@ -63,7 +64,9 @@ func (stats *RunStats) TotalFailed() int {
 	return len(stats.Failed) + len(stats.ForcedFail)
 }
 
-func (stats *RunStats) addResultToStats(result TestResult, title string, testTime time.Duration) {
+func (stats *RunStats) addResultToStats(result TestResult, testCase *schema.Test, testTime time.Duration) {
+	title := testCase.IdString()
+
 	switch result {
 	case Success:
 		stats.Success = append(stats.Success, title)

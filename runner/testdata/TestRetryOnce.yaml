@@ -5,18 +5,17 @@ meta:
   name: "TestRetryOnce.yaml"
   description: "Example Test"
 tests:
-  - test_title: "001"
+  - test_id: 1
     description: "used to simulate race condition in 980170"
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            port: {{ .TestPort }}
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Accept: "*/*"
-              Host: "{{ .TestAddr }}"
-          output:
-            expect_error: false
-            retry_once: true
-            log_contains: id "980170"
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "{{ .TestAddr }}"
+        output:
+          expect_error: false
+          retry_once: true
+          log_contains: id "980170"

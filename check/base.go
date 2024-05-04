@@ -6,6 +6,7 @@ package check
 import (
 	"bytes"
 
+	schema "github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/waflog"
@@ -65,30 +66,30 @@ func (c *FTWCheck) SetNoLogContains(regex string) {
 	c.expected.Log.NoMatchRegex = regex
 }
 
-// ForcedIgnore check if this id need to be ignored from results
-func (c *FTWCheck) ForcedIgnore(id string) bool {
+// ForcedIgnore check if this ID need to be ignored from results
+func (c *FTWCheck) ForcedIgnore(testCase *schema.Test) bool {
 	for re := range c.cfg.TestOverride.Ignore {
-		if re.MatchString(id) {
+		if re.MatchString(testCase.IdString()) {
 			return true
 		}
 	}
 	return false
 }
 
-// ForcedPass check if this id need to be ignored from results
-func (c *FTWCheck) ForcedPass(id string) bool {
+// ForcedPass check if this ID need to be ignored from results
+func (c *FTWCheck) ForcedPass(testCase *schema.Test) bool {
 	for re := range c.cfg.TestOverride.ForcePass {
-		if re.MatchString(id) {
+		if re.MatchString(testCase.IdString()) {
 			return true
 		}
 	}
 	return false
 }
 
-// ForcedFail check if this id need to be ignored from results
-func (c *FTWCheck) ForcedFail(id string) bool {
+// ForcedFail check if this ID need to be ignored from results
+func (c *FTWCheck) ForcedFail(testCase *schema.Test) bool {
 	for re := range c.cfg.TestOverride.ForceFail {
-		if re.MatchString(id) {
+		if re.MatchString(testCase.IdString()) {
 			return true
 		}
 	}

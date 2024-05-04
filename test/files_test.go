@@ -19,35 +19,31 @@ var yamlTest = `
     enabled: true
     name: "911100.yaml"
     description: "Description"
+  rule_id: 911100
   tests:
-    -
-      test_title: 911100-1
+    - test_id: 1
       stages:
-        -
-          stage:
-            input:
-              autocomplete_headers: false
-              dest_addr: "127.0.0.1"
-              port: 80
-              headers:
-                  User-Agent: "ModSecurity CRS 3 Tests"
-                  Host: "localhost"
-            output:
-              no_log_contains: "id \"911100\""
+        - input:
+            autocomplete_headers: false
+            dest_addr: "127.0.0.1"
+            port: 80
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Host: "localhost"
+          output:
+            no_log_contains: "id \"911100\""
     -
-      test_title: 911100-2
+      test_id: 2
       stages:
-        -
-          stage:
-            input:
-              dest_addr: "127.0.0.1"
-              port: 80
-              method: "OPTIONS"
-              headers:
-                  User-Agent: "ModSecurity CRS 3 Tests"
-                  Host: "localhost"
-            output:
-              no_log_contains: "id \"911100\""
+        - input:
+            dest_addr: "127.0.0.1"
+            port: 80
+            method: "OPTIONS"
+            headers:
+              User-Agent: "ModSecurity CRS 3 Tests"
+              Host: "localhost"
+          output:
+            no_log_contains: "id \"911100\""
 `
 
 var wrongYamlTest = `
@@ -67,14 +63,13 @@ func (s *filesTestSuite) TestGetTestFromYAML() {
 	tests, _ := GetTestsFromFiles(filename)
 
 	for _, ft := range tests {
-		s.Equal(filename, ft.FileName)
 		s.Equal("tester", ft.Meta.Author)
 		s.Equal("911100.yaml", ft.Meta.Name)
 
-		re := regexp.MustCompile("911100*")
+		re := regexp.MustCompile("911100.*")
 
 		for _, test := range ft.Tests {
-			s.True(re.MatchString(test.TestTitle), "Can't read test title")
+			s.True(re.MatchString(test.IdString()), "Can't read test identifier")
 		}
 	}
 }

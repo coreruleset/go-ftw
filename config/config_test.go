@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/utils"
 )
 
@@ -219,7 +218,7 @@ func (s *fileTestSuite) TestNewDefaultConfigWithParams() {
 	cfg.WithLogfile("mylogfile.log")
 	s.Equal("mylogfile.log", cfg.LogFile)
 	overrides := FTWTestOverride{
-		Overrides: test.Overrides{},
+		Overrides: Overrides{},
 		Ignore:    nil,
 		ForcePass: nil,
 		ForceFail: nil,
@@ -235,8 +234,63 @@ func (s *fileTestSuite) TestNewDefaultConfigWithParams() {
 func (s *baseTestSuite) TestWithMaxMarker() {
 	cfg := NewDefaultConfig()
 	cfg.WithMaxMarkerRetries(19)
-	s.Equal(19, cfg.MaxMarkerRetries)
+	s.Equal(uint(19), cfg.MaxMarkerRetries)
 	cfg.WithMaxMarkerLogLines(111)
-	s.Equal(111, cfg.MaxMarkerLogLines)
+	s.Equal(uint(111), cfg.MaxMarkerLogLines)
 
+}
+
+func (s *baseTestSuite) TestPlatformOverridesDefaults() {
+	overrides := NewDefaultConfig().PlatformOverrides
+	meta := overrides.Meta
+	s.Empty(meta.Annotations)
+	s.Empty(meta.Engine)
+	s.Empty(meta.Platform)
+	s.Empty(overrides.Version)
+	s.Empty(overrides.TestOverrides)
+}
+
+func (s *baseTestSuite) TestLoadPlatformOverrides() {
+	tempDir := s.T().TempDir()
+	overridesFile, err := os.CreateTemp(tempDir, "overrides.yaml")
+	s.Require().NoError(err)
+	overridesFile.WriteString(`---
+version: "v0.0.0"
+meta:
+  engine: "coraza"
+  platform: "go"
+  annotations:
+    - purpose: "Test loading overrides"
+test_overrides:
+  - rule_id: 920100
+    test_ids: [4, 8]
+    reason: 'Invalid uri, Coraza not reached - 404 page not found'
+    output:
+      status: 404
+      log:
+        match_regex: 'match.*me'
+      response_contains: '404'`)
+
+	cfg := NewDefaultConfig()
+	err = cfg.LoadPlatformOverrides(overridesFile.Name())
+	s.Require().NoError(err)
+
+	overrides := cfg.PlatformOverrides
+	meta := overrides.Meta
+	s.Equal("v0.0.0", overrides.Version)
+	s.Equal("coraza", meta.Engine)
+	s.Equal("go", meta.Platform)
+	s.Len(meta.Annotations, 1)
+	value, ok := meta.Annotations["purpose"]
+	s.True(ok)
+	s.Equal("Test loading overrides", value)
+
+	s.Len(overrides.TestOverrides, 1)
+	entry := overrides.TestOverrides[0]
+	s.Equal(uint(920100), entry.RuleId)
+	s.ElementsMatch([]uint{4, 8}, entry.TestIds)
+	s.Equal("Invalid uri, Coraza not reached - 404 page not found", entry.Reason)
+	s.Equal(404, entry.Output.Status)
+	s.Equal("match.*me", entry.Output.Log.MatchRegex)
+	s.Equal("404", entry.Output.ResponseContains)
 }

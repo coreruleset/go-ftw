@@ -4,6 +4,7 @@ meta:
   enabled: true
   name: "920420.yaml"
   description: "Description"
+rule_id: 920420
 tests:
   - test_title: 920420-1
     stages:
