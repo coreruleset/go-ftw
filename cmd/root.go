@@ -73,5 +73,8 @@ func initConfig() {
 	if cloud {
 		cfg.RunMode = config.CloudRunMode
 	}
-	cfg.LoadPlatformOverrides(overridesFile)
+	err = cfg.LoadPlatformOverrides(overridesFile)
+	if err != nil {
+		log.Fatal("failed to load platform overrides")
+	}
 }

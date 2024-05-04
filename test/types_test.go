@@ -173,6 +173,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicDefault() {
 
 	input := test.Tests[0].Stages[0].Input
 	s.True(*input.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.False(*input.StopMagic)
 }
 
@@ -182,6 +183,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicTrue() {
 
 	input := test.Tests[1].Stages[0].Input
 	s.False(*input.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.True(*input.StopMagic)
 }
 func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicFalse() {
@@ -190,6 +192,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicFalse() {
 
 	input := test.Tests[2].Stages[0].Input
 	s.True(*input.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.False(*input.StopMagic)
 }
 
@@ -199,6 +202,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersFalse_StopMagicDefault() {
 
 	input := test.Tests[0].Stages[0].Input
 	s.False(*input.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.True(*input.StopMagic)
 }
 
@@ -208,6 +212,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersFalse_StopMagicTrue() {
 
 	input := test.Tests[1].Stages[0].Input
 	s.False(*input.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.True(*input.StopMagic)
 }
 
@@ -217,6 +222,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersFalse_StopMagicFalse() {
 
 	input := test.Tests[2].Stages[0].Input
 	s.False(*input.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.True(*input.StopMagic)
 }
 
@@ -226,6 +232,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersTrue_StopMagicDefault() {
 
 	input := test.Tests[0].Stages[0].Input
 	s.True(*input.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.False(*input.StopMagic)
 }
 
@@ -235,6 +242,7 @@ func (s *typesTestSuite) TestAutocompleteHeadersTrue_StopMagicTrue() {
 
 	input := test.Tests[1].Stages[0].Input
 	s.True(*input.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.False(*input.StopMagic)
 }
 
@@ -244,5 +252,6 @@ func (s *typesTestSuite) TestAutocompleteHeadersTrue_StopMagicFalse() {
 
 	input := test.Tests[2].Stages[0].Input
 	s.True(*input.AutocompleteHeaders)
+	//nolint:staticcheck
 	s.False(*input.StopMagic)
 }

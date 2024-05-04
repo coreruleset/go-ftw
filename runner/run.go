@@ -6,9 +6,10 @@ package runner
 import (
 	"errors"
 	"fmt"
-	"golang.org/x/time/rate"
 	"regexp"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -97,7 +98,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 		}
 
 		if !runContext.ShowOnlyFailed {
-			runContext.Output.Printf("\trunning %s: ", testCase.TestTitle)
+			runContext.Output.Printf("\trunning %s: ", testCase.IdString())
 		}
 		// Iterate over stages
 		for _, stage := range testCase.Stages {
@@ -288,7 +289,9 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, testCase *sc
 
 func checkTestSanity(testInput test.Input) bool {
 	return (utils.IsNotEmpty(testInput.Data) && testInput.EncodedRequest != "") ||
+		//nolint:staticcheck
 		(utils.IsNotEmpty(testInput.Data) && testInput.RAWRequest != "") ||
+		//nolint:staticcheck
 		(testInput.EncodedRequest != "" && testInput.RAWRequest != "")
 }
 

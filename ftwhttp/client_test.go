@@ -6,11 +6,12 @@ package ftwhttp
 import (
 	"bytes"
 	"fmt"
-	"golang.org/x/time/rate"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -255,8 +256,10 @@ func (s *clientTestSuite) TestClientRateLimits() {
 
 	// We need to do at least 2 calls so there is a wait between both.
 	before := time.Now()
-	_, err = s.client.Do(*req)
-	_, err = s.client.Do(*req)
+	//nolint:errcheck
+	s.client.Do(*req)
+	//nolint:errcheck
+	s.client.Do(*req)
 	after := time.Now()
 
 	s.GreaterOrEqual(after.Sub(before), waitTime, "Rate limiter did not work as expected")

@@ -338,6 +338,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideNoStopMagic() {
 	s.Nil(s.cfg.TestOverride.Overrides.StopMagic)
 	test.ApplyInputOverrides(s.cfg, &testInput)
 
+	//nolint:staticcheck
 	s.True(*testInput.StopMagic, "`AutocompleteHeaders` should not have been overridden")
 }
 
@@ -364,5 +365,6 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideRAWRequest() {
 
 	test.ApplyInputOverrides(s.cfg, &testInput)
 
+	//nolint:staticcheck
 	s.Equal(overrideRAWRequest, testInput.RAWRequest, "`RAWRequest` should have been overridden")
 }

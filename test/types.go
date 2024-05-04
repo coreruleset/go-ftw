@@ -21,7 +21,9 @@ func ApplyInputOverrides(conf *config.FTWConfiguration, input *Input) {
 	applySimpleOverrides(overrides, input)
 	applyDestAddrOverride(overrides, input)
 	applyHeadersOverride(overrides, input)
+	//nolint:staticcheck
 	if overrides.AutocompleteHeaders != nil || overrides.StopMagic != nil {
+		//nolint:staticcheck
 		postProcessAutocompleteHeaders(overrides.AutocompleteHeaders, overrides.StopMagic, input)
 	}
 }
@@ -105,6 +107,7 @@ func applySimpleOverrides(overrides *config.Overrides, input *Input) {
 	}
 
 	if overrides.RAWRequest != nil {
+		//nolint:staticcheck
 		input.RAWRequest = *overrides.RAWRequest
 	}
 }
@@ -165,6 +168,7 @@ func postLoadStage(stage *schema.Stage) {
 }
 
 func postLoadInput(input *Input) {
+	//nolint:staticcheck
 	postProcessAutocompleteHeaders(input.AutocompleteHeaders, input.StopMagic, input)
 }
 
@@ -182,5 +186,6 @@ func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, 
 	}
 	input.AutocompleteHeaders = &finalValue
 	// StopMagic has the inverse boolean logic
+	//nolint:staticcheck
 	input.StopMagic = func() *bool { b := !finalValue; return &b }()
 }

@@ -254,7 +254,7 @@ func (s *baseTestSuite) TestLoadPlatformOverrides() {
 	tempDir := s.T().TempDir()
 	overridesFile, err := os.CreateTemp(tempDir, "overrides.yaml")
 	s.Require().NoError(err)
-	overridesFile.WriteString(`---
+	_, err = overridesFile.WriteString(`---
 version: "v0.0.0"
 meta:
   engine: "coraza"
@@ -270,6 +270,8 @@ test_overrides:
       log:
         match_regex: 'match.*me'
       response_contains: '404'`)
+
+	s.Require().NoError(err)
 
 	cfg := NewDefaultConfig()
 	err = cfg.LoadPlatformOverrides(overridesFile.Name())

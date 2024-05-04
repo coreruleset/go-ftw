@@ -72,6 +72,7 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 
 	c.SetNoLogContains("nologcontains")
 
+	//nolint:staticcheck
 	s.Equal(c.expected.NoLogContains, "nologcontains", "Problem setting nologcontains")
 }
 

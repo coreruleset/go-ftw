@@ -56,12 +56,14 @@ func (c *FTWCheck) SetExpectError(expect bool) {
 
 // SetLogContains sets the string to look for in logs
 func (c *FTWCheck) SetLogContains(regex string) {
+	//nolint:staticcheck
 	c.expected.LogContains = regex
 	c.expected.Log.MatchRegex = regex
 }
 
 // SetNoLogContains sets the string to look that should not present in logs
 func (c *FTWCheck) SetNoLogContains(regex string) {
+	//nolint:staticcheck
 	c.expected.NoLogContains = regex
 	c.expected.Log.NoMatchRegex = regex
 }
