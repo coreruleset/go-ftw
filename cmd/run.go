@@ -54,6 +54,7 @@ func NewRunCommand() *cobra.Command {
 	runCmd.Flags().Bool("wait-for-insecure-skip-tls-verify", http.DefaultInsecureSkipTLSVerify, "Skips tls certificate checks for the HTTPS request.")
 	runCmd.Flags().Bool("wait-for-no-redirect", http.DefaultNoRedirect, "Do not follow HTTP 3xx redirects.")
 	runCmd.Flags().DurationP("rate-limit", "r", 0, "Limit the request rate to the server to 1 request per specified duration. 0 is the default, and disables rate limiting.")
+	runCmd.Flags().Bool("fail-fast", false, "Fail on first failed test")
 
 	return runCmd
 }
@@ -84,6 +85,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	insecureSkipTLSVerify, _ := cmd.Flags().GetBool("wait-for-insecure-skip-tls-verify")
 	noRedirect, _ := cmd.Flags().GetBool("wait-for-no-redirect")
 	rateLimit, _ := cmd.Flags().GetDuration("rate-limit")
+	failFast, _ := cmd.Flags().GetBool("fail-fast")
 
 	if exclude != "" && include != "" {
 		cmd.SilenceUsage = false
@@ -163,6 +165,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 		ConnectTimeout: connectTimeout,
 		ReadTimeout:    readTimeout,
 		RateLimit:      rateLimit,
+		FailFast:       failFast,
 	}, out)
 
 	if err != nil {

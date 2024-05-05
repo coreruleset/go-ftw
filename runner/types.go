@@ -31,6 +31,8 @@ type RunnerConfig struct {
 	ReadTimeout time.Duration
 	// RateLimit is the rate limit for requests to the server. 0 is unlimited.
 	RateLimit time.Duration
+	// FailFast determines whether to stop running tests when the first failure is encountered.
+	FailFast bool
 }
 
 // TestRunContext carries information about the current test run.
@@ -38,6 +40,7 @@ type RunnerConfig struct {
 // and results.
 type TestRunContext struct {
 	Config         *config.FTWConfiguration
+	RunnerConfig   *RunnerConfig
 	Include        *regexp.Regexp
 	Exclude        *regexp.Regexp
 	ShowTime       bool

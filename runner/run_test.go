@@ -521,3 +521,12 @@ func (s *runTestSuite) TestRetryOnce() {
 	s.Require().NoError(err)
 	s.Equalf(res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
 }
+
+func (s *runTestSuite) TestFailFast() {
+	s.Equal(3, len(s.ftwTests[0].Tests))
+
+	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{FailFast: true}, s.out)
+	s.Require().NoError(err)
+	s.Equal(1, res.Stats.TotalFailed(), "Oops, test run failed!")
+	s.Equal(2, res.Stats.Run)
+}

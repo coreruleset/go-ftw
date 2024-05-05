@@ -3,7 +3,11 @@
 
 package check
 
-import "slices"
+import (
+	"slices"
+
+	"github.com/rs/zerolog/log"
+)
 
 var negativeExpectedStatuses = []int{200, 404, 405}
 
@@ -18,7 +22,11 @@ func (c *FTWCheck) AssertStatus(status int) bool {
 		return c.assertCloudStatus(status)
 	}
 
-	return c.expected.Status == status
+	found := c.expected.Status == status
+	if !found {
+		log.Debug().Msgf("Failed to match response status. Expected: %d, found: %d", c.expected.Status, status)
+	}
+	return found
 
 }
 
@@ -30,5 +38,9 @@ func (c *FTWCheck) assertCloudStatus(status int) bool {
 	if (logExpectations.NoMatchRegex != "" || len(logExpectations.NoExpectIds) > 0) && slices.Contains(negativeExpectedStatuses, status) {
 		return true
 	}
-	return c.expected.Status == status
+	found := c.expected.Status == status
+	if !found {
+		log.Debug().Msgf("Failed to match response status (cloud mode). Expected: %d, found: %d", c.expected.Status, status)
+	}
+	return found
 }

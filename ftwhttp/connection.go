@@ -119,7 +119,7 @@ func (c *Connection) Response() (*Response, error) {
 	}
 
 	data := buf.Bytes()
-	log.Trace().Msgf("ftw/http: received data - %q", data)
+	log.Debug().Msgf("ftw/http: received data - %q", data)
 
 	response := Response{
 		RAW:    data,

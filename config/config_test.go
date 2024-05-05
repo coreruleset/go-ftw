@@ -269,6 +269,7 @@ test_overrides:
       status: 404
       log:
         match_regex: 'match.*me'
+        no_expect_ids: [1234]
       response_contains: '404'`)
 
 	s.Require().NoError(err)
@@ -294,5 +295,7 @@ test_overrides:
 	s.Equal("Invalid uri, Coraza not reached - 404 page not found", entry.Reason)
 	s.Equal(404, entry.Output.Status)
 	s.Equal("match.*me", entry.Output.Log.MatchRegex)
+	s.Len(entry.Output.Log.NoExpectIds, 1)
+	s.Equal(uint(1234), entry.Output.Log.NoExpectIds[0])
 	s.Equal("404", entry.Output.ResponseContains)
 }

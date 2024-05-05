@@ -52,6 +52,7 @@ func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c RunnerConfig, ou
 
 	runContext := &TestRunContext{
 		Config:         cfg,
+		RunnerConfig:   &c,
 		Include:        c.Include,
 		Exclude:        c.Exclude,
 		ShowTime:       c.ShowTime,
@@ -65,6 +66,9 @@ func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c RunnerConfig, ou
 	for _, tc := range tests {
 		if err := RunTest(runContext, tc); err != nil {
 			return &TestRunContext{}, err
+		}
+		if c.FailFast && runContext.Stats.TotalFailed() > 0 {
+			break
 		}
 	}
 
@@ -82,12 +86,10 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 	changed := true
 
 	for _, testCase := range ftwTest.Tests {
-		// if we received a particular testid, skip until we find it
+		// if we received a particular test ID, skip until we find it
 		if needToSkipTest(runContext.Include, runContext.Exclude, &testCase) {
-			runContext.Stats.addResultToStats(Skipped, &testCase, 0)
-			if !runContext.ShowOnlyFailed {
-				runContext.Output.Println("\tskipping %s - %s in file.", testCase.RuleId, testCase.TestId)
-			}
+			runContext.Stats.addResultToStats(Skipped, &testCase)
+			log.Trace().Msgf("\tskipping %s", testCase.IdString())
 			continue
 		}
 		test.ApplyPlatformOverrides(runContext.Config, &testCase)
@@ -116,6 +118,10 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 					return err
 				}
 			}
+		}
+		runContext.Stats.addResultToStats(runContext.Result, &testCase)
+		if runContext.RunnerConfig.FailFast && runContext.Stats.TotalFailed() > 0 {
+			break
 		}
 	}
 
@@ -148,7 +154,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 
 	// Do not even run test if result is overridden. Just use the override and display the overridden result.
 	if overridden := overriddenTestResult(ftwCheck, &testCase); overridden != Failed {
-		runContext.Stats.addResultToStats(overridden, &testCase, 0)
+		runContext.Stats.addResultToStats(overridden, &testCase)
 		displayResult(runContext, overridden, time.Duration(0), time.Duration(0))
 		return nil
 	}
@@ -207,15 +213,12 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	roundTripTime := runContext.Client.GetRoundTripTime().RoundTripDuration()
 	stageTime := time.Since(stageStartTime)
 
-	runContext.Stats.addResultToStats(testResult, &testCase, stageTime)
-
 	runContext.Result = testResult
 
 	// show the result unless quiet was passed in the command line
 	displayResult(runContext, testResult, roundTripTime, stageTime)
 
-	runContext.Stats.Run++
-	runContext.Stats.TotalTime += stageTime
+	runContext.Stats.addStageResultToStats(&testCase, stageTime)
 
 	return nil
 }
@@ -346,6 +349,7 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 
 	// In case of an unexpected error skip other checks
 	if responseError != nil {
+		log.Debug().Msgf("Encountered unexpected error: %v", responseError)
 		return Failed
 	}
 

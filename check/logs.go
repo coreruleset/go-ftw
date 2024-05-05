@@ -6,6 +6,8 @@ package check
 import (
 	"fmt"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
 func (c *FTWCheck) AssertLogs() bool {
@@ -23,9 +25,15 @@ func (c *FTWCheck) assertNoLogContains() bool {
 	result := true
 	if logExpectations.NoMatchRegex != "" {
 		result = !c.log.Contains(logExpectations.NoMatchRegex)
+		if !result {
+			log.Debug().Msgf("Unexpectedly found match for '%s'", logExpectations.NoMatchRegex)
+		}
 	}
 	if result && len(logExpectations.NoExpectIds) > 0 {
 		result = !c.log.Contains(generateIdRegex(logExpectations.NoExpectIds))
+		if !result {
+			log.Debug().Msg("Unexpectedly found IDs")
+		}
 	}
 	return result
 }
@@ -36,15 +44,21 @@ func (c *FTWCheck) assertLogContains() bool {
 	result := true
 	if logExpectations.MatchRegex != "" {
 		result = c.log.Contains(logExpectations.MatchRegex)
+		if !result {
+			log.Debug().Msgf("Failed to find match for match_regex. Expected to find '%s'", logExpectations.MatchRegex)
+		}
 	}
 	if result && len(logExpectations.ExpectIds) > 0 {
 		result = c.log.Contains(generateIdRegex(logExpectations.ExpectIds))
+		if !result {
+			log.Debug().Msg("Failed to find expected IDs")
+		}
 	}
 	return result
 }
 
 // Search for both standard ModSecurity, and JSON output
-func generateIdRegex(ids []int) string {
+func generateIdRegex(ids []uint) string {
 	modSecLogSyntax := strings.Builder{}
 	jsonLogSyntax := strings.Builder{}
 	modSecLogSyntax.WriteString(`\[id "(?:`)

@@ -65,7 +65,7 @@ func (s *checkStatusTestSuite) TestCloudModePositiveMatch_AlwaysMatch() {
 	s.checkStatus(c, []int{})
 
 	// negative regex match and ID negative ID match set
-	c.expected.Log.ExpectIds = []int{123456}
+	c.expected.Log.ExpectIds = []uint{123456}
 	s.checkStatus(c, []int{})
 
 	// negative ID match set
@@ -88,7 +88,7 @@ func (s *checkStatusTestSuite) TestCloudModePositiveMatch() {
 	s.checkStatus(c, []int{403, 418})
 
 	// regex match and ID match set
-	c.expected.Log.ExpectIds = []int{123456}
+	c.expected.Log.ExpectIds = []uint{123456}
 	s.checkStatus(c, []int{403, 418})
 
 	// ID match set
@@ -108,7 +108,7 @@ func (s *checkStatusTestSuite) TestCloudModeNegativeMatch_AlwaysMatch() {
 	s.checkStatus(c, []int{})
 
 	// negative regex match and ID negative ID match set
-	c.expected.Log.NoExpectIds = []int{123456}
+	c.expected.Log.NoExpectIds = []uint{123456}
 	s.checkStatus(c, []int{})
 
 	// negative ID match set
@@ -132,7 +132,7 @@ func (s *checkStatusTestSuite) TestCloudModeNegativeMatch_SpecificMatch() {
 	s.checkStatus(c, []int{200, 404, 418, 405})
 
 	// negative regex match and ID negative ID match set
-	c.expected.Log.NoExpectIds = []int{123456}
+	c.expected.Log.NoExpectIds = []uint{123456}
 	s.checkStatus(c, []int{200, 404, 418, 405})
 
 	// negative ID match set

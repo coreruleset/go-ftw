@@ -155,7 +155,7 @@ func postLoadRuleId(ftwTest *FTWTest) {
 func postLoadTest(ruleId uint, testId uint, test *schema.Test) {
 	test.RuleId = ruleId
 	// Retain explicitly defined test IDs
-	if testId == 0 {
+	if test.TestId == 0 {
 		test.TestId = testId
 	}
 	for index := range test.Stages {

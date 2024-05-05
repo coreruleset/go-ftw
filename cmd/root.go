@@ -30,7 +30,7 @@ func NewRootCommand() *cobra.Command {
 		Short: "Framework for Testing WAFs - Go Version",
 	}
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "specify config file (default is $PWD/.ftw.yaml)")
-	rootCmd.PersistentFlags().StringVar(&overridesFile, "overrides", "", "spcify file with platform specific overrides")
+	rootCmd.PersistentFlags().StringVar(&overridesFile, "overrides", "", "specify file with platform specific overrides")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "", false, "debug output")
 	rootCmd.PersistentFlags().BoolVarP(&trace, "trace", "", false, "trace output: really, really verbose")
 	rootCmd.PersistentFlags().BoolVarP(&cloud, "cloud", "", false, "cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)")

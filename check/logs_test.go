@@ -103,13 +103,13 @@ func (s *checkLogsTestSuite) TestAssertLogExpectIds() {
 	c, err := NewCheck(s.cfg)
 	s.Require().NoError(err)
 
-	c.expected.Log.ExpectIds = []int{920300}
+	c.expected.Log.ExpectIds = []uint{920300}
 	s.True(c.AssertLogs(), `did not find expected content 'id\s"920300"'`)
 
-	c.expected.Log.ExpectIds = []int{123456}
+	c.expected.Log.ExpectIds = []uint{123456}
 	s.False(c.AssertLogs(), "found something that is not there")
 
-	c.expected.Log.ExpectIds = []int{}
+	c.expected.Log.ExpectIds = []uint{}
 	s.True(c.AssertLogs(), "empty LogContains should return true")
 }
 
@@ -117,12 +117,12 @@ func (s *checkLogsTestSuite) TestAssertLogNoExpectId() {
 	c, err := NewCheck(s.cfg)
 	s.Require().NoError(err)
 
-	c.expected.Log.NoExpectIds = []int{920300}
+	c.expected.Log.NoExpectIds = []uint{920300}
 	s.False(c.AssertLogs(), `expected to find 'id\s"920300"'`)
 
-	c.expected.Log.NoExpectIds = []int{123456}
+	c.expected.Log.NoExpectIds = []uint{123456}
 	s.True(c.AssertLogs(), "expected to _not_ find SOMETHING")
 
-	c.expected.Log.NoExpectIds = []int{}
+	c.expected.Log.NoExpectIds = []uint{}
 	s.True(c.AssertLogs(), "empty LogContains should return true")
 }

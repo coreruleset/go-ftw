@@ -133,13 +133,14 @@ func (c *FTWConfiguration) LoadPlatformOverrides(overridesFile string) error {
 
 func (c *FTWConfiguration) populatePlatformOverridesMap() {
 	rulesMap := map[uint][]*schema.TestOverride{}
-	for _, testOverride := range c.PlatformOverrides.TestOverrides {
+	for i := 0; i < len(c.PlatformOverrides.TestOverrides); i++ {
+		testOverride := &c.PlatformOverrides.TestOverrides[i]
 		var list []*schema.TestOverride
 		list, ok := rulesMap[testOverride.RuleId]
 		if !ok {
 			list = []*schema.TestOverride{}
 		}
-		list = append(list, &testOverride)
+		list = append(list, testOverride)
 		rulesMap[testOverride.RuleId] = list
 
 	}
