@@ -36,6 +36,7 @@ func NewRunCommand() *cobra.Command {
 	runCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
 	runCmd.Flags().StringP("output", "o", "normal", "output type for ftw tests. \"normal\" is the default.")
 	runCmd.Flags().StringP("file", "f", "", "output file path for ftw tests. Prints to standard output by default.")
+	runCmd.Flags().StringP("log-file", "l", "", "path to log file to watch for WAF events")
 	runCmd.Flags().BoolP("time", "t", false, "show time spent per test")
 	runCmd.Flags().BoolP("show-failures-only", "", false, "shows only the results of failed tests")
 	runCmd.Flags().Duration("connect-timeout", 3*time.Second, "timeout for connecting to endpoints during test execution")
@@ -59,12 +60,14 @@ func NewRunCommand() *cobra.Command {
 	return runCmd
 }
 
+//gocyclo:ignore
 func runE(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 	exclude, _ := cmd.Flags().GetString("exclude")
 	include, _ := cmd.Flags().GetString("include")
 	dir, _ := cmd.Flags().GetString("dir")
 	outputFilename, _ := cmd.Flags().GetString("file")
+	logFilePath, _ := cmd.Flags().GetString("log-file")
 	showTime, _ := cmd.Flags().GetBool("time")
 	showOnlyFailed, _ := cmd.Flags().GetBool("show-failures-only")
 	wantedOutput, _ := cmd.Flags().GetString("output")
@@ -97,6 +100,10 @@ func runE(cmd *cobra.Command, _ []string) error {
 	if maxMarkerLogLines != 0 {
 		cfg.WithMaxMarkerLogLines(maxMarkerLogLines)
 	}
+	if logFilePath != "" {
+		cfg.LogFile = logFilePath
+	}
+
 	files := fmt.Sprintf("%s/**/*.yaml", dir)
 	tests, err := test.GetTestsFromFiles(files)
 
