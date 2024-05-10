@@ -1,0 +1,45 @@
+---
+meta:
+  author: "tester"
+  name: "TestFailFast.yaml"
+  description: "Example Test"
+tests:
+  - test_id: 1
+    description: "succeed"
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "{{ .TestAddr }}"
+        output:
+          status: 200
+  - test_id: 2
+    description: "fail"
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+        output:
+          log:
+            match_regex: '--nothing--'
+  - test_id: 3
+    description: "not executed with fail-fast = true"
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          version: "HTTP/1.1"
+          method: "OTHER"
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+        output:
+          response_contains: "Hello, client"

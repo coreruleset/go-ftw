@@ -6,6 +6,7 @@ package check
 import (
 	"bytes"
 
+	schema "github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/waflog"
@@ -39,8 +40,8 @@ func (c *FTWCheck) SetExpectTestOutput(t *test.Output) {
 }
 
 // SetExpectStatus sets to expect the HTTP status from the test to be in the integer range passed
-func (c *FTWCheck) SetExpectStatus(s []int) {
-	c.expected.Status = s
+func (c *FTWCheck) SetExpectStatus(status int) {
+	c.expected.Status = status
 }
 
 // SetExpectResponse sets the response we expect in the text from the server
@@ -54,39 +55,43 @@ func (c *FTWCheck) SetExpectError(expect bool) {
 }
 
 // SetLogContains sets the string to look for in logs
-func (c *FTWCheck) SetLogContains(contains string) {
-	c.expected.LogContains = contains
+func (c *FTWCheck) SetLogContains(regex string) {
+	//nolint:staticcheck
+	c.expected.LogContains = regex
+	c.expected.Log.MatchRegex = regex
 }
 
 // SetNoLogContains sets the string to look that should not present in logs
-func (c *FTWCheck) SetNoLogContains(contains string) {
-	c.expected.NoLogContains = contains
+func (c *FTWCheck) SetNoLogContains(regex string) {
+	//nolint:staticcheck
+	c.expected.NoLogContains = regex
+	c.expected.Log.NoMatchRegex = regex
 }
 
-// ForcedIgnore check if this id need to be ignored from results
-func (c *FTWCheck) ForcedIgnore(id string) bool {
+// ForcedIgnore check if this ID need to be ignored from results
+func (c *FTWCheck) ForcedIgnore(testCase *schema.Test) bool {
 	for re := range c.cfg.TestOverride.Ignore {
-		if re.MatchString(id) {
+		if re.MatchString(testCase.IdString()) {
 			return true
 		}
 	}
 	return false
 }
 
-// ForcedPass check if this id need to be ignored from results
-func (c *FTWCheck) ForcedPass(id string) bool {
+// ForcedPass check if this ID need to be ignored from results
+func (c *FTWCheck) ForcedPass(testCase *schema.Test) bool {
 	for re := range c.cfg.TestOverride.ForcePass {
-		if re.MatchString(id) {
+		if re.MatchString(testCase.IdString()) {
 			return true
 		}
 	}
 	return false
 }
 
-// ForcedFail check if this id need to be ignored from results
-func (c *FTWCheck) ForcedFail(id string) bool {
+// ForcedFail check if this ID need to be ignored from results
+func (c *FTWCheck) ForcedFail(testCase *schema.Test) bool {
 	for re := range c.cfg.TestOverride.ForceFail {
-		if re.MatchString(id) {
+		if re.MatchString(testCase.IdString()) {
 			return true
 		}
 	}
@@ -96,20 +101,6 @@ func (c *FTWCheck) ForcedFail(id string) bool {
 // CloudMode returns true if we are running in cloud mode
 func (c *FTWCheck) CloudMode() bool {
 	return c.cfg.RunMode == config.CloudRunMode
-}
-
-// SetCloudMode alters the values for expected logs and status code
-func (c *FTWCheck) SetCloudMode() {
-	var status = c.expected.Status
-
-	if c.expected.LogContains != "" {
-		status = append(status, 403)
-		c.expected.LogContains = ""
-	} else if c.expected.NoLogContains != "" {
-		status = append(status, 200, 404, 405)
-		c.expected.NoLogContains = ""
-	}
-	c.expected.Status = status
 }
 
 // SetStartMarker sets the log line that marks the start of the logs to analyze

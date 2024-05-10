@@ -91,9 +91,6 @@ func (r Request) RawData() []byte {
 
 // Headers return request headers
 func (r Request) Headers() Header {
-	if r.headers == nil {
-		return nil
-	}
 	return r.headers
 }
 

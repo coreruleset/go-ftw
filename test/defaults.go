@@ -13,7 +13,10 @@ import (
 
 type Input schema.Input
 type Output schema.Output
-type FTWTest schema.FTWTest
+type FTWTest struct {
+	schema.FTWTest `yaml:",inline"`
+	FileName       string
+}
 
 // GetMethod returns the proper semantic when the field is empty
 func (i *Input) GetMethod() string {
@@ -77,7 +80,9 @@ func (i *Input) GetRawRequest() ([]byte, error) {
 		// if Encoded, first base64 decode, then dump
 		return base64.StdEncoding.DecodeString(i.EncodedRequest)
 	}
+	//nolint:staticcheck
 	if utils.IsNotEmpty(i.RAWRequest) {
+		//nolint:staticcheck
 		return []byte(i.RAWRequest), nil
 	}
 	return nil, nil

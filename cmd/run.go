@@ -33,14 +33,14 @@ func NewRunCommand() *cobra.Command {
 
 	runCmd.Flags().StringP("exclude", "e", "", "exclude tests matching this Go regular expression (e.g. to exclude all tests beginning with \"91\", use \"^91.*\"). \nIf you want more permanent exclusion, check the 'exclude' option in the config file.")
 	runCmd.Flags().StringP("include", "i", "", "include only tests matching this Go regular expression (e.g. to include only tests beginning with \"91\", use \"^91.*\"). \\nIf you want more permanent inclusion, check the 'include' option in the config file.\"")
-	_ = runCmd.Flags().MarkDeprecated("id", "This flag will be removed in v2.0. Use --include matching your test only.")
 	runCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
 	runCmd.Flags().StringP("output", "o", "normal", "output type for ftw tests. \"normal\" is the default.")
 	runCmd.Flags().StringP("file", "f", "", "output file path for ftw tests. Prints to standard output by default.")
+	runCmd.Flags().StringP("log-file", "l", "", "path to log file to watch for WAF events")
 	runCmd.Flags().BoolP("time", "t", false, "show time spent per test")
 	runCmd.Flags().BoolP("show-failures-only", "", false, "shows only the results of failed tests")
 	runCmd.Flags().Duration("connect-timeout", 3*time.Second, "timeout for connecting to endpoints during test execution")
-	runCmd.Flags().Duration("read-timeout", 1*time.Second, "timeout for receiving responses during test execution")
+	runCmd.Flags().Duration("read-timeout", 10*time.Second, "timeout for receiving responses during test execution")
 	runCmd.Flags().Int("max-marker-retries", 20, "maximum number of times the search for log markers will be repeated.\nEach time an additional request is sent to the web server, eventually forcing the log to be flushed")
 	runCmd.Flags().Int("max-marker-log-lines", 500, "maximum number of lines to search for a marker before aborting")
 	runCmd.Flags().String("wait-for-host", "", "Wait for host to be available before running tests.")
@@ -55,23 +55,26 @@ func NewRunCommand() *cobra.Command {
 	runCmd.Flags().Bool("wait-for-insecure-skip-tls-verify", http.DefaultInsecureSkipTLSVerify, "Skips tls certificate checks for the HTTPS request.")
 	runCmd.Flags().Bool("wait-for-no-redirect", http.DefaultNoRedirect, "Do not follow HTTP 3xx redirects.")
 	runCmd.Flags().DurationP("rate-limit", "r", 0, "Limit the request rate to the server to 1 request per specified duration. 0 is the default, and disables rate limiting.")
+	runCmd.Flags().Bool("fail-fast", false, "Fail on first failed test")
 
 	return runCmd
 }
 
+//gocyclo:ignore
 func runE(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 	exclude, _ := cmd.Flags().GetString("exclude")
 	include, _ := cmd.Flags().GetString("include")
 	dir, _ := cmd.Flags().GetString("dir")
 	outputFilename, _ := cmd.Flags().GetString("file")
+	logFilePath, _ := cmd.Flags().GetString("log-file")
 	showTime, _ := cmd.Flags().GetBool("time")
 	showOnlyFailed, _ := cmd.Flags().GetBool("show-failures-only")
 	wantedOutput, _ := cmd.Flags().GetString("output")
 	connectTimeout, _ := cmd.Flags().GetDuration("connect-timeout")
 	readTimeout, _ := cmd.Flags().GetDuration("read-timeout")
-	maxMarkerRetries, _ := cmd.Flags().GetInt("max-marker-retries")
-	maxMarkerLogLines, _ := cmd.Flags().GetInt("max-marker-log-lines")
+	maxMarkerRetries, _ := cmd.Flags().GetUint("max-marker-retries")
+	maxMarkerLogLines, _ := cmd.Flags().GetUint("max-marker-log-lines")
 	// wait4x flags
 	waitForHost, _ := cmd.Flags().GetString("wait-for-host")
 	timeout, _ := cmd.Flags().GetDuration("wait-for-timeout")
@@ -85,6 +88,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	insecureSkipTLSVerify, _ := cmd.Flags().GetBool("wait-for-insecure-skip-tls-verify")
 	noRedirect, _ := cmd.Flags().GetBool("wait-for-no-redirect")
 	rateLimit, _ := cmd.Flags().GetDuration("rate-limit")
+	failFast, _ := cmd.Flags().GetBool("fail-fast")
 
 	if exclude != "" && include != "" {
 		cmd.SilenceUsage = false
@@ -96,6 +100,10 @@ func runE(cmd *cobra.Command, _ []string) error {
 	if maxMarkerLogLines != 0 {
 		cfg.WithMaxMarkerLogLines(maxMarkerLogLines)
 	}
+	if logFilePath != "" {
+		cfg.LogFile = logFilePath
+	}
+
 	files := fmt.Sprintf("%s/**/*.yaml", dir)
 	tests, err := test.GetTestsFromFiles(files)
 
@@ -164,6 +172,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 		ConnectTimeout: connectTimeout,
 		ReadTimeout:    readTimeout,
 		RateLimit:      rateLimit,
+		FailFast:       failFast,
 	}, out)
 
 	if err != nil {

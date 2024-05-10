@@ -2,11 +2,11 @@
 meta:
   author: "tester"
   enabled: true
-  name: "TestRunMultipleMatches.yaml"
-  description: "Example Test with multiple expected outputs per single rule"
+  name: "TestRetryOnce.yaml"
+  description: "Example Test"
 tests:
   - test_id: 1
-    description: "access real external site"
+    description: "used to simulate race condition in 980170"
     stages:
       - input:
           dest_addr: "{{ .TestAddr }}"
@@ -16,5 +16,6 @@ tests:
             Accept: "*/*"
             Host: "{{ .TestAddr }}"
         output:
-          status: 200
-          response_contains: "Not contains this"
+          expect_error: false
+          retry_once: true
+          log_contains: id "980170"

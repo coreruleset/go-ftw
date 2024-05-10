@@ -42,27 +42,87 @@ func (s *checkLogsTestSuite) TearDownTest() {
 	err := os.Remove(s.logName)
 	s.Require().NoError(err)
 }
-func (s *checkLogsTestSuite) TestAssertLogContainsOK() {
+
+func (s *checkLogsTestSuite) TestLogContains() {
 	c, err := NewCheck(s.cfg)
 	s.Require().NoError(err)
 
 	c.SetLogContains(`id "920300"`)
-	s.True(c.AssertLogContains(), "did not find expected content 'id \"920300\"'")
+	s.True(c.AssertLogs(), "did not find expected content 'id \"920300\"'")
 
 	c.SetLogContains(`SOMETHING`)
-	s.False(c.AssertLogContains(), "found something that is not there")
-	s.True(c.LogContainsRequired(), "if LogContains is not empty it should return true")
+	s.False(c.AssertLogs(), "found something that is not there")
 
 	c.SetLogContains("")
-	s.False(c.AssertLogContains(), "empty LogContains should return false")
+	s.True(c.AssertLogs(), "empty LogContains should return true")
+}
 
-	c.SetNoLogContains("SOMETHING")
-	s.True(c.AssertNoLogContains(), "found something that is not there")
+func (s *checkLogsTestSuite) TestNoLogContains() {
+	c, err := NewCheck(s.cfg)
+	s.Require().NoError(err)
 
 	c.SetNoLogContains(`id "920300"`)
-	s.False(c.AssertNoLogContains(), "did not find expected content")
+	s.False(c.AssertLogs(), "did not find expected content")
+
+	c.SetNoLogContains("SOMETHING")
+	s.True(c.AssertLogs(), "found something that is not there")
 
 	c.SetNoLogContains("")
-	s.False(c.AssertNoLogContains(), "should return false when empty string is passed")
-	s.False(c.NoLogContainsRequired(), "if NoLogContains is an empty string is passed should return false")
+	s.True(c.AssertLogs(), "should return true when empty string is passed")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogMatchRegex() {
+	c, err := NewCheck(s.cfg)
+	s.Require().NoError(err)
+
+	c.expected.Log.MatchRegex = `id\s"920300"`
+	s.True(c.AssertLogs(), `did not find expected content 'id\s"920300"'`)
+
+	c.expected.Log.MatchRegex = `SOMETHING`
+	s.False(c.AssertLogs(), "found something that is not there")
+
+	c.expected.Log.MatchRegex = ""
+	s.True(c.AssertLogs(), "empty LogContains should return true")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogNoMatchRegex() {
+	c, err := NewCheck(s.cfg)
+	s.Require().NoError(err)
+
+	c.expected.Log.NoMatchRegex = `id\s"920300"`
+	s.False(c.AssertLogs(), `expected to find 'id\s"920300"'`)
+
+	c.expected.Log.NoMatchRegex = `SOMETHING`
+	s.True(c.AssertLogs(), "expected to _not_ find SOMETHING")
+
+	c.expected.Log.NoMatchRegex = ""
+	s.True(c.AssertLogs(), "empty LogContains should return true")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogExpectIds() {
+	c, err := NewCheck(s.cfg)
+	s.Require().NoError(err)
+
+	c.expected.Log.ExpectIds = []uint{920300}
+	s.True(c.AssertLogs(), `did not find expected content 'id\s"920300"'`)
+
+	c.expected.Log.ExpectIds = []uint{123456}
+	s.False(c.AssertLogs(), "found something that is not there")
+
+	c.expected.Log.ExpectIds = []uint{}
+	s.True(c.AssertLogs(), "empty LogContains should return true")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogNoExpectId() {
+	c, err := NewCheck(s.cfg)
+	s.Require().NoError(err)
+
+	c.expected.Log.NoExpectIds = []uint{920300}
+	s.False(c.AssertLogs(), `expected to find 'id\s"920300"'`)
+
+	c.expected.Log.NoExpectIds = []uint{123456}
+	s.True(c.AssertLogs(), "expected to _not_ find SOMETHING")
+
+	c.expected.Log.NoExpectIds = []uint{}
+	s.True(c.AssertLogs(), "empty LogContains should return true")
 }

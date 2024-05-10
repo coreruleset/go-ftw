@@ -5,71 +5,66 @@ meta:
   name: "TestRunTests_Run.yaml"
   description: "Example Test"
 tests:
-  - test_title: "001"
+  - test_id: 1
     description: "access real external site"
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            port: {{ .TestPort }}
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Accept: "*/*"
-              Host: "{{ .TestAddr }}"
-          output:
-            expect_error: False
-            status: [200]
-  - test_title: "008"
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "{{ .TestAddr }}"
+        output:
+          expect_error: False
+          status: 200
+  - test_id: 8
     description: "this test is number 8"
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            port: {{ .TestPort }}
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Accept: "*/*"
-              Host: "localhost"
-          output:
-            status: [200]
-  - test_title: "010"
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+        output:
+          status: 200
+  - test_id: 10
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            port: {{ .TestPort }}
-            version: "HTTP/1.1"
-            method: "OTHER"
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Accept: "*/*"
-              Host: "localhost"
-          output:
-            response_contains: "Hello, client"
-  - test_title: "101"
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          version: "HTTP/1.1"
+          method: "OTHER"
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+        output:
+          response_contains: "Hello, client"
+  - test_id: 101
     description: "this tests exceptions (connection timeout)"
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            port: 8090
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Accept: "*/*"
-              Host: "none.host"
-          output:
-            expect_error: True
-  - test_title: "102"
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: 8090
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "none.host"
+        output:
+          expect_error: True
+  - test_id: 102
     description: "this tests exceptions (connection timeout)"
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            port: 8090
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Host: "none.host"
-              Accept: "*/*"
-            encoded_request: "UE9TVCAvaW5kZXguaHRtbCBIVFRQLzEuMQ0KSG9zdDogMTkyLjE2OC4xLjIzDQpVc2VyLUFnZW50OiBjdXJsLzcuNDMuMA0KQWNjZXB0OiAqLyoNCkNvbnRlbnQtTGVuZ3RoOiA2NA0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi94LXd3dy1mb3JtLXVybGVuY29kZWQNCkNvbm5lY3Rpb246IGNsb3NlDQoNCmQ9MTsyOzM7NDs1XG4xO0BTVU0oMSsxKSpjbWR8JyBwb3dlcnNoZWxsIElFWCh3Z2V0IDByLnBlL3ApJ1whQTA7Mw=="
-          output:
-            expect_error: True
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: 8090
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Host: "none.host"
+            Accept: "*/*"
+          encoded_request: "UE9TVCAvaW5kZXguaHRtbCBIVFRQLzEuMQ0KSG9zdDogMTkyLjE2OC4xLjIzDQpVc2VyLUFnZW50OiBjdXJsLzcuNDMuMA0KQWNjZXB0OiAqLyoNCkNvbnRlbnQtTGVuZ3RoOiA2NA0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi94LXd3dy1mb3JtLXVybGVuY29kZWQNCkNvbm5lY3Rpb246IGNsb3NlDQoNCmQ9MTsyOzM7NDs1XG4xO0BTVU0oMSsxKSpjbWR8JyBwb3dlcnNoZWxsIElFWCh3Z2V0IDByLnBlL3ApJ1whQTA7Mw=="
+        output:
+          expect_error: True

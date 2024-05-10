@@ -10,14 +10,14 @@ import (
 )
 
 // GetTestFromYaml will get the tests to be processed from a YAML string.
-func GetTestFromYaml(testYaml []byte) (ftwTest *FTWTest, err error) {
+func GetTestFromYaml(testYaml []byte, fileName string) (ftwTest *FTWTest, err error) {
 	ftwTest = &FTWTest{}
 	err = yaml.Unmarshal(testYaml, ftwTest)
 	if err != nil {
 		return &FTWTest{}, err
 	}
 
-	postLoadTestFTWTest(ftwTest)
+	postLoadTestFTWTest(ftwTest, fileName)
 
 	return ftwTest, nil
 }
@@ -33,7 +33,7 @@ func DescribeYamlError(yamlError error) string {
 			"A simple example would be like this:\n\n" +
 			"status: 403\n" +
 			"needs to be changed to:\n\n" +
-			"status: [403]\n\n"
+			"status: 403\n\n"
 	}
 	matched, err = regexp.MatchString(`.*cannot unmarshal \[]interface {} into Go struct field FTWTest.Tests of type string.*`, yamlError.Error())
 	if err != nil {

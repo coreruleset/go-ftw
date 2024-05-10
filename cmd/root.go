@@ -14,10 +14,11 @@ import (
 )
 
 var (
-	cfgFile string
-	debug   bool
-	trace   bool
-	cloud   bool
+	cfgFile       string
+	overridesFile string
+	debug         bool
+	trace         bool
+	cloud         bool
 )
 
 var cfg = config.NewDefaultConfig()
@@ -28,7 +29,8 @@ func NewRootCommand() *cobra.Command {
 		Use:   "ftw run",
 		Short: "Framework for Testing WAFs - Go Version",
 	}
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "override config file (default is $PWD/.ftw.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "specify config file (default is $PWD/.ftw.yaml)")
+	rootCmd.PersistentFlags().StringVar(&overridesFile, "overrides", "", "specify file with platform specific overrides")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "", false, "debug output")
 	rootCmd.PersistentFlags().BoolVarP(&trace, "trace", "", false, "trace output: really, really verbose")
 	rootCmd.PersistentFlags().BoolVarP(&cloud, "cloud", "", false, "cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)")
@@ -71,5 +73,8 @@ func initConfig() {
 	if cloud {
 		cfg.RunMode = config.CloudRunMode
 	}
-
+	err = cfg.LoadPlatformOverrides(overridesFile)
+	if err != nil {
+		log.Fatal("failed to load platform overrides")
+	}
 }

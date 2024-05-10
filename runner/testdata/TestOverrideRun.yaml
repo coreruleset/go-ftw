@@ -5,17 +5,15 @@ meta:
   name: "TestOverrideRun.yaml"
   description: "Example Override Test"
 tests:
-  - test_title: "001"
+  - test_id: 1
     description: "access real external site"
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            # -1 designates port value must be replaced by test setup
-            port: {{ .TestPort }}
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Host: "{{ .TestAddr }}
-          output:
-            expect_error: False
-            status: [200]
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Host: "{{ .TestAddr }}"
+        output:
+          expect_error: False
+          status: 200
