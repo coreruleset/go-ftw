@@ -155,7 +155,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	// Do not even run test if result is overridden. Just use the override and display the overridden result.
 	if overridden := overriddenTestResult(ftwCheck, &testCase); overridden != Failed {
 		runContext.Stats.addResultToStats(overridden, &testCase)
-		displayResult(runContext, overridden, time.Duration(0), time.Duration(0))
+		displayResult(&testCase, runContext, overridden, time.Duration(0), time.Duration(0))
 		return nil
 	}
 
@@ -216,7 +216,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	runContext.Result = testResult
 
 	// show the result unless quiet was passed in the command line
-	displayResult(runContext, testResult, roundTripTime, stageTime)
+	displayResult(&testCase, runContext, testResult, roundTripTime, stageTime)
 
 	runContext.Stats.addStageResultToStats(&testCase, stageTime)
 
@@ -298,14 +298,14 @@ func checkTestSanity(testInput test.Input) bool {
 		(testInput.EncodedRequest != "" && testInput.RAWRequest != "")
 }
 
-func displayResult(rc *TestRunContext, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
+func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
 	switch result {
 	case Success:
 		if !rc.ShowOnlyFailed {
 			rc.Output.Println(rc.Output.Message("+ passed in %s (RTT %s)"), stageTime, roundTripTime)
 		}
 	case Failed:
-		rc.Output.Println(rc.Output.Message("- failed in %s (RTT %s)"), stageTime, roundTripTime)
+		rc.Output.Println(rc.Output.Message("- %s failed in %s (RTT %s)"), testCase.IdString(), stageTime, roundTripTime)
 	case Ignored:
 		if !rc.ShowOnlyFailed {
 			rc.Output.Println(rc.Output.Message(":information:test ignored"))
