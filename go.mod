@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
-	github.com/coreruleset/ftw-tests-schema v1.1.0
+	github.com/coreruleset/ftw-tests-schema v1.1.1-0.20240509130026-48cda85f1d5f
 	github.com/go-logr/zerologr v1.2.3
 	github.com/goccy/go-yaml v1.9.2
 	github.com/google/uuid v1.6.0
@@ -56,7 +56,3 @@ require (
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/knadh/koanf/maps => github.com/knadh/koanf/maps v0.1.1
-
-replace github.com/coreruleset/ftw-tests-schema => github.com/theseion/ftw-tests-schema v0.0.0-20240504190111-458d012a57f2
