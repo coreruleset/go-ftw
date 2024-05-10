@@ -40,7 +40,7 @@ func NewRunCommand() *cobra.Command {
 	runCmd.Flags().BoolP("time", "t", false, "show time spent per test")
 	runCmd.Flags().BoolP("show-failures-only", "", false, "shows only the results of failed tests")
 	runCmd.Flags().Duration("connect-timeout", 3*time.Second, "timeout for connecting to endpoints during test execution")
-	runCmd.Flags().Duration("read-timeout", 1*time.Second, "timeout for receiving responses during test execution")
+	runCmd.Flags().Duration("read-timeout", 10*time.Second, "timeout for receiving responses during test execution")
 	runCmd.Flags().Int("max-marker-retries", 20, "maximum number of times the search for log markers will be repeated.\nEach time an additional request is sent to the web server, eventually forcing the log to be flushed")
 	runCmd.Flags().Int("max-marker-log-lines", 500, "maximum number of lines to search for a marker before aborting")
 	runCmd.Flags().String("wait-for-host", "", "Wait for host to be available before running tests.")

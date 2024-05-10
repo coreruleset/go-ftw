@@ -8,11 +8,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"golang.org/x/time/rate"
 	"net"
 	"net/http/cookiejar"
 	"strings"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/rs/zerolog/log"
 	"golang.org/x/net/publicsuffix"
