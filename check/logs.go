@@ -54,5 +54,13 @@ func (c *FTWCheck) assertLogContains() bool {
 		}
 	}
 
+	if c.expected.Isolated {
+		ruleIds := c.log.TriggeredRules()
+		result = len(ruleIds) == 1
+		if !result {
+			log.Debug().Msgf("Found more than one triggered rule for isolated test: %v", ruleIds)
+		}
+	}
+
 	return result
 }
