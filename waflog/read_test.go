@@ -258,11 +258,11 @@ func (s *readTestSuite) TestFTWLogLines_Contains() {
 			ll := &FTWLogLines{
 				logFile:             tt.fields.logFile,
 				LogMarkerHeaderName: bytes.ToLower(tt.fields.LogMarkerHeaderName),
-				StartMarker:         bytes.ToLower(tt.fields.StartMarker),
-				EndMarker:           bytes.ToLower(tt.fields.EndMarker),
 			}
-			got := ll.Contains(tt.args.match)
-			s.Equalf(tt.want, got, "Contains() = %v, want %v", got, tt.want)
+			ll.WithStartMarker(tt.fields.StartMarker)
+			ll.WithEndMarker(tt.fields.EndMarker)
+			got := ll.MatchesRegex(tt.args.match)
+			s.Equalf(tt.want, got, "MatchesRegex() = %v, want %v", got, tt.want)
 		})
 	}
 }
@@ -323,10 +323,10 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 			ll := &FTWLogLines{
 				logFile:             tt.fields.logFile,
 				LogMarkerHeaderName: bytes.ToLower(tt.fields.LogMarkerHeaderName),
-				StartMarker:         bytes.ToLower(tt.fields.StartMarker),
-				EndMarker:           bytes.ToLower(tt.fields.EndMarker),
 			}
-			got := ll.Contains(tt.args.match)
+			ll.WithStartMarker(tt.fields.StartMarker)
+			ll.WithEndMarker(tt.fields.EndMarker)
+			got := ll.MatchesRegex(tt.args.match)
 			s.Equalf(tt.want, got, "Contains() = %v, want %v", got, tt.want)
 		})
 	}
@@ -355,9 +355,9 @@ func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	ll := &FTWLogLines{
 		logFile:             log,
 		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
-		StartMarker:         bytes.ToLower([]byte(markerLine)),
-		EndMarker:           bytes.ToLower([]byte(markerLine)),
 	}
+	ll.WithStartMarker([]byte(markerLine))
+	ll.WithEndMarker([]byte(markerLine))
 	foundMarker := ll.CheckLogForMarker(stageID, 100)
 	s.Equal(strings.ToLower(markerLine), strings.ToLower(string(foundMarker)))
 }

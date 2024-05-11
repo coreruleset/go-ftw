@@ -4,8 +4,9 @@
 package check
 
 import (
-	"slices"
 	"testing"
+
+	"slices"
 
 	"github.com/stretchr/testify/suite"
 

@@ -8,26 +8,89 @@ import (
 	"errors"
 	"io"
 	"regexp"
+	"strconv"
+
+	"slices"
 
 	"github.com/icza/backscanner"
 	"github.com/rs/zerolog/log"
 )
 
-// Contains looks in logfile for regex
-func (ll *FTWLogLines) Contains(match string) bool {
-	// this should be a flag
+// TriggeredRules returns the IDs of all the rules found in the log for the current test
+func (ll *FTWLogLines) TriggeredRules() []uint {
+	if ll.triggeredRules != nil {
+		return ll.triggeredRules
+	}
+
+	lines := ll.getMarkedLines()
+
+	regex := regexp.MustCompile(`\[id "(\d+)"\]|"id":\s*"?(\d+)"?`)
+	ruleIds := []uint{}
+	for _, line := range lines {
+		log.Trace().Msgf("ftw/waflog: Looking for any rule in %s", line)
+		match := regex.FindSubmatch(line)
+		if match != nil {
+			log.Trace().Msgf("ftw/waflog: Found %s at %s", regex.String(), line)
+			submatch := string(match[1])
+			ruleId, err := strconv.ParseUint(submatch, 10, 0)
+			if err != nil {
+				log.Error().Msgf("Failed to parse uint from %s", submatch)
+				continue
+			}
+			ruleIds = append(ruleIds, uint(ruleId))
+		}
+	}
+	ll.triggeredRules = ruleIds
+	return ruleIds
+}
+
+// ContainsAllIds returns true if all of the specified rule IDs appear in the log for the current test.
+// The IDs of all the IDs that were *not* found will be the second return value.
+func (ll *FTWLogLines) ContainsAllIds(ids []uint) (bool, []uint) {
+	foundRuleIds := ll.TriggeredRules()
+	missedRules := []uint{}
+	for _, id := range ids {
+		if !slices.Contains(foundRuleIds, id) {
+			missedRules = append(missedRules, id)
+		}
+	}
+	if len(missedRules) > 0 {
+		return false, missedRules
+	}
+	return true, missedRules
+}
+
+// ContainsAnyId returns true if at least one of the specified IDs appears in the log for the current test.
+// The IDs of all the IDs that were found will be the second return value.
+func (ll *FTWLogLines) ContainsAnyId(ids []uint) (bool, []uint) {
+	foundRuleIds := ll.TriggeredRules()
+	foundAndExpected := []uint{}
+	found := false
+	for _, id := range ids {
+		if slices.Contains(foundRuleIds, id) {
+			log.Trace().Msgf("Found rule ID %d in log", id)
+			found = true
+			foundAndExpected = append(foundAndExpected, id)
+		}
+	}
+	return found, foundAndExpected
+}
+
+// MatchesRegex returns true if the regular expression pattern matches any of the lines in the log
+// for the current test
+func (ll *FTWLogLines) MatchesRegex(pattern string) bool {
 	lines := ll.getMarkedLines()
 	log.Trace().Msgf("ftw/waflog: got %d lines", len(lines))
 
 	result := false
 	for _, line := range lines {
-		log.Trace().Msgf("ftw/waflog: Matching %s in %s", match, line)
-		got, err := regexp.Match(match, line)
+		log.Trace().Msgf("ftw/waflog: Matching %s in %s", pattern, line)
+		found, err := regexp.Match(pattern, line)
 		if err != nil {
 			log.Fatal().Msgf("ftw/waflog: bad regexp %s", err.Error())
 		}
-		if got {
-			log.Trace().Msgf("ftw/waflog: Found %s at %s", match, line)
+		if found {
+			log.Trace().Msgf("ftw/waflog: Found %s at %s", pattern, line)
 			result = true
 			break
 		}
@@ -36,6 +99,14 @@ func (ll *FTWLogLines) Contains(match string) bool {
 }
 
 func (ll *FTWLogLines) getMarkedLines() [][]byte {
+	if ll.markedLines != nil {
+		return ll.markedLines
+	}
+
+	if ll.startMarker == nil || ll.endMarker == nil {
+		log.Fatal().Msg("Both start and end marker must be set before the log can be inspected")
+	}
+
 	var found [][]byte
 
 	fi, err := ll.logFile.Stat()
@@ -61,11 +132,11 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 			break
 		}
 		lineLower := bytes.ToLower(line)
-		if !endFound && bytes.Equal(lineLower, ll.EndMarker) {
+		if !endFound && bytes.Equal(lineLower, ll.endMarker) {
 			endFound = true
 			continue
 		}
-		if endFound && bytes.Equal(lineLower, ll.StartMarker) {
+		if endFound && bytes.Equal(lineLower, ll.startMarker) {
 			break
 		}
 
@@ -73,6 +144,8 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 		copy(saneCopy, line)
 		found = append(found, saneCopy)
 	}
+
+	ll.markedLines = found
 	return found
 }
 

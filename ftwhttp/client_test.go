@@ -11,9 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/time/rate"
 )
 
 const (

@@ -5,14 +5,16 @@ package test
 
 import (
 	"regexp"
-	"slices"
 	"strconv"
+
+	"slices"
 
 	schema "github.com/coreruleset/ftw-tests-schema/types"
 	overridesSchema "github.com/coreruleset/ftw-tests-schema/types/overrides"
+	"github.com/rs/zerolog/log"
+
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
-	"github.com/rs/zerolog/log"
 )
 
 // ApplyInputOverride will check if config had global overrides and write that into the test.

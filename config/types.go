@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	schema "github.com/coreruleset/ftw-tests-schema/types/overrides"
+
 	"github.com/coreruleset/go-ftw/ftwhttp"
 )
 
