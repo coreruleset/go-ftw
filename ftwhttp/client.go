@@ -13,10 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	"github.com/rs/zerolog/log"
 	"golang.org/x/net/publicsuffix"
+	"golang.org/x/time/rate"
 )
 
 // NewClientConfig returns a new ClientConfig with reasonable defaults.

@@ -9,12 +9,11 @@ import (
 	"regexp"
 	"time"
 
-	"golang.org/x/time/rate"
-
+	schema "github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/time/rate"
 
-	schema "github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
@@ -271,7 +270,7 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, testCase *sc
 	}
 
 	result := false
-	// if we need to exclude tests, and the title matches,
+	// if we need to exclude tests, and the ID matches,
 	// it needs to be skipped
 	if exclude != nil {
 		if exclude.MatchString(testCase.IdString()) {
@@ -279,7 +278,7 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, testCase *sc
 		}
 	}
 
-	// if we need to include tests, but the title does not match
+	// if we need to include tests, but the ID does not match
 	// it needs to be skipped
 	if include != nil {
 		if !include.MatchString(testCase.IdString()) {

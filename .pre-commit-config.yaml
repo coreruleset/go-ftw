@@ -14,21 +14,6 @@ repos:
       name: go-cyclo
       alias: go-cyclo
       args: [ gocyclo, -over=15]
-    - id: my-cmd
-      name: "Check files aren't using go's testing package"
-      entry: 'testing\.T'
-      files: 'test_.*\.go$'
-      language: 'pygrep'
-      description: >
-        Checks that no files are using `testing.T`, if you want developers to use
-        a different testing framework
-    - id: my-cmd
-      name: 'validate toml'
-      entry: 'tomlv'
-      files: '\.toml$'
-      language: 'system'
-      description: >
-        Runs `tomlv`, requires https://github.com/BurntSushi/toml/tree/master/cmd/tomlv"
 - repo: https://github.com/gitleaks/gitleaks
   rev: v8.18.1
   hooks:

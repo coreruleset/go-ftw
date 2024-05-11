@@ -6,9 +6,9 @@ package check
 import (
 	"testing"
 
+	schema "github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/stretchr/testify/suite"
 
-	schema "github.com/coreruleset/ftw-tests-schema/types"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/utils"
@@ -101,6 +101,6 @@ func (s *checkBaseTestSuite) TestSetMarkers() {
 
 	c.SetStartMarker([]byte("TesTingStArtMarKer"))
 	c.SetEndMarker([]byte("TestIngEnDMarkeR"))
-	s.Equal([]byte("testingstartmarker"), c.log.StartMarker, "Couldn't set start marker")
-	s.Equal([]byte("testingendmarker"), c.log.EndMarker, "Couldn't set end marker")
+	s.Equal("testingstartmarker", string(c.log.StartMarker()), "Couldn't set start marker")
+	s.Equal("testingendmarker", string(c.log.EndMarker()), "Couldn't set end marker")
 }

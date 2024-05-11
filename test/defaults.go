@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 
 	schema "github.com/coreruleset/ftw-tests-schema/types"
+
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/utils"
 )

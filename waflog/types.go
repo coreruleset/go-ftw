@@ -12,6 +12,23 @@ import (
 type FTWLogLines struct {
 	logFile             *os.File
 	LogMarkerHeaderName []byte
-	StartMarker         []byte
-	EndMarker           []byte
+	startMarker         []byte
+	endMarker           []byte
+	triggeredRules      []uint
+	markedLines         [][]byte
+}
+
+func (ll *FTWLogLines) StartMarker() []byte {
+	return ll.startMarker
+}
+
+func (ll *FTWLogLines) EndMarker() []byte {
+	return ll.endMarker
+}
+
+func (ll *FTWLogLines) reset() {
+	ll.startMarker = nil
+	ll.endMarker = nil
+	ll.triggeredRules = nil
+	ll.markedLines = nil
 }
