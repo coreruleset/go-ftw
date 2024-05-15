@@ -158,5 +158,5 @@ func (s *checkLogsTestSuite) TestAssertLogIsolated() {
 	s.True(s.check.AssertLogs(), "Expected to find 920300")
 
 	s.check.expected.Isolated = true
-	s.False(s.check.AssertLogs(), "Expected to find find multiple IDs")
+	s.False(s.check.AssertLogs(), "Expected to find multiple IDs")
 }
