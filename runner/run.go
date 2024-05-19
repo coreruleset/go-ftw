@@ -23,8 +23,6 @@ import (
 	"github.com/coreruleset/go-ftw/waflog"
 )
 
-var errBadTestInput = errors.New("ftw/run: bad test input: choose between data, encoded_request, or raw_request")
-
 // Run runs your tests with the specified Config.
 func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
@@ -147,8 +145,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	}
 
 	// Check sanity first
-	if checkTestSanity(testInput) {
-		return errBadTestInput
+	if err := checkTestSanity(&stage); err != nil {
+		return err
 	}
 
 	// Do not even run test if result is overridden. Just use the override and display the overridden result.
@@ -289,12 +287,23 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, testCase *sc
 	return result
 }
 
-func checkTestSanity(testInput test.Input) bool {
-	return (utils.IsNotEmpty(testInput.Data) && testInput.EncodedRequest != "") ||
-		//nolint:staticcheck
-		(utils.IsNotEmpty(testInput.Data) && testInput.RAWRequest != "") ||
-		//nolint:staticcheck
-		(testInput.EncodedRequest != "" && testInput.RAWRequest != "")
+func checkTestSanity(stage *schema.Stage) error {
+	if utils.IsNotEmpty(stage.Input.Data) && stage.Input.EncodedRequest != "" {
+		return errors.New("'data' and 'encoded_request' must not be set simultaneously")
+	}
+	//nolint:staticcheck
+	if utils.IsNotEmpty(stage.Input.Data) && stage.Input.RAWRequest != "" {
+		return errors.New("'data' and 'raw_request' must not be set simultaneously")
+	}
+	//nolint:staticcheck
+	if stage.Input.EncodedRequest != "" && stage.Input.RAWRequest != "" {
+		return errors.New("'encoded_request' and 'raw_request' must not be set simultaneously")
+	}
+	if len(stage.Output.Log.ExpectIds) != 1 && stage.Output.Isolated {
+		return errors.New("'isolated' is only valid if 'expected_ids' has exactly one entry")
+	}
+
+	return nil
 }
 
 func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {

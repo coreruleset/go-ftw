@@ -16,6 +16,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/coreruleset/ftw-tests-schema/types"
+	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/output"
@@ -529,4 +531,25 @@ func (s *runTestSuite) TestFailFast() {
 	s.Require().NoError(err)
 	s.Equal(1, res.Stats.TotalFailed(), "Oops, test run failed!")
 	s.Equal(2, res.Stats.Run)
+}
+
+func (s *runTestSuite) TestIsolatedSanity() {
+	rc := &TestRunContext{
+		Config: s.cfg,
+	}
+	stage := types.Stage{
+		Input: types.Input{},
+		Output: types.Output{
+			Isolated: true,
+			Log: types.Log{
+				ExpectIds: []uint{},
+			},
+		},
+	}
+	err := RunStage(rc, &check.FTWCheck{}, types.Test{}, stage)
+	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
+
+	stage.Output.Log.ExpectIds = []uint{1, 2}
+	err = RunStage(rc, &check.FTWCheck{}, types.Test{}, stage)
+	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
 }

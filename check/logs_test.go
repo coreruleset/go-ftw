@@ -151,3 +151,12 @@ func (s *checkLogsTestSuite) TestAssertLogNoExpectIds_Subset() {
 	s.check.expected.Log.NoExpectIds = []uint{123, 920300}
 	s.False(s.check.AssertLogs(), "Expected to find '920300'")
 }
+
+func (s *checkLogsTestSuite) TestAssertLogIsolated() {
+	s.check.expected.Log.ExpectIds = []uint{920300}
+	s.False(s.check.expected.Isolated)
+	s.True(s.check.AssertLogs(), "Expected to find 920300")
+
+	s.check.expected.Isolated = true
+	s.False(s.check.AssertLogs(), "Expected to find multiple IDs")
+}
