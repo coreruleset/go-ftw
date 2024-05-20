@@ -6,7 +6,7 @@ package check
 import (
 	"testing"
 
-	schema "github.com/coreruleset/ftw-tests-schema/types"
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"

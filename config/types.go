@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"regexp"
 
-	schema "github.com/coreruleset/ftw-tests-schema/types/overrides"
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
 
 	"github.com/coreruleset/go-ftw/ftwhttp"
 )
