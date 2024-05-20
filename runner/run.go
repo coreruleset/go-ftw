@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"time"
 
-	schema "github.com/coreruleset/ftw-tests-schema/types"
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/time/rate"

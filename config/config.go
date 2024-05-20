@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	schema "github.com/coreruleset/ftw-tests-schema/types/overrides"
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"

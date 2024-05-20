@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"time"
 
-	schema "github.com/coreruleset/ftw-tests-schema/types"
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/output"

@@ -4,7 +4,7 @@
 package check
 
 import (
-	schema "github.com/coreruleset/ftw-tests-schema/types"
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/test"

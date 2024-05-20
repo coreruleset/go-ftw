@@ -14,7 +14,7 @@ Go-FTW is a replacement for [FTW](https://pypi.org/project/ftw/) which had reach
 Features of Go-FTW include:
   - fully customizable HTTP traffic
   - CI/CD friendly
-  - fast (at least faster than FTW was)
+  - fast
   - syntax checking of test files
 
 ## Install
@@ -119,35 +119,39 @@ Usage:
 Flags:
       --connect-timeout duration               timeout for connecting to endpoints during test execution (default 3s)
   -d, --dir string                             recursively find yaml tests in this directory (default ".")
-  -e, --exclude string                         exclude tests matching this Go regexp (e.g. to exclude all tests beginning with "91", use "91.*").
-                                               If you want more permanent exclusion, check the 'testoverride' option in the config file.
+  -e, --exclude string                         exclude tests matching this Go regular expression (e.g. to exclude all tests beginning with "91", use "^91.*").
+                                               If you want more permanent exclusion, check the 'exclude' option in the config file.
+      --fail-fast                              Fail on first failed test
   -f, --file string                            output file path for ftw tests. Prints to standard output by default.
   -h, --help                                   help for run
-  -i, --include string                         include only tests matching this Go regexp (e.g. to include only tests beginning with "91", use "91.*").
+  -i, --include string                         include only tests matching this Go regular expression (e.g. to include only tests beginning with "91", use "^91.*"). \nIf you want more permanent inclusion, check the 'include' option in the config file."
+  -l, --log-file string                        path to log file to watch for WAF events
       --max-marker-log-lines int               maximum number of lines to search for a marker before aborting (default 500)
       --max-marker-retries int                 maximum number of times the search for log markers will be repeated.
                                                Each time an additional request is sent to the web server, eventually forcing the log to be flushed (default 20)
   -o, --output string                          output type for ftw tests. "normal" is the default. (default "normal")
-      --read-timeout duration                  timeout for receiving responses during test execution (default 1s)
+  -r, --rate-limit duration                    Limit the request rate to the server to 1 request per specified duration. 0 is the default, and disables rate limiting.
+      --read-timeout duration                  timeout for receiving responses during test execution (default 10s)
       --show-failures-only                     shows only the results of failed tests
   -t, --time                                   show time spent per test
       --wait-delay duration                    Time to wait between retries for all wait operations. (default 1s)
       --wait-for-connection-timeout duration   Http connection timeout, The timeout includes connection time, any redirects, and reading the response body. (default 3s)
-      --wait-for-expect-body-json string       Expect response body JSON pattern. To know more about JSON syntax see https://github.com/tidwall/gjson/blob/master/SYNTAX.md
-      --wait-for-expect-body-regex string      Expect response body pattern. This is just a regex.
-      --wait-for-expect-body-xpath string      Expect response body XPath pattern. Example: `"//*[@id="tux-gear"]"`
-      --wait-for-expect-header string          Expect response header pattern. This is a regex. Example: `"Content-Type: application/json"`.
+      --wait-for-expect-body-json string       Expect response body JSON pattern.
+      --wait-for-expect-body-regex string      Expect response body pattern.
+      --wait-for-expect-body-xpath string      Expect response body XPath pattern.
+      --wait-for-expect-header string          Expect response header pattern.
       --wait-for-expect-status-code int        Expect response code e.g. 200, 204, ... .
       --wait-for-host string                   Wait for host to be available before running tests.
-      --wait-for-insecure-skip-tls-verify      Skips TLS certificate checks for the HTTPS request.
+      --wait-for-insecure-skip-tls-verify      Skips tls certificate checks for the HTTPS request.
       --wait-for-no-redirect                   Do not follow HTTP 3xx redirects.
       --wait-for-timeout duration              Sets the timeout for all wait operations, 0 is unlimited. (default 10s)
 
 Global Flags:
-      --cloud           cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)
-      --config string   override config file (default is $PWD/.ftw.yaml)
-      --debug           debug output
-      --trace           trace output: really, really verbose
+      --cloud              cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)
+      --config string      specify config file (default is $PWD/.ftw.yaml)
+      --debug              debug output
+      --overrides string   specify file with platform specific overrides
+      --trace              trace output: really, really verbose
 ```
 All the wait for flags are implemented using the [wait4x](https://github.com/atkrad/wait4x#http) library.
 See their examples on how to use them. In our flags we added the prefix `--wait-for` but they behave similarly.
