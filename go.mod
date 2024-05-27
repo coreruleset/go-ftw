@@ -16,7 +16,7 @@ require (
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/kyokomi/emoji/v2 v2.2.13
 	github.com/magefile/mage v1.15.0
-	github.com/rs/zerolog v1.32.0
+	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
 	github.com/yargevad/filepathx v1.0.0
