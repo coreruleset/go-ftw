@@ -1,8 +1,6 @@
 ---
 meta:
   author: "tester"
-  enabled: true
-  name: "TestFailedTestsRun.yaml"
   description: "Example Test"
 tests:
   - test_id: 990

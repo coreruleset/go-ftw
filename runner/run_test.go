@@ -35,9 +35,6 @@ testoverride:
   ignore:
     "920400-1": "This test result must be ignored"
 `,
-	"TestDisabledRun": `---
-mode: 'cloud'
-`,
 	"TestBrokenOverrideRun": `---
 testoverride:
   input:
@@ -96,7 +93,6 @@ testoverride:
 
 var destinationMap = map[string]string{
 	"TestBrokenOverrideRun": "http://example.com:1234",
-	"TestDisabledRun":       "http://example.com:1234",
 }
 
 type runTestSuite struct {
@@ -347,12 +343,6 @@ func (s *runTestSuite) TestBrokenOverrideRun() {
 
 func (s *runTestSuite) TestBrokenPortOverrideRun() {
 	// the test should succeed, despite the unknown override property
-	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
-	s.Require().NoError(err)
-	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
-}
-
-func (s *runTestSuite) TestDisabledRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
 	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")

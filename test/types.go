@@ -4,6 +4,7 @@
 package test
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 
@@ -125,34 +126,36 @@ func applyHeadersOverride(overrides *config.Overrides, input *Input) {
 	}
 }
 
-func postLoadTestFTWTest(ftwTest *FTWTest, fileName string) {
+func postLoadTestFTWTest(ftwTest *FTWTest, fileName string) error {
 	ftwTest.FileName = fileName
-	postLoadRuleId(ftwTest)
+	if err := postLoadRuleId(ftwTest); err != nil {
+		return err
+	}
 	for index := 0; index < len(ftwTest.Tests); index++ {
 		postLoadTest(ftwTest.RuleId, uint(index+1), &ftwTest.Tests[index])
 	}
+	return nil
 }
 
-func postLoadRuleId(ftwTest *FTWTest) {
+func postLoadRuleId(ftwTest *FTWTest) error {
 	if ftwTest.RuleId > 0 {
-		return
+		return nil
 	}
 
 	if len(ftwTest.FileName) == 0 {
-		log.Fatal().Msg("The rule_id field is required for the top-level test structure")
+		return fmt.Errorf("the rule_id field is required for the top-level test structure")
 	} else {
 		ruleIdString := regexp.MustCompile(`\d+`).FindString(ftwTest.FileName)
 		if len(ruleIdString) == 0 {
-			log.Fatal().Msg("Failed to fall back on filename to find rule ID of test. The rule_id field is required for the top-level test structure")
-			return
+			return fmt.Errorf("failed to fall back on filename to find rule ID of test. The rule_id field is required for the top-level test structure")
 		}
 		ruleId, err := strconv.ParseUint(ruleIdString, 10, 0)
 		if err != nil {
-			log.Fatal().Msgf("failed to parse rule ID from filename '%s'", ftwTest.FileName)
-			return
+			return fmt.Errorf("failed to parse rule ID from filename '%s'", ftwTest.FileName)
 		}
 		ftwTest.RuleId = uint(ruleId)
 	}
+	return nil
 }
 func postLoadTest(ruleId uint, testId uint, test *schema.Test) {
 	test.RuleId = ruleId

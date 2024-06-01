@@ -86,7 +86,6 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 		// if we received a particular test ID, skip until we find it
 		if needToSkipTest(runContext.Include, runContext.Exclude, &testCase) {
 			runContext.Stats.addResultToStats(Skipped, &testCase)
-			log.Trace().Msgf("\tskipping %s", testCase.IdString())
 			continue
 		}
 		test.ApplyPlatformOverrides(runContext.Config, &testCase)
