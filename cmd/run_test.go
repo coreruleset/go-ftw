@@ -23,8 +23,6 @@ import (
 var testFileContentsTemplate = `---
 meta:
   author: "go-ftw"
-  enabled: true
-  name: "mock-TestRunTests_Run.yaml"
   description: "Test file for go-ftw"
 tests:
   - # Standard GET request

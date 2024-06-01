@@ -1,8 +1,6 @@
 ---
 meta:
   author: "tester"
-  enabled: true
-  name: "TestIgnoredTestsRun.yaml"
   description: "Example Test"
 tests:
   - test_id: 1

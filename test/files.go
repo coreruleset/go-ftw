@@ -30,16 +30,18 @@ func GetTestsFromFiles(globPattern string) ([]*FTWTest, error) {
 	}
 
 	for _, filePath := range testFiles {
+		fileName := path.Base(filePath)
+		log.Trace().Msgf("Loading %s", fileName)
 		yamlString, err := readFileContents(filePath)
 		if err != nil {
 			return tests, err
 		}
-		ftwTest, err := GetTestFromYaml(yamlString, path.Base(filePath))
+		ftwTest, err := GetTestFromYaml(yamlString, fileName)
 		if err != nil {
-			log.Error().Msgf("Problem detected in file %s:\n%s\n%s",
+			log.Warn().Msgf("Problem detected in file %s:\n%s\n%s",
 				filePath, yaml.FormatError(err, true, true),
 				DescribeYamlError(err))
-			return tests, err
+			continue
 		}
 
 		tests = append(tests, ftwTest)

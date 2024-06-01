@@ -20,8 +20,6 @@ func TestTypesTestSuite(t *testing.T) {
 var autocompleteHeadersDefaultYaml = `---
 meta:
   author: "tester"
-  enabled: true
-  name: "gotest-ftw.yaml"
   description: "Example Test"
 rule_id: 123456
 tests:
@@ -68,8 +66,6 @@ tests:
 var autocompleteHeadersFalseYaml = `---
 meta:
   author: "tester"
-  enabled: true
-  name: "gotest-ftw.yaml"
   description: "Example Test"
 rule_id: 123456
 tests:
@@ -119,8 +115,6 @@ tests:
 var autocompleteHeadersTrueYaml = `---
 meta:
   author: "tester"
-  enabled: true
-  name: "gotest-ftw.yaml"
   description: "Example Test"
 rule_id: 123456
 tests:
