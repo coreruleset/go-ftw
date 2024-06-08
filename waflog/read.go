@@ -28,16 +28,21 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 	ruleIds := []uint{}
 	for _, line := range lines {
 		log.Trace().Msgf("ftw/waflog: Looking for any rule in %s", line)
-		match := regex.FindSubmatch(line)
+		match := regex.FindAllSubmatch(line, -1)
 		if match != nil {
 			log.Trace().Msgf("ftw/waflog: Found %s at %s", regex.String(), line)
-			submatch := string(match[1])
-			ruleId, err := strconv.ParseUint(submatch, 10, 0)
-			if err != nil {
-				log.Error().Msgf("Failed to parse uint from %s", submatch)
-				continue
+			for _, nextMatch := range match {
+				submatch := string(nextMatch[1])
+				if len(submatch) == 0 {
+					submatch = string(nextMatch[2])
+				}
+				ruleId, err := strconv.ParseUint(submatch, 10, 0)
+				if err != nil {
+					log.Error().Caller().Msgf("Failed to parse uint from %s", submatch)
+					continue
+				}
+				ruleIds = append(ruleIds, uint(ruleId))
 			}
-			ruleIds = append(ruleIds, uint(ruleId))
 		}
 	}
 	ll.triggeredRules = ruleIds
