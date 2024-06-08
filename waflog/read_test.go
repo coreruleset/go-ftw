@@ -114,7 +114,7 @@ func (s *readTestSuite) TestReadGetMarkedLines() {
 	s.Equal(len(foundLines), 3, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
-		s.Equalf(foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
+		s.Equalf(string(foundLines[index]), line, "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
 	}
 }
 

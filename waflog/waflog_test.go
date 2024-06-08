@@ -70,7 +70,6 @@ func (s *waflogTestSuite) TestLogLinesReset() {
 	s.Equal("X-Tests", string(ll.LogMarkerHeaderName))
 	s.Nil(ll.startMarker)
 	s.Nil(ll.endMarker)
-	s.Nil(ll.triggeredRules)
-	s.Nil(ll.triggeredRules)
-	s.Nil(ll.markedLines)
+	s.Empty(ll.triggeredRules)
+	s.Empty(ll.markedLines)
 }

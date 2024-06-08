@@ -16,16 +16,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var ruleIdsSet = make(map[uint]bool, 15)
+
 // TriggeredRules returns the IDs of all the rules found in the log for the current test
 func (ll *FTWLogLines) TriggeredRules() []uint {
-	if ll.triggeredRules != nil {
+	if ll.triggeredRulesInitialized {
 		return ll.triggeredRules
 	}
+	ll.triggeredRulesInitialized = true
 
 	lines := ll.getMarkedLines()
-
 	regex := regexp.MustCompile(`\[id "(\d+)"\]|"id":\s*"?(\d+)"?`)
-	ruleIds := []uint{}
 	for _, line := range lines {
 		log.Trace().Msgf("ftw/waflog: Looking for any rule in %s", line)
 		match := regex.FindAllSubmatch(line, -1)
@@ -42,13 +43,21 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 						log.Error().Caller().Msgf("Failed to parse uint from %s", submatch)
 						continue
 					}
-					ruleIds = append(ruleIds, uint(ruleId))
+					ruleIdsSet[uint(ruleId)] = true
 				}
 			}
 		}
 	}
+	ruleIds := make([]uint, 0, len(ruleIdsSet))
+	for ruleId := range ruleIdsSet {
+		ruleIds = append(ruleIds, ruleId)
+	}
 	ll.triggeredRules = ruleIds
-	return ruleIds
+	// Reset map for next use
+	for key := range ruleIdsSet {
+		delete(ruleIdsSet, key)
+	}
+	return ll.triggeredRules
 }
 
 // ContainsAllIds returns true if all of the specified rule IDs appear in the log for the current test.
@@ -106,20 +115,19 @@ func (ll *FTWLogLines) MatchesRegex(pattern string) bool {
 }
 
 func (ll *FTWLogLines) getMarkedLines() [][]byte {
-	if ll.markedLines != nil {
+	if ll.markedLinesInitialized {
 		return ll.markedLines
 	}
+	ll.markedLinesInitialized = true
 
 	if ll.startMarker == nil || ll.endMarker == nil {
 		log.Fatal().Msg("Both start and end marker must be set before the log can be inspected")
 	}
 
-	var found [][]byte
-
 	fi, err := ll.logFile.Stat()
 	if err != nil {
 		log.Error().Caller().Msgf("cannot read file's size")
-		return found
+		return ll.markedLines
 	}
 
 	// Lines in modsec logging can be quite large
@@ -149,11 +157,10 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 
 		saneCopy := make([]byte, len(line))
 		copy(saneCopy, line)
-		found = append(found, saneCopy)
+		ll.markedLines = append(ll.markedLines, saneCopy)
 	}
 
-	ll.markedLines = found
-	return found
+	return ll.markedLines
 }
 
 // CheckLogForMarker reads the log file and searches for a marker line.
