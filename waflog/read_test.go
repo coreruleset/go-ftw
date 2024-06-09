@@ -361,3 +361,36 @@ func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	foundMarker := ll.CheckLogForMarker(stageID, 100)
 	s.Equal(strings.ToLower(markerLine), strings.ToLower(string(foundMarker)))
 }
+
+func (s *readTestSuite) TestFindAllIdsInLogs() {
+	cfg, err := config.NewConfigFromEnv()
+	s.Require().NoError(err)
+	s.NotNil(cfg)
+
+	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+	markerLine := "X-cRs-TeSt: " + stageID
+	logLines := fmt.Sprint("\n", markerLine,
+		`[id "1"] something else [id "2"]`,
+		`"id": 3, something else {"id":4}`+"\n",
+		"\n", markerLine)
+	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
+	s.Require().NoError(err)
+
+	cfg.LogFile = filename
+	log, err := os.Open(filename)
+	s.Require().NoError(err)
+
+	ll := &FTWLogLines{
+		logFile:             log,
+		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
+	}
+	ll.WithStartMarker([]byte(markerLine))
+	ll.WithEndMarker([]byte(markerLine))
+
+	foundRuleIds := ll.TriggeredRules()
+	s.Len(foundRuleIds, 4)
+	s.Contains(foundRuleIds, uint(1))
+	s.Contains(foundRuleIds, uint(2))
+	s.Contains(foundRuleIds, uint(3))
+	s.Contains(foundRuleIds, uint(4))
+}
