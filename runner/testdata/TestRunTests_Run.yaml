@@ -17,6 +17,9 @@ tests:
           expect_error: False
           status: 200
   - test_id: 8
+    tags:
+      - tag-8
+      - local
     description: "this test is number 8"
     stages:
       - input:
@@ -29,6 +32,9 @@ tests:
         output:
           status: 200
   - test_id: 10
+    tags:
+      - tag-10
+      - other
     stages:
       - input:
           dest_addr: "{{ .TestAddr }}"

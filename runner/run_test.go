@@ -305,6 +305,24 @@ func (s *runTestSuite) TestRunTests_Run() {
 		s.Equal(res.Stats.TotalFailed(), 0, "failed to exclude test")
 	})
 
+	s.Run("count tests tagged with `tag-10`", func() {
+		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+			IncludeTags: regexp.MustCompile("^tag-10$"),
+		}, s.out)
+		s.Require().NoError(err)
+		s.Len(res.Stats.Success, 1, "failed to incorporate tagged test")
+		s.Equal(res.Stats.TotalFailed(), 0, "failed to incorporate tagged test")
+	})
+
+	s.Run("count tests tagged with `tag-8` and `tag-10`", func() {
+		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+			IncludeTags: regexp.MustCompile("^tag-8$|^tag-10$"),
+		}, s.out)
+		s.Require().NoError(err)
+		s.Len(res.Stats.Success, 2, "failed to incorporate tagged test")
+		s.Equal(res.Stats.TotalFailed(), 0, "failed to incorporate tagged test")
+	})
+
 	s.Run("test exceptions 1", func() {
 		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
 			Include: regexp.MustCompile("1*"),

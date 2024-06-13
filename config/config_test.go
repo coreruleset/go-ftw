@@ -20,6 +20,8 @@ include:
     '^9.*': 'Include all tests starting with 9'
 exclude:
     '^920400-2$': 'Exclude this test'
+tag:
+    '^cookie$': 'Run test tagged with this label'
 testoverride:
   input:
     dest_addr: 'httpbingo.org'

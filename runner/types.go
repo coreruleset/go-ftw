@@ -19,6 +19,8 @@ type RunnerConfig struct {
 	Include *regexp.Regexp
 	// Exclude is a regular expression to filter tests to exclude. If nil, no tests are excluded.
 	Exclude *regexp.Regexp
+	// IncludeTags is a regular expression to filter tests to count the ones tagged with the mathing label. If nil, no impact on test runner.
+	IncludeTags *regexp.Regexp
 	// ShowTime determines whether to show the time taken to run each test.
 	ShowTime bool
 	// ShowOnlyFailed will only output information related to failed tests
@@ -43,6 +45,7 @@ type TestRunContext struct {
 	RunnerConfig   *RunnerConfig
 	Include        *regexp.Regexp
 	Exclude        *regexp.Regexp
+	IncludeTags    *regexp.Regexp
 	ShowTime       bool
 	ShowOnlyFailed bool
 	Output         *output.Output

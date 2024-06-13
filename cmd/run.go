@@ -33,6 +33,7 @@ func NewRunCommand() *cobra.Command {
 
 	runCmd.Flags().StringP("exclude", "e", "", "exclude tests matching this Go regular expression (e.g. to exclude all tests beginning with \"91\", use \"^91.*\"). \nIf you want more permanent exclusion, check the 'exclude' option in the config file.")
 	runCmd.Flags().StringP("include", "i", "", "include only tests matching this Go regular expression (e.g. to include only tests beginning with \"91\", use \"^91.*\"). \\nIf you want more permanent inclusion, check the 'include' option in the config file.\"")
+	runCmd.Flags().StringP("include-tags", "T", "", "include tests tagged with labels matching this Go regular expression (e.g. to include all tests being tagged with \"cookie\", use \"^cookie$\").")
 	runCmd.Flags().StringP("dir", "d", ".", "recursively find yaml tests in this directory")
 	runCmd.Flags().StringP("output", "o", "normal", "output type for ftw tests. \"normal\" is the default.")
 	runCmd.Flags().StringP("file", "f", "", "output file path for ftw tests. Prints to standard output by default.")
@@ -65,6 +66,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 	exclude, _ := cmd.Flags().GetString("exclude")
 	include, _ := cmd.Flags().GetString("include")
+	includeTags, _ := cmd.Flags().GetString("include-tags")
 	dir, _ := cmd.Flags().GetString("dir")
 	outputFilename, _ := cmd.Flags().GetString("file")
 	logFilePath, _ := cmd.Flags().GetString("log-file")
@@ -113,11 +115,21 @@ func runE(cmd *cobra.Command, _ []string) error {
 
 	var includeRE *regexp.Regexp
 	if include != "" {
-		includeRE = regexp.MustCompile(include)
+		if includeRE, err = regexp.Compile(include); err != nil {
+			return fmt.Errorf("invalid --include regular expression: %w", err)
+		}
 	}
 	var excludeRE *regexp.Regexp
 	if exclude != "" {
-		excludeRE = regexp.MustCompile(exclude)
+		if excludeRE, err = regexp.Compile(exclude); err != nil {
+			return fmt.Errorf("invalid --exclude regular expression: %w", err)
+		}
+	}
+	var includeTagsRE *regexp.Regexp
+	if includeTags != "" {
+		if includeTagsRE, err = regexp.Compile(includeTags); err != nil {
+			return fmt.Errorf("invalid --include-tags regular expression: %w", err)
+		}
 	}
 
 	// Add wait4x checkers
@@ -167,6 +179,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	currentRun, err := runner.Run(cfg, tests, runner.RunnerConfig{
 		Include:        includeRE,
 		Exclude:        excludeRE,
+		IncludeTags:    includeTagsRE,
 		ShowTime:       showTime,
 		ShowOnlyFailed: showOnlyFailed,
 		ConnectTimeout: connectTimeout,

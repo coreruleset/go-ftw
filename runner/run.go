@@ -6,7 +6,6 @@ package runner
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"time"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
@@ -52,6 +51,7 @@ func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c RunnerConfig, ou
 		RunnerConfig:   &c,
 		Include:        c.Include,
 		Exclude:        c.Exclude,
+		IncludeTags:    c.IncludeTags,
 		ShowTime:       c.ShowTime,
 		Output:         out,
 		ShowOnlyFailed: c.ShowOnlyFailed,
@@ -84,7 +84,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 
 	for _, testCase := range ftwTest.Tests {
 		// if we received a particular test ID, skip until we find it
-		if needToSkipTest(runContext.Include, runContext.Exclude, &testCase) {
+		if needToSkipTest(runContext, &testCase) {
 			runContext.Stats.addResultToStats(Skipped, &testCase)
 			continue
 		}
@@ -257,7 +257,11 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.Config.LogFile)
 }
 
-func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, testCase *schema.Test) bool {
+func needToSkipTest(runContext *TestRunContext, testCase *schema.Test) bool {
+	include := runContext.Include
+	exclude := runContext.Exclude
+	includeTags := runContext.IncludeTags
+
 	// never skip enabled explicit inclusions
 	if include != nil {
 		if include.MatchString(testCase.IdString()) {
@@ -266,12 +270,19 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, testCase *sc
 		}
 	}
 
-	result := false
+	// if the test's tags do not match the passed ones
+	// it needs to be skipped
+	if includeTags != nil {
+		if !utils.MatchSlice(includeTags, testCase.Tags) {
+			return true
+		}
+	}
+
 	// if we need to exclude tests, and the ID matches,
 	// it needs to be skipped
 	if exclude != nil {
 		if exclude.MatchString(testCase.IdString()) {
-			result = true
+			return true
 		}
 	}
 
@@ -279,11 +290,11 @@ func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, testCase *sc
 	// it needs to be skipped
 	if include != nil {
 		if !include.MatchString(testCase.IdString()) {
-			result = true
+			return true
 		}
 	}
 
-	return result
+	return false
 }
 
 func checkTestSanity(stage *schema.Stage) error {

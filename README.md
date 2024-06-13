@@ -133,6 +133,7 @@ Flags:
   -r, --rate-limit duration                    Limit the request rate to the server to 1 request per specified duration. 0 is the default, and disables rate limiting.
       --read-timeout duration                  timeout for receiving responses during test execution (default 10s)
       --show-failures-only                     shows only the results of failed tests
+  -T, --include-tags string                    include tests tagged with labels matching this Go regular expression (e.g. to include all tests being tagged with "cookie", use "^cookie$").
   -t, --time                                   show time spent per test
       --wait-delay duration                    Time to wait between retries for all wait operations. (default 1s)
       --wait-for-connection-timeout duration   Http connection timeout, The timeout includes connection time, any redirects, and reading the response body. (default 3s)
