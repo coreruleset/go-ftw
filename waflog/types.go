@@ -6,16 +6,19 @@ package waflog
 
 import (
 	"os"
+	"slices"
 )
 
 // FTWLogLines represents the filename to search for logs in a certain timespan
 type FTWLogLines struct {
-	logFile             *os.File
-	LogMarkerHeaderName []byte
-	startMarker         []byte
-	endMarker           []byte
-	triggeredRules      []uint
-	markedLines         [][]byte
+	logFile                   *os.File
+	LogMarkerHeaderName       []byte
+	startMarker               []byte
+	endMarker                 []byte
+	triggeredRules            []uint
+	markedLines               [][]byte
+	markedLinesInitialized    bool
+	triggeredRulesInitialized bool
 }
 
 func (ll *FTWLogLines) StartMarker() []byte {
@@ -29,6 +32,8 @@ func (ll *FTWLogLines) EndMarker() []byte {
 func (ll *FTWLogLines) reset() {
 	ll.startMarker = nil
 	ll.endMarker = nil
-	ll.triggeredRules = nil
-	ll.markedLines = nil
+	ll.triggeredRules = slices.Delete(ll.triggeredRules, 0, len(ll.triggeredRules))
+	ll.markedLines = slices.Delete(ll.markedLines, 0, len(ll.markedLines))
+	ll.markedLinesInitialized = false
+	ll.triggeredRulesInitialized = false
 }
