@@ -16,7 +16,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var ruleIdsSet = make(map[uint]bool, 15)
+const maxRuleIdsEstimate = 15
+
+var ruleIdsSet = make(map[uint]bool, maxRuleIdsEstimate)
 
 // TriggeredRules returns the IDs of all the rules found in the log for the current test
 func (ll *FTWLogLines) TriggeredRules() []uint {
