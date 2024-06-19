@@ -278,6 +278,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 		}, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 5, "verbose and execute all failed")
+		s.Len(res.Stats.Skipped, 0, "verbose and execute all failed")
 		s.Equal(res.Stats.TotalFailed(), 0, "verbose and execute all failed")
 	})
 
@@ -287,6 +288,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 		}, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 5, "do not show time and execute all failed")
+		s.Len(res.Stats.Skipped, 0, "do not show time and execute all failed")
 		s.Equal(res.Stats.TotalFailed(), 0, "do not show time and execute all failed")
 	})
 
@@ -297,6 +299,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 		}, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 1, "execute only test 008 but exclude all")
+		s.Len(res.Stats.Skipped, 4, "execute only test 008 but exclude all")
 		s.Equal(res.Stats.TotalFailed(), 0, "execute only test 008 but exclude all")
 	})
 
@@ -306,17 +309,19 @@ func (s *runTestSuite) TestRunTests_Run() {
 		}, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 4, "failed to exclude test")
+		s.Len(res.Stats.Skipped, 1, "failed to exclude test")
 		s.Equal(res.Stats.TotalFailed(), 0, "failed to exclude test")
 	})
 
 	s.Run("test exceptions 1", func() {
 		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
-			Include: regexp.MustCompile("1*"),
-			Exclude: regexp.MustCompile("0*"),
+			Include: regexp.MustCompile("-1.*"),
+			Exclude: regexp.MustCompile("-0.*"),
 			Output:  output.Quiet,
 		}, s.out)
 		s.Require().NoError(err)
-		s.Len(res.Stats.Success, 5, "failed to exclude test")
+		s.Len(res.Stats.Success, 4, "failed to test exceptions")
+		s.Len(res.Stats.Skipped, 1, "failed to test exceptions")
 		s.Equal(res.Stats.TotalFailed(), 0, "failed to test exceptions")
 	})
 }
