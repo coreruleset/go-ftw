@@ -28,6 +28,7 @@ func NewDefaultConfig() *FTWConfiguration {
 		MaxMarkerLogLines:   DefaultMaxMarkerLogLines,
 		IncludeTests:        make(map[*FTWRegexp]string),
 		ExcludeTests:        make(map[*FTWRegexp]string),
+		IncludeTags:         make(map[*FTWRegexp]string),
 	}
 	return cfg
 }
