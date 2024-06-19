@@ -49,7 +49,7 @@ type FTWConfiguration struct {
 	// ExcludeTests is a list of tests to exclude (same as --exclude)
 	ExcludeTests map[*FTWRegexp]string `koanf:"exclude"`
 	// IncludeTags is a list of tags matching tests to run (same as --tag)
-	IncludeTags map[*FTWRegexp]string `koanf:"tag"`
+	IncludeTags map[*FTWRegexp]string `koanf:"include_tags"`
 }
 
 type PlatformOverrides struct {

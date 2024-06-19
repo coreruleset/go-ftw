@@ -20,7 +20,7 @@ include:
     '^9.*': 'Include all tests starting with 9'
 exclude:
     '^920400-2$': 'Exclude this test'
-tag:
+include_tags:
     '^cookie$': 'Run test tagged with this label'
 testoverride:
   input:
