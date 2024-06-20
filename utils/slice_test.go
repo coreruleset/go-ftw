@@ -15,10 +15,10 @@ type sliceTestSuite struct {
 }
 
 func TestSliceTestSuite(t *testing.T) {
-	suite.Run(t, new(timeTestSuite))
+	suite.Run(t, new(sliceTestSuite))
 }
 
-func (s *timeTestSuite) TestMatchSlice() {
+func (s *sliceTestSuite) TestMatchSlice() {
 	re := regexp.MustCompile("^cookie$")
 
 	s.False(MatchSlice(re, []string{}))

@@ -8,9 +8,8 @@ import (
 	"errors"
 	"io"
 	"regexp"
-	"strconv"
-
 	"slices"
+	"strconv"
 
 	"github.com/icza/backscanner"
 	"github.com/rs/zerolog/log"
@@ -35,7 +34,8 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 		if match != nil {
 			log.Trace().Msgf("ftw/waflog: Found %s at %s", regex.String(), line)
 			for _, nextMatch := range match {
-				for _, submatchBytes := range nextMatch {
+				for index := 1; index <= 2; index++ {
+					submatchBytes := nextMatch[index]
 					if len(submatchBytes) == 0 {
 						continue
 					}
