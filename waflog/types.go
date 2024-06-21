@@ -6,6 +6,7 @@ package waflog
 
 import (
 	"os"
+
 	"slices"
 )
 
