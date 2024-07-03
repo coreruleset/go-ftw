@@ -5,7 +5,8 @@ package cmd
 
 import (
 	"context"
-	"log"
+    "fmt"
+    "log"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -26,7 +27,7 @@ var cfg = config.NewDefaultConfig()
 // NewRootCommand represents the base command when called without any subcommands
 func NewRootCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:   "ftw run",
+		Use:   fmt.Sprintf("%s run", config.ExecutableName),
 		Short: "Framework for Testing WAFs - Go Version",
 	}
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "specify config file (default is $PWD/.ftw.yaml)")
