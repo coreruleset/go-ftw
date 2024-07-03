@@ -1,33 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-      "config:base",
-      "schedule:weekly"
+    "local>coreruleset/renovate-config",
+    "schedule:weekly"
   ],
-  "ignoreDeps": ["github.com/goccy/go-yaml"],
-  "packageRules": [
-    {
-      "groupName": "all non-major dependencies",
-      "groupSlug": "all-minor-patch",
-      "matchPackagePatterns": [
-        "*"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
-      "matchSourceUrlPrefixes": ["https://github.com/"],
-      "prBodyDefinitions": {
-        "OpenSSF": "[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/{{sourceRepo}}/badge)](https://securityscorecards.dev/viewer/?uri=github.com/{{sourceRepo}})"
-      },
-      "prBodyColumns": [
-        "Package",
-        "Type",
-        "Update",
-        "Change",
-        "Pending",
-        "OpenSSF"
-      ]
-    }
-  ]
+  "ignoreDeps": ["github.com/goccy/go-yaml"]
 }
