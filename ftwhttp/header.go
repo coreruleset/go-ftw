@@ -6,6 +6,7 @@ package ftwhttp
 import (
 	"bytes"
 	"io"
+	"net/textproto"
 	"sort"
 
 	"github.com/rs/zerolog/log"
@@ -34,7 +35,9 @@ func (w stringWriter) WriteString(s string) (n int, err error) {
 
 // Add adds the key, value pair to the header.
 // It appends to any existing values associated with key.
+// The key is case in-sensitive
 func (h Header) Add(key, value string) {
+	key = canonicalHeaderKey(key)
 	if h.Get(key) == "" {
 		h.Set(key, value)
 	}
@@ -43,35 +46,37 @@ func (h Header) Add(key, value string) {
 // Set sets the header entries associated with key to
 // the single element value. It replaces any existing
 // values associated with key.
+// The key is case in-sensitive
 func (h Header) Set(key, value string) {
-	h[key] = value
+	h[canonicalHeaderKey(key)] = value
 }
 
 // Get gets the first value associated with the given key.
-// It is case insensitive;
 // If there are no values associated with the key, Get returns "".
+// The key is case in-sensitive
 func (h Header) Get(key string) string {
 	if h == nil {
 		return ""
 	}
-	v := h[key]
+	v := h[canonicalHeaderKey(key)]
 
 	return v
 }
 
 // Value returns the value associated with the given key.
-// It is case insensitive;
+// The key is case in-sensitive
 func (h Header) Value(key string) string {
 	if h == nil {
 		return ""
 	}
 
-	return h[key]
+	return h[canonicalHeaderKey(key)]
 }
 
 // Del deletes the value associated with key.
+// The key is case in-sensitive
 func (h Header) Del(key string) {
-	delete(h, key)
+	delete(h, canonicalHeaderKey(key))
 }
 
 // Write writes a header in wire format.
@@ -137,4 +142,9 @@ func (h Header) getSortedHeadersByName() []string {
 	sort.Strings(keys)
 
 	return keys
+}
+
+// canonicalHeaderKey transforms given to the canonical form
+func canonicalHeaderKey(key string) string {
+	return textproto.CanonicalMIMEHeaderKey(key)
 }

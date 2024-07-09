@@ -111,6 +111,11 @@ func (s *headerTestSuite) TestHeaderSetGet() {
 	h.Add("Other", "Value")
 	value := h.Get("Other")
 	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
+
+	// Case in-sensitive
+	h.Add("camel-Header", "Value")
+	value = h.Get("Camel-header")
+	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
 }
 
 func (s *headerTestSuite) TestHeaderDel() {
@@ -124,6 +129,13 @@ func (s *headerTestSuite) TestHeaderDel() {
 			s.Equalf("", value, "#%d: got: %s, want: %s\n", i, value, "")
 		}
 	}
+
+	// Case in-sensitive
+	h := Header{}
+	h.Add("content-Type", "Value")
+	h.Del("Content-type")
+	value := h.Get("Content-Type")
+	s.Equalf("", value, "#case: got: %s, want: %s\n", value, "")
 }
 
 func (s *headerTestSuite) TestHeaderClone() {
