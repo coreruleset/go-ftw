@@ -104,18 +104,52 @@ func (s *headerTestSuite) TestHeaderWriteString() {
 	}
 }
 
-func (s *headerTestSuite) TestHeaderSetGet() {
+func (s *headerTestSuite) TestHeaderAdd() {
 	h := Header{
 		"Custom": "Value",
 	}
 	h.Add("Other", "Value")
-	value := h.Get("Other")
+	value := h["Other"]
+	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
+}
+
+func (s *headerTestSuite) TestHeaderAdd_CaseInsensitiveKey() {
+	h := Header{}
+
+	h.Add("camel-Header", "Value")
+	value := h["Camel-Header"]
 	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
 
-	// Case in-sensitive
-	h.Add("camel-Header", "Value")
-	value = h.Get("Camel-header")
+	h.Add("headerwithouthyphens", "Value2")
+	value = h["headerwithouthyphens"]
+	s.Equalf("", value, "got: %s, want: %s\n", value, "")
+	value = h["Headerwithouthyphens"]
+	s.Equalf("Value2", value, "got: %s, want: %s\n", value, "Value2")
+}
+
+func (s *headerTestSuite) TestHeaderGet() {
+	h := Header{
+		"Custom": "Value",
+	}
+	value := h.Get("Custom")
 	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
+}
+
+func (s *headerTestSuite) TestHeaderGet_CaseInsensitiveKey() {
+	h := Header{
+		"Custom":                    "Value",
+		"Custom-Header":             "Value2",
+		"case-sensitive-Header-Key": "Value3",
+	}
+
+	value := h.Get("Custom")
+	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
+
+	value = h.Get("Custom-Header")
+	s.Equalf("Value2", value, "got: %s, want: %s\n", value, "Value2")
+
+	value = h.Get("case-sensitive-Header-Key")
+	s.Equalf("", value, "got: %s, want: %s\n", value, "")
 }
 
 func (s *headerTestSuite) TestHeaderDel() {
@@ -129,8 +163,9 @@ func (s *headerTestSuite) TestHeaderDel() {
 			s.Equalf("", value, "#%d: got: %s, want: %s\n", i, value, "")
 		}
 	}
+}
 
-	// Case in-sensitive
+func (s *headerTestSuite) TestHeaderDel_CaseInsensitiveKey() {
 	h := Header{}
 	h.Add("content-Type", "Value")
 	h.Del("Content-type")
