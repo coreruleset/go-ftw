@@ -109,7 +109,7 @@ func (s *headerTestSuite) TestHeaderAdd() {
 		"Custom": "Value",
 	}
 	h.Add("Other", "Value")
-	value := h["Other"]
+	value := h.Get("Other")
 	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
 }
 
@@ -117,14 +117,18 @@ func (s *headerTestSuite) TestHeaderAdd_CaseInsensitiveKey() {
 	h := Header{}
 
 	h.Add("camel-Header", "Value")
-	value := h["Camel-Header"]
+	value := h.Get("Camel-Header")
 	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
 
-	h.Add("headerwithouthyphens", "Value2")
-	value = h["headerwithouthyphens"]
-	s.Equalf("", value, "got: %s, want: %s\n", value, "")
-	value = h["Headerwithouthyphens"]
-	s.Equalf("Value2", value, "got: %s, want: %s\n", value, "Value2")
+	// Header exists, ignore overwriting
+	h.Add("Camel-Header", "Value2")
+	value = h.Get("Camel-Header")
+	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
+
+	// Overwrite header
+	h.Set("Camel-Header", "Value3")
+	value = h.Get("Camel-Header")
+	s.Equalf("Value3", value, "got: %s, want: %s\n", value, "Value3")
 }
 
 func (s *headerTestSuite) TestHeaderGet() {
@@ -137,19 +141,15 @@ func (s *headerTestSuite) TestHeaderGet() {
 
 func (s *headerTestSuite) TestHeaderGet_CaseInsensitiveKey() {
 	h := Header{
-		"Custom":                    "Value",
-		"Custom-Header":             "Value2",
-		"case-sensitive-Header-Key": "Value3",
+		"Custom":        "Value",
+		"Custom-Header": "Value2",
 	}
 
 	value := h.Get("Custom")
 	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
 
-	value = h.Get("Custom-Header")
+	value = h.Get("custom-header")
 	s.Equalf("Value2", value, "got: %s, want: %s\n", value, "Value2")
-
-	value = h.Get("case-sensitive-Header-Key")
-	s.Equalf("", value, "got: %s, want: %s\n", value, "")
 }
 
 func (s *headerTestSuite) TestHeaderDel() {
