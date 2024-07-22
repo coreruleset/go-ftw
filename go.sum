@@ -11,6 +11,8 @@ github.com/antchfx/xpath v1.3.0/go.mod h1:i54GszH55fYfBmoZXapTHN8T8tkcHfRgLyVwwq
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
 github.com/coreruleset/ftw-tests-schema/v2 v2.0.0 h1:o2h/KYp2msZoxQ/lsPAQVv8pAVdk8dfwJq9k0jxf+Es=
 github.com/coreruleset/ftw-tests-schema/v2 v2.0.0/go.mod h1:YZT8V+ROY7cC3BCc17IT1VxI+tvvlUSVshq3LDZxpMU=
+github.com/coreruleset/ftw-tests-schema/v2 v2.1.0 h1:2ilKzKRG5UzzxBcrJLXFtPalStdQ9jzzaYFuFk0OEk0=
+github.com/coreruleset/ftw-tests-schema/v2 v2.1.0/go.mod h1:ZHVFX5ses4+5IxUP0ufCNg/VqRWxziH6ZuUca092Hxo=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
