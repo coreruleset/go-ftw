@@ -4,6 +4,18 @@ meta:
   description: "Example Test"
 tests:
   - test_id: 1
+    description: "test that fails and is not overridden"
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "none.host"
+        output:
+          status: 413
+  - test_id: 2
     description: "access real external site"
     stages:
       - input:
@@ -28,7 +40,7 @@ tests:
             Host: "localhost"
         output:
           status: 200
-  - test_id: 10
+  - test_id: 20
     stages:
       - input:
           dest_addr: "{{ .TestAddr }}"
@@ -41,7 +53,7 @@ tests:
             Host: "localhost"
         output:
           response_contains: "Hello, client"
-  - test_id: 101
+  - test_id: 201
     description: "this tests exceptions (connection timeout)"
     stages:
       - input:
@@ -53,7 +65,7 @@ tests:
             Host: "none.host"
         output:
           expect_error: True
-  - test_id: 102
+  - test_id: 202
     description: "this tests exceptions (connection timeout)"
     stages:
       - input:
@@ -66,3 +78,15 @@ tests:
           encoded_request: "UE9TVCAvaW5kZXguaHRtbCBIVFRQLzEuMQ0KSG9zdDogMTkyLjE2OC4xLjIzDQpVc2VyLUFnZW50OiBjdXJsLzcuNDMuMA0KQWNjZXB0OiAqLyoNCkNvbnRlbnQtTGVuZ3RoOiA2NA0KQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi94LXd3dy1mb3JtLXVybGVuY29kZWQNCkNvbm5lY3Rpb246IGNsb3NlDQoNCmQ9MTsyOzM7NDs1XG4xO0BTVU0oMSsxKSpjbWR8JyBwb3dlcnNoZWxsIElFWCh3Z2V0IDByLnBlL3ApJ1whQTA7Mw=="
         output:
           expect_error: True
+  - test_id: 99
+    description: "test that fails but will pass because it is overridden"
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "none.host"
+        output:
+          status: 413

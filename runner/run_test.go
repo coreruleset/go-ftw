@@ -51,7 +51,7 @@ testoverride:
 	"TestIgnoredTestsRun": `---
 testoverride:
   ignore:
-    ".*-1": "This test result must be ignored"
+    ".*-2": "This test result must be ignored"
   forcefail:
     ".*-8": "This test should pass, but it is going to fail"
   forcepass:
@@ -391,7 +391,10 @@ func (s *runTestSuite) TestFailedTestsRun() {
 func (s *runTestSuite) TestIgnoredTestsRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
 	s.Require().NoError(err)
-	s.Equal(res.Stats.TotalFailed(), 1, "Oops, test run failed!")
+	s.Equal(1, len(res.Stats.ForcedPass), "Oops, unexpected number of forced pass tests")
+	s.Equal(1, len(res.Stats.Failed), "Oops, unexpected number of failed tests")
+	s.Equal(1, len(res.Stats.ForcedFail), "Oops, unexpected number of forced failed tests")
+	s.Equal(4, len(res.Stats.Ignored), "Oops, unexpected number of ignored tests")
 }
 
 func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
