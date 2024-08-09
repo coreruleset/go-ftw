@@ -148,9 +148,9 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 		return err
 	}
 
-	// Do not even run test if result is overridden. Just use the override and display the overridden result.
+	// Do not even run test if result is overridden. Directly set and display the overridden result.
 	if overridden := overriddenTestResult(ftwCheck, &testCase); overridden != Failed {
-		runContext.Stats.addResultToStats(overridden, &testCase)
+		runContext.Result = overridden
 		displayResult(&testCase, runContext, overridden, time.Duration(0), time.Duration(0))
 		return nil
 	}
