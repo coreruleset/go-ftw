@@ -84,6 +84,8 @@ func (s *runCmdTestSuite) SetupTest() {
 	s.Require().NoError(err)
 	err = tmpl.Execute(testFileContents, vars)
 	s.Require().NoError(err)
+	err = testFileContents.Close()
+	s.Require().NoError(err)
 
 	s.rootCmd = NewRootCommand()
 	s.rootCmd.AddCommand(NewRunCommand())

@@ -111,3 +111,7 @@ func (c *FTWCheck) SetStartMarker(marker []byte) {
 func (c *FTWCheck) SetEndMarker(marker []byte) {
 	c.log.WithEndMarker(marker)
 }
+
+func (c *FTWCheck) Close() error {
+	return c.log.Cleanup()
+}

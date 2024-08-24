@@ -51,6 +51,8 @@ func (s *checkCmdTestSuite) SetupTest() {
 	s.Require().NoError(err)
 	n, err := testFileContents.WriteString(checkFileContents)
 	s.Require().NoError(err)
+	err = testFileContents.Close()
+	s.Require().NoError(err)
 	s.Equal(len(checkFileContents), n)
 
 	s.rootCmd = NewRootCommand()

@@ -4,7 +4,6 @@
 package check
 
 import (
-	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -50,7 +49,7 @@ func (s *checkLogsTestSuite) SetupTest() {
 }
 
 func (s *checkLogsTestSuite) TearDownTest() {
-	err := os.Remove(s.logName)
+	err := s.check.Close()
 	s.Require().NoError(err)
 }
 

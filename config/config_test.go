@@ -256,6 +256,7 @@ func (s *baseTestSuite) TestLoadPlatformOverrides() {
 	tempDir := s.T().TempDir()
 	overridesFile, err := os.CreateTemp(tempDir, "overrides.yaml")
 	s.Require().NoError(err)
+	defer overridesFile.Close()
 	_, err = overridesFile.WriteString(`---
 version: "v0.0.0"
 meta:
