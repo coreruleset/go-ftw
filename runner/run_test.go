@@ -143,7 +143,9 @@ func (s *runTestSuite) setUpLogFileForTestServer() {
 	}
 	// if no file has been configured, create one and handle cleanup
 	if s.logFilePath == "" {
-		file, err := os.CreateTemp("", "go-ftw-test-*.log")
+		file, err := os.CreateTemp(s.T().TempDir(), "go-ftw-test-*.log")
+		s.Require().NoError(err)
+		err = file.Close()
 		s.Require().NoError(err)
 		s.logFilePath = file.Name()
 	}
@@ -239,6 +241,8 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	s.Require().NoError(err, "cannot create temporary file")
 	err = tmpl.Execute(testFileContents, vars)
 	s.Require().NoError(err, "cannot execute template")
+	err = testFileContents.Close()
+	s.Require().NoError(err)
 	// get tests from file
 	s.ftwTests, err = test.GetTestsFromFiles(testFileContents.Name())
 	s.Require().NoError(err, "cannot get tests from file")
