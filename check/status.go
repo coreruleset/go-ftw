@@ -4,9 +4,8 @@
 package check
 
 import (
-	"slices"
-
 	"github.com/rs/zerolog/log"
+	"slices"
 )
 
 var negativeExpectedStatuses = []int{200, 404, 405}

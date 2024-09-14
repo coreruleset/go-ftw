@@ -6,9 +6,8 @@ package check
 import (
 	"testing"
 
-	"slices"
-
 	"github.com/stretchr/testify/suite"
+	"slices"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/utils"

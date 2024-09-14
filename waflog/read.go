@@ -8,11 +8,11 @@ import (
 	"errors"
 	"io"
 	"regexp"
-	"slices"
 	"strconv"
 
 	"github.com/icza/backscanner"
 	"github.com/rs/zerolog/log"
+	"slices"
 )
 
 const maxRuleIdsEstimate = 15
