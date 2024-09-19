@@ -34,7 +34,7 @@ func Format() error {
 	// addlicense strangely logs skipped files to stderr despite not being erroneous, so use the long sh.Exec form to
 	// discard stderr too.
 	if _, err := sh.Exec(map[string]string{}, io.Discard, io.Discard, "go", "run", fmt.Sprintf("github.com/google/addlicense@%s", addLicenseVersion),
-		"-c", "OWASP ModSecurity Core Rule Set Project",
+		"-c", "OWASP CRS Project",
 		"-s=only",
 		"-ignore", "**/*.yml",
 		"-ignore", "**/*.yaml",

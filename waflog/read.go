@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package waflog
@@ -8,11 +8,11 @@ import (
 	"errors"
 	"io"
 	"regexp"
-	"slices"
 	"strconv"
 
 	"github.com/icza/backscanner"
 	"github.com/rs/zerolog/log"
+	"slices"
 )
 
 const maxRuleIdsEstimate = 15

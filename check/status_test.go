@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package check
@@ -6,9 +6,8 @@ package check
 import (
 	"testing"
 
-	"slices"
-
 	"github.com/stretchr/testify/suite"
+	"slices"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/utils"

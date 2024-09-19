@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package test
@@ -8,11 +8,10 @@ import (
 	"regexp"
 	"strconv"
 
-	"slices"
-
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	overridesSchema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
 	"github.com/rs/zerolog/log"
+	"slices"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
