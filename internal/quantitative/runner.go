@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// QuantitativeParams is the parameters for the quantitative tests
+// QuantitativeParams holds the parameters for the quantitative tests
 type QuantitativeParams struct {
 	// Lines is the number of lines of input to process before stopping
 	Lines int
@@ -83,14 +83,14 @@ func RunQuantitativeTests(params QuantitativeParams, out *output.Output) error {
 
 	// Are we using the corpus at all?
 	if params.Payload != "" {
-		// CRSCall with payload
+		// CrsCall with payload
 		doEngineCall(runner, params.Payload, params.Rule, stats)
 	} else { // iterate over the corpus
 		for iter := corpusRunner.GetIterator(lc); iter.HasNext(); {
 			line := iter.Next()
 			stats.Run++
 			log.Trace().Msgf("Line: %s", line)
-			// check if we look for a specific payload line #
+			// check if we are looking for a specific payload line #
 			if needSpecificPayload(params.Number, stats.Run) {
 				continue
 			}

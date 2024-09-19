@@ -1,7 +1,7 @@
 package leipzig
 
 import "bufio"
-
+// Implements the Iterator interface.
 type LeipzigIterator struct {
 	scanner *bufio.Scanner
 }

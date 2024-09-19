@@ -24,7 +24,8 @@ const (
 	defaultCorpusType     = "sentences.txt"
 )
 
-// LeipzigCorpus is a corpus of text data
+// LeipzigCorpus is a corpus of text data.
+// Implements the Corpus interface.
 type LeipzigCorpus struct {
 	// url_ is the URL of the corpus
 	url_ string
@@ -33,7 +34,7 @@ type LeipzigCorpus struct {
 	// corpusFile is the original file name that contains the corpus file
 	corpusFile string
 	// File is the file name of the corpus
-	File string
+	Filename string
 	// size is the size of the corpus
 	size string
 	// source is the source of the corpus
@@ -149,7 +150,7 @@ func (c *LeipzigCorpus) GetPayload(line string) string {
 }
 
 // GetCorpusFile gets the file from the remote url.
-// We assume that the file is compressed somehow, and we want to get a file inside it.
+// We assume that the file is compressed somehow, and we want to get a file from the container.
 func (c *LeipzigCorpus) GetCorpusFile() corpus.CorpusFile {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -160,7 +161,7 @@ func (c *LeipzigCorpus) GetCorpusFile() corpus.CorpusFile {
 
 	cacheDir := path.Join(home, ".ftw")
 
-	log.Debug().Msgf("Downloading corpus file from %s", url)
+	log.Debug().Msgf("Preparing download of corpus file from %s", url)
 	dest := path.Join(cacheDir, "extracted")
 	if err := os.MkdirAll(dest, os.ModePerm); err != nil {
 		log.Fatal().Err(err).Msg("Could not create destination directory")
@@ -205,7 +206,7 @@ func (c *LeipzigCorpus) GetCorpusFile() corpus.CorpusFile {
 			newPath := filepath.Join(cacheDir, info.Name())
 			err = os.Rename(path, newPath)
 			if err != nil {
-				fmt.Println("Error renaming:", err)
+				fmt.Println("Error moving:", err)
 				return err
 			}
 			fmt.Println("Moved", path, "to", newPath)

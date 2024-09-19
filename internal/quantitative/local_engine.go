@@ -68,9 +68,9 @@ func NewEngine(prefix string, paranoia int) *LocalEngine {
 	return eng
 }
 
-// CRSCall benchmarks the CRS WAF with a GET request
+// CrsCall benchmarks the CRS WAF with a GET request
 // payload: the string to be passed in the request body
-// returns the status of the transaction and a map of the matched rules with their IDs and the data that matched.
+// returns the status of the HTTP response and a map of the matched rules with their IDs and the data that matched.
 func (e *LocalEngine) CRSCall(payload string) (int, map[int]string) {
 	var status = http.StatusOK
 	var matchedRules = make(map[int]string)
@@ -105,10 +105,10 @@ func (e *LocalEngine) CRSCall(payload string) (int, map[int]string) {
 	return status, matchedRules
 }
 
-// crsWAF creates a WAF with the CRS rules
+// newCrsWaf creates a WAF with the CRS rules
 // prefix: the path to the CRS rules
 // paranoiaLevel: 1 - 4 should be added as a template to the crs-setup.conf file
-// If you want to run your own waf rules instead of crs, create a similar function to crsWAF
+// If you want to run your own WAF rules instead of CRS, create a similar function to newCrsWaf
 func crsWAF(prefix string, paranoiaLevel int) coraza.WAF {
 	if prefix == "" {
 		prefix = defaultPrefix

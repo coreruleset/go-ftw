@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-const crsURL = "https://github.com/coreruleset/coreruleset/releases/download/v4.6.0/coreruleset-4.6.0-minimal.tar.gz"
+const crsUrl = "https://github.com/coreruleset/coreruleset/releases/download/v4.6.0/coreruleset-4.6.0-minimal.tar.gz"
 
 type localEngineTestSuite struct {
 	suite.Suite
@@ -42,7 +42,7 @@ func (s *localEngineTestSuite) TeardownTest() {
 }
 
 // TestCRSCall For this test you will need to have the Core Rule Set repository cloned in the parent directory as the project.
-func (s *localEngineTestSuite) TestCRSCall() {
+func (s *localEngineTestSuite) TestCrsCall() {
 	// simple payload, no matches
 	status, matchedRules := s.engine.CRSCall("this is a test")
 	s.Require().Equal(http.StatusOK, status)
