@@ -39,11 +39,11 @@ func generateRequestForTesting(keepalive bool) *Request {
 	} else {
 		connection = "close"
 	}
-	h := Header{
-		"Host":       "localhost",
-		"User-Agent": "Go Tests",
-		"Connection": connection,
-	}
+	h := NewHeader(map[string][]string{
+		"Host":       {"localhost"},
+		"User-Agent": {"Go Tests"},
+		"Connection": {connection},
+	})
 
 	req = NewRequest(rl, h, nil, true)
 
@@ -59,12 +59,12 @@ func generateRequestWithCookiesForTesting() *Request {
 		Version: "HTTP/1.1",
 	}
 
-	h := Header{
-		"Host":       "localhost",
-		"User-Agent": "Go Tests",
-		"Cookie":     "THISISACOOKIE",
-		"Connection": "Keep-Alive",
-	}
+	h := NewHeader(map[string][]string{
+		"Host":       {"localhost"},
+		"User-Agent": {"Go Tests"},
+		"Cookie":     {"THISISACOOKIE"},
+		"Connection": {"Keep-Alive"},
+	})
 
 	req = NewRequest(rl, h, nil, true)
 

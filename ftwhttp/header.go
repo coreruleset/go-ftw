@@ -5,11 +5,10 @@ package ftwhttp
 
 import (
 	"bytes"
-	"io"
-	"net/textproto"
-	"sort"
-
+	"github.com/coreruleset/go-ftw/utils"
 	"github.com/rs/zerolog/log"
+	"maps"
+	"net/textproto"
 )
 
 const (
@@ -17,94 +16,104 @@ const (
 	ContentTypeHeader string = "Content-Type"
 )
 
-// Based on https://golang.org/src/net/http/header.go
-
-// Header is a simplified version of headers, where there is only one header per key.
-// The original golang stdlib uses a proper string slice to map this.
-type Header map[string]string
-
-// stringWriter implements WriteString on a Writer.
-type stringWriter struct {
-	w io.Writer
+// Header exhibits the following structure
+// Headers:
+//
+//	  Content-Type:
+//	    content-type:
+//		   - application/json
+//		   - application/json
+//		ConTent-tyPE:
+//		   - application/json
+type Header struct {
+	headers map[string]map[string][]string
 }
 
-// WriteString writes the string on a Writer
-func (w stringWriter) WriteString(s string) (n int, err error) {
-	return w.w.Write([]byte(s))
-}
-
-// Add adds the (key, value) pair to the headers if it does not exist
-// The key is case-insensitive
-func (h Header) Add(key, value string) {
-	if h.Get(key) == "" {
-		h.Set(key, value)
+func NewHeader(headers map[string][]string) *Header {
+	h := &Header{headers: make(map[string]map[string][]string)}
+	for k, v := range headers {
+		h.Add(k, v)
 	}
+
+	return h
 }
 
-// Set sets the header entries associated with key to
-// the single element value. It replaces any existing
-// values associated with a case-insensitive key.
-func (h Header) Set(key, value string) {
-	h.Del(key)
-	h[key] = value
+// Get returns a collection of headers for the given raw key
+// The key is case-sensitive
+func (h *Header) Get(key string) map[string][]string {
+	return h.getRawHeaders(key)
 }
 
-// Get gets the value associated with the given key.
-// If there are no values associated with the key, Get returns "".
+// Add adds the value to the collection for the given key
 // The key is case-insensitive
-func (h Header) Get(key string) string {
-	if h == nil {
+func (h *Header) Add(key string, values []string) {
+	rawHeaders := h.getRawHeaders(key)
+	if rawHeaders == nil || len(rawHeaders) == 0 {
+		h.Set(key, values)
+		return
+	}
+
+	rawHeaders[key] = append(rawHeaders[key], values...)
+}
+
+// HasAny checks if the canonicalised version of given key has been already set
+// The key is case-insensitive
+func (h *Header) HasAny(key string) bool {
+	if h.getRawHeaders(key) != nil {
+		return true
+	}
+
+	return false
+}
+
+// First returns the first values associated with the canonicalised version of given key.
+// If it does not exist returns an empty string ""
+func (h *Header) First(key string) string {
+	if !h.HasAny(key) {
 		return ""
 	}
-	v := h[h.getKeyMatchingCanonicalKey(key)]
 
-	return v
-}
+	rawHeaders := h.getRawHeaders(key)
 
-// Value is a wrapper to Get
-func (h Header) Value(key string) string {
-	return h.Get(key)
-}
-
-// Del deletes the value associated with key.
-// The key is case-insensitive
-func (h Header) Del(key string) {
-	delete(h, h.getKeyMatchingCanonicalKey(key))
-}
-
-// Write writes a header in wire format.
-func (h Header) Write(w io.Writer) error {
-	ws, ok := w.(io.StringWriter)
-	if !ok {
-		ws = stringWriter{w}
-	}
-
-	sorted := h.getSortedHeadersByName()
-
-	for _, key := range sorted {
-		// we want all headers "as-is"
-		s := key + ": " + h[key] + "\r\n"
-		if _, err := ws.WriteString(s); err != nil {
-			return err
+	for _, rawHeader := range rawHeaders {
+		for _, rawValue := range rawHeader {
+			if rawValue != "" {
+				return rawValue
+			}
 		}
 	}
 
-	return nil
+	return ""
+}
 
+// Set sets the value for the given key, clearing all already existing values
+// The key is case-insensitive
+func (h *Header) Set(key string, values []string) {
+	rawHeaders := h.getRawHeaders(key)
+	if rawHeaders == nil {
+		rawHeaders = h.initRawHeadersMap(key)
+	}
+	rawHeaders[key] = values
 }
 
 // WriteBytes writes a header in a ByteWriter.
-func (h Header) WriteBytes(b *bytes.Buffer) (int, error) {
-	sorted := h.getSortedHeadersByName()
+func (h *Header) WriteBytes(b *bytes.Buffer) (int, error) {
 	count := 0
-	for _, key := range sorted {
-		// we want all headers "as-is"
-		s := key + ": " + h[key] + "\r\n"
-		log.Trace().Msgf("Writing header: %s", s)
-		n, err := b.Write([]byte(s))
-		count += n
-		if err != nil {
-			return count, err
+	sortedCanonicalisedKeys := utils.GetSortedKeys(h.headers)
+	for _, key := range sortedCanonicalisedKeys {
+		rawHeaders := h.headers[key]
+		sortedRawKeys := utils.GetSortedKeys(rawHeaders)
+		for _, rawKey := range sortedRawKeys {
+			for _, value := range rawHeaders[rawKey] {
+				// we want all headers "as-is"
+				s := rawKey + ": " + value + "\r\n"
+				log.Trace().Msgf("Writing header: %s", s)
+				n, err := b.Write([]byte(s))
+				count += n
+				if err != nil {
+					return count, err
+				}
+			}
 		}
 	}
 
@@ -112,41 +121,31 @@ func (h Header) WriteBytes(b *bytes.Buffer) (int, error) {
 }
 
 // Clone returns a copy of h or nil if h is nil.
-func (h Header) Clone() Header {
-	if h == nil {
+func (h *Header) Clone() Header {
+	clone := maps.Clone(h.headers)
+
+	return Header{clone}
+}
+
+// getRawHeaders returns the map of headers matching canonicalised key
+func (h *Header) getRawHeaders(key string) map[string][]string {
+	if h == nil || h.headers == nil {
 		return nil
 	}
-	clone := make(Header)
 
-	for n, v := range h {
-		clone[n] = v
+	rawHeaders, ok := h.headers[canonicalKey(key)]
+	if !ok {
+		return nil
 	}
 
-	return clone
+	return rawHeaders
 }
 
-// sortHeadersByName gets headers sorted by name
-// This way the output is predictable, for tests
-func (h Header) getSortedHeadersByName() []string {
-	keys := make([]string, 0, len(h))
-	for k := range h {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
+func (h *Header) initRawHeadersMap(key string) map[string][]string {
+	cKey := canonicalKey(key)
+	h.headers[cKey] = make(map[string][]string)
 
-	return keys
-}
-
-// getKeyMatchingCanonicalKey finds a key matching with the given one, provided both are canonicalised
-func (h Header) getKeyMatchingCanonicalKey(searchKey string) string {
-	searchKey = canonicalKey(searchKey)
-	for k := range h {
-		if searchKey == canonicalKey(k) {
-			return k
-		}
-	}
-
-	return ""
+	return h.headers[cKey]
 }
 
 // canonicalKey transforms given to the canonical form

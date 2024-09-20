@@ -25,10 +25,11 @@ func (rl RequestLine) ToString() string {
 }
 
 // NewRequest creates a new request, an initial request line, and headers
-func NewRequest(reqLine *RequestLine, h Header, data []byte, autocompleteHeaders bool) *Request {
+func NewRequest(reqLine *RequestLine, h *Header, data []byte, autocompleteHeaders bool) *Request {
+	clone := h.Clone()
 	r := &Request{
 		requestLine:         reqLine,
-		headers:             h.Clone(),
+		headers:             &clone,
 		cookies:             nil,
 		data:                data,
 		raw:                 nil,
@@ -90,18 +91,18 @@ func (r Request) RawData() []byte {
 }
 
 // Headers return request headers
-func (r Request) Headers() Header {
+func (r Request) Headers() *Header {
 	return r.headers
 }
 
 // SetHeaders sets the request headers
-func (r *Request) SetHeaders(h Header) {
+func (r *Request) SetHeaders(h *Header) {
 	r.headers = h
 }
 
 // AddHeader adds a new header to the request, if doesn't exist
 func (r *Request) AddHeader(name string, value string) {
-	r.headers.Add(name, value)
+	r.headers.Add(name, []string{value})
 }
 
 // AddStandardHeaders adds standard headers to the request, if they don't exist
@@ -112,12 +113,12 @@ func (r *Request) AddHeader(name string, value string) {
 //     permits a body (the spec says that the client SHOULD send `Content-Length`
 //     in that case)
 func (r *Request) AddStandardHeaders() {
-	if r.headers.Get("Connection") == "" {
-		r.headers.Add("Connection", "close")
+	if r.headers.First("Connection") == "" {
+		r.headers.Add("Connection", []string{"close"})
 	}
 
 	if len(r.data) > 0 || methodsWithBodyRegex.MatchString(r.requestLine.Method) {
-		r.headers.Add("Content-Length", strconv.Itoa(len(r.data)))
+		r.headers.Add("Content-Length", []string{strconv.Itoa(len(r.data))})
 	}
 }
 
@@ -157,7 +158,8 @@ func buildRequest(r *Request) ([]byte, error) {
 		}
 
 		// Multipart form data needs to end in \r\n, per RFC (and modsecurity make a scene if not)
-		if ct := r.headers.Value(ContentTypeHeader); strings.HasPrefix(ct, "multipart/form-data;") {
+		// TODO: verify if the change is correct
+		if ct := r.headers.First(ContentTypeHeader); strings.HasPrefix(ct, "multipart/form-data;") {
 			crlf := []byte("\r\n")
 			lf := []byte("\n")
 			log.Debug().Msgf("ftw/http: with LF only - %d bytes:\n%x\n", len(r.data), r.data)
@@ -205,14 +207,14 @@ func buildRequest(r *Request) ([]byte, error) {
 }
 
 // encodeDataParameters url encode parameters in data
-func encodeDataParameters(h Header, data []byte) ([]byte, error) {
+func encodeDataParameters(h *Header, data []byte) ([]byte, error) {
 	if len(data) == 0 {
 		return nil, nil
 	}
 
 	var err error
 
-	if h.Get(ContentTypeHeader) == "application/x-www-form-urlencoded" {
+	if h.First(ContentTypeHeader) == "application/x-www-form-urlencoded" {
 		// Best effort attempt to determine if the data is already escaped by seeing if unescaping has any effect.
 		if escapedData, err := url.QueryUnescape(string(data)); escapedData == string(data) {
 			if err != nil {

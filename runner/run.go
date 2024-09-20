@@ -229,14 +229,14 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 		Version: "HTTP/1.1",
 	}
 
-	headers := &ftwhttp.Header{
-		"Accept":                              "*/*",
-		"User-Agent":                          "go-ftw test agent",
-		"Host":                                "localhost",
-		runContext.Config.LogMarkerHeaderName: stageID,
-	}
+	headers := ftwhttp.NewHeader(map[string][]string{
+		"Accept":                              {"*/*"},
+		"User-Agent":                          {"go-ftw test agent"},
+		"Host":                                {"localhost"},
+		runContext.Config.LogMarkerHeaderName: {stageID},
+	})
 
-	req := ftwhttp.NewRequest(rline, *headers, nil, true)
+	req := ftwhttp.NewRequest(rline, headers, nil, true)
 
 	for i := runContext.Config.MaxMarkerRetries; i > 0; i-- {
 		err := runContext.Client.NewOrReusedConnection(*dest)
@@ -411,7 +411,7 @@ func getRequestFromTest(testInput test.Input) *ftwhttp.Request {
 
 		data := testInput.ParseData()
 		// create a new request
-		req = ftwhttp.NewRequest(rline, testInput.Headers,
+		req = ftwhttp.NewRequest(rline, testInput.GetHttpHeaders(),
 			data, *testInput.AutocompleteHeaders)
 
 	}

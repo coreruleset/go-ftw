@@ -27,75 +27,80 @@ func generateBaseRequestForTesting() *Request {
 		Version: "HTTP/1.4",
 	}
 
-	h := Header{"Host": "localhost", "This": "Header", "Connection": "Not-Closed"}
-
+	h := NewHeader(map[string][]string{
+		"Host":       {"localhost"},
+		"This":       {"Header"},
+		"Connection": {"Not-Closed"},
+	})
 	req = NewRequest(rl, h, []byte("Data"), true)
 
 	return req
 }
 
 func (s *requestTestSuite) TestAddStandardHeadersWhenConnectionHeaderIsPresent() {
-	req := NewRequest(&RequestLine{}, Header{"Connection": "Not-Closed"}, []byte("Data"), true)
+	h := NewHeader(nil)
+	h.Add("Connection", []string{"Not-Closed"})
+	req := NewRequest(&RequestLine{}, h, []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	s.Equal(req.headers.Get("Connection"), "Not-Closed")
+	s.Equal(req.headers.First("Connection"), "Not-Closed")
 }
 
 func (s *requestTestSuite) TestAddStandardHeadersWhenConnectionHeaderIsEmpty() {
-	req := NewRequest(&RequestLine{}, Header{}, []byte("Data"), true)
+	req := NewRequest(&RequestLine{}, NewHeader(nil), []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	s.Equal(req.headers.Get("Connection"), "close")
+	s.Equal(req.headers.First("Connection"), "close")
 }
 
 func (s *requestTestSuite) TestAddStandardHeadersWhenNoData() {
-	req := NewRequest(&RequestLine{Method: "GET"}, Header{}, []byte(""), true)
+	req := NewRequest(&RequestLine{Method: "GET"}, NewHeader(nil), []byte(""), true)
 
 	req.AddStandardHeaders()
 
-	s.Equal(req.headers.Get("Content-Length"), "")
+	s.Equal(req.headers.First("Content-Length"), "")
 }
 
 func (s *requestTestSuite) TestAddStandardHeadersWhenGetMethod() {
-	req := NewRequest(&RequestLine{Method: "GET"}, Header{}, []byte("Data"), true)
+	req := NewRequest(&RequestLine{Method: "GET"}, NewHeader(nil), []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	s.Equal(req.headers.Get("Content-Length"), "4")
+	s.Equal(req.headers.First("Content-Length"), "4")
 }
 
 func (s *requestTestSuite) TestAddStandardHeadersWhenPostMethod() {
-	req := NewRequest(&RequestLine{Method: "POST"}, Header{}, []byte("Data"), true)
+	req := NewRequest(&RequestLine{Method: "POST"}, NewHeader(nil), []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	s.Equal(req.headers.Get("Content-Length"), "4")
+	s.Equal(req.headers.First("Content-Length"), "4")
 }
 
 func (s *requestTestSuite) TestAddStandardHeadersWhenPutMethod() {
-	req := NewRequest(&RequestLine{Method: "PUT"}, Header{}, []byte("Data"), true)
+	req := NewRequest(&RequestLine{Method: "PUT"}, NewHeader(nil), []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	s.Equal(req.headers.Get("Content-Length"), "4")
+	s.Equal(req.headers.First("Content-Length"), "4")
 }
 
 func (s *requestTestSuite) TestAddStandardHeadersWhenPatchMethod() {
-	req := NewRequest(&RequestLine{Method: "PATCH"}, Header{}, []byte("Data"), true)
+	req := NewRequest(&RequestLine{Method: "PATCH"}, NewHeader(nil), []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	s.Equal(req.headers.Get("Content-Length"), "4")
+	s.Equal(req.headers.First("Content-Length"), "4")
 }
 
 func (s *requestTestSuite) TestAddStandardHeadersWhenDeleteMethod() {
-	req := NewRequest(&RequestLine{Method: "DELETE"}, Header{}, []byte("Data"), true)
+	req := NewRequest(&RequestLine{Method: "DELETE"}, NewHeader(nil), []byte("Data"), true)
 
 	req.AddStandardHeaders()
 
-	s.Equal(req.headers.Get("Content-Length"), "4")
+	s.Equal(req.headers.First("Content-Length"), "4")
 }
 
 func (s *requestTestSuite) TestMultipartFormDataRequest() {
@@ -107,10 +112,11 @@ func (s *requestTestSuite) TestMultipartFormDataRequest() {
 		Version: "HTTP/1.1",
 	}
 
-	h := Header{
-		"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost",
-		"Content-Type": "multipart/form-data; boundary=--------397236876",
-	}
+	h := NewHeader(map[string][]string{
+		"Accept":       {"*/*"},
+		"User-Agent":   {"go-ftw test agent"},
+		"Content-Type": {"multipart/form-data; boundary=--------397236876"},
+	})
 
 	data := []byte(`----------397236876
 Content-Disposition: form-data; name="fileRap"; filename="te;st.txt"
@@ -180,7 +186,7 @@ func (s *requestTestSuite) TestRequestNew() {
 	req := generateBaseRequestForTesting()
 
 	head := req.Headers()
-	s.Equal("Header", head.Get("This"))
+	s.Equal("Header", head.First("This"))
 	s.Equal([]byte("Data"), req.Data(), "Failed to set data")
 }
 
@@ -193,7 +199,11 @@ func (s *requestTestSuite) TestWithAutocompleteRequest() {
 		Version: "HTTP/1.1",
 	}
 
-	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	h := NewHeader(map[string][]string{
+		"Accept":     {"*/*"},
+		"User-Agent": {"go-ftw test agent"},
+		"Host":       {"localhost"},
+	})
 
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, true)
@@ -210,7 +220,11 @@ func (s *requestTestSuite) TestWithoutAutocompleteRequest() {
 		Version: "1.1",
 	}
 
-	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	h := NewHeader(map[string][]string{
+		"Accept":     {"*/*"},
+		"User-Agent": {"go-ftw test agent"},
+		"Host":       {"localhost"},
+	})
 
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, false)
@@ -221,13 +235,15 @@ func (s *requestTestSuite) TestWithoutAutocompleteRequest() {
 func (s *requestTestSuite) TestRequestHeadersSet() {
 	req := generateBaseRequestForTesting()
 
-	newH := Header{"X-New-Header": "Value"}
+	newH := NewHeader(map[string][]string{
+		"X-New-Header": {"Value"},
+	})
 	req.SetHeaders(newH)
 
-	s.Equal("Value", req.headers.Get("X-New-Header"), "Failed to set headers")
+	s.Equal("Value", req.headers.First("X-New-Header"), "Failed to set headers")
 	req.AddHeader("X-New-Header2", "Value")
 	head := req.Headers()
-	s.Equal("Value", head.Get("X-New-Header2"))
+	s.Equal("Value", head.First("X-New-Header2"))
 }
 
 func (s *requestTestSuite) TestRequestAutoCompleteHeaders() {
@@ -279,7 +295,7 @@ func (s *requestTestSuite) TestRequestURLParse() {
 	req := generateBaseRequestForTesting()
 
 	h := req.Headers()
-	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
+	h.Add(ContentTypeHeader, []string{"application/x-www-form-urlencoded"})
 	// Test adding semicolons to test parse
 	err := req.SetData([]byte("test=This&test=nothing"))
 	s.Require().NoError(err)
@@ -289,7 +305,7 @@ func (s *requestTestSuite) TestRequestURLParseFail() {
 	req := generateBaseRequestForTesting()
 
 	h := req.Headers()
-	h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
+	h.Add(ContentTypeHeader, []string{"application/x-www-form-urlencoded"})
 	// Test adding semicolons to test parse
 	err := req.SetData([]byte("test=This&that=but with;;;;;; data now"))
 	s.Require().NoError(err)
@@ -334,7 +350,7 @@ func (s *requestTestSuite) TestRequestEncodesPostData() {
 			req := generateBaseRequestForTesting()
 
 			h := req.Headers()
-			h.Add(ContentTypeHeader, "application/x-www-form-urlencoded")
+			h.Add(ContentTypeHeader, []string{"application/x-www-form-urlencoded"})
 			err := req.SetData([]byte(tt.raw))
 			s.Require().NoError(err)
 			result, err := encodeDataParameters(h, req.Data())
