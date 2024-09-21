@@ -1,12 +1,16 @@
+// Copyright 2024 OWASP CRS Project
+// SPDX-License-Identifier: Apache-2.0
+
 package quantitative
 
 import (
-	"github.com/hashicorp/go-getter"
-	"github.com/stretchr/testify/suite"
 	"net/http"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/hashicorp/go-getter"
+	"github.com/stretchr/testify/suite"
 )
 
 const crsUrl = "https://github.com/coreruleset/coreruleset/releases/download/v4.6.0/coreruleset-4.6.0-minimal.tar.gz"
@@ -26,7 +30,7 @@ func (s *localEngineTestSuite) SetupTest() {
 	s.Require().NoError(os.MkdirAll(s.dir, 0755))
 	client := &getter.Client{
 		Mode: getter.ClientModeAny,
-		Src:  crsURL,
+		Src:  crsUrl,
 		Dst:  s.dir,
 	}
 

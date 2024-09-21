@@ -1,15 +1,19 @@
+// Copyright 2024 OWASP CRS Project
+// SPDX-License-Identifier: Apache-2.0
+
 package leipzig
 
 import (
 	"bufio"
 	"fmt"
-	"github.com/coreruleset/go-ftw/experimental/corpus"
-	"github.com/hashicorp/go-getter"
-	"github.com/rs/zerolog/log"
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
+
+	"github.com/hashicorp/go-getter"
+	"github.com/rs/zerolog/log"
+
+	"github.com/coreruleset/go-ftw/experimental/corpus"
 )
 
 // LeipzigCorpus represents a corpus of text data
@@ -33,8 +37,8 @@ type LeipzigCorpus struct {
 	lang string
 	// corpusFile is the original file name that contains the corpus file
 	corpusFile string
-	// File is the file name of the corpus
-	Filename string
+	// filename is the file name of the corpus
+	filename string
 	// size is the size of the corpus
 	size string
 	// source is the source of the corpus
@@ -47,7 +51,7 @@ func (c *LeipzigCorpus) regenerateFileNames() {
 	c.corpusFile = fmt.Sprintf("%s_%s_%s_%s.%s",
 		c.lang, c.source, c.year, c.size,
 		defaultCorpusExt)
-	c.File = fmt.Sprintf("%s_%s_%s_%s-%s",
+	c.filename = fmt.Sprintf("%s_%s_%s_%s-%s",
 		c.lang, c.source, c.year, c.size,
 		defaultCorpusType)
 }
@@ -57,7 +61,7 @@ func NewLeipzigCorpus() corpus.Corpus {
 	leipzig := &LeipzigCorpus{
 		url_:       defaultCorpusSite,
 		corpusFile: "",
-		File:       "",
+		filename:   "",
 		lang:       defaultCorpusLanguage,
 		source:     defaultCorpusSource,
 		year:       defaultCorpusYear,
@@ -115,7 +119,7 @@ func (c *LeipzigCorpus) WithSource(source string) corpus.Corpus {
 }
 
 // Lang returns the language of the corpus
-func (c *LeipzigCorpus) Lang() string {
+func (c *LeipzigCorpus) Language() string {
 	return c.lang
 }
 
@@ -126,14 +130,15 @@ func (c *LeipzigCorpus) WithLanguage(lang string) corpus.Corpus {
 }
 
 // GetIterator returns an iterator for the corpus
-func (c *LeipzigCorpus) GetIterator(cache corpus.CorpusFile) corpus.Iterator {
+func (c *LeipzigCorpus) GetIterator(cache corpus.File) corpus.Iterator {
 	// open cache file
-	if cache.FilePath == "" {
+	cached := cache.FilePath()
+	if cached == "" {
 		log.Fatal().Msg("Cache file path is empty")
 	}
-	file, err := os.Open(cache.FilePath)
+	file, err := os.Open(cached)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Could not open the file %s", cache.FilePath)
+		log.Fatal().Err(err).Msgf("Could not open the file %s", cached)
 	}
 	scanner := bufio.NewScanner(file)
 	it := &LeipzigIterator{
@@ -142,16 +147,9 @@ func (c *LeipzigCorpus) GetIterator(cache corpus.CorpusFile) corpus.Iterator {
 	return it
 }
 
-// GetPayload returns the payload from the line
-// We assume that the first word is the line number,
-// and we want the rest
-func (c *LeipzigCorpus) GetPayload(line string) string {
-	return strings.Join(strings.Split(line, "\t")[1:], " ")
-}
-
-// GetCorpusFile gets the file from the remote url.
+// FetchCorpusFile gets the file from the remote url.
 // We assume that the file is compressed somehow, and we want to get a file from the container.
-func (c *LeipzigCorpus) GetCorpusFile() corpus.CorpusFile {
+func (c *LeipzigCorpus) FetchCorpusFile() corpus.File {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not get home directory")
@@ -167,14 +165,11 @@ func (c *LeipzigCorpus) GetCorpusFile() corpus.CorpusFile {
 		log.Fatal().Err(err).Msg("Could not create destination directory")
 	}
 
-	cache := corpus.CorpusFile{
-		CacheDir: cacheDir,
-		FilePath: "",
-	}
+	cache := NewFile().WithCacheDir(cacheDir)
 
-	if info, err := os.Stat(path.Join(home, ".ftw", c.File)); err == nil {
-		log.Debug().Msgf("File %s already exists", info.Name())
-		cache.FilePath = path.Join(home, ".ftw", c.File)
+	if info, err := os.Stat(path.Join(home, ".ftw", cache.FilePath())); err == nil {
+		log.Debug().Msgf("filename %s already exists", info.Name())
+		cache = cache.WithFilePath(path.Join(home, ".ftw", c.filename))
 		return cache
 	}
 
@@ -202,7 +197,7 @@ func (c *LeipzigCorpus) GetCorpusFile() corpus.CorpusFile {
 
 		log.Trace().Msgf("Checking file %s", info.Name())
 
-		if info.Name() == c.File {
+		if info.Name() == c.filename {
 			newPath := filepath.Join(cacheDir, info.Name())
 			err = os.Rename(path, newPath)
 			if err != nil {
@@ -210,7 +205,7 @@ func (c *LeipzigCorpus) GetCorpusFile() corpus.CorpusFile {
 				return err
 			}
 			fmt.Println("Moved", path, "to", newPath)
-			cache.FilePath = newPath
+			cache = cache.WithFilePath(newPath)
 		}
 
 		return nil

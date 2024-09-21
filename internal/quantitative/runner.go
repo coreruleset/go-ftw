@@ -1,12 +1,17 @@
+// Copyright 2024 OWASP CRS Project
+// SPDX-License-Identifier: Apache-2.0
+
 package quantitative
 
 import (
+	"net/http"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
 	"github.com/coreruleset/go-ftw/experimental/corpus"
 	"github.com/coreruleset/go-ftw/internal/quantitative/leipzig"
 	"github.com/coreruleset/go-ftw/output"
-	"github.com/rs/zerolog/log"
-	"net/http"
-	"time"
 )
 
 // QuantitativeParams holds the parameters for the quantitative tests
@@ -23,8 +28,6 @@ type QuantitativeParams struct {
 	Number int
 	// Directory is the directory where the CRS rules are stored
 	Directory string
-	// Markdown is the Markdown table output mode
-	Markdown bool
 	// ParanoiaLevel is the paranoia level in where to run the quantitative tests
 	ParanoiaLevel int
 	// CorpusSize is the corpus size to use for the quantitative tests
@@ -40,19 +43,19 @@ type QuantitativeParams struct {
 }
 
 // NewCorpus creates a new corpus
-func NewCorpus(name string) corpus.Corpus {
-	switch name {
-	case "leipzig":
+func NewCorpus(corpusType corpus.Type) corpus.Corpus {
+	switch corpusType {
+	case corpus.Leipzig:
 		return leipzig.NewLeipzigCorpus()
 	default:
-		log.Fatal().Msgf("Unknown corpus %s", name)
+		log.Fatal().Msgf("Unknown corpus implementation: %s", corpusType)
 		return nil
 	}
 }
 
 // RunQuantitativeTests runs all quantitative tests
 func RunQuantitativeTests(params QuantitativeParams, out *output.Output) error {
-	log.Info().Msg("Running quantitative tests")
+	out.Println("Running quantitative tests")
 
 	log.Trace().Msgf("Lines: %d", params.Lines)
 	log.Trace().Msgf("Fast: %d", params.Fast)
@@ -60,7 +63,6 @@ func RunQuantitativeTests(params QuantitativeParams, out *output.Output) error {
 	log.Trace().Msgf("Payload: %s", params.Payload)
 	log.Trace().Msgf("Read Corpus Line: %d", params.Number)
 	log.Trace().Msgf("Directory: %s", params.Directory)
-	log.Trace().Msgf("Markdown: %t", params.Markdown)
 	log.Trace().Msgf("Paranoia level: %d", params.ParanoiaLevel)
 	log.Trace().Msgf("Corpus size: %s", params.CorpusSize)
 	log.Trace().Msgf("Corpus lang: %s", params.CorpusLang)
@@ -68,14 +70,14 @@ func RunQuantitativeTests(params QuantitativeParams, out *output.Output) error {
 
 	startTime := time.Now()
 	// create a new corpusRunner
-	corpusRunner := NewCorpus(params.Corpus).
+	corpusRunner := NewCorpus(corpus.Leipzig).
 		WithSize(params.CorpusSize).
 		WithYear(params.CorpusYear).
 		WithSource(params.CorpusSource).
 		WithLanguage(params.CorpusLang)
 
 	// download the corpusRunner file
-	lc := corpusRunner.GetCorpusFile()
+	lc := corpusRunner.FetchCorpusFile()
 	// create the results
 	stats := NewQuantitativeStats()
 
@@ -83,30 +85,31 @@ func RunQuantitativeTests(params QuantitativeParams, out *output.Output) error {
 
 	// Are we using the corpus at all?
 	if params.Payload != "" {
+		log.Trace().Msgf("Payload received from cmdline: %s", params.Payload)
 		// CrsCall with payload
 		doEngineCall(runner, params.Payload, params.Rule, stats)
 	} else { // iterate over the corpus
+		log.Trace().Msgf("Iterating over corpus")
 		for iter := corpusRunner.GetIterator(lc); iter.HasNext(); {
-			line := iter.Next()
-			stats.Run++
-			log.Trace().Msgf("Line: %s", line)
+			p := iter.Next()
+			stats.incrementRun()
+			payload := p.Content()
+			log.Trace().Msgf("Line: %s", payload)
 			// check if we are looking for a specific payload line #
-			if needSpecificPayload(params.Number, stats.Run) {
+			if needSpecificPayload(params.Number, stats.Count()) {
 				continue
 			}
-			// ask the corpus to get the payload
-			payload := corpusRunner.GetPayload(line)
-
 			log.Trace().Msgf("Payload: %s", payload)
 
 			// check if we only want to process a specific number of lines
-			if params.Lines > 0 && stats.Run >= params.Lines {
+			if params.Lines > 0 && stats.Count() >= params.Lines {
 				break
 			}
+			doEngineCall(runner, payload, params.Rule, stats)
 		}
 	}
 
-	stats.TotalTime = time.Since(startTime)
+	stats.SetTotalTime(time.Since(startTime))
 	stats.printSummary(out)
 	return nil
 }

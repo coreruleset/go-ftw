@@ -5,16 +5,17 @@ package cmd
 
 import (
 	"context"
-	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/suite"
 	"io/fs"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/suite"
 )
 
-var crsSetupFileContents = `# CRS Setup Configuration File`
-var emptyRulesFile = `# Empty Rules File`
+var crsSetupFileContents = `# CRS Setup Configuration filename`
+var emptyRulesFile = `# Empty Rules filename`
 
 type quantitativeCmdTestSuite struct {
 	suite.Suite

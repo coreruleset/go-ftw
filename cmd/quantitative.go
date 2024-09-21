@@ -4,10 +4,13 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+
 	"github.com/coreruleset/go-ftw/internal/quantitative"
 	"github.com/coreruleset/go-ftw/output"
-	"github.com/spf13/cobra"
-	"os"
 )
 
 // NewQuantitativeCmd
@@ -20,8 +23,6 @@ func NewQuantitativeCmd() *cobra.Command {
 		RunE:  runQuantitativeE,
 	}
 
-	runCmd.Flags().BoolP("markdown", "m", false, "Markdown table output mode")
-	runCmd.Flags().IntP("sample", "s", 0, "Process every s-th line of input (s % of lines)")
 	runCmd.Flags().IntP("lines", "l", 0, "Number of lines of input to process before stopping")
 	runCmd.Flags().IntP("paranoia-level", "P", 1, "Paranoia level used to run the quantitative tests")
 	runCmd.Flags().IntP("corpus-line", "n", 0, "Number is the payload line from the corpus to exclusively send")
@@ -50,13 +51,16 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	directory, _ := cmd.Flags().GetString("directory")
 	fast, _ := cmd.Flags().GetInt("fast")
 	lines, _ := cmd.Flags().GetInt("lines")
-	markdown, _ := cmd.Flags().GetBool("markdown")
 	outputFilename, _ := cmd.Flags().GetString("file")
 	paranoiaLevel, _ := cmd.Flags().GetInt("paranoia-level")
 	payload, _ := cmd.Flags().GetString("payload")
 	number, _ := cmd.Flags().GetInt("number")
 	rule, _ := cmd.Flags().GetInt("rule")
 	wantedOutput, _ := cmd.Flags().GetString("output")
+
+	if paranoiaLevel > 1 && rule > 0 {
+		return fmt.Errorf("paranoia level and rule ID cannot be used together")
+	}
 
 	// use outputFile to write to file
 	var outputFile *os.File
@@ -80,7 +84,6 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 		Directory:     directory,
 		Fast:          fast,
 		Lines:         lines,
-		Markdown:      markdown,
 		ParanoiaLevel: paranoiaLevel,
 		Number:        number,
 		Payload:       payload,

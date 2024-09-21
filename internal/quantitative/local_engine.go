@@ -6,15 +6,16 @@ package quantitative
 import (
 	"bytes"
 	"fmt"
-	"github.com/corazawaf/coraza/v3"
-	"github.com/corazawaf/coraza/v3/types"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/corazawaf/coraza/v3"
+	"github.com/corazawaf/coraza/v3/types"
+	"github.com/rs/zerolog/log"
 )
 
 const (

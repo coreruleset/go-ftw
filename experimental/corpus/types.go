@@ -1,3 +1,6 @@
+// Copyright 2024 OWASP CRS Project
+// SPDX-License-Identifier: Apache-2.0
+
 // Package corpus provides functionality for creating and managing corpora.
 //
 // A corpus is a collection of text documents that are used for training and testing machine learning models.
@@ -15,12 +18,27 @@
 // interface is subject to change.
 package corpus
 
-// CorpusFile contains the cache directory and file name
-type CorpusFile struct {
+// Define an enum for CorpusType
+type Type string
+
+const (
+	Leipzig Type = "leipzig"
+)
+
+// File interface is used to interact with Corpus files.
+// It provides methods for setting the cache directory and file path.
+type File interface {
 	// CacheDir is the directory where files are cached
-	CacheDir string
+	CacheDir() string
+
 	// FilePath is the path to the cached file
-	FilePath string
+	FilePath() string
+
+	// WithCacheDir sets the cache directory
+	WithCacheDir(cacheDir string) File
+
+	// WithFilePath sets the file path
+	WithFilePath(filePath string) File
 }
 
 // Corpus is the interface that must be implemented to make a corpus available to clients
@@ -32,24 +50,21 @@ type Corpus interface {
 	WithURL(url string) Corpus
 
 	// FetchCorpusFile fetches the corpus file from the remote URL and returns a CorpusFile for interaction with the file.
-    FetchCorpusFile() CorpusFile
+	FetchCorpusFile() File
 
 	// GetIterator returns an iterator for the corpus
-	GetIterator(c CorpusFile) Iterator
-
-	// GetPayload returns the payload given a line from the Corpus Iterator
-	GetPayload(line string) string
+	GetIterator(c File) Iterator
 
 	// Size returns the size of the corpus
 	Size() string
-	
+
 	// WithSize sets the size of the corpus
 	// Most corpora will have a sizes like "100K", "1M", etc., related to the amount of sentences in the corpus
 	WithSize(size string) Corpus
 
 	// Year returns the year of the corpus
 	Year() string
-	
+
 	// WithYear sets the year of the corpus
 	// Most corpora will have a year like "2023", "2022", etc.
 	WithYear(year string) Corpus
@@ -72,8 +87,15 @@ type Corpus interface {
 // Iterator is an interface for iterating over a corpus
 type Iterator interface {
 	// Next returns the next sentence from the corpus
-	Next() string
+	Next() Payload
 	// HasNext returns true unless the end of the corpus has been reached
 	// false otherwise
 	HasNext() bool
+}
+
+type Payload interface {
+	// LineNumber returns the payload given a line from the Corpus Iterator
+	LineNumber() int
+	// Content returns the payload given a line from the Corpus Iterator
+	Content() string
 }
