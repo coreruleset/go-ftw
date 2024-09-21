@@ -18,12 +18,28 @@
 // interface is subject to change.
 package corpus
 
-// Define an enum for CorpusType
+import "fmt"
+
+// Type is the type of the corpus
 type Type string
 
 const (
 	Leipzig Type = "leipzig"
 )
+
+func (t *Type) String() string {
+	return string(*t)
+}
+
+func (t *Type) Set(value string) error {
+	switch value {
+	case "leipzig":
+		*t = Leipzig
+		return nil
+	default:
+		return fmt.Errorf("invalid option for Type: '%s'", value)
+	}
+}
 
 // File interface is used to interact with Corpus files.
 // It provides methods for setting the cache directory and file path.

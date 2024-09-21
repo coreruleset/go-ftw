@@ -58,6 +58,11 @@ func (s *QuantitativeRunStats) addFalsePositive(rule int) {
 	s.falsePositivesPerRule[rule]++
 }
 
+// FalsePositives returns the total false positives detected
+func (s *QuantitativeRunStats) FalsePositives() int {
+	return s.falsePositives
+}
+
 // incrementRun increments the amount of tests executed in this run.
 func (s *QuantitativeRunStats) incrementRun() {
 	s.count_++

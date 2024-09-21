@@ -73,22 +73,24 @@ func NewLeipzigCorpus() corpus.Corpus {
 	return leipzig
 }
 
-// size returns the size of the corpus
+// Size returns the size of the corpus
 func (c *LeipzigCorpus) Size() string {
 	return c.size
 }
 
+// WithSize sets the size of the corpus
 func (c *LeipzigCorpus) WithSize(size string) corpus.Corpus {
 	c.size = size
 	c.regenerateFileNames()
 	return c
 }
 
-// year returns the year of the corpus
+// Year returns the year of the corpus
 func (c *LeipzigCorpus) Year() string {
 	return c.year
 }
 
+// WithYear sets the year of the corpus
 func (c *LeipzigCorpus) WithYear(year string) corpus.Corpus {
 	c.year = year
 	c.regenerateFileNames()
@@ -112,17 +114,19 @@ func (c *LeipzigCorpus) Source() string {
 	return c.source
 }
 
+// WithSource sets the source of the corpus
 func (c *LeipzigCorpus) WithSource(source string) corpus.Corpus {
 	c.source = source
 	c.regenerateFileNames()
 	return c
 }
 
-// Lang returns the language of the corpus
+// Language returns the language of the corpus
 func (c *LeipzigCorpus) Language() string {
 	return c.lang
 }
 
+// WithLanguage sets the language of the corpus
 func (c *LeipzigCorpus) WithLanguage(lang string) corpus.Corpus {
 	c.lang = lang
 	c.regenerateFileNames()
@@ -165,7 +169,11 @@ func (c *LeipzigCorpus) FetchCorpusFile() corpus.File {
 		log.Fatal().Err(err).Msg("Could not create destination directory")
 	}
 
-	cache := NewFile().WithCacheDir(cacheDir)
+	cache := NewFile().WithCacheDir(cacheDir).WithFilePath(c.filename)
+
+	if cache.FilePath() == "" {
+		log.Fatal().Msg("Cache file path is empty")
+	}
 
 	if info, err := os.Stat(path.Join(home, ".ftw", cache.FilePath())); err == nil {
 		log.Debug().Msgf("filename %s already exists", info.Name())

@@ -36,8 +36,28 @@ func (s *leipzigCorpusTestSuite) TestWithSize() {
 	s.Require().Equal("300K", s.corpus.Size())
 }
 
+func (s *leipzigCorpusTestSuite) TestWithYear() {
+	s.corpus.WithYear("2024")
+	s.Require().Equal("2024", s.corpus.Year())
+}
+
+func (s *leipzigCorpusTestSuite) TestWithSource() {
+	s.corpus.WithSource("news")
+	s.Require().Equal("news", s.corpus.Source())
+}
+
+func (s *leipzigCorpusTestSuite) TestWithLanguage() {
+	s.corpus.WithLanguage("eng")
+	s.Require().Equal("eng", s.corpus.Language())
+}
+
+func (s *leipzigCorpusTestSuite) TestWithURL() {
+	s.corpus.WithURL("https://downloads.wortschatz-leipzig.de/corpora")
+	s.Require().Equal("https://downloads.wortschatz-leipzig.de/corpora", s.corpus.URL())
+}
+
 func (s *leipzigCorpusTestSuite) TestGetIterator() {
-	s.corpus.WithSize("10K")
+	s.corpus = s.corpus.WithSize("10K")
 	s.cache = s.corpus.FetchCorpusFile()
 	s.iter = s.corpus.GetIterator(s.cache)
 }

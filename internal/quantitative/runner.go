@@ -14,8 +14,8 @@ import (
 	"github.com/coreruleset/go-ftw/output"
 )
 
-// QuantitativeParams holds the parameters for the quantitative tests
-type QuantitativeParams struct {
+// Params holds the parameters for the quantitative tests
+type Params struct {
 	// Lines is the number of lines of input to process before stopping
 	Lines int
 	// Fast is the process 1 in every X lines of input ('fast run' mode)
@@ -33,7 +33,7 @@ type QuantitativeParams struct {
 	// CorpusSize is the corpus size to use for the quantitative tests
 	CorpusSize string
 	// Corpus is the corpus to use for the quantitative tests
-	Corpus string
+	Corpus corpus.Type
 	// CorpusLang is the language of the corpus
 	CorpusLang string
 	// CorpusYear is the year of the corpus
@@ -54,7 +54,7 @@ func NewCorpus(corpusType corpus.Type) corpus.Corpus {
 }
 
 // RunQuantitativeTests runs all quantitative tests
-func RunQuantitativeTests(params QuantitativeParams, out *output.Output) error {
+func RunQuantitativeTests(params Params, out *output.Output) error {
 	out.Println("Running quantitative tests")
 
 	log.Trace().Msgf("Lines: %d", params.Lines)

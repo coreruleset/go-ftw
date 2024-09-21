@@ -4,6 +4,7 @@
 package quantitative
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path"
@@ -13,7 +14,10 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-const crsUrl = "https://github.com/coreruleset/coreruleset/releases/download/v4.6.0/coreruleset-4.6.0-minimal.tar.gz"
+const (
+	crsUrl         = "https://github.com/coreruleset/coreruleset/releases/download/v4.6.0/coreruleset-4.6.0-minimal.tar.gz"
+	crsTestVersion = "4.6.0"
+)
 
 type localEngineTestSuite struct {
 	suite.Suite
@@ -36,7 +40,7 @@ func (s *localEngineTestSuite) SetupTest() {
 
 	err := client.Get()
 	s.Require().NoError(err)
-	s.engine = NewEngine(path.Join(s.dir, "coreruleset-4.6.0"), 1)
+	s.engine = NewEngine(path.Join(s.dir, fmt.Sprintf("coreruleset-%s", crsTestVersion)), 1)
 	s.Require().NotNil(s.engine)
 }
 

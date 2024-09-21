@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/coreruleset/go-ftw/experimental/corpus"
 	"github.com/coreruleset/go-ftw/internal/quantitative"
 	"github.com/coreruleset/go-ftw/output"
 )
@@ -43,7 +44,7 @@ func NewQuantitativeCmd() *cobra.Command {
 func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	corpus, _ := cmd.Flags().GetString("corpus")
+	corpusTypeAsString, _ := cmd.Flags().GetString("corpus")
 	corpusSize, _ := cmd.Flags().GetString("corpus-size")
 	corpusLang, _ := cmd.Flags().GetString("corpus-lang")
 	corpusYear, _ := cmd.Flags().GetString("corpus-year")
@@ -75,8 +76,16 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	}
 	out := output.NewOutput(wantedOutput, outputFile)
 
-	params := quantitative.QuantitativeParams{
-		Corpus:        corpus,
+	var corpusType corpus.Type
+	if corpusTypeAsString != "" {
+		err = corpusType.Set(corpusTypeAsString)
+		if err != nil {
+			return err
+		}
+	}
+
+	params := quantitative.Params{
+		Corpus:        corpusType,
 		CorpusSize:    corpusSize,
 		CorpusYear:    corpusYear,
 		CorpusLang:    corpusLang,
