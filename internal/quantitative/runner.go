@@ -140,12 +140,12 @@ func doEngineCall(engine LocalEngine, payload string, specificRule int, stats *Q
 		log.Trace().Msgf("=> rules matched: %+v", matchedRules)
 		for rule, data := range matchedRules {
 			// check if we only want to show false positives for a specific rule
-			if wantSpecificRuleResults(rule, specificRule) {
+			if wantSpecificRuleResults(specificRule, rule) {
 				log.Debug().Msgf("rule %d does not match the specific rule we wanted %d", rule, specificRule)
 				continue
 			}
 			stats.addFalsePositive(rule)
-			log.Debug().Msgf("==> rule %d matched with data: %s", rule, data)
+			log.Debug().Msgf("**> rule %d => %s", rule, data)
 		}
 	}
 }

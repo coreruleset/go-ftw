@@ -490,25 +490,44 @@ Global Flags:
 
 This will run with the default leipzig corpus and size of 10K payloads.
 ```bash
-./go-ftw quantitative -d ../coreruleset -s 10K
+❯ ./go-ftw quantitative -d ../coreruleset -s 10K
+Running quantitative tests
+Run 10000 payloads in 16.009683458s
+Total False positive ratio: 47/10000 = 0.0047
+False positives per rule: map[932235:4 932270:2 932290:35 932380:2 933160:1 942100:1 942230:1 942360:1]
 ```
 
 This will run with the default leipzig corpus and size of 10K payloads, but only for the rule 920350.
 ```bash
-./go-ftw quantitative -d ../coreruleset -s 10K -r 920350
+❯ ./go-ftw quantitative -d ../coreruleset -s 10K -r 932270
+Running quantitative tests
+Run 10000 payloads in 15.782435916s
+Total False positive ratio: 2/10000 = 0.0002
+False positives per rule: map[932270:2]
 ```
 
 If you add `--debug` to the command, you will see the payloads that cause false positives.
 ```bash
 ❯ ./go-ftw quantitative -d ../coreruleset -s 10K --debug
 Running quantitative tests
-11:38AM DBG Preparing download of corpus file from https://downloads.wortschatz-leipzig.de/corpora/eng_news_2023_10K.tar.gz
-11:38AM DBG filename eng_news_2023_10K-sentences.txt already exists
-11:38AM DBG Using paranoia level: 1
+12:32PM DBG Preparing download of corpus file from https://downloads.wortschatz-leipzig.de/corpora/eng_news_2023_10K.tar.gz
+12:32PM DBG filename eng_news_2023_10K-sentences.txt already exists
+12:32PM DBG Using paranoia level: 1
 
-11:38AM DBG False positive with string: And finally: "I'd also say temp nurses make a lot.
-11:38AM DBG rule 932290 does not match the specific rule we wanted 0
+12:32PM DBG False positive with string: And finally: "I'd also say temp nurses make a lot.
+12:32PM DBG **> rule 932290 => Matched Data: "I'd found within ARGS:payload: And finally: "I'd also say temp nurses make a lot.
+12:32PM DBG False positive with string: But it was an experience Seguin said she "wouldn't trade for anything."
+12:32PM DBG **> rule 932290 => Matched Data: "wouldn't found within ARGS:payload: But it was an experience Seguin said she "wouldn't trade for anything."
+12:32PM DBG False positive with string: Consolidated Edison () last issued its earnings results on Thursday, November 3rd.
+12:32PM DBG **> rule 932235 => Matched Data: () last  found within ARGS:payload: Consolidated Edison () last issued its earnings results on Thursday, November 3rd.
 ```
+
+### Future work for quantitative tests
+
+This feature will enable us to compare between two different versions of CRS (or any two rules) and see, for example,
+if any modification to the rule has caused more false positives.
+
+Integrating it to the CI/CD pipeline will allow us to check every PR for false positives before merging.
 
 ## Library usage
 
