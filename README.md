@@ -455,6 +455,12 @@ You can see an example of how to implement the `corpus.Corpus` interface in the 
 
 To run quantitative tests, you just need to pass the `quantitative` flag to `ftw`.
 
+The corpus will be downloaded and cached locally for future use. You can also specify the size of the corpus,
+the language, the source, and the year of the corpus. The bare minimum parameter that you must specify is the
+directory where the CRS rules are stored.
+
+Here is the help for the `quantitative` command:
+
 ```bash
 ❯ ./go-ftw quantitative -h
 Run all quantitative tests
@@ -486,24 +492,36 @@ Global Flags:
       --trace              trace output: really, really verbose
 ```
 
+
+
 ### Example of running quantitative tests
 
 This will run with the default leipzig corpus and size of 10K payloads.
 ```bash
 ❯ ./go-ftw quantitative -d ../coreruleset -s 10K
 Running quantitative tests
-Run 10000 payloads in 16.009683458s
-Total False positive ratio: 47/10000 = 0.0047
-False positives per rule: map[932235:4 932270:2 932290:35 932380:2 933160:1 942100:1 942230:1 942360:1]
+Run 10000 payloads in 18.482979709s
+Total False positive ratio: 408/10000 = 0.0408
+False positives per rule:
+  Rule 920220: 198 false positives
+  Rule 920221: 198 false positives
+  Rule 932235: 4 false positives
+  Rule 932270: 2 false positives
+  Rule 932380: 2 false positives
+  Rule 933160: 1 false positives
+  Rule 942100: 1 false positives
+  Rule 942230: 1 false positives
+  Rule 942360: 1 false positives
 ```
 
 This will run with the default leipzig corpus and size of 10K payloads, but only for the rule 920350.
 ```bash
 ❯ ./go-ftw quantitative -d ../coreruleset -s 10K -r 932270
 Running quantitative tests
-Run 10000 payloads in 15.782435916s
+Run 10000 payloads in 15.218343083s
 Total False positive ratio: 2/10000 = 0.0002
-False positives per rule: map[932270:2]
+False positives per rule:
+  Rule 932270: 2 false positives
 ```
 
 If you add `--debug` to the command, you will see the payloads that cause false positives.
@@ -520,6 +538,28 @@ Running quantitative tests
 12:32PM DBG **> rule 932290 => Matched Data: "wouldn't found within ARGS:payload: But it was an experience Seguin said she "wouldn't trade for anything."
 12:32PM DBG False positive with string: Consolidated Edison () last issued its earnings results on Thursday, November 3rd.
 12:32PM DBG **> rule 932235 => Matched Data: () last  found within ARGS:payload: Consolidated Edison () last issued its earnings results on Thursday, November 3rd.
+```
+
+The default language for the corpus is english, but you can change it to german using the `-L` flag.
+```bash
+❯ ./go-ftw quantitative -d ../coreruleset -s 10K -L deu
+Running quantitative tests
+4:18PM INF Downloading corpus file from https://downloads.wortschatz-leipzig.de/corpora/deu_news_2023_10K.tar.gz
+Moved /Users/fzipitria/.ftw/extracted/deu_news_2023_10K/deu_news_2023_10K-sentences.txt to /Users/fzipitria/.ftw/deu_news_2023_10K-sentences.txt
+Run 10000 payloads in 25.169846084s
+Total False positive ratio: 44/10000 = 0.0044
+False positives per rule:
+  Rule 920220: 19 false positives
+  Rule 920221: 19 false positives
+  Rule 932125: 1 false positives
+  Rule 932290: 5 false positives
+```
+
+Results can be shown in json format also, to be processed by other tools.
+```bash
+❯ ./go-ftw quantitative -d ../coreruleset -s 10K -o json
+
+{"count":10000,"falsePositives":408,"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"totalTime":15031086083}%
 ```
 
 ### Future work for quantitative tests
