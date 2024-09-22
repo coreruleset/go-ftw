@@ -422,6 +422,94 @@ Now you can do that by passing the `--wait-for-host` flag. The value of this opt
 - `--wait-for-no-redirect`               Do not follow HTTP 3xx redirects.
 - `--wait-for-timeout`                   Sets the timeout for all wait operations, 0 is unlimited. (default 10s)
 
+## (EXPERIMENTAL) Quantitative testing
+
+In the latest version of `go-ftw`, we have added a new feature that allows you to run quantitative tests.
+This feature is still experimental and may change in the future.
+
+### What is the idea behind quantitative tests?
+
+Quantitative tests allow you to run tests using payloads to quantify the amount of false positives you might get when running in production.
+We use a well-known corpora of text to generate payloads that are sent to the WAF. The WAF should not block these payloads, as they are not malicious.
+
+Anyone can create their own corpora of text and use it to test their WAF. The corpora of text is a list of strings that are sent to the WAF to check if it blocks them.
+
+The result of this test is a percentage of false positives. The lower the percentage, the better the WAF is at not blocking benign payloads.
+
+### What is a corpus? Why do I need one?
+
+A corpus is a collection of text that is used to generate payloads.
+The text can be anything, from news articles to books. The idea is to have a large collection of text that can be used to generate payloads.
+
+The default corpus is the [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de/en/download/), which is a collection of text from the web.
+
+### How to create a corpus?
+
+You can create your own corpus by collecting text from the web or using text from books, articles, etc.
+Or even use it with your own website! What you will need to do is to implement the interface `corpus.Corpus`, the `corpus.File`,
+and for iterating over the corpus, the `corpus.Iterator` and `corpus.Payload` interfaces.
+
+You can see an example of how to implement the `corpus.Corpus` interface in the `corpus/leipzig` package.
+
+### How to run quantitative tests?
+
+To run quantitative tests, you just need to pass the `quantitative` flag to `ftw`.
+
+```bash
+❯ ./go-ftw quantitative -h
+Run all quantitative tests
+
+Usage:
+  ftw quantitative [flags]
+
+Flags:
+  -c, --corpus string          Corpus to use for the quantitative tests (default "leipzig")
+  -L, --corpus-lang string     Corpus language to use for the quantitative tests (default "eng")
+  -n, --corpus-line int        Number is the payload line from the corpus to exclusively send
+  -s, --corpus-size string     Corpus size to use for the quantitative tests. Most corpora will have sizes like "100K", "1M", etc. (default "100K")
+  -S, --corpus-source string   Corpus source to use for the quantitative tests. Most corpus will have a source like "news", "web", "wikipedia", etc. (default "news")
+  -y, --corpus-year string     Corpus year to use for the quantitative tests. Most corpus will have a year like "2023", "2022", etc. (default "2023")
+  -d, --directory string       Directory where the CRS rules are stored (default ".")
+  -f, --file string            Output file path for quantitative tests. Prints to standard output by default.
+  -h, --help                   help for quantitative
+  -l, --lines int              Number of lines of input to process before stopping
+  -o, --output string          Output type for quantitative tests. "normal" is the default. (default "normal")
+  -P, --paranoia-level int     Paranoia level used to run the quantitative tests (default 1)
+  -p, --payload string         Payload is a string you want to test using quantitative tests. Will not use the corpus.
+  -r, --rule int               Rule ID of interest: only show false positives for specified rule ID
+
+Global Flags:
+      --cloud              cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)
+      --config string      specify config file (default is $PWD/.ftw.yaml)
+      --debug              debug output
+      --overrides string   specify file with platform specific overrides
+      --trace              trace output: really, really verbose
+```
+
+### Example of running quantitative tests
+
+This will run with the default leipzig corpus and size of 10K payloads.
+```bash
+./go-ftw quantitative -d ../coreruleset -s 10K
+```
+
+This will run with the default leipzig corpus and size of 10K payloads, but only for the rule 920350.
+```bash
+./go-ftw quantitative -d ../coreruleset -s 10K -r 920350
+```
+
+If you add `--debug` to the command, you will see the payloads that cause false positives.
+```bash
+❯ ./go-ftw quantitative -d ../coreruleset -s 10K --debug
+Running quantitative tests
+11:38AM DBG Preparing download of corpus file from https://downloads.wortschatz-leipzig.de/corpora/eng_news_2023_10K.tar.gz
+11:38AM DBG filename eng_news_2023_10K-sentences.txt already exists
+11:38AM DBG Using paranoia level: 1
+
+11:38AM DBG False positive with string: And finally: "I'd also say temp nurses make a lot.
+11:38AM DBG rule 932290 does not match the specific rule we wanted 0
+```
+
 ## Library usage
 
 `go-ftw` can be used as a library also. Just include it in your project:
