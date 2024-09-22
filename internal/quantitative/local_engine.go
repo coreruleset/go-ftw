@@ -160,7 +160,6 @@ func crsWAF(prefix string, paranoiaLevel int) coraza.WAF {
 }
 
 func obtainStatusCodeFromInterruptionOrDefault(it *types.Interruption, defaultStatusCode int) int {
-	log.Debug().Msgf("Interruption: %s", it.Action)
 	if it.Action == "deny" {
 		statusCode := it.Status
 		if statusCode == 0 {

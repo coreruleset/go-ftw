@@ -55,7 +55,7 @@ func NewCorpus(corpusType corpus.Type) corpus.Corpus {
 
 // RunQuantitativeTests runs all quantitative tests
 func RunQuantitativeTests(params Params, out *output.Output) error {
-	out.Println("Running quantitative tests")
+	out.Println(":hourglass: Running quantitative tests")
 
 	log.Trace().Msgf("Lines: %d", params.Lines)
 	log.Trace().Msgf("Fast: %d", params.Fast)
@@ -70,7 +70,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 
 	startTime := time.Now()
 	// create a new corpusRunner
-	corpusRunner := NewCorpus(corpus.Leipzig).
+	corpusRunner := NewCorpus(params.Corpus).
 		WithSize(params.CorpusSize).
 		WithYear(params.CorpusYear).
 		WithSource(params.CorpusSource).
@@ -136,12 +136,11 @@ func doEngineCall(engine LocalEngine, payload string, specificRule int, stats *Q
 	log.Trace().Msgf("Rules: %v", matchedRules)
 	if status == http.StatusForbidden {
 		// append the line to the false positives
-		log.Debug().Msgf("False positive with string: %s", payload)
+		log.Trace().Msgf("False positive with string: %s", payload)
 		log.Trace().Msgf("=> rules matched: %+v", matchedRules)
 		for rule, data := range matchedRules {
 			// check if we only want to show false positives for a specific rule
 			if wantSpecificRuleResults(specificRule, rule) {
-				log.Debug().Msgf("rule %d does not match the specific rule we wanted %d", rule, specificRule)
 				continue
 			}
 			stats.addFalsePositive(rule)
