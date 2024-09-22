@@ -81,7 +81,8 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	// create the results
 	stats := NewQuantitativeStats()
 
-	runner := NewEngine(params.Directory, params.ParanoiaLevel)
+	var engine LocalEngine = &localEngine{}
+	runner := engine.Create(params.Directory, params.ParanoiaLevel)
 
 	// Are we using the corpus at all?
 	if params.Payload != "" {
@@ -129,8 +130,8 @@ func wantSpecificRuleResults(specific int, rule int) bool {
 }
 
 // doEngineCall
-func doEngineCall(engine *LocalEngine, payload string, specificRule int, stats *QuantitativeRunStats) {
-	status, matchedRules := engine.CRSCall(payload)
+func doEngineCall(engine LocalEngine, payload string, specificRule int, stats *QuantitativeRunStats) {
+	status, matchedRules := engine.CrsCall(payload)
 	log.Trace().Msgf("Status: %d", status)
 	log.Trace().Msgf("Rules: %v", matchedRules)
 	if status == http.StatusForbidden {

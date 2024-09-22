@@ -1,4 +1,4 @@
-// Copyright 2022 Juan Pablo Tosso and the OWASP Coraza contributors
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package quantitative
@@ -57,25 +57,37 @@ SecAction \
 `
 )
 
-type LocalEngine struct {
+// LocalEngine is the interface for the local engine
+type LocalEngine interface {
+	// Create creates a new engine to test payloads
+	Create(prefix string, paranoia int) LocalEngine
+	// CrsCall benchmarks the CRS WAF using a POST request with the payload
+	CrsCall(payload string) (int, map[int]string)
+}
+
+// localEngine is the engine to test payloads
+type localEngine struct {
 	waf coraza.WAF
 }
 
-// NewEngine creates a new engine to test payloads
-func NewEngine(prefix string, paranoia int) *LocalEngine {
-	eng := &LocalEngine{
+// Create creates a new engine to test payloads
+func (e *localEngine) Create(prefix string, paranoia int) LocalEngine {
+	eng := localEngine{
 		waf: crsWAF(prefix, paranoia),
 	}
-	return eng
+	return &eng
 }
 
 // CrsCall benchmarks the CRS WAF with a GET request
 // payload: the string to be passed in the request body
 // returns the status of the HTTP response and a map of the matched rules with their IDs and the data that matched.
-func (e *LocalEngine) CRSCall(payload string) (int, map[int]string) {
+func (e *localEngine) CrsCall(payload string) (int, map[int]string) {
 	var status = http.StatusOK
 	var matchedRules = make(map[int]string)
 
+	if e.waf == nil {
+		log.Fatal().Msg("local engine not initialized")
+	}
 	tx := e.waf.NewTransaction()
 	tx.ProcessConnection("127.0.0.1", 8080, "127.0.0.1", 8080)
 	tx.ProcessURI("/post", "POST", "HTTP/1.1")
@@ -106,7 +118,7 @@ func (e *LocalEngine) CRSCall(payload string) (int, map[int]string) {
 	return status, matchedRules
 }
 
-// newCrsWaf creates a WAF with the CRS rules
+// crsWAF creates a WAF with the CRS rules
 // prefix: the path to the CRS rules
 // paranoiaLevel: 1 - 4 should be added as a template to the crs-setup.conf file
 // If you want to run your own WAF rules instead of CRS, create a similar function to newCrsWaf

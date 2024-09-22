@@ -15,14 +15,18 @@ import (
 )
 
 const (
-	crsUrl         = "https://github.com/coreruleset/coreruleset/releases/download/v4.6.0/coreruleset-4.6.0-minimal.tar.gz"
 	crsTestVersion = "4.6.0"
 )
+
+var crsUrl = fmt.Sprintf(
+	"https://github.com/coreruleset/coreruleset/releases/download/v%s/coreruleset-%s-minimal.tar.gz",
+	crsTestVersion,
+	crsTestVersion)
 
 type localEngineTestSuite struct {
 	suite.Suite
 	dir    string
-	engine *LocalEngine
+	engine LocalEngine
 }
 
 func TestLocalEngineTestSuite(t *testing.T) {
@@ -40,7 +44,8 @@ func (s *localEngineTestSuite) SetupTest() {
 
 	err := client.Get()
 	s.Require().NoError(err)
-	s.engine = NewEngine(path.Join(s.dir, fmt.Sprintf("coreruleset-%s", crsTestVersion)), 1)
+	s.engine = &localEngine{}
+	s.engine = s.engine.Create(path.Join(s.dir, fmt.Sprintf("coreruleset-%s", crsTestVersion)), 1)
 	s.Require().NotNil(s.engine)
 }
 
@@ -51,13 +56,15 @@ func (s *localEngineTestSuite) TeardownTest() {
 
 // TestCRSCall For this test you will need to have the Core Rule Set repository cloned in the parent directory as the project.
 func (s *localEngineTestSuite) TestCrsCall() {
+	s.Require().NotNil(s.engine)
+
 	// simple payload, no matches
-	status, matchedRules := s.engine.CRSCall("this is a test")
+	status, matchedRules := s.engine.CrsCall("this is a test")
 	s.Require().Equal(http.StatusOK, status)
 	s.Require().Empty(matchedRules)
 
 	// this payload will match a few rules
-	status, matchedRules = s.engine.CRSCall("' OR 1 = 1")
+	status, matchedRules = s.engine.CrsCall("' OR 1 = 1")
 	s.Require().Equal(http.StatusForbidden, status)
 	s.Require().NotEmpty(matchedRules)
 
