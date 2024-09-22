@@ -88,28 +88,27 @@ func (e *localEngine) CrsCall(payload string) (int, map[int]string) {
 	if e.waf == nil {
 		log.Fatal().Msg("local engine not initialized")
 	}
+	// we use the payload in the URI to rules in phase:1 can catch it
+	uri := fmt.Sprintf("/get?payload=%s", url.QueryEscape(payload))
+
 	tx := e.waf.NewTransaction()
 	tx.ProcessConnection("127.0.0.1", 8080, "127.0.0.1", 8080)
-	tx.ProcessURI("/post", "POST", "HTTP/1.1")
+	tx.ProcessURI(uri, "GET", "HTTP/1.1")
 	tx.AddRequestHeader("Host", "localhost")
 	tx.AddRequestHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75. 0.3770.100 Safari/537.36")
-	tx.AddRequestHeader("Accept", "application/json")
-	tx.AddRequestHeader("Content-Type", "application/x-www-form-urlencoded")
-	body := []byte("payload=" + url.QueryEscape(payload))
+	tx.AddRequestHeader("Accept", "*/*")
 
-	tx.AddRequestHeader("Content-Length", strconv.Itoa(len(body)))
-	tx.ProcessRequestHeaders()
-	if _, _, err := tx.WriteRequestBody(body); err != nil {
-		log.Error().Err(err).Msg("failed to write request body")
+	// we need to check also for phase:1 rules only
+	it := tx.ProcessRequestHeaders()
+	if it == nil { // if no interruption, we check phase:2
+		it, _ = tx.ProcessRequestBody()
 	}
-	it, err := tx.ProcessRequestBody()
-	if err != nil {
-		log.Error().Err(err).Msg("failed to process request body")
-	}
-	if it != nil { // execution was interrupted
+
+	if it != nil {
 		status = obtainStatusCodeFromInterruptionOrDefault(it, http.StatusOK)
 		matchedRules = getMatchedRules(tx)
 	}
+
 	// We don't care about the response body for now, nor logging.
 	if err := tx.Close(); err != nil {
 		log.Error().Err(err).Msg("failed to close transaction")
@@ -161,6 +160,7 @@ func crsWAF(prefix string, paranoiaLevel int) coraza.WAF {
 }
 
 func obtainStatusCodeFromInterruptionOrDefault(it *types.Interruption, defaultStatusCode int) int {
+	log.Debug().Msgf("Interruption: %s", it.Action)
 	if it.Action == "deny" {
 		statusCode := it.Status
 		if statusCode == 0 {

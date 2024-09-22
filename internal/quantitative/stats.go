@@ -5,6 +5,7 @@ package quantitative
 
 import (
 	"encoding/json"
+	"sort"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -45,7 +46,19 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 			ratio := float64(s.falsePositives) / float64(s.count_)
 			out.Println("Run %d payloads in %s", s.count_, s.totalTime)
 			out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
-			out.Println("False positives per rule: %+v", s.falsePositivesPerRule)
+			out.Println("False positives per rule id:")
+			// Extract and sort the keys
+			rules := make([]int, 0, len(s.falsePositivesPerRule))
+			for rule := range s.falsePositivesPerRule {
+				rules = append(rules, rule)
+			}
+			sort.Ints(rules)
+
+			// Print the sorted map
+			for _, rule := range rules {
+				count := s.falsePositivesPerRule[rule]
+				out.Println("  %d: %d false positives", rule, count)
+			}
 		}
 	} else {
 		out.Println("No false positives detected with the passed corpus")
