@@ -46,9 +46,9 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 			out.Println("Run %d payloads in %s", s.count_, s.totalTime)
 			out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
 			out.Println("False positives per rule: %+v", s.falsePositivesPerRule)
-			// echo "| Freq.  | ID #   | Paranoia Level |"
-			// echo "| ------ | ------ | -------------- |"
 		}
+	} else {
+		out.Println("No false positives detected with the passed corpus")
 	}
 }
 
