@@ -135,7 +135,7 @@ func crsWAF(prefix string, paranoiaLevel int) coraza.WAF {
 	vars := map[string]interface{}{
 		"ParanoiaLevel": paranoiaLevel,
 	}
-	log.Debug().Msgf("Using paranoia level: %d\n", paranoiaLevel)
+	log.Debug().Msgf("Using paranoia level: %d", paranoiaLevel)
 	// set up configuration from template
 	configTmpl, err := template.New("crs-config").Parse(testingConfigTmpl)
 	if err != nil {
@@ -163,7 +163,7 @@ func obtainStatusCodeFromInterruptionOrDefault(it *types.Interruption, defaultSt
 	if it.Action == "deny" {
 		statusCode := it.Status
 		if statusCode == 0 {
-			statusCode = 403
+			statusCode = http.StatusForbidden
 		}
 
 		return statusCode

@@ -25,6 +25,7 @@ type Type string
 
 const (
 	Leipzig Type = "leipzig"
+	NoType  Type = "none"
 )
 
 func (t *Type) String() string {
@@ -112,6 +113,10 @@ type Iterator interface {
 type Payload interface {
 	// LineNumber returns the payload given a line from the Corpus Iterator
 	LineNumber() int
+	// SetLineNumber sets the line number of the payload
+	SetLineNumber(line int)
 	// Content returns the payload given a line from the Corpus Iterator
 	Content() string
+	// SetContent sets the content of the payload
+	SetContent(content string)
 }

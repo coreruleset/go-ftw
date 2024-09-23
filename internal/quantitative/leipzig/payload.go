@@ -4,6 +4,7 @@
 package leipzig
 
 import (
+	"github.com/coreruleset/go-ftw/experimental/corpus"
 	"strconv"
 	"strings"
 )
@@ -14,8 +15,8 @@ type Payload struct {
 	payload string
 }
 
-// NewPayload returns a new Payload
-func NewPayload(line string) *Payload {
+// NewPayload returns a new Payload from a line in the corpus.
+func NewPayload(line string) corpus.Payload {
 	split := strings.Split(line, "\t")
 	// convert to int
 	num, err := strconv.Atoi(split[0])
@@ -35,7 +36,17 @@ func (p *Payload) LineNumber() int {
 	return p.line
 }
 
+// SetLineNumber sets the line number of the payload
+func (p *Payload) SetLineNumber(line int) {
+	p.line = line
+}
+
 // Content returns the payload given a line from the Corpus Iterator
 func (p *Payload) Content() string {
 	return p.payload
+}
+
+// SetContent sets the content of the payload
+func (p *Payload) SetContent(content string) {
+	p.payload = content
 }

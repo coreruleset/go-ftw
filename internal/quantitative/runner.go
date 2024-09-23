@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/experimental/corpus"
-	"github.com/coreruleset/go-ftw/internal/quantitative/leipzig"
 	"github.com/coreruleset/go-ftw/output"
 )
 
@@ -42,19 +41,9 @@ type Params struct {
 	CorpusSource string
 }
 
-// NewCorpus creates a new corpus
-func NewCorpus(corpusType corpus.Type) corpus.Corpus {
-	switch corpusType {
-	case corpus.Leipzig:
-		return leipzig.NewLeipzigCorpus()
-	default:
-		log.Fatal().Msgf("Unknown corpus implementation: %s", corpusType)
-		return nil
-	}
-}
-
 // RunQuantitativeTests runs all quantitative tests
 func RunQuantitativeTests(params Params, out *output.Output) error {
+	var lc corpus.File
 	out.Println(":hourglass: Running quantitative tests")
 
 	log.Trace().Msgf("Lines: %d", params.Lines)
@@ -70,14 +59,20 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 
 	startTime := time.Now()
 	// create a new corpusRunner
-	corpusRunner := NewCorpus(params.Corpus).
+	corpusRunner, err := CorpusFactory(params.Corpus)
+	if err != nil {
+		return err
+	}
+	corpusRunner = corpusRunner.
 		WithSize(params.CorpusSize).
 		WithYear(params.CorpusYear).
 		WithSource(params.CorpusSource).
 		WithLanguage(params.CorpusLang)
 
-	// download the corpusRunner file
-	lc := corpusRunner.FetchCorpusFile()
+	// download the corpusRunner file if no payload is provided
+	if params.Payload == "" {
+		lc = corpusRunner.FetchCorpusFile()
+	}
 	// create the results
 	stats := NewQuantitativeStats()
 
@@ -85,17 +80,22 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	runner := engine.Create(params.Directory, params.ParanoiaLevel)
 
 	// Are we using the corpus at all?
+	// TODO: this could be moved to a generic "file" iterator (instead of "corpus), with a Factory method
 	if params.Payload != "" {
 		log.Trace().Msgf("Payload received from cmdline: %s", params.Payload)
+		p, err := PayloadFactory(params.Corpus)
+		if err != nil {
+			return err
+		}
 		// CrsCall with payload
-		doEngineCall(runner, params.Payload, params.Rule, stats)
+		doEngineCall(runner, p, params.Rule, stats)
 	} else { // iterate over the corpus
 		log.Trace().Msgf("Iterating over corpus")
 		for iter := corpusRunner.GetIterator(lc); iter.HasNext(); {
-			p := iter.Next()
+			payload := iter.Next()
 			stats.incrementRun()
-			payload := p.Content()
-			log.Trace().Msgf("Line: %s", payload)
+			content := payload.Content()
+			log.Trace().Msgf("Line: %s", content)
 			// check if we are looking for a specific payload line #
 			if needSpecificPayload(params.Number, stats.Count()) {
 				continue
@@ -130,8 +130,8 @@ func wantSpecificRuleResults(specific int, rule int) bool {
 }
 
 // doEngineCall
-func doEngineCall(engine LocalEngine, payload string, specificRule int, stats *QuantitativeRunStats) {
-	status, matchedRules := engine.CrsCall(payload)
+func doEngineCall(engine LocalEngine, payload corpus.Payload, specificRule int, stats *QuantitativeRunStats) {
+	status, matchedRules := engine.CrsCall(payload.Content())
 	log.Trace().Msgf("Status: %d", status)
 	log.Trace().Msgf("Rules: %v", matchedRules)
 	if status == http.StatusForbidden {
@@ -144,7 +144,7 @@ func doEngineCall(engine LocalEngine, payload string, specificRule int, stats *Q
 				continue
 			}
 			stats.addFalsePositive(rule)
-			log.Debug().Msgf("**> rule %d => %s", rule, data)
+			log.Debug().Msgf("**> rule %d with payload %d => %s", rule, payload.LineNumber(), data)
 		}
 	}
 }

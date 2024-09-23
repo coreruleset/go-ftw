@@ -60,10 +60,15 @@ func (s *runnerTestSuite) TeardownTest() {
 	s.Require().NoError(err)
 }
 
-func (s *runnerTestSuite) TestNewCorpus() {
-	s.c = NewCorpus(corpus.Leipzig)
+func (s *runnerTestSuite) TestCorpusFactory() {
+	var err error
+	s.c, err = CorpusFactory(corpus.Leipzig)
+	s.Require().NoError(err)
 	s.Require().NotNil(s.c)
 	s.Require().Equal(s.c.URL(), "https://downloads.wortschatz-leipzig.de/corpora")
+
+	s.c, err = CorpusFactory(corpus.NoType)
+	s.Require().Error(err)
 }
 
 func (s *runnerTestSuite) TestRunQuantitativeTests() {
