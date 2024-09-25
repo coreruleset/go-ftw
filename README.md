@@ -429,25 +429,28 @@ This feature is still experimental and may change in the future.
 
 ### What is the idea behind quantitative tests?
 
-Quantitative tests allow you to run tests using payloads to quantify the amount of false positives you might get when running in production.
-We use a well-known corpora of text to generate payloads that are sent to the WAF. The WAF should not block these payloads, as they are not malicious.
+Quantitative testing mode provides a means to to quantify the amount of false positives to be expected in production for a given rule.
+We use well-known corpora of texts to generate plausible, non-malicious payloads. Whenever such a payload is blocked by the WAF, the detection is considered to be a false positive.
 
-Anyone can create their own corpora of text and use it to test their WAF. The corpora of text is a list of strings that are sent to the WAF to check if it blocks them.
+Anyone can create their own corpora of texts and use them to test their WAF. Each corpus essentially consists of a list of strings, which may be sent to the WAF, depending on the configuration of the run.
 
-The result of this test is a percentage of false positives. The lower the percentage, the better the WAF is at not blocking benign payloads.
+The result of a test run is a percentage of false positives. The lower the percentage, the better the WAF is at not blocking benign payloads for a given rule. However, since we use generic corpora in our tests, the strings in those corpora will not necessarily be representative of the domain of a specific site. This means that a rule with a low false positive rate can still produce many false positives in specific contexts, e.g., when a website contains programming language code.
 
 ### What is a corpus? Why do I need one?
 
-A corpus is a collection of text that is used to generate payloads.
-The text can be anything, from news articles to books. The idea is to have a large collection of text that can be used to generate payloads.
+A corpus is a collection of texts that is used to generate payloads.
+The texts can contain anything, from news articles to books. The idea is to have a large collection of texts that can be used to generate payloads. Well-known corpora usually have a domain or context, e.g., news headlines, or English books of the 18th century.
 
-The default corpus is the [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de/en/download/), which is a collection of text from the web.
+The default corpus is the [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de/en/download/), which is a collection of texts from the web.
 
 ### How to create a corpus?
 
-You can create your own corpus by collecting text from the web or using text from books, articles, etc.
-Or even use it with your own website! What you will need to do is to implement the interface `corpus.Corpus`, the `corpus.File`,
-and for iterating over the corpus, the `corpus.Iterator` and `corpus.Payload` interfaces.
+You can create your own corpus by collecting texts from the web, or from books, articles, etc.
+You could even use the contents of your own website as a corpus! What you will need to do is to implement the following interfaces:
+- `corpus.Corpus`
+- `corpus.File`
+- `corpus.Iterator`
+- `corpus.Payload`
 
 You can see an example of how to implement the `corpus.Corpus` interface in the `corpus/leipzig` package.
 
@@ -540,7 +543,7 @@ Running quantitative tests
 12:32PM DBG **> rule 932235 => Matched Data: () last  found within ARGS:payload: Consolidated Edison () last issued its earnings results on Thursday, November 3rd.
 ```
 
-The default language for the corpus is english, but you can change it to german using the `-L` flag.
+The default language for the corpus is English, but you can change it to German using the `-L` flag.
 ```bash
 ❯ ./go-ftw quantitative -d ../coreruleset -s 10K -L deu
 Running quantitative tests
@@ -555,7 +558,7 @@ False positives per rule:
   Rule 932290: 5 false positives
 ```
 
-Results can be shown in json format also, to be processed by other tools.
+Results can be shown in JSON format also, to be processed by other tools.
 ```bash
 ❯ ./go-ftw quantitative -d ../coreruleset -s 10K -o json
 

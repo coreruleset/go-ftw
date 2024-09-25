@@ -61,7 +61,7 @@ SecAction \
 type LocalEngine interface {
 	// Create creates a new engine to test payloads
 	Create(prefix string, paranoia int) LocalEngine
-	// CrsCall benchmarks the CRS WAF using a POST request with the payload
+	// CrsCall benchmarks the CRS WAF using a GET request with the payload
 	CrsCall(payload string) (int, map[int]string)
 }
 
@@ -88,7 +88,7 @@ func (e *localEngine) CrsCall(payload string) (int, map[int]string) {
 	if e.waf == nil {
 		log.Fatal().Msg("local engine not initialized")
 	}
-	// we use the payload in the URI to rules in phase:1 can catch it
+	// we use the payload in the URI so rules in phase 1 can catch it
 	uri := fmt.Sprintf("/get?payload=%s", url.QueryEscape(payload))
 
 	tx := e.waf.NewTransaction()
