@@ -10,9 +10,10 @@ import (
 	"regexp"
 	"strconv"
 
+	"slices"
+
 	"github.com/icza/backscanner"
 	"github.com/rs/zerolog/log"
-	"slices"
 )
 
 const maxRuleIdsEstimate = 15
@@ -29,10 +30,10 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 	lines := ll.getMarkedLines()
 	regex := regexp.MustCompile(`\[id "(\d+)"\]|"id":\s*"?(\d+)"?`)
 	for _, line := range lines {
-		log.Trace().Msgf("ftw/waflog: Looking for any rule in %s", line)
+		log.Trace().Msgf("ftw/waflog: Looking for any rule in '%s'", line)
 		match := regex.FindAllSubmatch(line, -1)
 		if match != nil {
-			log.Trace().Msgf("ftw/waflog: Found %s at %s", regex.String(), line)
+			log.Trace().Msgf("ftw/waflog: Found '%s' at '%s'", regex.String(), line)
 			for _, nextMatch := range match {
 				for index := 1; index <= 2; index++ {
 					submatchBytes := nextMatch[index]
@@ -102,13 +103,13 @@ func (ll *FTWLogLines) MatchesRegex(pattern string) bool {
 
 	result := false
 	for _, line := range lines {
-		log.Trace().Msgf("ftw/waflog: Matching %s in %s", pattern, line)
+		log.Trace().Msgf("ftw/waflog: Matching '%s' in '%s'", pattern, line)
 		found, err := regexp.Match(pattern, line)
 		if err != nil {
 			log.Fatal().Msgf("ftw/waflog: bad regexp %s", err.Error())
 		}
 		if found {
-			log.Trace().Msgf("ftw/waflog: Found %s at %s", pattern, line)
+			log.Trace().Msgf("ftw/waflog: Found '%s' at '%s'", pattern, line)
 			result = true
 			break
 		}
