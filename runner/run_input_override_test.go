@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/test"
 )
 
@@ -175,7 +174,7 @@ func (s *inputOverrideTestSuite) TestSetHostFromDestAddr() {
 
 	s.NotNil(testInput.Headers, "Header map must exist after overriding `dest_addr`")
 
-	hostHeader := testInput.GetHeaders().Get("Host")
+	hostHeader := testInput.GetHttpHeaders().First("Host")
 	s.NotEqual("", hostHeader, "Host header must be set after overriding `dest_addr`")
 	s.Equal(overrideHost, hostHeader, "Host header must be identical to `dest_addr` after overrding `dest_addr`")
 }
@@ -191,7 +190,7 @@ func (s *inputOverrideTestSuite) TestSetHostFromHostHeaderOverride() {
 
 	test.ApplyInputOverrides(s.cfg, &testInput)
 
-	hostHeader := testInput.GetHeaders().Get("Host")
+	hostHeader := testInput.GetHttpHeaders().First("Host")
 	s.NotEqual("", hostHeader, "Host header must be set after overriding the `Host` header")
 	if hostHeader == overrideHostHeader {
 		s.Equal(overrideHostHeader, hostHeader, "Host header override must take precence over OverrideEmptyHostHeader")
@@ -206,14 +205,14 @@ func (s *inputOverrideTestSuite) TestSetHeaderOverridingExistingOne() {
 	s.Require().NoError(err, "cannot get override value")
 
 	testInput := test.Input{
-		Headers: ftwhttp.Header{"unique_id": originalHeaderValue},
+		Headers: map[string]string{"unique_id": originalHeaderValue},
 	}
 
 	s.NotNil(testInput.Headers, "Header map must exist before overriding any header")
 
 	test.ApplyInputOverrides(s.cfg, &testInput)
 
-	overriddenHeader := testInput.GetHeaders().Get("unique_id")
+	overriddenHeader := testInput.GetHttpHeaders().First("unique_id")
 	s.NotEqual("", overriddenHeader, "unique_id header must be set after overriding it")
 	s.Equal(overrideHeaderValue, overriddenHeader, "Host header must be identical to overridden `Host` header.")
 }
@@ -224,14 +223,14 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrides() {
 	s.Require().NoError(err, "cannot get override value")
 
 	testInput := test.Input{
-		Headers: ftwhttp.Header{"unique_id": originalHeaderValue},
+		Headers: map[string]string{"unique_id": originalHeaderValue},
 	}
 
 	s.NotNil(testInput.Headers, "Header map must exist before overriding any header")
 
 	test.ApplyInputOverrides(s.cfg, &testInput)
 
-	overriddenHeader := testInput.GetHeaders().Get("unique_id")
+	overriddenHeader := testInput.GetHttpHeaders().First("unique_id")
 	s.NotEqual("", overriddenHeader, "unique_id header must be set after overriding it")
 	s.Equal(overrideHeaderValue, overriddenHeader, "Host header must be identical to overridden `Host` header.")
 }

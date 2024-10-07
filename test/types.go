@@ -15,7 +15,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/ftwhttp"
 )
 
 // ApplyInputOverride will check if config had global overrides and write that into the test.
@@ -65,13 +64,10 @@ func basicApplyPlatformOverrides(override *overridesSchema.TestOverride, testCas
 func applyDestAddrOverride(overrides *config.Overrides, input *Input) {
 	if overrides.DestAddr != nil {
 		input.DestAddr = overrides.DestAddr
-		if input.Headers == nil {
-			input.Headers = ftwhttp.Header{}
-		}
 		if overrides.OverrideEmptyHostHeader != nil &&
 			*overrides.OverrideEmptyHostHeader &&
-			input.GetHeaders().Get("Host") == "" {
-			input.GetHeaders().Set("Host", *overrides.DestAddr)
+			input.GetHttpHeaders().First("Host") == "" {
+			input.SetHeader("Host", *overrides.DestAddr)
 		}
 	}
 }
@@ -117,11 +113,8 @@ func applySimpleOverrides(overrides *config.Overrides, input *Input) {
 
 func applyHeadersOverride(overrides *config.Overrides, input *Input) {
 	if overrides.Headers != nil {
-		if input.Headers == nil {
-			input.Headers = ftwhttp.Header{}
-		}
 		for k, v := range overrides.Headers {
-			input.GetHeaders().Set(k, v)
+			input.SetHeader(k, v)
 		}
 	}
 }

@@ -407,7 +407,7 @@ func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
 	input := test.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             ftwhttp.Header{},
+		Headers:             nil,
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
@@ -427,8 +427,8 @@ func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
 	_, err = client.Do(*request)
 	s.Require().NoError(err)
 
-	s.Equal("0", request.Headers().Get("Content-Length"), "Autocompletion should add 'Content-Length' header to POST requests")
-	s.Equal("close", request.Headers().Get("Connection"), "Autocompletion should add 'Connection: close' header")
+	s.Equal("0", request.Headers().First("Content-Length"), "Autocompletion should add 'Content-Length' header to POST requests")
+	s.Equal("close", request.Headers().First("Connection"), "Autocompletion should add 'Connection: close' header")
 }
 
 func (s *runTestSuite) TestGetRawRequestFromTestWithAutocompleteHeaders() {
@@ -437,7 +437,7 @@ func (s *runTestSuite) TestGetRawRequestFromTestWithAutocompleteHeaders() {
 	input := test.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             ftwhttp.Header{},
+		Headers:             nil,
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
@@ -458,8 +458,8 @@ func (s *runTestSuite) TestGetRawRequestFromTestWithAutocompleteHeaders() {
 	_, err = client.Do(*request)
 	s.Require().NoError(err)
 
-	s.Equal("", request.Headers().Get("Content-Length"), "Raw requests should not be modified")
-	s.Equal("", request.Headers().Get("Connection"), "Raw requests should not be modified")
+	s.Equal("", request.Headers().First("Content-Length"), "Raw requests should not be modified")
+	s.Equal("", request.Headers().First("Connection"), "Raw requests should not be modified")
 }
 
 func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
@@ -468,7 +468,7 @@ func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
 	input := test.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             ftwhttp.Header{},
+		Headers:             nil,
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
@@ -488,8 +488,8 @@ func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
 	_, err = client.Do(*request)
 	s.Require().NoError(err)
 
-	s.Equal("", request.Headers().Get("Content-Length"), "Autocompletion is disabled")
-	s.Equal("", request.Headers().Get("Connection"), "Autocompletion is disabled")
+	s.Equal("", request.Headers().First("Content-Length"), "Autocompletion is disabled")
+	s.Equal("", request.Headers().First("Connection"), "Autocompletion is disabled")
 }
 
 // This test case verifies that the `retry_once` option works around a race condition in phase 5,

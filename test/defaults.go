@@ -67,12 +67,23 @@ func (i *Input) GetPort() int {
 	return *i.Port
 }
 
-// GetHeaders returns the headers wrapped in a ftwhttp.Header
-func (i *Input) GetHeaders() ftwhttp.Header {
+// GetHttpHeaders returns the headers wrapped in a ftwhttp.Header
+func (i *Input) GetHttpHeaders() *ftwhttp.Header {
 	if i.Headers == nil {
-		return ftwhttp.Header{}
+		return ftwhttp.NewHeader(nil)
 	}
-	return ftwhttp.Header(i.Headers)
+	headers := make(map[string][]string, len(i.Headers))
+	for k, v := range i.Headers {
+		headers[k] = []string{v}
+	}
+	return ftwhttp.NewHeader(headers)
+}
+
+func (i *Input) SetHeader(key, value string) {
+    if i.Headers == nil {
+        i.Headers = make(map[string]string)
+    }
+    i.Headers[key] = value
 }
 
 // GetRawRequest returns the proper raw data, and error if there was none

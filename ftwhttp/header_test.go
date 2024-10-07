@@ -1,90 +1,159 @@
-// Copyright 2010 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-// Copyright 2011 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package ftwhttp
 
 import (
 	"bytes"
-	"errors"
-	"io"
-	"testing"
-
 	"github.com/stretchr/testify/suite"
+	"strings"
+	"testing"
 )
-
-var headerWriteTests = []struct {
-	h        Header
-	expected string
-}{
-	{Header{}, ""},
-	{
-		Header{
-			"Content-Type":   "text/html; charset=UTF-8",
-			"Content-Length": "0",
-		},
-		"Content-Length: 0\r\nContent-Type: text/html; charset=UTF-8\r\n",
-	},
-	{
-		Header{
-			"Content-Length": "1",
-		},
-		"Content-Length: 1\r\n",
-	},
-	{
-		Header{
-			"Expires":          "-1",
-			"Content-Length":   "0",
-			"Content-Encoding": "gzip",
-		},
-		"Content-Encoding: gzip\r\nContent-Length: 0\r\nExpires: -1\r\n",
-	},
-	{
-		Header{
-			"Blank": "",
-		},
-		"Blank: \r\n",
-	},
-}
-
-type BadWriter struct {
-	err error
-}
-
-func (bw BadWriter) Write(_ []byte) (n int, err error) {
-	return 0, bw.err
-}
 
 type headerTestSuite struct {
 	suite.Suite
 }
 
-func TestHeaderTestSuite(t *testing.T) {
+func TestHeaderNewTestSuite(t *testing.T) {
 	suite.Run(t, new(headerTestSuite))
 }
 
-func (s *headerTestSuite) TestHeaderWrite() {
-	for _, test := range headerWriteTests {
-		err := test.h.Write(io.Discard)
-		s.Require().NoError(err)
-		err = test.h.Write(BadWriter{err: errors.New("fake error")})
-		if len(test.h) > 0 {
-			s.EqualErrorf(err, "fake error", "Write: got %v, want %v", err, "fake error")
-		} else {
-			s.Require().NoErrorf(err, "Write: got %v", err)
-		}
-	}
+func (s *headerTestSuite) TestHeaderAdd() {
+	h := NewHeader(nil)
+
+	key1 := "key1"
+	h.Get(key1)
+
+	h.Add(key1, []string{"Value1"})
+	values := h.Get(key1)
+	s.Lenf(values, 1, "got: %d, want: 1\n", len(values))
+	s.Equalf([]string{"Value1"}, values[key1], "got: %s, want: %s\n", strings.Join(values[key1], ", "), `["Value1"]`)
+
+	// Append value to the previous added under key1
+	h.Add(key1, []string{"Value2"})
+	values = h.Get(key1)
+	s.Lenf(values, 1, "got: %d, want: 1\n", len(values))
+	s.Equalf([]string{"Value1", "Value2"}, values[key1], "got: %s, want: %s\n", strings.Join(values[key1], ", "), `["Value1", "Value2"]`)
+
+	// Add value under the key matching canonicalised key1
+	key2 := "KEY1"
+	h.Add(key2, []string{"Value3"})
+	values = h.Get(key2)
+	s.Lenf(values, 2, "got: %d, want: 2\n", len(values))
+	s.Equalf([]string{"Value3"}, values[key2], "got: %s, want: %s\n", values[key2], `["Value3"]`)
+
+	// The method is case-insensitive
+	s.Lenf(h.Get("KEY1"), 2, "got: %d, want: 2\n", len(h.Get("key1")))
 }
 
-func (s *headerTestSuite) TestHeaderWriteBytes() {
+func (s *headerTestSuite) TestHeaderSet() {
+	h := NewHeader(nil)
+
+	key1 := "key1"
+	h.Set(key1, []string{"Value1"})
+
+	values := h.Get(key1)
+	s.Lenf(values, 1, "got: %d, want: 1\n", len(values))
+	s.Equalf([]string{"Value1"}, values[key1], "got: %s, want: %s\n", strings.Join(values[key1], ", "), `["Value1"]`)
+
+	h.Set(key1, []string{"Value2"})
+
+	values = h.Get(key1)
+	s.Lenf(values, 1, "got: %d, want: 1\n", len(values))
+	s.Equalf([]string{"Value2"}, values[key1], "got: %s, want: %s\n", strings.Join(values[key1], ", "), `["Value2"]`)
+}
+
+func (s *headerTestSuite) TestHeaderHasAny() {
+	h := NewHeader(nil)
+	key := "key"
+
+	s.False(h.HasAny(key))
+
+	h.Add(key, []string{"Value"})
+	s.True(h.HasAny(key))
+	s.True(h.HasAny("KEY"))
+	s.False(h.HasAny("key1"))
+}
+
+func (s *headerTestSuite) TestHeaderHasAnyNonEmpty() {
+	h := NewHeader(nil)
+	key := "key"
+
+	s.Empty(h.First(key))
+
+	h.Add(key, []string{""})
+	s.Empty(h.First(key))
+
+	h.Add(key, []string{"Value", "Value2"})
+	s.Equal(h.First("key"), "Value")
+	s.Empty(h.First("key1"))
+}
+
+func (s *headerTestSuite) TestHeaderWrite() {
+	var headerWriteTests = []struct {
+		headers  map[string][]string
+		expected string
+	}{
+
+		{
+			headers:  map[string][]string{},
+			expected: "",
+		},
+		{
+			headers: map[string][]string{
+				"Blank": {""},
+			},
+			expected: "Blank: \r\n",
+		},
+		{
+			headers: map[string][]string{
+				"Content-Length": {"1"},
+			},
+			expected: "Content-Length: 1\r\n",
+		},
+		{
+			headers: map[string][]string{
+				"Content-Length": {"1", "2"},
+			},
+			expected: "Content-Length: 1\r\nContent-Length: 2\r\n",
+		},
+		{
+			headers: map[string][]string{
+				"Content-Type":   {"text/html; charset=UTF-8"},
+				"Content-Length": {"0"},
+			},
+			expected: "Content-Length: 0\r\nContent-Type: text/html; charset=UTF-8\r\n",
+		},
+		{
+			headers: map[string][]string{
+				"Expires":          {"-1"},
+				"Content-Length":   {"0"},
+				"Content-Encoding": {"gzip"},
+			},
+			expected: "Content-Encoding: gzip\r\nContent-Length: 0\r\nExpires: -1\r\n",
+		},
+		{
+			headers: map[string][]string{
+				"Content-Encoding": {"gzip"},
+				"content-ENCoding": {"deflate"},
+			},
+			expected: "Content-Encoding: gzip\r\ncontent-ENCoding: deflate\r\n",
+		},
+		{
+			headers: map[string][]string{
+				"Content-Encoding": {"gzip", "zstd"},
+				"Expires":          {"-1"},
+				"content-ENCoding": {"deflate", "compress"},
+			},
+			expected: "Content-Encoding: gzip\r\nContent-Encoding: zstd\r\ncontent-ENCoding: deflate\r\ncontent-ENCoding: compress\r\nExpires: -1\r\n",
+		},
+	}
+
 	for i, test := range headerWriteTests {
 		var buf bytes.Buffer
 
-		n, err := test.h.WriteBytes(&buf)
+		h := NewHeader(nil)
+		for k, v := range test.headers {
+			h.Add(k, v)
+		}
+		n, err := h.WriteBytes(&buf)
 		w := buf.String()
 		s.Lenf(w, n, "#%d: WriteBytes: got %d, want %d", i, n, len(w))
 		s.Require().NoErrorf(err, "#%d: WriteBytes: got %v", i, err)
@@ -93,112 +162,31 @@ func (s *headerTestSuite) TestHeaderWriteBytes() {
 	}
 }
 
-func (s *headerTestSuite) TestHeaderWriteString() {
-	sw := stringWriter{io.Discard}
-
-	for i, test := range headerWriteTests {
-		expected := test.h.Get("Content-Type")
-		n, err := sw.WriteString(expected)
-		s.Require().NoErrorf(err, "#%d: WriteString: %v", i, err)
-		s.Equalf(len(expected), n, "#%d: WriteString: got %d, want %d", i, n, len(expected))
-	}
-}
-
-func (s *headerTestSuite) TestHeaderAdd() {
-	h := Header{
-		"Custom": "Value",
-	}
-	h.Add("Other", "Value")
-	value := h.Get("Other")
-	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
-}
-
-func (s *headerTestSuite) TestHeaderAdd_CaseInsensitiveKey() {
-	h := Header{}
-
-	h.Add("camel-Header", "Value")
-	value := h.Get("Camel-Header")
-	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
-
-	// Header exists, ignore overwriting
-	h.Add("Camel-Header", "Value2")
-	value = h.Get("Camel-Header")
-	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
-
-	// Overwrite header
-	h.Set("Camel-Header", "Value3")
-	value = h.Get("Camel-Header")
-	s.Equalf("Value3", value, "got: %s, want: %s\n", value, "Value3")
-}
-
-func (s *headerTestSuite) TestHeaderGet() {
-	h := Header{
-		"Custom": "Value",
-	}
-	value := h.Get("Custom")
-	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
-}
-
-func (s *headerTestSuite) TestHeaderGet_CaseInsensitiveKey() {
-	h := Header{
-		"Custom":        "Value",
-		"Custom-Header": "Value2",
-	}
-
-	value := h.Get("Custom")
-	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
-
-	value = h.Get("custom-header")
-	s.Equalf("Value2", value, "got: %s, want: %s\n", value, "Value2")
-}
-
-func (s *headerTestSuite) TestHeaderDel() {
-	for i, test := range headerWriteTests {
-		// we clone it because we are modifying the original
-		headerCopy := test.h.Clone()
-		expected := headerCopy.Get("Content-Type")
-		if expected != "" {
-			headerCopy.Del("Content-Type")
-			value := headerCopy.Get("Content-Type")
-			s.Equalf("", value, "#%d: got: %s, want: %s\n", i, value, "")
-		}
-	}
-}
-
-func (s *headerTestSuite) TestHeaderDel_CaseInsensitiveKey() {
-	h := Header{}
-	h.Add("content-Type", "Value")
-	h.Del("Content-type")
-	value := h.Get("Content-Type")
-	s.Equalf("", value, "#case: got: %s, want: %s\n", value, "")
-}
-
 func (s *headerTestSuite) TestHeaderClone() {
-	h := Header{
-		"Custom": "Value",
-	}
+	key := "Custom"
+	h := NewHeader(map[string][]string{
+		key: {"Value"},
+	})
 
 	clone := h.Clone()
 
-	value := clone.Get("Custom")
-
-	s.Equalf("Value", value, "got: %s, want: %s\n", value, "Value")
-
+	values := clone.Get("Custom")
+	s.Lenf(values, 1, "got: %d, want: 1\n", len(values))
+	s.Equalf([]string{"Value"}, values[key], "got: %s, want: %s\n", strings.Join(values[key], ", "), `["Value"]`)
 }
 
-var testHeader = Header{
-	"Content-Length": "123",
-	"Content-Type":   "text/plain",
-	"Date":           "some date at some time Z",
-	"Server":         "DefaultUserAgent",
-}
+var bufNew bytes.Buffer
 
-var buf bytes.Buffer
-
-func BenchmarkHeaderWrite(b *testing.B) {
+func BenchmarkHeaderNewWrite(b *testing.B) {
 	b.ReportAllocs()
+	testHeaderNew := NewHeader(map[string][]string{
+		"Content-Length": {"123"},
+		"Content-Type":   {"text/plain"},
+		"Date":           {"some date at some time Z"},
+		"Server":         {"DefaultUserAgent"},
+	})
 	for i := 0; i < b.N; i++ {
-		buf.Reset()
-		_ = testHeader.Write(&buf)
+		bufNew.Reset()
+		_, _ = testHeaderNew.WriteBytes(&bufNew)
 	}
 }

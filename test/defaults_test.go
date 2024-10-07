@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
-
-	"github.com/coreruleset/go-ftw/ftwhttp"
 )
 
 type defaultsTestSuite struct {
@@ -24,7 +22,7 @@ func getTestInputDefaults() *Input {
 	data := "My Data"
 
 	inputDefaults := Input{
-		Headers:             make(ftwhttp.Header),
+		Headers:             make(map[string]string),
 		Data:                &data,
 		SaveCookie:          func() *bool { b := false; return &b }(),
 		AutocompleteHeaders: func() *bool { b := false; return &b }(),
@@ -46,7 +44,7 @@ func getTestExampleInput() *Input {
 		Protocol:            &protocol,
 		URI:                 &uri,
 		Version:             &version,
-		Headers:             make(ftwhttp.Header),
+		Headers:             make(map[string]string),
 		Method:              &method,
 		Data:                nil,
 		EncodedRequest:      "TXkgRGF0YQo=",
