@@ -44,6 +44,7 @@ func Execute(version string) error {
 	rootCmd := NewRootCommand()
 	rootCmd.AddCommand(NewCheckCommand())
 	rootCmd.AddCommand(NewRunCommand())
+	rootCmd.AddCommand(NewQuantitativeCmd())
 	rootCmd.Version = version
 
 	return rootCmd.ExecuteContext(context.Background())

@@ -422,6 +422,156 @@ Now you can do that by passing the `--wait-for-host` flag. The value of this opt
 - `--wait-for-no-redirect`               Do not follow HTTP 3xx redirects.
 - `--wait-for-timeout`                   Sets the timeout for all wait operations, 0 is unlimited. (default 10s)
 
+## (EXPERIMENTAL) Quantitative testing
+
+In the latest version of `go-ftw`, we have added a new feature that allows you to run quantitative tests.
+This feature is still experimental and may change in the future.
+
+### What is the idea behind quantitative tests?
+
+Quantitative testing mode provides a means to to quantify the amount of false positives to be expected in production for a given rule.
+We use well-known corpora of texts to generate plausible, non-malicious payloads. Whenever such a payload is blocked by the WAF, the detection is considered to be a false positive.
+
+Anyone can create their own corpora of texts and use them to test their WAF. Each corpus essentially consists of a list of strings, which may be sent to the WAF, depending on the configuration of the run.
+
+The result of a test run is a percentage of false positives. The lower the percentage, the better the WAF is at not blocking benign payloads for a given rule. However, since we use generic corpora in our tests, the strings in those corpora will not necessarily be representative of the domain of a specific site. This means that a rule with a low false positive rate can still produce many false positives in specific contexts, e.g., when a website contains programming language code.
+
+### What is a corpus? Why do I need one?
+
+A corpus is a collection of texts that is used to generate payloads.
+The texts can contain anything, from news articles to books. The idea is to have a large collection of texts that can be used to generate payloads. Well-known corpora usually have a domain or context, e.g., news headlines, or English books of the 18th century.
+
+The default corpus is the [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de/en/download/), which is a collection of texts from the web.
+
+### How to create a corpus?
+
+You can create your own corpus by collecting texts from the web, or from books, articles, etc.
+You could even use the contents of your own website as a corpus! What you will need to do is to implement the following interfaces:
+- `corpus.Corpus`
+- `corpus.File`
+- `corpus.Iterator`
+- `corpus.Payload`
+
+You can see an example of how to implement the `corpus.Corpus` interface in the `corpus/leipzig` package.
+
+### How to run quantitative tests?
+
+To run quantitative tests, you just need to pass the `quantitative` flag to `ftw`.
+
+The corpus will be downloaded and cached locally for future use. You can also specify the size of the corpus,
+the language, the source, and the year of the corpus. The bare minimum parameter that you must specify is the
+directory where the CRS rules are stored.
+
+Here is the help for the `quantitative` command:
+
+```bash
+❯ ./go-ftw quantitative -h
+Run all quantitative tests
+
+Usage:
+  ftw quantitative [flags]
+
+Flags:
+  -c, --corpus string          Corpus to use for the quantitative tests (default "leipzig")
+  -L, --corpus-lang string     Corpus language to use for the quantitative tests (default "eng")
+  -n, --corpus-line int        Number is the payload line from the corpus to exclusively send
+  -s, --corpus-size string     Corpus size to use for the quantitative tests. Most corpora will have sizes like "100K", "1M", etc. (default "100K")
+  -S, --corpus-source string   Corpus source to use for the quantitative tests. Most corpus will have a source like "news", "web", "wikipedia", etc. (default "news")
+  -y, --corpus-year string     Corpus year to use for the quantitative tests. Most corpus will have a year like "2023", "2022", etc. (default "2023")
+  -d, --directory string       Directory where the CRS rules are stored (default ".")
+  -f, --file string            Output file path for quantitative tests. Prints to standard output by default.
+  -h, --help                   help for quantitative
+  -l, --lines int              Number of lines of input to process before stopping
+  -o, --output string          Output type for quantitative tests. "normal" is the default. (default "normal")
+  -P, --paranoia-level int     Paranoia level used to run the quantitative tests (default 1)
+  -p, --payload string         Payload is a string you want to test using quantitative tests. Will not use the corpus.
+  -r, --rule int               Rule ID of interest: only show false positives for specified rule ID
+
+Global Flags:
+      --cloud              cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)
+      --config string      specify config file (default is $PWD/.ftw.yaml)
+      --debug              debug output
+      --overrides string   specify file with platform specific overrides
+      --trace              trace output: really, really verbose
+```
+
+
+
+### Example of running quantitative tests
+
+This will run with the default leipzig corpus and size of 10K payloads.
+```bash
+❯ ./go-ftw quantitative -d ../coreruleset -s 10K
+Running quantitative tests
+Run 10000 payloads in 18.482979709s
+Total False positive ratio: 408/10000 = 0.0408
+False positives per rule:
+  Rule 920220: 198 false positives
+  Rule 920221: 198 false positives
+  Rule 932235: 4 false positives
+  Rule 932270: 2 false positives
+  Rule 932380: 2 false positives
+  Rule 933160: 1 false positives
+  Rule 942100: 1 false positives
+  Rule 942230: 1 false positives
+  Rule 942360: 1 false positives
+```
+
+This will run with the default leipzig corpus and size of 10K payloads, but only for the rule 920350.
+```bash
+❯ ./go-ftw quantitative -d ../coreruleset -s 10K -r 932270
+Running quantitative tests
+Run 10000 payloads in 15.218343083s
+Total False positive ratio: 2/10000 = 0.0002
+False positives per rule:
+  Rule 932270: 2 false positives
+```
+
+If you add `--debug` to the command, you will see the payloads that cause false positives.
+```bash
+❯ ./go-ftw quantitative -d ../coreruleset -s 10K --debug
+Running quantitative tests
+12:32PM DBG Preparing download of corpus file from https://downloads.wortschatz-leipzig.de/corpora/eng_news_2023_10K.tar.gz
+12:32PM DBG filename eng_news_2023_10K-sentences.txt already exists
+12:32PM DBG Using paranoia level: 1
+
+12:32PM DBG False positive with string: And finally: "I'd also say temp nurses make a lot.
+12:32PM DBG **> rule 932290 => Matched Data: "I'd found within ARGS:payload: And finally: "I'd also say temp nurses make a lot.
+12:32PM DBG False positive with string: But it was an experience Seguin said she "wouldn't trade for anything."
+12:32PM DBG **> rule 932290 => Matched Data: "wouldn't found within ARGS:payload: But it was an experience Seguin said she "wouldn't trade for anything."
+12:32PM DBG False positive with string: Consolidated Edison () last issued its earnings results on Thursday, November 3rd.
+12:32PM DBG **> rule 932235 => Matched Data: () last  found within ARGS:payload: Consolidated Edison () last issued its earnings results on Thursday, November 3rd.
+```
+
+The default language for the corpus is English, but you can change it to German using the `-L` flag.
+```bash
+❯ ./go-ftw quantitative -d ../coreruleset -s 10K -L deu
+Running quantitative tests
+4:18PM INF Downloading corpus file from https://downloads.wortschatz-leipzig.de/corpora/deu_news_2023_10K.tar.gz
+Moved /Users/fzipitria/.ftw/extracted/deu_news_2023_10K/deu_news_2023_10K-sentences.txt to /Users/fzipitria/.ftw/deu_news_2023_10K-sentences.txt
+Run 10000 payloads in 25.169846084s
+Total False positive ratio: 44/10000 = 0.0044
+False positives per rule:
+  Rule 920220: 19 false positives
+  Rule 920221: 19 false positives
+  Rule 932125: 1 false positives
+  Rule 932290: 5 false positives
+```
+
+Results can be shown in JSON format also, to be processed by other tools.
+```bash
+❯ ./go-ftw quantitative -d ../coreruleset -s 10K -o json
+
+{"count":10000,"falsePositives":408,"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"totalTime":15031086083}%
+```
+
+### Future work for quantitative tests
+
+This feature will enable us to compare between two different versions of CRS (or any two rules) and see, for example,
+if any modification to the rule has caused more false positives.
+
+Integrating it to the CI/CD pipeline will allow us to check every PR for false positives before merging.
+
 ## Library usage
 
 `go-ftw` can be used as a library also. Just include it in your project:
