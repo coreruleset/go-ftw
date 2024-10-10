@@ -8,10 +8,11 @@ import (
 	"regexp"
 	"strconv"
 
+	"slices"
+
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	overridesSchema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
 	"github.com/rs/zerolog/log"
-	"slices"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
@@ -32,7 +33,7 @@ func ApplyInputOverrides(conf *config.FTWConfiguration, input *Input) {
 
 func ApplyPlatformOverrides(conf *config.FTWConfiguration, testCase *schema.Test) {
 	platformOverrides := conf.PlatformOverrides
-	log.Debug().Msgf("Applying overrides for engine '%s', platform '%s", platformOverrides.Meta.Engine, platformOverrides.Meta.Platform)
+	log.Debug().Msgf("Applying overrides for engine '%s', platform '%s'", platformOverrides.Meta.Engine, platformOverrides.Meta.Platform)
 	overrides, ok := platformOverrides.OverridesMap[testCase.RuleId]
 	if !ok {
 		log.Trace().Msgf("no override found for rule %d", testCase.RuleId)
