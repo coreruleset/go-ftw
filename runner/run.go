@@ -134,7 +134,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 //gocyclo:ignore
 func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase schema.Test, stage schema.Stage) error {
 	stageStartTime := time.Now()
-	stageID := uuid.NewString()
+	stageId := uuid.NewString()
 	// Apply global overrides initially
 	testInput := (test.Input)(stage.Input)
 	test.ApplyInputOverrides(runContext.Config, &testInput)
@@ -166,7 +166,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
-		startMarker, err := markAndFlush(runContext, dest, stageID)
+		startMarker, err := markAndFlush(runContext, &testInput, stageId)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find start marker: %w", err)
 		}
@@ -190,7 +190,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
-		endMarker, err := markAndFlush(runContext, dest, stageID)
+		endMarker, err := markAndFlush(runContext, &testInput, stageId)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find end marker: %w", err)
 
@@ -220,25 +220,13 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	return nil
 }
 
-func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID string) ([]byte, error) {
-	rline := &ftwhttp.RequestLine{
-		Method: "GET",
-		// Use the `/status` endpoint of `httpbin` (http://httpbingo.org), if possible,
-		// to minimize the amount of data transferred and in the log.
-		// `httpbin` is used by the CRS test setup.
-		URI:     "/status/200",
-		Version: "HTTP/1.1",
+func markAndFlush(runContext *TestRunContext, testInput *test.Input, stageId string) ([]byte, error) {
+	req := buildMarkerRequest(runContext, testInput, stageId)
+	dest := &ftwhttp.Destination{
+		DestAddr: testInput.GetDestAddr(),
+		Port:     testInput.GetPort(),
+		Protocol: testInput.GetProtocol(),
 	}
-
-	headers := &ftwhttp.Header{
-		"Accept":                              "*/*",
-		"User-Agent":                          "go-ftw test agent",
-		"Host":                                "localhost",
-		runContext.Config.LogMarkerHeaderName: stageID,
-	}
-
-	req := ftwhttp.NewRequest(rline, *headers, nil, true)
-
 	for i := runContext.Config.MaxMarkerRetries; i > 0; i-- {
 		err := runContext.Client.NewOrReusedConnection(*dest)
 		if err != nil {
@@ -250,12 +238,40 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v: %w", dest, err)
 		}
 
-		marker := runContext.LogLines.CheckLogForMarker(stageID, runContext.Config.MaxMarkerLogLines)
+		marker := runContext.LogLines.CheckLogForMarker(stageId, runContext.Config.MaxMarkerLogLines)
 		if marker != nil {
 			return marker, nil
 		}
 	}
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.Config.LogFile)
+}
+
+func buildMarkerRequest(runContext *TestRunContext, testInput *test.Input, stageId string) *ftwhttp.Request {
+	host := "localhost"
+	if testInput.VirtualHostMode {
+		// Use the value of the `Host` header of the test for
+		// internal requests as well, so that all requests target
+		// the same virtual host.
+		host = testInput.GetHeaders().Get("Host")
+	}
+
+	headers := &ftwhttp.Header{
+		"Accept":                              "*/*",
+		"User-Agent":                          "go-ftw test agent",
+		"Host":                                host,
+		runContext.Config.LogMarkerHeaderName: stageId,
+	}
+
+	rline := &ftwhttp.RequestLine{
+		Method: "GET",
+		// Use the `/status` endpoint of `httpbin` (http://httpbingo.org), if possible,
+		// to minimize the amount of data transferred and in the log.
+		// `httpbin` is used by the CRS test setup.
+		URI:     "/status/200",
+		Version: "HTTP/1.1",
+	}
+
+	return ftwhttp.NewRequest(rline, *headers, nil, true)
 }
 
 func needToSkipTest(runContext *TestRunContext, testCase *schema.Test) bool {
