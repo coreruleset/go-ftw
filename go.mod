@@ -1,6 +1,6 @@
 module github.com/coreruleset/go-ftw
 
-go 1.21
+go 1.23
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible

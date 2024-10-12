@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package updater
@@ -23,12 +23,12 @@ func getLatestVersionFromGitHub() (*selfupdate.Release, error) {
 	}
 	updater, err := selfupdate.NewUpdater(selfupdate.Config{
 		Source:    source,
-		Validator: &selfupdate.ChecksumValidator{UniqueFilename: "crs-toolchain-checksums.txt"}, // checksum from goreleaser
+		Validator: &selfupdate.ChecksumValidator{UniqueFilename: "ftw-checksums.txt"}, // checksum from goreleaser
 	})
 	if err != nil {
 		return nil, err
 	}
-	latest, found, err := updater.DetectLatest(context.Background(), selfupdate.ParseSlug("coreruleset/crs-toolchain"))
+	latest, found, err := updater.DetectLatest(context.Background(), selfupdate.ParseSlug("coreruleset/go-ftw"))
 	if err != nil {
 		return latest, fmt.Errorf("error occurred while detecting version: %w", err)
 	}
@@ -55,7 +55,6 @@ func Updater(version string, executablePath string) (string, error) {
 	if err != nil {
 		return emptyVersion, err
 	}
-
 	if latest.LessOrEqual(version) {
 		logger.Info().Msgf("You have the latest version installed, %s", version)
 		return version, nil
