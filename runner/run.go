@@ -6,6 +6,7 @@ package runner
 import (
 	"errors"
 	"fmt"
+	"net"
 	"time"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
@@ -221,6 +222,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 }
 
 func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID string) ([]byte, error) {
+	host := "localhost"
+
 	rline := &ftwhttp.RequestLine{
 		Method: "GET",
 		// Use the `/status` endpoint of `httpbin` (http://httpbingo.org), if possible,
@@ -230,10 +233,19 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 		Version: "HTTP/1.1",
 	}
 
+	// check if destination host is an alias for localhost
+	addrs, err := net.LookupHost(dest.DestAddr)
+	if err != nil {
+		return nil, fmt.Errorf("ftw/run: can't resolve destination %+v: %w", dest, err)
+	}
+	// we only take the first IP address
+	if net.ParseIP(addrs[0]).IsLoopback() {
+		host = dest.DestAddr
+	}
 	headers := &ftwhttp.Header{
 		"Accept":                              "*/*",
 		"User-Agent":                          "go-ftw test agent",
-		"Host":                                "localhost",
+		"Host":                                host,
 		runContext.Config.LogMarkerHeaderName: stageID,
 	}
 
