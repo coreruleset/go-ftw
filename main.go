@@ -19,6 +19,10 @@ import (
 	"github.com/coreruleset/go-ftw/cmd"
 )
 
+const (
+	ExecutableName = "go-ftw"
+)
+
 // nolint: gochecknoglobals
 var (
 	version = "dev"
