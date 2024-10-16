@@ -16,7 +16,7 @@ func NewSelfUpdateCommand(version string) *cobra.Command {
 		Use:   "self-update",
 		Short: "Performs self-update",
 		Long: "Checks GitHub releases for the latest version of this command. If a new version is available, " +
-			"it will get it and replace this binary.",
+			"it will fetch it and replace this binary.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if version == "dev" {
 				log.Info().Msg("You are running a development version, skipping self-update")
