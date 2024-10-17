@@ -4,5 +4,8 @@
     "local>coreruleset/renovate-config",
     "schedule:weekly"
   ],
-  "ignoreDeps": ["github.com/goccy/go-yaml"]
+  "ignoreDeps": ["github.com/goccy/go-yaml"],
+  "constraints": {
+    "go": "1.22"
+  }
 }
