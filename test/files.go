@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/goccy/go-yaml"
 	"github.com/rs/zerolog/log"
 	"github.com/yargevad/filepathx"
 )
@@ -38,9 +37,8 @@ func GetTestsFromFiles(globPattern string) ([]*FTWTest, error) {
 		}
 		ftwTest, err := GetTestFromYaml(yamlString, fileName)
 		if err != nil {
-			log.Warn().Msgf("Problem detected in file %s:\n%s\n%s",
-				filePath, yaml.FormatError(err, true, true),
-				DescribeYamlError(err))
+			log.Warn().Msgf("Problem detected in file %s:\n%v\n",
+				filePath, err)
 			continue
 		}
 
