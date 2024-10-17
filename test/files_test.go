@@ -77,22 +77,3 @@ func (s *filesTestSuite) TestGetFromBadYAML() {
 
 	s.Error(err, "reading yaml should fail")
 }
-
-// This test guards against performance regressions in goccy/yaml. It uses
-// an artificially large test file to force the YAML parser to run long
-// enough so that the performance difference becomse large enough to test.
-// The impacted versions of goccy (v1.9.2 - v1.11.3) will score well above
-// 0.01 nano seconds per operation.
-func (s *filesTestSuite) TestBenchmarkGetTestsFromFiles() {
-	result := testing.Benchmark(func(b *testing.B) {
-		_, err := GetTestsFromFiles("testdata/TestCheckBenchmarkCheckFiles.yaml")
-		if err != nil {
-			b.FailNow()
-		}
-	})
-	nsPerOp := float64(result.T.Nanoseconds()) / float64(result.N)
-	s.T().Logf("Nano seconds per operation: %f", nsPerOp)
-	if nsPerOp > 0.01 {
-		s.FailNow("Nano seconds per operation exceeded limit for benchmark: ", nsPerOp)
-	}
-}
