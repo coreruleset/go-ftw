@@ -11,6 +11,7 @@ require (
 	github.com/goccy/go-yaml v1.9.2
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-getter v1.7.6
+	github.com/hashicorp/go-getter/v2 v2.2.3
 	github.com/icza/backscanner v0.0.0-20240328210400-b40c3a86dec5
 	github.com/knadh/koanf/parsers/yaml v0.1.0
 	github.com/knadh/koanf/providers/env v1.0.0
