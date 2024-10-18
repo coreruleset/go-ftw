@@ -131,7 +131,11 @@ func (s *clientTestSuite) TestGetTrackedTime() {
 		Version: "HTTP/1.1",
 	}
 
-	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	h := NewHeader(map[string][]string{
+		"Accept":     {"*/*"},
+		"User-Agent": {"go-ftw test agent"},
+		"Host":       {"localhost"},
+	})
 
 	data := []byte(`test=me&one=two&one=twice`)
 	req := NewRequest(rl, h, data, true)
@@ -165,10 +169,12 @@ func (s *clientTestSuite) TestClientMultipartFormDataRequest() {
 		Version: "HTTP/1.1",
 	}
 
-	h := Header{
-		"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost",
-		"Content-Type": "multipart/form-data; boundary=--------397236876",
-	}
+	h := NewHeader(map[string][]string{
+		"Accept":       {"*/*"},
+		"User-Agent":   {"go-ftw test agent"},
+		"Host":         {"localhost"},
+		"Content-Type": {"multipart/form-data; boundary=--------397236876"},
+	})
 
 	data := []byte(`----------397236876
 Content-Disposition: form-data; name="fileRap"; filename="test.txt"
@@ -250,7 +256,11 @@ func (s *clientTestSuite) TestClientRateLimits() {
 		Version: "HTTP/1.1",
 	}
 
-	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	h := NewHeader(map[string][]string{
+		"Accept":     {"*/*"},
+		"User-Agent": {"go-ftw test agent"},
+		"Host":       {"localhost"},
+	})
 	req := NewRequest(rl, h, nil, true)
 
 	// We need to do at least 2 calls so there is a wait between both.
