@@ -6,7 +6,6 @@ package quantitative
 import (
 	"bytes"
 	"fmt"
-	"net/http"
 	"net/url"
 	"os"
 	"strconv"
@@ -20,7 +19,8 @@ import (
 
 const (
 	defaultPrefix     = "."
-	testingConfigTmpl = `SecRuleEngine On
+	testingConfigTmpl = `
+SecRuleEngine DetectionOnly
 SecRequestBodyAccess On
 SecRule REQUEST_HEADERS:Content-Type "^(?:application(?:/soap\+|/)|text/)xml" \
      "id:'200000',phase:1,t:none,t:lowercase,pass,nolog,ctl:requestBodyProcessor=XML"
@@ -62,7 +62,7 @@ type LocalEngine interface {
 	// Create creates a new engine to test payloads
 	Create(prefix string, paranoia int) LocalEngine
 	// CrsCall benchmarks the CRS WAF using a GET request with the payload
-	CrsCall(payload string) (int, map[int]string)
+	CrsCall(payload string) map[int]string
 }
 
 // localEngine is the engine to test payloads
@@ -81,8 +81,7 @@ func (e *localEngine) Create(prefix string, paranoia int) LocalEngine {
 // CrsCall benchmarks the CRS WAF with a GET request
 // payload: the string to be passed in the request body
 // returns the status of the HTTP response and a map of the matched rules with their IDs and the data that matched.
-func (e *localEngine) CrsCall(payload string) (int, map[int]string) {
-	var status = http.StatusOK
+func (e *localEngine) CrsCall(payload string) map[int]string {
 	var matchedRules = make(map[int]string)
 
 	if e.waf == nil {
@@ -99,22 +98,20 @@ func (e *localEngine) CrsCall(payload string) (int, map[int]string) {
 	tx.AddRequestHeader("Accept", "*/*")
 
 	// we need to check also for phase:1 rules only
-	it := tx.ProcessRequestHeaders()
-	if it == nil { // if no interruption, we check phase:2
-		it, _ = tx.ProcessRequestBody()
+	_ = tx.ProcessRequestHeaders()
+	_, err := tx.ProcessRequestBody()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to process request body")
 	}
 
-	if it != nil {
-		status = obtainStatusCodeFromInterruptionOrDefault(it, http.StatusOK)
-		matchedRules = getMatchedRules(tx)
-	}
+	matchedRules = getMatchedRules(tx)
 
 	// We don't care about the response body for now, nor logging.
 	if err := tx.Close(); err != nil {
 		log.Error().Err(err).Msg("failed to close transaction")
 	}
 
-	return status, matchedRules
+	return matchedRules
 }
 
 // crsWAF creates a WAF with the CRS rules
@@ -157,19 +154,6 @@ func crsWAF(prefix string, paranoiaLevel int) coraza.WAF {
 		log.Fatal().Err(err).Msg("failed to create WAF")
 	}
 	return waf
-}
-
-func obtainStatusCodeFromInterruptionOrDefault(it *types.Interruption, defaultStatusCode int) int {
-	if it.Action == "deny" {
-		statusCode := it.Status
-		if statusCode == 0 {
-			statusCode = http.StatusForbidden
-		}
-
-		return statusCode
-	}
-
-	return defaultStatusCode
 }
 
 // getMatchedRules returns the IDs of the rules that matched

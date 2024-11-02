@@ -33,7 +33,6 @@ func (s *runnerTestSuite) SetupTest() {
 		Lines:         1000,
 		Fast:          10,
 		Rule:          1000,
-		Payload:       "test",
 		Number:        1000,
 		Directory:     path.Join(s.dir, fmt.Sprintf("coreruleset-%s", crsTestVersion)),
 		ParanoiaLevel: 1,
@@ -71,9 +70,24 @@ func (s *runnerTestSuite) TestCorpusFactory() {
 	s.Require().Error(err)
 }
 
-func (s *runnerTestSuite) TestRunQuantitativeTests() {
-	var b bytes.Buffer
-	out := output.NewOutput("plain", &b)
-	err := RunQuantitativeTests(s.params, out)
-	s.Require().NoError(err)
+func (s *runnerTestSuite) TestRunQuantitative() {
+	// This test is expecting to have at least one rule false positive in the used corpus
+	// If it is not anymore the case, an option could be to use a different corpus language
+	s.Run("with corpus", func() {
+		var b bytes.Buffer
+		out := output.NewOutput("plain", &b)
+		err := RunQuantitativeTests(s.params, out)
+		s.Require().Contains(b.String(), "false positives")
+		s.Require().NoError(err)
+	})
+
+	s.Run("with payload", func() {
+		s.params.Payload = "<script>alert('0')</script>"
+		s.params.Rule = 0 // Reset the field, we don't want to check only a specific rule
+		var b bytes.Buffer
+		out := output.NewOutput("plain", &b)
+		err := RunQuantitativeTests(s.params, out)
+		s.Require().NoError(err)
+		s.Require().Contains(b.String(), "1 false positives")
+	})
 }
