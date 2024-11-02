@@ -83,7 +83,7 @@ func (s *runnerTestSuite) TestRunQuantitative() {
 
 	s.Run("with payload", func() {
 		s.params.Payload = "<script>alert('0')</script>"
-		s.params.Rule = 0 // Default rule, we don't want to check only a specific rule
+		s.params.Rule = 0 // Reset the field, we don't want to check only a specific rule
 		var b bytes.Buffer
 		out := output.NewOutput("plain", &b)
 		err := RunQuantitativeTests(s.params, out)
