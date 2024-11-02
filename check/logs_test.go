@@ -1,12 +1,12 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package check
 
 import (
-	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -23,6 +23,7 @@ type checkLogsTestSuite struct {
 	suite.Suite
 	cfg     *config.FTWConfiguration
 	logName string
+	check   *FTWCheck
 }
 
 func TestCheckLogsTestSuite(t *testing.T) {
@@ -36,33 +37,125 @@ func (s *checkLogsTestSuite) SetupTest() {
 	s.logName, err = utils.CreateTempFileWithContent(logText, "test-*.log")
 	s.Require().NoError(err)
 	s.cfg.WithLogfile(s.logName)
+
+	s.check, err = NewCheck(s.cfg)
+	s.Require().NoError(err)
+
+	// The log checker requires the markers to be set, but
+	// for these tests we can set them to random strings because
+	// we just check all lines.
+	s.check.log.WithStartMarker([]byte(uuid.NewString()))
+	s.check.log.WithEndMarker([]byte(uuid.NewString()))
 }
 
 func (s *checkLogsTestSuite) TearDownTest() {
-	err := os.Remove(s.logName)
+	err := s.check.Close()
 	s.Require().NoError(err)
 }
-func (s *checkLogsTestSuite) TestAssertLogContainsOK() {
-	c, err := NewCheck(s.cfg)
-	s.Require().NoError(err)
 
-	c.SetLogContains(`id "920300"`)
-	s.True(c.AssertLogContains(), "did not find expected content 'id \"920300\"'")
+func (s *checkLogsTestSuite) TestLogContains() {
+	s.check.SetLogContains(`id "920300"`)
+	s.True(s.check.AssertLogs(), "did not find expected content 'id \"920300\"'")
 
-	c.SetLogContains(`SOMETHING`)
-	s.False(c.AssertLogContains(), "found something that is not there")
-	s.True(c.LogContainsRequired(), "if LogContains is not empty it should return true")
+	s.check.SetLogContains(`SOMETHING`)
+	s.False(s.check.AssertLogs(), "found something that is not there")
 
-	c.SetLogContains("")
-	s.False(c.AssertLogContains(), "empty LogContains should return false")
+	s.check.SetLogContains("")
+	s.True(s.check.AssertLogs(), "empty LogContains should return true")
+}
 
-	c.SetNoLogContains("SOMETHING")
-	s.True(c.AssertNoLogContains(), "found something that is not there")
+func (s *checkLogsTestSuite) TestNoLogContains() {
+	s.check.SetNoLogContains(`id "920300"`)
+	s.False(s.check.AssertLogs(), "did not find expected content")
 
-	c.SetNoLogContains(`id "920300"`)
-	s.False(c.AssertNoLogContains(), "did not find expected content")
+	s.check.SetNoLogContains("SOMETHING")
+	s.True(s.check.AssertLogs(), "found something that is not there")
 
-	c.SetNoLogContains("")
-	s.False(c.AssertNoLogContains(), "should return false when empty string is passed")
-	s.False(c.NoLogContainsRequired(), "if NoLogContains is an empty string is passed should return false")
+	s.check.SetNoLogContains("")
+	s.True(s.check.AssertLogs(), "should return true when empty string is passed")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogMatchRegex() {
+	s.check.expected.Log.MatchRegex = `id\s"920300"`
+	s.True(s.check.AssertLogs(), `did not find expected content 'id\s"920300"'`)
+
+	s.check.expected.Log.MatchRegex = `SOMETHING`
+	s.False(s.check.AssertLogs(), "found something that is not there")
+
+	s.check.expected.Log.MatchRegex = ""
+	s.True(s.check.AssertLogs(), "empty LogContains should return true")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogNoMatchRegex() {
+	s.check.expected.Log.NoMatchRegex = `id\s"920300"`
+	s.False(s.check.AssertLogs(), `expected to find 'id\s"920300"'`)
+
+	s.check.expected.Log.NoMatchRegex = `SOMETHING`
+	s.True(s.check.AssertLogs(), "expected to _not_ find SOMETHING")
+
+	s.check.expected.Log.NoMatchRegex = ""
+	s.True(s.check.AssertLogs(), "empty LogContains should return true")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogExpectIds() {
+	s.check.expected.Log.ExpectIds = []uint{920300}
+	s.True(s.check.AssertLogs(), `did not find expected content 'id\s"920300"'`)
+
+	s.check.expected.Log.ExpectIds = []uint{123456}
+	s.False(s.check.AssertLogs(), "found something that is not there")
+
+	s.check.expected.Log.ExpectIds = []uint{}
+	s.True(s.check.AssertLogs(), "empty LogContains should return true")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogNoExpectId() {
+	s.check.expected.Log.NoExpectIds = []uint{920300}
+	s.False(s.check.AssertLogs(), `expected to find 'id\s"920300"'`)
+
+	s.check.expected.Log.NoExpectIds = []uint{123456}
+	s.True(s.check.AssertLogs(), "expected to _not_ find SOMETHING")
+
+	s.check.expected.Log.NoExpectIds = []uint{}
+	s.True(s.check.AssertLogs(), "empty LogContains should return true")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogExpectIds_Multiple() {
+	s.check.expected.Log.ExpectIds = []uint{920300}
+	s.True(s.check.AssertLogs(), "Expected to find '920300'")
+
+	s.check.expected.Log.ExpectIds = []uint{920300, 949110}
+	s.True(s.check.AssertLogs(), "Expected to find all IDs")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogExpectIds_Subset() {
+	s.check.expected.Log.ExpectIds = []uint{920300}
+	s.True(s.check.AssertLogs(), "Expected to find '920300'")
+
+	s.check.expected.Log.ExpectIds = []uint{920300, 123}
+	s.False(s.check.AssertLogs(), "Did not expect to find '123'")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogNoExpectIds_Multiple() {
+	s.check.expected.Log.NoExpectIds = []uint{123}
+	s.True(s.check.AssertLogs(), "Did not expect to find '123'")
+
+	s.check.expected.Log.NoExpectIds = []uint{123, 456}
+	s.True(s.check.AssertLogs(), "Did not expect to find any of the IDs")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogNoExpectIds_Subset() {
+	s.check.expected.Log.NoExpectIds = []uint{123}
+	s.True(s.check.AssertLogs(), "Did not expect to find '123'")
+
+	s.check.expected.Log.NoExpectIds = []uint{123, 920300}
+	s.False(s.check.AssertLogs(), "Expected to find '920300'")
+}
+
+func (s *checkLogsTestSuite) TestAssertLogIsolated() {
+	s.check.expected.Log.ExpectIds = []uint{920300}
+	s.False(s.check.expected.Isolated)
+	s.True(s.check.AssertLogs(), "Expected to find 920300")
+
+	s.check.expected.Isolated = true
+	s.False(s.check.AssertLogs(), "Expected to find multiple IDs")
 }

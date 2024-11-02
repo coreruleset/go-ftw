@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package ftwhttp
@@ -9,8 +9,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -32,6 +34,7 @@ func (s *clientTestSuite) SetupTest() {
 	var err error
 	s.client, err = NewClient(NewClientConfig())
 	s.Require().NoError(err)
+	s.Require().Equal(s.client.config.RateLimiter, rate.NewLimiter(rate.Inf, 1))
 	s.Nil(s.client.Transport, "Transport not expected to be initialized yet")
 }
 
@@ -48,6 +51,13 @@ func (s *clientTestSuite) httpHandler() http.HandlerFunc {
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
+
+		if r.URL.Path == "/sleep" {
+			duration, err := time.ParseDuration(r.URL.Query().Get("milliseconds") + "ms")
+			s.Require().NoError(err)
+			time.Sleep(duration)
+		}
+
 		resp := new(bytes.Buffer)
 		for key, value := range r.Header {
 			_, err := fmt.Fprintf(resp, "%s=%s,", key, value)
@@ -72,6 +82,18 @@ func (s *clientTestSuite) httpTestServer(secure bool) {
 
 func (s *clientTestSuite) TestNewClient() {
 	s.NotNil(s.client.Jar, "Error creating Client")
+}
+
+func (s *clientTestSuite) TestSetRootCAs() {
+	s.client.SetRootCAs(nil)
+	s.Nil(s.client.config.RootCAs, "Error setting RootCAs")
+}
+
+func (s *clientTestSuite) TestSetRateLimiter() {
+	newRateLimiter := rate.NewLimiter(rate.Every(10*time.Second), 100)
+	s.client.SetRateLimiter(newRateLimiter)
+	rl := s.client.config.RateLimiter
+	s.Require().Equal(newRateLimiter, rl, "Error setting RateLimiter")
 }
 
 func (s *clientTestSuite) TestConnectDestinationHTTPS() {
@@ -99,15 +121,13 @@ func (s *clientTestSuite) TestDoRequest() {
 }
 
 func (s *clientTestSuite) TestGetTrackedTime() {
-	d := &Destination{
-		DestAddr: "httpbingo.org",
-		Port:     443,
-		Protocol: "https",
-	}
+	s.httpTestServer(insecureServer)
+	d, err := DestinationFromString(s.ts.URL)
+	s.Require().NoError(err, "This should not error")
 
 	rl := &RequestLine{
 		Method:  "POST",
-		URI:     "/post",
+		URI:     "/sleep?milliseconds=50",
 		Version: "HTTP/1.1",
 	}
 
@@ -116,7 +136,7 @@ func (s *clientTestSuite) TestGetTrackedTime() {
 	data := []byte(`test=me&one=two&one=twice`)
 	req := NewRequest(rl, h, data, true)
 
-	err := s.client.NewConnection(*d)
+	err = s.client.NewConnection(*d)
 	s.Require().NoError(err, "This should not error")
 
 	s.client.StartTrackingTime()
@@ -129,7 +149,7 @@ func (s *clientTestSuite) TestGetTrackedTime() {
 	s.Equal(http.StatusOK, resp.Parsed.StatusCode, "Error in calling website")
 
 	rtt := s.client.GetRoundTripTime()
-	s.GreaterOrEqual(int(rtt.RoundTripDuration()), 0, "Error getting RTT")
+	s.GreaterOrEqual(rtt.RoundTripDuration().Milliseconds(), int64(50), "Error getting RTT")
 }
 
 func (s *clientTestSuite) TestClientMultipartFormDataRequest() {
@@ -210,4 +230,36 @@ func (s *clientTestSuite) TestNewOrReusedConnectionReusesTransport() {
 	s.Require().NoError(err, "Failed to reuse connection")
 
 	s.Equal(begin, s.client.Transport.duration.begin, "Transport must not be reinitialized when reusing connection")
+}
+
+// TestClientRateLimits tests the rate limiter functionality of the client. Test should take at least 3 seconds to run.
+func (s *clientTestSuite) TestClientRateLimits() {
+	waitTime := 3 * time.Second
+	s.httpTestServer(insecureServer)
+	d, err := DestinationFromString(s.ts.URL)
+	s.Require().NoError(err, "Failed to construct destination from test server")
+
+	newRateLimiter := rate.NewLimiter(rate.Every(waitTime), 1)
+	s.client.SetRateLimiter(newRateLimiter)
+	err = s.client.NewOrReusedConnection(*d)
+	s.Require().NoError(err, "Failed to create new or to reuse connection")
+
+	rl := &RequestLine{
+		Method:  "GET",
+		URI:     "/get",
+		Version: "HTTP/1.1",
+	}
+
+	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	req := NewRequest(rl, h, nil, true)
+
+	// We need to do at least 2 calls so there is a wait between both.
+	before := time.Now()
+	//nolint:errcheck
+	s.client.Do(*req)
+	//nolint:errcheck
+	s.client.Do(*req)
+	after := time.Now()
+
+	s.GreaterOrEqual(after.Sub(before), waitTime, "Rate limiter did not work as expected")
 }

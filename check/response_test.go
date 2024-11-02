@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package check
@@ -69,12 +69,4 @@ func (s *checkResponseTestSuite) TestAssertResponseTextChecksFullResponseOK() {
 		c.SetExpectResponse(e.expected)
 		s.Truef(c.AssertResponseContains(e.response), "unexpected response: %v", e.response)
 	}
-}
-
-func (s *checkResponseTestSuite) TestAssertResponseContainsRequired() {
-	c, err := NewCheck(s.cfg)
-	s.Require().NoError(err)
-	c.SetExpectResponse("")
-	s.False(c.AssertResponseContains(""), "response shouldn't contain text")
-	s.False(c.ResponseContainsRequired(), "response shouldn't contain text")
 }

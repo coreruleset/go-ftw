@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package waflog
@@ -15,10 +15,7 @@ import (
 // NewFTWLogLines is the base struct for reading the log file
 func NewFTWLogLines(cfg *config.FTWConfiguration) (*FTWLogLines, error) {
 	ll := &FTWLogLines{
-		logFile:             nil,
 		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
-		StartMarker:         nil,
-		EndMarker:           nil,
 	}
 
 	if err := ll.openLogFile(cfg); err != nil {
@@ -32,14 +29,15 @@ func NewFTWLogLines(cfg *config.FTWConfiguration) (*FTWLogLines, error) {
 	return ll, nil
 }
 
-// WithStartMarker sets the start marker for the log file
+// WithStartMarker resets the internal state of the log file checker and sets the start marker for the log file
 func (ll *FTWLogLines) WithStartMarker(marker []byte) {
-	ll.StartMarker = bytes.ToLower(marker)
+	ll.reset()
+	ll.startMarker = bytes.ToLower(marker)
 }
 
 // WithEndMarker sets the end marker for the log file
 func (ll *FTWLogLines) WithEndMarker(marker []byte) {
-	ll.EndMarker = bytes.ToLower(marker)
+	ll.endMarker = bytes.ToLower(marker)
 }
 
 // Cleanup closes the log file

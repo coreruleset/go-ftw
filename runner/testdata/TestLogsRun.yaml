@@ -1,33 +1,27 @@
 ---
 meta:
   author: "tester"
-  enabled: true
-  name: "TestLogsRun.yaml"
   description: "Example Test"
 tests:
-  - test_title: "200"
+  - test_id: 200
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            # -1 designates port value must be replaced by test setup
-            port: {{ .TestPort }}
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Accept: "*/*"
-              Host: "localhost"
-          output:
-            log_contains: id \"949110\"
-  - test_title: "201"
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+        output:
+          log_contains: id \"949110\"
+  - test_id: 201
     stages:
-      - stage:
-          input:
-            dest_addr: "{{ .TestAddr }}"
-            # -1 designates port value must be replaced by test setup
-            port: {{ .TestPort }}
-            headers:
-              User-Agent: "ModSecurity CRS 3 Tests"
-              Accept: "*/*"
-              Host: "localhost"
-          output:
-            no_log_contains: ABCDE
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+        output:
+          no_log_contains: ABCDE

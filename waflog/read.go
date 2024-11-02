@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package waflog
@@ -8,26 +8,108 @@ import (
 	"errors"
 	"io"
 	"regexp"
+	"strconv"
+
+	"slices"
 
 	"github.com/icza/backscanner"
 	"github.com/rs/zerolog/log"
 )
 
-// Contains looks in logfile for regex
-func (ll *FTWLogLines) Contains(match string) bool {
-	// this should be a flag
+const maxRuleIdsEstimate = 15
+
+var ruleIdsSet = make(map[uint]bool, maxRuleIdsEstimate)
+
+// TriggeredRules returns the IDs of all the rules found in the log for the current test
+func (ll *FTWLogLines) TriggeredRules() []uint {
+	if ll.triggeredRulesInitialized {
+		return ll.triggeredRules
+	}
+	ll.triggeredRulesInitialized = true
+
+	lines := ll.getMarkedLines()
+	regex := regexp.MustCompile(`\[id "(\d+)"\]|"id":\s*"?(\d+)"?`)
+	for _, line := range lines {
+		log.Trace().Msgf("ftw/waflog: Looking for any rule in '%s'", line)
+		match := regex.FindAllSubmatch(line, -1)
+		if match != nil {
+			log.Trace().Msgf("ftw/waflog: Found '%s' at '%s'", regex.String(), line)
+			for _, nextMatch := range match {
+				for index := 1; index <= 2; index++ {
+					submatchBytes := nextMatch[index]
+					if len(submatchBytes) == 0 {
+						continue
+					}
+					submatch := string(submatchBytes)
+					ruleId, err := strconv.ParseUint(submatch, 10, 0)
+					if err != nil {
+						log.Error().Caller().Msgf("Failed to parse uint from %s", submatch)
+						continue
+					}
+					ruleIdsSet[uint(ruleId)] = true
+				}
+			}
+		}
+	}
+	ruleIds := make([]uint, 0, len(ruleIdsSet))
+	for ruleId := range ruleIdsSet {
+		ruleIds = append(ruleIds, ruleId)
+	}
+	ll.triggeredRules = ruleIds
+	// Reset map for next use
+	for key := range ruleIdsSet {
+		delete(ruleIdsSet, key)
+	}
+	return ll.triggeredRules
+}
+
+// ContainsAllIds returns true if all of the specified rule IDs appear in the log for the current test.
+// The IDs of all the IDs that were *not* found will be the second return value.
+func (ll *FTWLogLines) ContainsAllIds(ids []uint) (bool, []uint) {
+	foundRuleIds := ll.TriggeredRules()
+	missedRules := []uint{}
+	for _, id := range ids {
+		if !slices.Contains(foundRuleIds, id) {
+			missedRules = append(missedRules, id)
+		}
+	}
+	if len(missedRules) > 0 {
+		return false, missedRules
+	}
+	return true, missedRules
+}
+
+// ContainsAnyId returns true if at least one of the specified IDs appears in the log for the current test.
+// The IDs of all the IDs that were found will be the second return value.
+func (ll *FTWLogLines) ContainsAnyId(ids []uint) (bool, []uint) {
+	foundRuleIds := ll.TriggeredRules()
+	foundAndExpected := []uint{}
+	found := false
+	for _, id := range ids {
+		if slices.Contains(foundRuleIds, id) {
+			log.Trace().Msgf("Found rule ID %d in log", id)
+			found = true
+			foundAndExpected = append(foundAndExpected, id)
+		}
+	}
+	return found, foundAndExpected
+}
+
+// MatchesRegex returns true if the regular expression pattern matches any of the lines in the log
+// for the current test
+func (ll *FTWLogLines) MatchesRegex(pattern string) bool {
 	lines := ll.getMarkedLines()
 	log.Trace().Msgf("ftw/waflog: got %d lines", len(lines))
 
 	result := false
 	for _, line := range lines {
-		log.Trace().Msgf("ftw/waflog: Matching %s in %s", match, line)
-		got, err := regexp.Match(match, line)
+		log.Trace().Msgf("ftw/waflog: Matching '%s' in '%s'", pattern, line)
+		found, err := regexp.Match(pattern, line)
 		if err != nil {
 			log.Fatal().Msgf("ftw/waflog: bad regexp %s", err.Error())
 		}
-		if got {
-			log.Trace().Msgf("ftw/waflog: Found %s at %s", match, line)
+		if found {
+			log.Trace().Msgf("ftw/waflog: Found '%s' at '%s'", pattern, line)
 			result = true
 			break
 		}
@@ -36,12 +118,19 @@ func (ll *FTWLogLines) Contains(match string) bool {
 }
 
 func (ll *FTWLogLines) getMarkedLines() [][]byte {
-	var found [][]byte
+	if ll.markedLinesInitialized {
+		return ll.markedLines
+	}
+	ll.markedLinesInitialized = true
+
+	if ll.startMarker == nil || ll.endMarker == nil {
+		log.Fatal().Msg("Both start and end marker must be set before the log can be inspected")
+	}
 
 	fi, err := ll.logFile.Stat()
 	if err != nil {
 		log.Error().Caller().Msgf("cannot read file's size")
-		return found
+		return ll.markedLines
 	}
 
 	// Lines in modsec logging can be quite large
@@ -61,25 +150,26 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 			break
 		}
 		lineLower := bytes.ToLower(line)
-		if !endFound && bytes.Equal(lineLower, ll.EndMarker) {
+		if !endFound && bytes.Equal(lineLower, ll.endMarker) {
 			endFound = true
 			continue
 		}
-		if endFound && bytes.Equal(lineLower, ll.StartMarker) {
+		if endFound && bytes.Equal(lineLower, ll.startMarker) {
 			break
 		}
 
 		saneCopy := make([]byte, len(line))
 		copy(saneCopy, line)
-		found = append(found, saneCopy)
+		ll.markedLines = append(ll.markedLines, saneCopy)
 	}
-	return found
+
+	return ll.markedLines
 }
 
 // CheckLogForMarker reads the log file and searches for a marker line.
 // stageID is the ID of the current stage, which is part of the marker line
 // readLimit is the maximum numbers of lines to check
-func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit int) []byte {
+func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit uint) []byte {
 	offset, err := ll.logFile.Seek(0, io.SeekEnd)
 	if err != nil {
 		log.Error().Caller().Err(err).Msgf("failed to seek end of log file")
@@ -95,7 +185,7 @@ func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit int) []byte {
 	crsHeaderBytes := bytes.ToLower([]byte(ll.LogMarkerHeaderName))
 
 	var line []byte
-	lineCounter := 0
+	lineCounter := uint(0)
 	// Look for the header until EOF or `readLimit` lines at most
 	for {
 		if lineCounter > readLimit {

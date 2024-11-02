@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package ftwhttp
@@ -91,9 +91,6 @@ func (r Request) RawData() []byte {
 
 // Headers return request headers
 func (r Request) Headers() Header {
-	if r.headers == nil {
-		return nil
-	}
 	return r.headers
 }
 

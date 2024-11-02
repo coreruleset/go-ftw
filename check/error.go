@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package check
@@ -6,14 +6,15 @@ package check
 import "github.com/rs/zerolog/log"
 
 // AssertExpectError helper to check if this error was expected or not
-func (c *FTWCheck) AssertExpectError(err error) bool {
-	if err != nil {
-		log.Debug().Msgf("ftw/check: expected error? -> %t, and error is %s", *c.expected.ExpectError, err.Error())
+func (c *FTWCheck) AssertExpectError(err error) (bool, bool) {
+	errorExpected := c.expected.ExpectError != nil && *c.expected.ExpectError
+	var errorString string
+	if err == nil {
+		errorString = "-"
 	} else {
-		log.Debug().Msgf("ftw/check: expected error? -> %t, and error is nil", *c.expected.ExpectError)
+		errorString = err.Error()
 	}
-	if *c.expected.ExpectError && err != nil {
-		return true
-	}
-	return false
+	log.Debug().Caller().Msgf("Error expected: %t. Found: %s", errorExpected, errorString)
+
+	return errorExpected, (errorExpected && err != nil) || (!errorExpected && err == nil)
 }

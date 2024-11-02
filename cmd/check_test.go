@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package cmd
@@ -16,27 +16,24 @@ import (
 var checkFileContents = `---
 meta:
   author: "go-ftw"
-  enabled: true
-  name: "mock-TestRunTests_Run.yaml"
   description: "Test file for go-ftw"
 tests:
   - # Standard GET request
-    test_title: 1234
+    test_id: 1234
     stages:
-      - stage:
-          input:
-            dest_addr: "127.0.0.1"
-            method: "GET"
-            port: 1234
-            headers:
-              User-Agent: "OWASP CRS test agent"
-              Host: "localhost"
-              Accept: "*/*"
-            protocol: "http"
-            uri: "/"
-            version: "HTTP/1.1"
-          output:
-            status: [200]
+      - input:
+          dest_addr: "127.0.0.1"
+          method: "GET"
+          port: 1234
+          headers:
+            User-Agent: "OWASP CRS test agent"
+            Host: "localhost"
+            Accept: "*/*"
+          protocol: "http"
+          uri: "/"
+          version: "HTTP/1.1"
+        output:
+          status: 200
 `
 
 type checkCmdTestSuite struct {
@@ -46,15 +43,15 @@ type checkCmdTestSuite struct {
 }
 
 func (s *checkCmdTestSuite) SetupTest() {
-	tempDir, err := os.MkdirTemp("", "go-ftw-tests")
-	s.Require().NoError(err)
-	s.tempDir = tempDir
+	s.tempDir = s.T().TempDir()
 
-	err = os.MkdirAll(s.tempDir, fs.ModePerm)
+	err := os.MkdirAll(s.tempDir, fs.ModePerm)
 	s.Require().NoError(err)
 	testFileContents, err := os.CreateTemp(s.tempDir, "mock-test-*.yaml")
 	s.Require().NoError(err)
 	n, err := testFileContents.WriteString(checkFileContents)
+	s.Require().NoError(err)
+	err = testFileContents.Close()
 	s.Require().NoError(err)
 	s.Equal(len(checkFileContents), n)
 

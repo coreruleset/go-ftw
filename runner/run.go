@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package runner
@@ -6,11 +6,12 @@ package runner
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"time"
 
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/time/rate"
 
 	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
@@ -21,10 +22,8 @@ import (
 	"github.com/coreruleset/go-ftw/waflog"
 )
 
-var errBadTestInput = errors.New("ftw/run: bad test input: choose between data, encoded_request, or raw_request")
-
 // Run runs your tests with the specified Config.
-func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
+func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
 
 	logLines, err := waflog.NewFTWLogLines(cfg)
@@ -39,6 +38,9 @@ func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out
 	if c.ReadTimeout != 0 {
 		conf.ReadTimeout = c.ReadTimeout
 	}
+	if c.RateLimit != 0 {
+		conf.RateLimiter = rate.NewLimiter(rate.Every(c.RateLimit), 1)
+	}
 	client, err := ftwhttp.NewClient(conf)
 	if err != nil {
 		return &TestRunContext{}, err
@@ -46,8 +48,10 @@ func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out
 
 	runContext := &TestRunContext{
 		Config:         cfg,
+		RunnerConfig:   &c,
 		Include:        c.Include,
 		Exclude:        c.Exclude,
+		IncludeTags:    c.IncludeTags,
 		ShowTime:       c.ShowTime,
 		Output:         out,
 		ShowOnlyFailed: c.ShowOnlyFailed,
@@ -59,6 +63,9 @@ func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out
 	for _, tc := range tests {
 		if err := RunTest(runContext, tc); err != nil {
 			return &TestRunContext{}, err
+		}
+		if c.FailFast && runContext.Stats.TotalFailed() > 0 {
+			break
 		}
 	}
 
@@ -72,18 +79,16 @@ func Run(cfg *config.FTWConfiguration, tests []test.FTWTest, c RunnerConfig, out
 // RunTest runs an individual test.
 // runContext contains information for the current test run
 // ftwTest is the test you want to run
-func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
+func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 	changed := true
 
 	for _, testCase := range ftwTest.Tests {
-		// if we received a particular testid, skip until we find it
-		if needToSkipTest(runContext.Include, runContext.Exclude, testCase.TestTitle, *ftwTest.Meta.Enabled) {
-			runContext.Stats.addResultToStats(Skipped, testCase.TestTitle, 0)
-			if !*ftwTest.Meta.Enabled && !runContext.ShowOnlyFailed {
-				runContext.Output.Println("\tskipping %s - (enabled: false) in file.", testCase.TestTitle)
-			}
+		// if we received a particular test ID, skip until we find it
+		if needToSkipTest(runContext, &testCase) {
+			runContext.Stats.addResultToStats(Skipped, &testCase)
 			continue
 		}
+		test.ApplyPlatformOverrides(runContext.Config, &testCase)
 		// this is just for printing once the next test
 		if changed && !runContext.ShowOnlyFailed {
 			runContext.Output.Println(runContext.Output.Message("=> executing tests in file %s"), ftwTest.Meta.Name)
@@ -91,7 +96,7 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 		}
 
 		if !runContext.ShowOnlyFailed {
-			runContext.Output.Printf("\trunning %s: ", testCase.TestTitle)
+			runContext.Output.Printf("\trunning %s: ", testCase.IdString())
 		}
 		// Iterate over stages
 		for _, stage := range testCase.Stages {
@@ -99,9 +104,21 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 			if err != nil {
 				return err
 			}
-			if err := RunStage(runContext, ftwCheck, testCase, stage.Stage); err != nil {
-				return err
+			defer ftwCheck.Close()
+			if err := RunStage(runContext, ftwCheck, testCase, stage); err != nil {
+				if err.Error() == "retry-once" {
+					log.Info().Msgf("Retrying test once: %s", testCase.IdString())
+					if err = RunStage(runContext, ftwCheck, testCase, stage); err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
 			}
+		}
+		runContext.Stats.addResultToStats(runContext.Result, &testCase)
+		if runContext.RunnerConfig.FailFast && runContext.Stats.TotalFailed() > 0 {
+			break
 		}
 	}
 
@@ -113,12 +130,14 @@ func RunTest(runContext *TestRunContext, ftwTest test.FTWTest) error {
 // ftwCheck is the current check utility
 // testCase is the test case the stage belongs to
 // stage is the stage you want to run
-func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase test.Test, stage test.Stage) error {
+//
+//gocyclo:ignore
+func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase schema.Test, stage schema.Stage) error {
 	stageStartTime := time.Now()
 	stageID := uuid.NewString()
 	// Apply global overrides initially
-	testInput := stage.Input
-	test.ApplyInputOverrides(&runContext.Config.TestOverride.Overrides, &testInput)
+	testInput := (test.Input)(stage.Input)
+	test.ApplyInputOverrides(runContext.Config, &testInput)
 	expectedOutput := stage.Output
 	expectErr := false
 	if expectedOutput.ExpectError != nil {
@@ -126,14 +145,14 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	}
 
 	// Check sanity first
-	if checkTestSanity(testInput) {
-		return errBadTestInput
+	if err := checkTestSanity(&stage); err != nil {
+		return err
 	}
 
-	// Do not even run test if result is overridden. Just use the override and display the overridden result.
-	if overridden := overriddenTestResult(ftwCheck, testCase.TestTitle); overridden != Failed {
-		runContext.Stats.addResultToStats(overridden, testCase.TestTitle, 0)
-		displayResult(runContext, overridden, time.Duration(0), time.Duration(0))
+	// Do not even run test if result is overridden. Directly set and display the overridden result.
+	if overridden := overriddenTestResult(ftwCheck, &testCase); overridden != Failed {
+		runContext.Result = overridden
+		displayResult(&testCase, runContext, overridden, time.Duration(0), time.Duration(0))
 		return nil
 	}
 
@@ -180,23 +199,23 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase tes
 	}
 
 	// Set expected test output in check
-	ftwCheck.SetExpectTestOutput(&expectedOutput)
+	ftwCheck.SetExpectTestOutput((*test.Output)(&expectedOutput))
 
 	// now get the test result based on output
 	testResult := checkResult(ftwCheck, response, responseErr)
+	if testResult == Failed && expectedOutput.RetryOnce != nil && *expectedOutput.RetryOnce {
+		return errors.New("retry-once")
+	}
 
 	roundTripTime := runContext.Client.GetRoundTripTime().RoundTripDuration()
 	stageTime := time.Since(stageStartTime)
 
-	runContext.Stats.addResultToStats(testResult, testCase.TestTitle, stageTime)
-
 	runContext.Result = testResult
 
 	// show the result unless quiet was passed in the command line
-	displayResult(runContext, testResult, roundTripTime, stageTime)
+	displayResult(&testCase, runContext, testResult, roundTripTime, stageTime)
 
-	runContext.Stats.Run++
-	runContext.Stats.TotalTime += stageTime
+	runContext.Stats.addStageResultToStats(&testCase, stageTime)
 
 	return nil
 }
@@ -239,54 +258,73 @@ func markAndFlush(runContext *TestRunContext, dest *ftwhttp.Destination, stageID
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.Config.LogFile)
 }
 
-func needToSkipTest(include *regexp.Regexp, exclude *regexp.Regexp, title string, enabled bool) bool {
-	// skip disabled tests
-	if !enabled {
-		return true
-	}
+func needToSkipTest(runContext *TestRunContext, testCase *schema.Test) bool {
+	include := runContext.Include
+	exclude := runContext.Exclude
+	includeTags := runContext.IncludeTags
 
 	// never skip enabled explicit inclusions
 	if include != nil {
-		if include.MatchString(title) {
+		if include.MatchString(testCase.IdString()) {
 			// inclusion always wins over exclusion
 			return false
 		}
 	}
 
-	result := false
-	// if we need to exclude tests, and the title matches,
+	// if the test's tags do not match the passed ones
+	// it needs to be skipped
+	if includeTags != nil {
+		if !utils.MatchSlice(includeTags, testCase.Tags) {
+			return true
+		}
+	}
+
+	// if we need to exclude tests, and the ID matches,
 	// it needs to be skipped
 	if exclude != nil {
-		if exclude.MatchString(title) {
-			result = true
+		if exclude.MatchString(testCase.IdString()) {
+			return true
 		}
 	}
 
-	// if we need to include tests, but the title does not match
+	// if we need to include tests, but the ID does not match
 	// it needs to be skipped
 	if include != nil {
-		if !include.MatchString(title) {
-			result = true
+		if !include.MatchString(testCase.IdString()) {
+			return true
 		}
 	}
 
-	return result
+	return false
 }
 
-func checkTestSanity(testInput test.Input) bool {
-	return (utils.IsNotEmpty(testInput.Data) && testInput.EncodedRequest != "") ||
-		(utils.IsNotEmpty(testInput.Data) && testInput.RAWRequest != "") ||
-		(testInput.EncodedRequest != "" && testInput.RAWRequest != "")
+func checkTestSanity(stage *schema.Stage) error {
+	if utils.IsNotEmpty(stage.Input.Data) && stage.Input.EncodedRequest != "" {
+		return errors.New("'data' and 'encoded_request' must not be set simultaneously")
+	}
+	//nolint:staticcheck
+	if utils.IsNotEmpty(stage.Input.Data) && stage.Input.RAWRequest != "" {
+		return errors.New("'data' and 'raw_request' must not be set simultaneously")
+	}
+	//nolint:staticcheck
+	if stage.Input.EncodedRequest != "" && stage.Input.RAWRequest != "" {
+		return errors.New("'encoded_request' and 'raw_request' must not be set simultaneously")
+	}
+	if len(stage.Output.Log.ExpectIds) != 1 && stage.Output.Isolated {
+		return errors.New("'isolated' is only valid if 'expected_ids' has exactly one entry")
+	}
+
+	return nil
 }
 
-func displayResult(rc *TestRunContext, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
+func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
 	switch result {
 	case Success:
 		if !rc.ShowOnlyFailed {
 			rc.Output.Println(rc.Output.Message("+ passed in %s (RTT %s)"), stageTime, roundTripTime)
 		}
 	case Failed:
-		rc.Output.Println(rc.Output.Message("- failed in %s (RTT %s)"), stageTime, roundTripTime)
+		rc.Output.Println(rc.Output.Message("- %s failed in %s (RTT %s)"), testCase.IdString(), stageTime, roundTripTime)
 	case Ignored:
 		if !rc.ShowOnlyFailed {
 			rc.Output.Println(rc.Output.Message(":information:test ignored"))
@@ -302,16 +340,16 @@ func displayResult(rc *TestRunContext, result TestResult, roundTripTime time.Dur
 	}
 }
 
-func overriddenTestResult(c *check.FTWCheck, id string) TestResult {
-	if c.ForcedIgnore(id) {
+func overriddenTestResult(c *check.FTWCheck, testCase *schema.Test) TestResult {
+	if c.ForcedIgnore(testCase) {
 		return Ignored
 	}
 
-	if c.ForcedFail(id) {
+	if c.ForcedFail(testCase) {
 		return ForceFail
 	}
 
-	if c.ForcedPass(id) {
+	if c.ForcedPass(testCase) {
 		return ForcePass
 	}
 
@@ -321,35 +359,33 @@ func overriddenTestResult(c *check.FTWCheck, id string) TestResult {
 // checkResult has the logic for verifying the result for the test sent
 func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError error) TestResult {
 	// Request might return an error, but it could be expected, we check that first
-	if responseError != nil && c.AssertExpectError(responseError) {
-		return Success
-	}
-
-	// If there was no error, perform the remaining checks
-	if responseError != nil {
+	if expected, succeeded := c.AssertExpectError(responseError); expected {
+		if succeeded {
+			return Success
+		}
 		return Failed
 	}
-	if c.CloudMode() {
-		// Cloud mode assumes that we cannot read logs. So we rely entirely on status code and response
-		c.SetCloudMode()
+
+	// In case of an unexpected error skip other checks
+	if responseError != nil {
+		log.Debug().Msgf("Encountered unexpected error: %v", responseError)
+		return Failed
 	}
 
-	// If we didn't expect an error, check the actual response from the waf
-	if response != nil {
-		if c.StatusCodeRequired() && !c.AssertStatus(response.Parsed.StatusCode) {
-			return Failed
-		}
-		// Check if text is contained in the full raw response
-		if c.ResponseContainsRequired() && !c.AssertResponseContains(response.GetFullResponse()) {
-			return Failed
-		}
+	// We should have a response here
+	if response == nil {
+		log.Error().Msg("No response to check")
+		return Failed
+	}
+
+	if !c.AssertStatus(response.Parsed.StatusCode) {
+		return Failed
+	}
+	if !c.AssertResponseContains(response.GetFullResponse()) {
+		return Failed
 	}
 	// Lastly, check logs
-	if c.LogContainsRequired() && !c.AssertLogContains() {
-		return Failed
-	}
-	// We assume that they were already setup, for comparing
-	if c.NoLogContainsRequired() && !c.AssertNoLogContains() {
+	if !c.AssertLogs() {
 		return Failed
 	}
 

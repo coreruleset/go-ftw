@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package test
@@ -6,8 +6,8 @@ package test
 import (
 	"errors"
 	"os"
+	"path"
 
-	"github.com/goccy/go-yaml"
 	"github.com/rs/zerolog/log"
 	"github.com/yargevad/filepathx"
 )
@@ -15,8 +15,8 @@ import (
 // GetTestsFromFiles will get the files to be processed.
 // If some file has yaml error, will stop processing and
 // return the error with the partial list of files read.
-func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
-	var tests []FTWTest
+func GetTestsFromFiles(globPattern string) ([]*FTWTest, error) {
+	var tests []*FTWTest
 	var err error
 
 	log.Trace().Msgf("ftw/test: using glob pattern %s", globPattern)
@@ -28,21 +28,21 @@ func GetTestsFromFiles(globPattern string) ([]FTWTest, error) {
 		return tests, err
 	}
 
-	for _, fileName := range testFiles {
-		yamlString, err := readFileContents(fileName)
+	for _, filePath := range testFiles {
+		fileName := path.Base(filePath)
+		log.Trace().Msgf("Loading %s", fileName)
+		yamlString, err := readFileContents(filePath)
 		if err != nil {
 			return tests, err
 		}
-		ftwTest, err := GetTestFromYaml(yamlString)
+		ftwTest, err := GetTestFromYaml(yamlString, fileName)
 		if err != nil {
-			log.Error().Msgf("Problem detected in file %s:\n%s\n%s",
-				fileName, yaml.FormatError(err, true, true),
-				DescribeYamlError(err))
-			return tests, err
+			log.Warn().Msgf("Problem detected in file %s:\n%v\n",
+				filePath, err)
+			continue
 		}
 
-		ftwTest.FileName = fileName
-		tests = append(tests, *ftwTest)
+		tests = append(tests, ftwTest)
 	}
 
 	if len(tests) == 0 {

@@ -1,19 +1,45 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package check
 
+import (
+	"github.com/rs/zerolog/log"
+	"slices"
+)
+
+var negativeExpectedStatuses = []int{200, 404, 405}
+
 // AssertStatus will match the expected status list with the one received in the response
 func (c *FTWCheck) AssertStatus(status int) bool {
-	for _, i := range c.expected.Status {
-		if i == status {
-			return true
-		}
+	// No status code expectation defined
+	if c.expected.Status == 0 {
+		return true
 	}
-	return false
+
+	if c.CloudMode() {
+		return c.assertCloudStatus(status)
+	}
+
+	found := c.expected.Status == status
+	if !found {
+		log.Debug().Msgf("Failed to match response status. Expected: %d, found: %d", c.expected.Status, status)
+	}
+	return found
+
 }
 
-// StatusCodeRequired checks that the test requires to check the returned status code
-func (c *FTWCheck) StatusCodeRequired() bool {
-	return c.expected.Status != nil
+func (c *FTWCheck) assertCloudStatus(status int) bool {
+	logExpectations := c.expected.Log
+	if (logExpectations.MatchRegex != "" || len(logExpectations.ExpectIds) > 0) && status == 403 {
+		return true
+	}
+	if (logExpectations.NoMatchRegex != "" || len(logExpectations.NoExpectIds) > 0) && slices.Contains(negativeExpectedStatuses, status) {
+		return true
+	}
+	found := c.expected.Status == status
+	if !found {
+		log.Debug().Msgf("Failed to match response status (cloud mode). Expected: %d, found: %d", c.expected.Status, status)
+	}
+	return found
 }

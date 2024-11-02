@@ -1,110 +1,82 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package test
 
 import (
+	"fmt"
+	"regexp"
+	"strconv"
+
+	"slices"
+
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
+	overridesSchema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
+	"github.com/rs/zerolog/log"
+
+	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 )
 
-// Input represents the input request in a stage
-// The fields `Version`, `Method` and `URI` we want to explicitly know when they are set to ""
-
-type Input struct {
-	DestAddr   *string        `yaml:"dest_addr,omitempty"`
-	Port       *int           `yaml:"port,omitempty"`
-	Protocol   *string        `yaml:"protocol,omitempty"`
-	URI        *string        `yaml:"uri,omitempty"`
-	Version    *string        `yaml:"version,omitempty"`
-	Headers    ftwhttp.Header `yaml:"headers,omitempty"`
-	Method     *string        `yaml:"method,omitempty"`
-	Data       *string        `yaml:"data,omitempty"`
-	SaveCookie *bool          `yaml:"save_cookie,omitempty"`
-	// Deprecated: replaced with AutocompleteHeaders
-	StopMagic           *bool  `yaml:"stop_magic"`
-	AutocompleteHeaders *bool  `yaml:"autocomplete_headers"`
-	EncodedRequest      string `yaml:"encoded_request,omitempty"`
-	RAWRequest          string `yaml:"raw_request,omitempty"`
-}
-
-// Overrides represents the overridden inputs that have to be applied to tests
-type Overrides struct {
-	DestAddr   *string        `yaml:"dest_addr,omitempty" koanf:"dest_addr,omitempty"`
-	Port       *int           `yaml:"port,omitempty" koanf:"port,omitempty"`
-	Protocol   *string        `yaml:"protocol,omitempty" koanf:"protocol,omitempty"`
-	URI        *string        `yaml:"uri,omitempty" koanf:"uri,omitempty"`
-	Version    *string        `yaml:"version,omitempty" koanf:"version,omitempty"`
-	Headers    ftwhttp.Header `yaml:"headers,omitempty" koanf:"headers,omitempty"`
-	Method     *string        `yaml:"method,omitempty" koanf:"method,omitempty"`
-	Data       *string        `yaml:"data,omitempty" koanf:"data,omitempty"`
-	SaveCookie *bool          `yaml:"save_cookie,omitempty" koanf:"save_cookie,omitempty"`
-	// Deprecated: replaced with AutocompleteHeaders
-	StopMagic               *bool   `yaml:"stop_magic" koanf:"stop_magic,omitempty"`
-	AutocompleteHeaders     *bool   `yaml:"autocomplete_headers" koanf:"autocomplete_headers,omitempty"`
-	EncodedRequest          *string `yaml:"encoded_request,omitempty" koanf:"encoded_request,omitempty"`
-	RAWRequest              *string `yaml:"raw_request,omitempty" koanf:"raw_request,omitempty"`
-	OverrideEmptyHostHeader *bool   `yaml:"override_empty_host_header,omitempty" koanf:"override_empty_host_header,omitempty"`
-}
-
-// Output is the response expected from the test
-type Output struct {
-	Status           []int  `yaml:"status,flow,omitempty"`
-	ResponseContains string `yaml:"response_contains,omitempty"`
-	LogContains      string `yaml:"log_contains,omitempty"`
-	NoLogContains    string `yaml:"no_log_contains,omitempty"`
-	ExpectError      *bool  `yaml:"expect_error,omitempty"`
-}
-
-// Stage is an individual test stage
-type Stage struct {
-	Input  Input  `yaml:"input"`
-	Output Output `yaml:"output"`
-}
-
-// Test is an individual test
-type Test struct {
-	TestTitle       string `yaml:"test_title"`
-	TestDescription string `yaml:"desc,omitempty"`
-	Stages          []struct {
-		Stage Stage `yaml:"stage"`
-	} `yaml:"stages"`
-}
-
-// FTWTest is the base type used when unmarshaling
-type FTWTest struct {
-	FileName string
-	Meta     struct {
-		Author      string `yaml:"author,omitempty"`
-		Enabled     *bool  `yaml:"enabled,omitempty"`
-		Name        string `yaml:"name,omitempty"`
-		Description string `yaml:"description,omitempty"`
-	} `yaml:"meta"`
-	Tests []Test `yaml:"tests"`
-}
-
 // ApplyInputOverride will check if config had global overrides and write that into the test.
-func ApplyInputOverrides(overrides *Overrides, input *Input) {
+func ApplyInputOverrides(conf *config.FTWConfiguration, input *Input) {
+	overrides := &conf.TestOverride.Overrides
 	applySimpleOverrides(overrides, input)
 	applyDestAddrOverride(overrides, input)
 	applyHeadersOverride(overrides, input)
+	//nolint:staticcheck
 	if overrides.AutocompleteHeaders != nil || overrides.StopMagic != nil {
+		//nolint:staticcheck
 		postProcessAutocompleteHeaders(overrides.AutocompleteHeaders, overrides.StopMagic, input)
 	}
 }
 
-func applyDestAddrOverride(overrides *Overrides, input *Input) {
+func ApplyPlatformOverrides(conf *config.FTWConfiguration, testCase *schema.Test) {
+	platformOverrides := conf.PlatformOverrides
+	log.Debug().Msgf("Applying overrides for engine '%s', platform '%s'", platformOverrides.Meta.Engine, platformOverrides.Meta.Platform)
+	overrides, ok := platformOverrides.OverridesMap[testCase.RuleId]
+	if !ok {
+		log.Trace().Msgf("no override found for rule %d", testCase.RuleId)
+		return
+	}
+
+	applyToAll := len(overrides) == 0
+	for _, override := range overrides {
+		for _, testId := range override.TestIds {
+			if applyToAll || testId == testCase.TestId {
+				basicApplyPlatformOverrides(override, testCase)
+			}
+		}
+	}
+}
+
+func basicApplyPlatformOverrides(override *overridesSchema.TestOverride, testCase *schema.Test) {
+	// Apply to all stages of the given test if the list of stage IDs is empty
+	applyToAll := len(override.StageIds) == 0
+
+	for index := 0; index < len(testCase.Stages); index++ {
+		stage := &testCase.Stages[index]
+		if applyToAll || slices.Contains(override.StageIds, uint(index)) {
+			stage.Output = override.Output
+		}
+	}
+}
+
+func applyDestAddrOverride(overrides *config.Overrides, input *Input) {
 	if overrides.DestAddr != nil {
 		input.DestAddr = overrides.DestAddr
 		if input.Headers == nil {
 			input.Headers = ftwhttp.Header{}
 		}
-		if overrides.OverrideEmptyHostHeader != nil && *overrides.OverrideEmptyHostHeader && input.Headers.Get("Host") == "" {
-			input.Headers.Set("Host", *overrides.DestAddr)
+		if overrides.OverrideEmptyHostHeader != nil &&
+			*overrides.OverrideEmptyHostHeader &&
+			input.GetHeaders().Get("Host") == "" {
+			input.GetHeaders().Set("Host", *overrides.DestAddr)
 		}
 	}
 }
 
-func applySimpleOverrides(overrides *Overrides, input *Input) {
+func applySimpleOverrides(overrides *config.Overrides, input *Input) {
 	if overrides.Port != nil {
 		input.Port = overrides.Port
 	}
@@ -138,38 +110,70 @@ func applySimpleOverrides(overrides *Overrides, input *Input) {
 	}
 
 	if overrides.RAWRequest != nil {
+		//nolint:staticcheck
 		input.RAWRequest = *overrides.RAWRequest
 	}
 }
 
-func applyHeadersOverride(overrides *Overrides, input *Input) {
+func applyHeadersOverride(overrides *config.Overrides, input *Input) {
 	if overrides.Headers != nil {
 		if input.Headers == nil {
 			input.Headers = ftwhttp.Header{}
 		}
 		for k, v := range overrides.Headers {
-			input.Headers.Set(k, v)
+			input.GetHeaders().Set(k, v)
 		}
 	}
 }
 
-func postLoadTestFTWTest(ftwTest *FTWTest) {
-	for _, test := range ftwTest.Tests {
-		postLoadTest(&test)
+func postLoadTestFTWTest(ftwTest *FTWTest, fileName string) error {
+	ftwTest.FileName = fileName
+	if err := postLoadRuleId(ftwTest); err != nil {
+		return err
 	}
+	for index := 0; index < len(ftwTest.Tests); index++ {
+		postLoadTest(ftwTest.RuleId, uint(index+1), &ftwTest.Tests[index])
+	}
+	return nil
 }
 
-func postLoadTest(test *Test) {
+func postLoadRuleId(ftwTest *FTWTest) error {
+	if ftwTest.RuleId > 0 {
+		return nil
+	}
+
+	if len(ftwTest.FileName) == 0 {
+		return fmt.Errorf("the rule_id field is required for the top-level test structure")
+	} else {
+		ruleIdString := regexp.MustCompile(`\d+`).FindString(ftwTest.FileName)
+		if len(ruleIdString) == 0 {
+			return fmt.Errorf("failed to fall back on filename to find rule ID of test. The rule_id field is required for the top-level test structure")
+		}
+		ruleId, err := strconv.ParseUint(ruleIdString, 10, 0)
+		if err != nil {
+			return fmt.Errorf("failed to parse rule ID from filename '%s'", ftwTest.FileName)
+		}
+		ftwTest.RuleId = uint(ruleId)
+	}
+	return nil
+}
+func postLoadTest(ruleId uint, testId uint, test *schema.Test) {
+	test.RuleId = ruleId
+	// Retain explicitly defined test IDs
+	if test.TestId == 0 {
+		test.TestId = testId
+	}
 	for index := range test.Stages {
-		postLoadStage(&test.Stages[index].Stage)
+		postLoadStage(&test.Stages[index])
 	}
 }
 
-func postLoadStage(stage *Stage) {
-	postLoadInput(&stage.Input)
+func postLoadStage(stage *schema.Stage) {
+	postLoadInput((*Input)(&stage.Input))
 }
 
 func postLoadInput(input *Input) {
+	//nolint:staticcheck
 	postProcessAutocompleteHeaders(input.AutocompleteHeaders, input.StopMagic, input)
 }
 
@@ -187,5 +191,6 @@ func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, 
 	}
 	input.AutocompleteHeaders = &finalValue
 	// StopMagic has the inverse boolean logic
+	//nolint:staticcheck
 	input.StopMagic = func() *bool { b := !finalValue; return &b }()
 }

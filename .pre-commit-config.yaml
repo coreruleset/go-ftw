@@ -1,16 +1,25 @@
 repos:
-- repo: https://github.com/dnephin/pre-commit-golang
-  rev: v0.5.0
+- repo: https://github.com/tekwizely/pre-commit-golang
+  rev: v1.0.0-rc.1
   hooks:
     - id: go-fmt
-    - id: go-vet
+    - id: go-vet-mod
     - id: go-imports
-    - id: go-cyclo
-      args: [-over=15]
-    - id: validate-toml
-    - id: no-go-testing
-    - id: golangci-lint
+    - id: golangci-lint-mod
     - id: go-critic
-    - id: go-unit-tests
-    - id: go-build
+    - id: go-test-mod
+    - id: go-build-mod
     - id: go-mod-tidy
+    - id: my-cmd
+      name: go-cyclo
+      alias: go-cyclo
+      args: [ gocyclo, -over=15]
+- repo: https://github.com/gitleaks/gitleaks
+  rev: v8.18.1
+  hooks:
+    - id: gitleaks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.5.0
+  hooks:
+    - id: end-of-file-fixer
+    - id: trailing-whitespace

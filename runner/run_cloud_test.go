@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package runner
@@ -24,7 +24,7 @@ import (
 type runCloudTestSuite struct {
 	suite.Suite
 	cfg          *config.FTWConfiguration
-	ftwTests     []test.FTWTest
+	ftwTests     []*test.FTWTest
 	out          *output.Output
 	ts           *httptest.Server
 	dest         *ftwhttp.Destination
@@ -72,10 +72,14 @@ func (s *runCloudTestSuite) BeforeTest(_ string, name string) {
 	tmpl, err := template.ParseFiles(fmt.Sprintf("testdata/%s.yaml", name))
 	s.Require().NoError(err)
 	// create a temporary file to hold the test
-	testFileContents, err := os.CreateTemp("testdata", "mock-test-*.yaml")
+	testdataDir, err := os.MkdirTemp(s.Suite.T().TempDir(), "testdata")
+	s.Require().NoError(err)
+	testFileContents, err := os.CreateTemp(testdataDir, "mock-test-*.yaml")
 	s.Require().NoError(err, "cannot create temporary file")
 	err = tmpl.Execute(testFileContents, vars)
 	s.Require().NoError(err, "cannot execute template")
+	err = testFileContents.Close()
+	s.Require().NoError(err)
 	// get tests from file
 	s.ftwTests, err = test.GetTestsFromFiles(testFileContents.Name())
 	s.Require().NoError(err, "cannot get tests from file")

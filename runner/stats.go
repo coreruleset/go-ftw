@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package runner
@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"time"
 
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/output"
@@ -63,27 +64,31 @@ func (stats *RunStats) TotalFailed() int {
 	return len(stats.Failed) + len(stats.ForcedFail)
 }
 
-func (stats *RunStats) addResultToStats(result TestResult, title string, testTime time.Duration) {
+func (stats *RunStats) addResultToStats(result TestResult, testCase *schema.Test) {
+	title := testCase.IdString()
+	stats.Run++
+
 	switch result {
 	case Success:
 		stats.Success = append(stats.Success, title)
-		stats.RunTime[title] = testTime
 	case Failed:
 		stats.Failed = append(stats.Failed, title)
-		stats.RunTime[title] = testTime
 	case Skipped:
 		stats.Skipped = append(stats.Skipped, title)
 	case Ignored:
 		stats.Ignored = append(stats.Ignored, title)
 	case ForceFail:
 		stats.ForcedFail = append(stats.ForcedFail, title)
-		stats.RunTime[title] = testTime
 	case ForcePass:
 		stats.ForcedPass = append(stats.ForcedPass, title)
-		stats.RunTime[title] = testTime
 	default:
 		log.Info().Msgf("runner/stats: don't know how to handle TestResult %d", result)
 	}
+}
+
+func (stats *RunStats) addStageResultToStats(testCase *schema.Test, stageTime time.Duration) {
+	stats.RunTime[testCase.IdString()] += stageTime
+	stats.TotalTime += stageTime
 }
 
 func (stats *RunStats) printSummary(out *output.Output) {

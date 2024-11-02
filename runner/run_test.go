@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package runner
@@ -13,9 +13,11 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/output"
@@ -33,9 +35,6 @@ testoverride:
   ignore:
     "920400-1": "This test result must be ignored"
 `,
-	"TestDisabledRun": `---
-mode: 'cloud'
-`,
 	"TestBrokenOverrideRun": `---
 testoverride:
   input:
@@ -52,11 +51,11 @@ testoverride:
 	"TestIgnoredTestsRun": `---
 testoverride:
   ignore:
-    "001": "This test result must be ignored"
+    ".*-2": "This test result must be ignored"
   forcefail:
-    "008": "This test should pass, but it is going to fail"
+    ".*-8": "This test should pass, but it is going to fail"
   forcepass:
-    "099": "This test failed, but it shall pass!"
+    ".*-99": "This test failed, but it shall pass!"
 `,
 	"TestOverrideRun": `---
 testoverride:
@@ -94,13 +93,12 @@ testoverride:
 
 var destinationMap = map[string]string{
 	"TestBrokenOverrideRun": "http://example.com:1234",
-	"TestDisabledRun":       "http://example.com:1234",
 }
 
 type runTestSuite struct {
 	suite.Suite
 	cfg          *config.FTWConfiguration
-	ftwTests     []test.FTWTest
+	ftwTests     []*test.FTWTest
 	logFilePath  string
 	out          *output.Output
 	ts           *httptest.Server
@@ -108,20 +106,34 @@ type runTestSuite struct {
 	tempFileName string
 }
 
-// Error checking omitted for brevity
 func (s *runTestSuite) newTestServer(logLines string) {
+	s.newTestServerWithHandlerGenerator(nil, logLines)
+}
+
+// Error checking omitted for brevity
+func (s *runTestSuite) newTestServerWithHandlerGenerator(serverHandler func(logLines string) http.HandlerFunc, logLines string) {
 	var err error
+	var handler http.HandlerFunc
 	s.setUpLogFileForTestServer()
 
-	s.ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("Hello, client"))
-
-		s.writeTestServerLog(logLines, r)
-	}))
+	if serverHandler == nil {
+		handler = s.getDefaultTestServerHandler(logLines)
+	} else {
+		handler = serverHandler(logLines)
+	}
+	s.ts = httptest.NewServer(handler)
 
 	s.dest, err = ftwhttp.DestinationFromString((s.ts).URL)
 	s.Require().NoError(err, "cannot get destination from string")
+}
+
+func (s *runTestSuite) getDefaultTestServerHandler(logLines string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("Hello, client"))
+
+		s.writeMarkerOrMessageToTestServerLog(logLines, r)
+	}
 }
 
 func (s *runTestSuite) setUpLogFileForTestServer() {
@@ -131,13 +143,31 @@ func (s *runTestSuite) setUpLogFileForTestServer() {
 	}
 	// if no file has been configured, create one and handle cleanup
 	if s.logFilePath == "" {
-		file, err := os.CreateTemp("", "go-ftw-test-*.log")
+		file, err := os.CreateTemp(s.T().TempDir(), "go-ftw-test-*.log")
+		s.Require().NoError(err)
+		err = file.Close()
 		s.Require().NoError(err)
 		s.logFilePath = file.Name()
 	}
 }
 
-func (s *runTestSuite) writeTestServerLog(logLines string, r *http.Request) {
+func (s *runTestSuite) writeTestServerLog(logLines string) {
+	file, err := os.OpenFile(s.logFilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
+	s.Require().NoError(err, "cannot open file")
+
+	defer file.Close()
+
+	n, err := file.WriteString(logLines)
+	s.Len(logLines, n, "cannot write log message to file")
+	s.Require().NoError(err, "cannot write log message to file")
+
+	if logLines[len(logLines)-1] != '\n' {
+		_, err = file.WriteString("\n")
+		s.Require().NoError(err)
+	}
+}
+
+func (s *runTestSuite) writeMarkerOrMessageToTestServerLog(logLines string, r *http.Request) {
 	// write supplied log lines, emulating the output of the rule engine
 	logMessage := logLines
 	// if the request has the special test header, log the request instead
@@ -145,25 +175,7 @@ func (s *runTestSuite) writeTestServerLog(logLines string, r *http.Request) {
 	if r.Header.Get(s.cfg.LogMarkerHeaderName) != "" {
 		logMessage = fmt.Sprintf("request line: %s %s %s, headers: %s\n", r.Method, r.RequestURI, r.Proto, r.Header)
 	}
-	file, err := os.OpenFile(s.logFilePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
-	s.Require().NoError(err, "cannot open file")
-
-	defer file.Close()
-
-	n, err := file.WriteString(logMessage)
-	s.Len(logMessage, n, "cannot write log message to file")
-	s.Require().NoError(err, "cannot write log message to file")
-}
-
-func (s *runTestSuite) SetupTest() {
-	s.cfg = config.NewDefaultConfig()
-	// setup test webserver (not a waf)
-	s.newTestServer(logText)
-	if s.logFilePath != "" {
-		s.cfg.WithLogfile(s.logFilePath)
-	}
-
-	s.out = output.NewOutput("normal", os.Stdout)
+	s.writeTestServerLog(logMessage)
 }
 
 func (s *runTestSuite) TearDownTest() {
@@ -171,9 +183,18 @@ func (s *runTestSuite) TearDownTest() {
 }
 
 func (s *runTestSuite) BeforeTest(_ string, name string) {
+	s.cfg = config.NewDefaultConfig()
+	// setup test webserver (not a waf)
+	s.newTestServer(logText)
+	if s.logFilePath != "" {
+		s.cfg.WithLogfile(s.logFilePath)
+	}
+
 	var err error
 	var cfg string
 	var ok bool
+
+	s.out = output.NewOutput("normal", os.Stdout)
 
 	// if we have a configuration for this test, use it
 	// else use the default configuration
@@ -215,10 +236,13 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	}
 
 	// create a temporary file to hold the test
-	testFileContents, err := os.CreateTemp("testdata", "mock-test-*.yaml")
+	tempDir := s.T().TempDir()
+	testFileContents, err := os.CreateTemp(tempDir, "mock-test-*.yaml")
 	s.Require().NoError(err, "cannot create temporary file")
 	err = tmpl.Execute(testFileContents, vars)
 	s.Require().NoError(err, "cannot execute template")
+	err = testFileContents.Close()
+	s.Require().NoError(err)
 	// get tests from file
 	s.ftwTests, err = test.GetTestsFromFiles(testFileContents.Name())
 	s.Require().NoError(err, "cannot get tests from file")
@@ -257,6 +281,8 @@ func (s *runTestSuite) TestRunTests_Run() {
 			ShowTime: true,
 		}, s.out)
 		s.Require().NoError(err)
+		s.Len(res.Stats.Success, 5, "verbose and execute all failed")
+		s.Len(res.Stats.Skipped, 0, "verbose and execute all failed")
 		s.Equal(res.Stats.TotalFailed(), 0, "verbose and execute all failed")
 	})
 
@@ -265,33 +291,59 @@ func (s *runTestSuite) TestRunTests_Run() {
 			Include: regexp.MustCompile("0*"),
 		}, s.out)
 		s.Require().NoError(err)
+		s.Len(res.Stats.Success, 5, "do not show time and execute all failed")
+		s.Len(res.Stats.Skipped, 0, "do not show time and execute all failed")
 		s.Equal(res.Stats.TotalFailed(), 0, "do not show time and execute all failed")
 	})
 
-	s.Run("execute only test 008 but exclude all", func() {
+	s.Run("execute only test 8 but exclude all", func() {
 		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
-			Include: regexp.MustCompile("008"),
+			Include: regexp.MustCompile("-8$"), // test ID is matched in format `<ruleId>-<testId>`
 			Exclude: regexp.MustCompile("0*"),
 		}, s.out)
 		s.Require().NoError(err)
-		s.Equal(res.Stats.TotalFailed(), 0, "do not show time and execute all failed")
+		s.Len(res.Stats.Success, 1, "execute only test 008 but exclude all")
+		s.Len(res.Stats.Skipped, 4, "execute only test 008 but exclude all")
+		s.Equal(res.Stats.TotalFailed(), 0, "execute only test 008 but exclude all")
 	})
 
-	s.Run("exclude test 010", func() {
+	s.Run("exclude test 10", func() {
 		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
-			Exclude: regexp.MustCompile("010"),
+			Exclude: regexp.MustCompile("-10$"), // test ID is matched in format `<ruleId>-<testId>`
 		}, s.out)
 		s.Require().NoError(err)
+		s.Len(res.Stats.Success, 4, "failed to exclude test")
+		s.Len(res.Stats.Skipped, 1, "failed to exclude test")
 		s.Equal(res.Stats.TotalFailed(), 0, "failed to exclude test")
+	})
+
+	s.Run("count tests tagged with `tag-10`", func() {
+		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+			IncludeTags: regexp.MustCompile("^tag-10$"),
+		}, s.out)
+		s.Require().NoError(err)
+		s.Len(res.Stats.Success, 1, "failed to incorporate tagged test")
+		s.Equal(res.Stats.TotalFailed(), 0, "failed to incorporate tagged test")
+	})
+
+	s.Run("count tests tagged with `tag-8` and `tag-10`", func() {
+		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+			IncludeTags: regexp.MustCompile("^tag-8$|^tag-10$"),
+		}, s.out)
+		s.Require().NoError(err)
+		s.Len(res.Stats.Success, 2, "failed to incorporate tagged test")
+		s.Equal(res.Stats.TotalFailed(), 0, "failed to incorporate tagged test")
 	})
 
 	s.Run("test exceptions 1", func() {
 		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
-			Include: regexp.MustCompile("1*"),
-			Exclude: regexp.MustCompile("0*"),
+			Include: regexp.MustCompile("-1.*"),
+			Exclude: regexp.MustCompile("-0.*"),
 			Output:  output.Quiet,
 		}, s.out)
 		s.Require().NoError(err)
+		s.Len(res.Stats.Success, 4, "failed to test exceptions")
+		s.Len(res.Stats.Skipped, 1, "failed to test exceptions")
 		s.Equal(res.Stats.TotalFailed(), 0, "failed to test exceptions")
 	})
 }
@@ -328,12 +380,6 @@ func (s *runTestSuite) TestBrokenPortOverrideRun() {
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
-func (s *runTestSuite) TestDisabledRun() {
-	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
-	s.Require().NoError(err)
-	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
-}
-
 func (s *runTestSuite) TestLogsRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
 	s.Require().NoError(err)
@@ -349,7 +395,10 @@ func (s *runTestSuite) TestFailedTestsRun() {
 func (s *runTestSuite) TestIgnoredTestsRun() {
 	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
 	s.Require().NoError(err)
-	s.Equal(res.Stats.TotalFailed(), 1, "Oops, test run failed!")
+	s.Equal(1, len(res.Stats.ForcedPass), "Oops, unexpected number of forced pass tests")
+	s.Equal(1, len(res.Stats.Failed), "Oops, unexpected number of failed tests")
+	s.Equal(1, len(res.Stats.ForcedFail), "Oops, unexpected number of forced failed tests")
+	s.Equal(4, len(res.Stats.Ignored), "Oops, unexpected number of ignored tests")
 }
 
 func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
@@ -441,4 +490,91 @@ func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
 
 	s.Equal("", request.Headers().Get("Content-Length"), "Autocompletion is disabled")
 	s.Equal("", request.Headers().Get("Connection"), "Autocompletion is disabled")
+}
+
+// This test case verifies that the `retry_once` option works around a race condition in phase 5,
+// where the log entry for a phase 5 rule may appear after the end marker of the last test.
+// The race condition doesn't occur often, so retrying once should usually fix the issue.
+func (s *runTestSuite) TestRetryOnce() {
+	stageId := ""
+	serverHitCount := 0
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("Hello, client"))
+
+		// write logs on each start marker request
+		nextStageId := r.Header.Get(s.cfg.LogMarkerHeaderName)
+		if nextStageId != "" && nextStageId != stageId {
+			stageId = nextStageId
+			logMessage := ""
+			switch serverHitCount {
+			case 0:
+				// start marker
+				logMessage = fmt.Sprintf(
+					`[Sat Mar 18 16:47:21.474075 2023] [security2:error] [pid 193:tid 140523746522880] [client 172.18.0.1:39150] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at REQUEST_HEADERS:X-CRS-Test. [file "/etc/modsecurity.d/owasp-crs/crs-setup.conf"] [line "737"] [id "999999"] [msg "%s"] [tag "modsecurity"] [hostname "localhost"] [uri "/status/200"] [unique_id "ZBXrGVXqtKqlnATxdUEg7QAAANg"]`,
+					stageId)
+			case 1:
+				// hit without match + end marker
+				logMessage = fmt.Sprintf(
+					`[Sat Mar 18 16:47:21.476378 2023] [security2:error] [pid 193:tid 140524082149120] [client 172.18.0.1:39164] [client 172.18.0.1] ModSecurity: Warning. Pattern match "(?:^([\\\\d.]+|\\\\[[\\\\da-f:]+\\\\]|[\\\\da-f:]+)(:[\\\\d]+)?$)" at REQUEST_HEADERS:Host. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "761"] [id "920350"] [msg "Host header is a numeric IP address"] [data "127.0.0.1"] [severity "WARNING"] [ver "OWASP_CRS/4.0.0-rc1"] [tag "modsecurity"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [hostname "127.0.0.1"] [uri "/"] [unique_id "ZBXrGVXqtKqlnATxdUEg7gAAAMQ"]
+[Sat Mar 18 16:47:21.480771 2023] [security2:error] [pid 193:tid 140524098930432] [client 172.18.0.1:39172] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at REQUEST_HEADERS:X-CRS-Test. [file "/etc/modsecurity.d/owasp-crs/crs-setup.conf"] [line "737"] [id "999999"] [msg "%s"] [tag "modsecurity"] [hostname "localhost"] [uri "/status/200"] [unique_id "ZBXrGVXqtKqlnATxdUEg7wAAAMM"]`,
+					stageId)
+			case 2:
+				// late flushed phase 5 hit + start marker
+				logMessage = fmt.Sprintf(
+					`[Sat Mar 18 16:47:21.483333 2023] [security2:error] [pid 193:tid 140524082149120] [client 172.18.0.1:39164] [client 172.18.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/etc/modsecurity.d/owasp-crs/rules/RESPONSE-980-CORRELATION.conf"] [line "96"] [id "980170"] [msg "Anomaly Scores: (Inbound Scores: blocking=3, detection=3, per_pl=3-0-0-0, threshold=5) - (Outbound Scores: blocking=0, detection=0, per_pl=0-0-0-0, threshold=4) - (SQLI=0, XSS=0, RFI=0, LFI=0, RCE=0, PHPI=0, HTTP=0, SESS=0, COMBINED_SCORE=3)"] [ver "OWASP_CRS/4.0.0-rc1"] [tag "modsecurity"] [tag "reporting"] [hostname "127.0.0.1"] [uri "/"] [unique_id "ZBXrGVXqtKqlnATxdUEg7gAAAMQ"]
+[Sat Mar 18 16:47:21.474075 2023] [security2:error] [pid 193:tid 140523746522880] [client 172.18.0.1:39150] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at REQUEST_HEADERS:X-CRS-Test. [file "/etc/modsecurity.d/owasp-crs/crs-setup.conf"] [line "737"] [id "999999"] [msg "%s"] [tag "modsecurity"] [hostname "localhost"] [uri "/status/200"] [unique_id "ZBXrGVXqtKqlnATxdUEg7QAAANg"]`,
+					stageId)
+			default:
+				// hit with match + end marker
+				logMessage = fmt.Sprintf(
+					`[Sat Mar 18 16:47:21.476378 2023] [security2:error] [pid 193:tid 140524082149120] [client 172.18.0.1:39164] [client 172.18.0.1] ModSecurity: Warning. Pattern match "(?:^([\\\\d.]+|\\\\[[\\\\da-f:]+\\\\]|[\\\\da-f:]+)(:[\\\\d]+)?$)" at REQUEST_HEADERS:Host. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "761"] [id "920350"] [msg "Host header is a numeric IP address"] [data "127.0.0.1"] [severity "WARNING"] [ver "OWASP_CRS/4.0.0-rc1"] [tag "modsecurity"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [hostname "127.0.0.1"] [uri "/"] [unique_id "ZBXrGVXqtKqlnATxdUEg7gAAAMQ"]
+[Sat Mar 18 16:47:21.483333 2023] [security2:error] [pid 193:tid 140524082149120] [client 172.18.0.1:39164] [client 172.18.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/etc/modsecurity.d/owasp-crs/rules/RESPONSE-980-CORRELATION.conf"] [line "96"] [id "980170"] [msg "Anomaly Scores: (Inbound Scores: blocking=3, detection=3, per_pl=3-0-0-0, threshold=5) - (Outbound Scores: blocking=0, detection=0, per_pl=0-0-0-0, threshold=4) - (SQLI=0, XSS=0, RFI=0, LFI=0, RCE=0, PHPI=0, HTTP=0, SESS=0, COMBINED_SCORE=3)"] [ver "OWASP_CRS/4.0.0-rc1"] [tag "modsecurity"] [tag "reporting"] [hostname "127.0.0.1"] [uri "/"] [unique_id "ZBXrGVXqtKqlnATxdUEg7gAAAMQ"]
+[Sat Mar 18 16:47:21.480771 2023] [security2:error] [pid 193:tid 140524098930432] [client 172.18.0.1:39172] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at REQUEST_HEADERS:X-CRS-Test. [file "/etc/modsecurity.d/owasp-crs/crs-setup.conf"] [line "737"] [id "999999"] [msg "%s"] [tag "modsecurity"] [hostname "localhost"] [uri "/status/200"] [unique_id "ZBXrGVXqtKqlnATxdUEg7wAAAMM"]`,
+					stageId)
+			}
+
+			s.writeTestServerLog(logMessage)
+		}
+
+		serverHitCount++
+	}
+
+	s.ts.Config.Handler = http.HandlerFunc(handler)
+	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		Output: output.Quiet,
+	}, s.out)
+	s.Require().NoError(err)
+	s.Equalf(res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
+}
+
+func (s *runTestSuite) TestFailFast() {
+	s.Equal(3, len(s.ftwTests[0].Tests))
+
+	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{FailFast: true}, s.out)
+	s.Require().NoError(err)
+	s.Equal(1, res.Stats.TotalFailed(), "Oops, test run failed!")
+	s.Equal(2, res.Stats.Run)
+}
+
+func (s *runTestSuite) TestIsolatedSanity() {
+	rc := &TestRunContext{
+		Config: s.cfg,
+	}
+	stage := types.Stage{
+		Input: types.Input{},
+		Output: types.Output{
+			Isolated: true,
+			Log: types.Log{
+				ExpectIds: []uint{},
+			},
+		},
+	}
+	err := RunStage(rc, &check.FTWCheck{}, types.Test{}, stage)
+	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
+
+	stage.Output.Log.ExpectIds = []uint{1, 2}
+	err = RunStage(rc, &check.FTWCheck{}, types.Test{}, stage)
+	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
 }

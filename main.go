@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 // Package go-ftw is a Framework for Testing Web Application Firewalls
@@ -17,6 +17,10 @@ import (
 	_ "time/tzdata"
 
 	"github.com/coreruleset/go-ftw/cmd"
+)
+
+const (
+	ExecutableName = "go-ftw"
 )
 
 // nolint: gochecknoglobals

@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package cmd
@@ -23,27 +23,24 @@ import (
 var testFileContentsTemplate = `---
 meta:
   author: "go-ftw"
-  enabled: true
-  name: "mock-TestRunTests_Run.yaml"
   description: "Test file for go-ftw"
 tests:
   - # Standard GET request
-    test_title: 1234
+    test_id: 1234
     stages:
-      - stage:
-          input:
-            dest_addr: "127.0.0.1"
-            method: "GET"
-            port: {{ .Port }}
-            headers:
-              User-Agent: "OWASP CRS test agent"
-              Host: "localhost"
-              Accept: "*/*"
-            protocol: "http"
-            uri: "/"
-            version: "HTTP/1.1"
-          output:
-            status: [200]
+      - input:
+          dest_addr: "127.0.0.1"
+          method: "GET"
+          port: {{ .Port }}
+          headers:
+            User-Agent: "OWASP CRS test agent"
+            Host: "localhost"
+            Accept: "*/*"
+          protocol: "http"
+          uri: "/"
+          version: "HTTP/1.1"
+        output:
+          status: 200
 `
 
 type runCmdTestSuite struct {
@@ -69,12 +66,10 @@ func (s *runCmdTestSuite) setupMockHTTPServer() *httptest.Server {
 }
 
 func (s *runCmdTestSuite) SetupTest() {
-	tempDir, err := os.MkdirTemp("", "go-ftw-tests")
-	s.Require().NoError(err)
-	s.tempDir = tempDir
+	s.tempDir = s.T().TempDir()
 
 	s.testHTTPServer = s.setupMockHTTPServer()
-	err = os.MkdirAll(s.tempDir, fs.ModePerm)
+	err := os.MkdirAll(s.tempDir, fs.ModePerm)
 	s.Require().NoError(err)
 	testUrl, err := url.Parse(s.testHTTPServer.URL)
 	s.Require().NoError(err)
@@ -88,6 +83,8 @@ func (s *runCmdTestSuite) SetupTest() {
 	tmpl, err := template.New("mock-test").Parse(testFileContentsTemplate)
 	s.Require().NoError(err)
 	err = tmpl.Execute(testFileContents, vars)
+	s.Require().NoError(err)
+	err = testFileContents.Close()
 	s.Require().NoError(err)
 
 	s.rootCmd = NewRootCommand()

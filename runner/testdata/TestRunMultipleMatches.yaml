@@ -1,22 +1,18 @@
 ---
 meta:
-    author: "tester"
-    enabled: true
-    name: "TestRunMultipleMatches.yaml"
-    description: "Example Test with multiple expected outputs per single rule"
+  author: "tester"
+  description: "Example Test with multiple expected outputs per single rule"
 tests:
-    - test_title: "001"
-      description: "access real external site"
-      stages:
-          - stage:
-                input:
-                    dest_addr: "{{ .TestAddr }}"
-                    # -1 designates port value must be replaced by test setup
-                    port: {{ .TestPort }}
-                    headers:
-                        User-Agent: "ModSecurity CRS 3 Tests"
-                        Accept: "*/*"
-                        Host: "{{ .TestAddr }}"
-                output:
-                    status: [200]
-                    response_contains: "Not contains this"
+  - test_id: 1
+    description: "access real external site"
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "{{ .TestAddr }}"
+        output:
+          status: 200
+          response_contains: "Not contains this"

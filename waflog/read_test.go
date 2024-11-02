@@ -1,4 +1,4 @@
-// Copyright 2023 OWASP ModSecurity Core Rule Set Project
+// Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
 package waflog
@@ -114,7 +114,7 @@ func (s *readTestSuite) TestReadGetMarkedLines() {
 	s.Equal(len(foundLines), 3, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
-		s.Equalf(foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
+		s.Equalf(string(foundLines[index]), line, "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
 	}
 }
 
@@ -258,11 +258,11 @@ func (s *readTestSuite) TestFTWLogLines_Contains() {
 			ll := &FTWLogLines{
 				logFile:             tt.fields.logFile,
 				LogMarkerHeaderName: bytes.ToLower(tt.fields.LogMarkerHeaderName),
-				StartMarker:         bytes.ToLower(tt.fields.StartMarker),
-				EndMarker:           bytes.ToLower(tt.fields.EndMarker),
 			}
-			got := ll.Contains(tt.args.match)
-			s.Equalf(tt.want, got, "Contains() = %v, want %v", got, tt.want)
+			ll.WithStartMarker(tt.fields.StartMarker)
+			ll.WithEndMarker(tt.fields.EndMarker)
+			got := ll.MatchesRegex(tt.args.match)
+			s.Equalf(tt.want, got, "MatchesRegex() = %v, want %v", got, tt.want)
 		})
 	}
 }
@@ -323,10 +323,10 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 			ll := &FTWLogLines{
 				logFile:             tt.fields.logFile,
 				LogMarkerHeaderName: bytes.ToLower(tt.fields.LogMarkerHeaderName),
-				StartMarker:         bytes.ToLower(tt.fields.StartMarker),
-				EndMarker:           bytes.ToLower(tt.fields.EndMarker),
 			}
-			got := ll.Contains(tt.args.match)
+			ll.WithStartMarker(tt.fields.StartMarker)
+			ll.WithEndMarker(tt.fields.EndMarker)
+			got := ll.MatchesRegex(tt.args.match)
 			s.Equalf(tt.want, got, "Contains() = %v, want %v", got, tt.want)
 		})
 	}
@@ -355,9 +355,42 @@ func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	ll := &FTWLogLines{
 		logFile:             log,
 		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
-		StartMarker:         bytes.ToLower([]byte(markerLine)),
-		EndMarker:           bytes.ToLower([]byte(markerLine)),
 	}
+	ll.WithStartMarker([]byte(markerLine))
+	ll.WithEndMarker([]byte(markerLine))
 	foundMarker := ll.CheckLogForMarker(stageID, 100)
 	s.Equal(strings.ToLower(markerLine), strings.ToLower(string(foundMarker)))
+}
+
+func (s *readTestSuite) TestFindAllIdsInLogs() {
+	cfg, err := config.NewConfigFromEnv()
+	s.Require().NoError(err)
+	s.NotNil(cfg)
+
+	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+	markerLine := "X-cRs-TeSt: " + stageID
+	logLines := fmt.Sprint("\n", markerLine,
+		`[id "1"] something else [id "2"]`,
+		`"id": 3, something else {"id":4}`+"\n",
+		"\n", markerLine)
+	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
+	s.Require().NoError(err)
+
+	cfg.LogFile = filename
+	log, err := os.Open(filename)
+	s.Require().NoError(err)
+
+	ll := &FTWLogLines{
+		logFile:             log,
+		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
+	}
+	ll.WithStartMarker([]byte(markerLine))
+	ll.WithEndMarker([]byte(markerLine))
+
+	foundRuleIds := ll.TriggeredRules()
+	s.Len(foundRuleIds, 4)
+	s.Contains(foundRuleIds, uint(1))
+	s.Contains(foundRuleIds, uint(2))
+	s.Contains(foundRuleIds, uint(3))
+	s.Contains(foundRuleIds, uint(4))
 }
