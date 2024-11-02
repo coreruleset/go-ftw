@@ -20,7 +20,7 @@ Features of Go-FTW include:
 
 ## Install
 
-Go to the [releases](https://github.com/coreruleset/go-ftw/releases) page and get the one that matches your OS.
+Go to the [releases](https://github.com/coreruleset/go-ftw/releases) page and get a binary release that matches your OS (scroll down to **Assets**).
 
 If you have Go installed and configured to run Go binaries from your shell you can also run
 ```bash
