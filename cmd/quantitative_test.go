@@ -54,7 +54,7 @@ func (s *quantitativeCmdTestSuite) TearDownTest() {
 }
 
 func (s *quantitativeCmdTestSuite) TestQuantitativeCommand() {
-	s.rootCmd.SetArgs([]string{"quantitative", "-d", s.tempDir})
+	s.rootCmd.SetArgs([]string{"quantitative", "-C", s.tempDir})
 	cmd, err := s.rootCmd.ExecuteContextC(context.Background())
 	s.Require().NoError(err, "quantitative command should not return error")
 	s.Equal("quantitative", cmd.Name(), "quantitative command should have the name 'quantitative'")

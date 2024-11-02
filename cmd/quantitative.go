@@ -34,7 +34,7 @@ func NewQuantitativeCmd() *cobra.Command {
 	runCmd.Flags().StringP("corpus-size", "s", "100K", "Corpus size to use for the quantitative tests. Most corpora will have sizes like \"100K\", \"1M\", etc.")
 	runCmd.Flags().StringP("corpus-year", "y", "2023", "Corpus year to use for the quantitative tests. Most corpus will have a year like \"2023\", \"2022\", etc.")
 	runCmd.Flags().StringP("corpus-source", "S", "news", "Corpus source to use for the quantitative tests. Most corpus will have a source like \"news\", \"web\", \"wikipedia\", etc.")
-	runCmd.Flags().StringP("directory", "d", ".", "Directory where the CRS rules are stored")
+	runCmd.Flags().StringP("crs-path", "C", ".", "Path to top folder of local CRS installation")
 	runCmd.Flags().StringP("file", "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
 	runCmd.Flags().StringP("output", "o", "normal", "Output type for quantitative tests. \"normal\" is the default.")
 
@@ -49,7 +49,7 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	corpusLang, _ := cmd.Flags().GetString("corpus-lang")
 	corpusYear, _ := cmd.Flags().GetString("corpus-year")
 	corpusSource, _ := cmd.Flags().GetString("corpus-source")
-	directory, _ := cmd.Flags().GetString("directory")
+	directory, _ := cmd.Flags().GetString("crs-path")
 	fast, _ := cmd.Flags().GetInt("fast")
 	lines, _ := cmd.Flags().GetInt("lines")
 	outputFilename, _ := cmd.Flags().GetString("file")

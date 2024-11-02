@@ -478,7 +478,7 @@ Flags:
   -s, --corpus-size string     Corpus size to use for the quantitative tests. Most corpora will have sizes like "100K", "1M", etc. (default "100K")
   -S, --corpus-source string   Corpus source to use for the quantitative tests. Most corpus will have a source like "news", "web", "wikipedia", etc. (default "news")
   -y, --corpus-year string     Corpus year to use for the quantitative tests. Most corpus will have a year like "2023", "2022", etc. (default "2023")
-  -d, --directory string       Directory where the CRS rules are stored (default ".")
+  -C, --crs-path string        Path to top folder of local CRS installation (default ".")
   -f, --file string            Output file path for quantitative tests. Prints to standard output by default.
   -h, --help                   help for quantitative
   -l, --lines int              Number of lines of input to process before stopping
