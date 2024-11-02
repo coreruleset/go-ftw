@@ -10,7 +10,6 @@ require (
 	github.com/go-logr/zerologr v1.2.3
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-getter v1.7.6
-	github.com/hashicorp/go-getter/v2 v2.2.3
 	github.com/icza/backscanner v0.0.0-20240328210400-b40c3a86dec5
 	github.com/knadh/koanf/parsers/yaml v0.1.0
 	github.com/knadh/koanf/providers/env v1.0.0
@@ -18,7 +17,7 @@ require (
 	github.com/knadh/koanf/providers/rawbytes v0.1.0
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/kyokomi/emoji/v2 v2.2.13
-	github.com/magefile/mage v1.15.0
+	github.com/magefile/mage v1.15.1-0.20230912152418-9f54e0f83e2a
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0

@@ -40,12 +40,14 @@ type Params struct {
 	CorpusYear string
 	// CorpusSource is the source of the corpus: e.g. most corpus will have a source like "news", "web", "wikipedia", etc.
 	CorpusSource string
+	// MaxConcurrency is the maximum number of goroutines spawned
+	MaxConcurrency int
 }
 
 // RunQuantitativeTests runs all quantitative tests
 func RunQuantitativeTests(params Params, out *output.Output) error {
 	var lc corpus.File
-	out.Println(":hourglass: Running quantitative tests")
+	out.Println(":hourglass: Running quantitative tests with %d goroutines", params.MaxConcurrency)
 	log.Trace().Msgf("Rule: %d", params.Rule)
 	log.Trace().Msgf("Payload: %s", params.Payload)
 	log.Trace().Msgf("Directory: %s", params.Directory)
@@ -103,9 +105,9 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	// iterate over the corpus
 	log.Trace().Msgf("Iterating over corpus")
 	var wg sync.WaitGroup
+	ch := make(chan int, params.MaxConcurrency)
 
 	for iter := corpusRunner.GetIterator(lc); iter.HasNext(); {
-		wg.Add(1)
 		payload := iter.Next()
 		stats.incrementRun()
 		content := payload.Content()
@@ -120,8 +122,10 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 		if params.Lines > 0 && stats.Count() >= params.Lines {
 			break
 		}
+		wg.Add(1)
+		ch <- 1
 		go func(runner LocalEngine, payload corpus.Payload, rule int, stats *QuantitativeRunStats) {
-			defer wg.Done()
+			defer func() { wg.Done(); <-ch }()
 			doEngineCall(runner, payload, rule, stats)
 		}(runner, payload, params.Rule, stats)
 	}

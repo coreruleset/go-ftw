@@ -5,6 +5,7 @@ package quantitative
 
 import (
 	"bytes"
+	"sync"
 	"testing"
 	"time"
 
@@ -128,4 +129,20 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary() {
 
 	q.printSummary(out)
 	s.Require().Equal("Run 1 payloads in 0s\nTotal False positive ratio: 1/1 = 1.0000\nFalse positives per rule id:\n  920100: 1 false positives\n", b.String())
+}
+
+func TestAddFalsePositiveRace(t *testing.T) {
+	stats := &QuantitativeRunStats{
+		falsePositivesPerRule: make(map[int]int),
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(rule int) {
+			defer wg.Done()
+			stats.addFalsePositive(rule)
+		}(i % 10) // Few rules are getting hit to make the concurrency issue more likely
+	}
+	wg.Wait()
 }
