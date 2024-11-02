@@ -4,6 +4,8 @@
 package quantitative
 
 import (
+	"net/http"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -101,7 +103,10 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 
 	// iterate over the corpus
 	log.Trace().Msgf("Iterating over corpus")
+    var wg sync.WaitGroup
+
 	for iter := corpusRunner.GetIterator(lc); iter.HasNext(); {
+        wg.Add(1)
 		payload := iter.Next()
 		stats.incrementRun()
 		content := payload.Content()
@@ -116,8 +121,12 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 		if params.Lines > 0 && stats.Count() >= params.Lines {
 			break
 		}
-		doEngineCall(runner, payload, params.Rule, stats)
-	}
+        go func(runner LocalEngine, payload corpus.Payload, rule int, stats *QuantitativeRunStats) {
+            defer wg.Done()
+            doEngineCall(runner, payload, rule, stats)
+        }(runner, payload, params.Rule, stats)
+    }
+    wg.Wait()
 
 	stats.SetTotalTime(time.Since(startTime))
 	stats.printSummary(out)
