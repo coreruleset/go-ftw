@@ -71,6 +71,8 @@ func (s *runnerTestSuite) TestCorpusFactory() {
 }
 
 func (s *runnerTestSuite) TestRunQuantitative() {
+	// This test is expecting to have at least one rule false positive in the used corpus
+	// If it is not anymore the case, an option could be to use a different corpus language
 	s.Run("with corpus", func() {
 		var b bytes.Buffer
 		out := output.NewOutput("plain", &b)
@@ -79,8 +81,6 @@ func (s *runnerTestSuite) TestRunQuantitative() {
 		s.Require().NoError(err)
 	})
 
-	// This test is expecting to have at least one rule false positive in the used corpus
-	// If it is not anymore the case, an option could be to use a different corpus language
 	s.Run("with payload", func() {
 		s.params.Payload = "<script>alert('0')</script>"
 		s.params.Rule = 0 // Default rule, we don't want to check only a specific rule
