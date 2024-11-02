@@ -66,6 +66,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 			return err
 		}
 		p.SetContent(params.Payload)
+		stats.incrementRun()
 		// CrsCall with payload
 		doEngineCall(runner, p, params.Rule, stats)
 
