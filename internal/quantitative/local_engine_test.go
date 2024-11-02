@@ -5,7 +5,6 @@ package quantitative
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"path"
 	"testing"
@@ -59,13 +58,11 @@ func (s *localEngineTestSuite) TestCrsCall() {
 	s.Require().NotNil(s.engine)
 
 	// simple payload, no matches
-	status, matchedRules := s.engine.CrsCall("this is a test")
-	s.Require().Equal(http.StatusOK, status)
+	matchedRules := s.engine.CrsCall("this is a test")
 	s.Require().Empty(matchedRules)
 
 	// this payload will match a few rules
-	status, matchedRules = s.engine.CrsCall("' OR 1 = 1")
-	s.Require().Equal(http.StatusForbidden, status)
+	matchedRules = s.engine.CrsCall("' OR 1 = 1")
 	s.Require().NotEmpty(matchedRules)
 
 	expected := []int{942100 /* libinjection match */}

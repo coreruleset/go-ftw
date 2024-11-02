@@ -4,7 +4,6 @@
 package quantitative
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -18,6 +17,7 @@ type Params struct {
 	// Lines is the number of lines of input to process before stopping
 	Lines int
 	// Fast is the process 1 in every X lines of input ('fast run' mode)
+	// TODO: to be implemented
 	Fast int
 	// Rule is the rule ID of interest: only show false positives for specified rule ID
 	Rule int
@@ -45,19 +45,45 @@ type Params struct {
 func RunQuantitativeTests(params Params, out *output.Output) error {
 	var lc corpus.File
 	out.Println(":hourglass: Running quantitative tests")
-
-	log.Trace().Msgf("Lines: %d", params.Lines)
-	log.Trace().Msgf("Fast: %d", params.Fast)
 	log.Trace().Msgf("Rule: %d", params.Rule)
 	log.Trace().Msgf("Payload: %s", params.Payload)
-	log.Trace().Msgf("Read Corpus Line: %d", params.Number)
 	log.Trace().Msgf("Directory: %s", params.Directory)
 	log.Trace().Msgf("Paranoia level: %d", params.ParanoiaLevel)
-	log.Trace().Msgf("Corpus size: %s", params.CorpusSize)
-	log.Trace().Msgf("Corpus lang: %s", params.CorpusLang)
-	log.Trace().Msgf("Corpus: %s", params.Corpus)
 
 	startTime := time.Now()
+	// create the results
+	stats := NewQuantitativeStats()
+
+	var engine LocalEngine = &localEngine{}
+	runner := engine.Create(params.Directory, params.ParanoiaLevel)
+
+	// Are we using the corpus at all?
+	// TODO: this could be moved to a generic "file" iterator (instead of "corpus"), with a Factory method
+	if params.Payload != "" {
+		log.Trace().Msgf("--payload is used, ignoring corpus related parameters. Payload received: %q", params.Payload)
+		p, err := PayloadFactory(params.Corpus)
+		if err != nil {
+			return err
+		}
+		p.SetContent(params.Payload)
+		// CrsCall with payload
+		doEngineCall(runner, p, params.Rule, stats)
+
+		stats.SetTotalTime(time.Since(startTime))
+		stats.printSummary(out)
+		return nil
+
+	}
+	// we are using the corpus
+	log.Trace().Msgf("Lines: %d", params.Lines)
+	log.Trace().Msgf("Fast: %d", params.Fast)
+	log.Trace().Msgf("Read Corpus Line: %d", params.Number)
+	log.Trace().Msgf("Corpus size: %s", params.CorpusSize)
+	log.Trace().Msgf("Corpus lang: %s", params.CorpusLang)
+	log.Trace().Msgf("Corpus name: %s", params.Corpus)
+	log.Trace().Msgf("Corpus year: %s", params.CorpusYear)
+	log.Trace().Msgf("Corpus source: %s", params.CorpusSource)
+
 	// create a new corpusRunner
 	corpusRunner, err := CorpusFactory(params.Corpus)
 	if err != nil {
@@ -69,45 +95,27 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 		WithSource(params.CorpusSource).
 		WithLanguage(params.CorpusLang)
 
-	// download the corpusRunner file if no payload is provided
-	if params.Payload == "" {
-		lc = corpusRunner.FetchCorpusFile()
-	}
-	// create the results
-	stats := NewQuantitativeStats()
+	// download the corpusRunner file
+	lc = corpusRunner.FetchCorpusFile()
 
-	var engine LocalEngine = &localEngine{}
-	runner := engine.Create(params.Directory, params.ParanoiaLevel)
-
-	// Are we using the corpus at all?
-	// TODO: this could be moved to a generic "file" iterator (instead of "corpus), with a Factory method
-	if params.Payload != "" {
-		log.Trace().Msgf("Payload received from cmdline: %s", params.Payload)
-		p, err := PayloadFactory(params.Corpus)
-		if err != nil {
-			return err
+	// iterate over the corpus
+	log.Trace().Msgf("Iterating over corpus")
+	for iter := corpusRunner.GetIterator(lc); iter.HasNext(); {
+		payload := iter.Next()
+		stats.incrementRun()
+		content := payload.Content()
+		log.Trace().Msgf("Line: %s", content)
+		// check if we are looking for a specific payload line #
+		if needSpecificPayload(params.Number, stats.Count()) {
+			continue
 		}
-		// CrsCall with payload
-		doEngineCall(runner, p, params.Rule, stats)
-	} else { // iterate over the corpus
-		log.Trace().Msgf("Iterating over corpus")
-		for iter := corpusRunner.GetIterator(lc); iter.HasNext(); {
-			payload := iter.Next()
-			stats.incrementRun()
-			content := payload.Content()
-			log.Trace().Msgf("Line: %s", content)
-			// check if we are looking for a specific payload line #
-			if needSpecificPayload(params.Number, stats.Count()) {
-				continue
-			}
-			log.Trace().Msgf("Payload: %s", payload)
+		log.Trace().Msgf("Payload: %s", payload)
 
-			// check if we only want to process a specific number of lines
-			if params.Lines > 0 && stats.Count() >= params.Lines {
-				break
-			}
-			doEngineCall(runner, payload, params.Rule, stats)
+		// check if we only want to process a specific number of lines
+		if params.Lines > 0 && stats.Count() >= params.Lines {
+			break
 		}
+		doEngineCall(runner, payload, params.Rule, stats)
 	}
 
 	stats.SetTotalTime(time.Since(startTime))
@@ -131,10 +139,9 @@ func wantSpecificRuleResults(specific int, rule int) bool {
 
 // doEngineCall
 func doEngineCall(engine LocalEngine, payload corpus.Payload, specificRule int, stats *QuantitativeRunStats) {
-	status, matchedRules := engine.CrsCall(payload.Content())
-	log.Trace().Msgf("Status: %d", status)
+	matchedRules := engine.CrsCall(payload.Content())
 	log.Trace().Msgf("Rules: %v", matchedRules)
-	if status == http.StatusForbidden {
+	if len(matchedRules) != 0 {
 		// append the line to the false positives
 		log.Trace().Msgf("False positive with string: %s", payload)
 		log.Trace().Msgf("=> rules matched: %+v", matchedRules)

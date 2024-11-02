@@ -18,10 +18,11 @@ import (
 // Returns a new cobra command for running quantitative tests
 func NewQuantitativeCmd() *cobra.Command {
 	runCmd := &cobra.Command{
-		Use:   "quantitative",
-		Short: "Run quantitative tests",
-		Long:  `Run all quantitative tests`,
-		RunE:  runQuantitativeE,
+		Use:     "quantitative",
+		Aliases: []string{"q"},
+		Short:   "Run quantitative tests",
+		Long:    `Run all quantitative tests`,
+		RunE:    runQuantitativeE,
 	}
 
 	runCmd.Flags().IntP("lines", "l", 0, "Number of lines of input to process before stopping")
