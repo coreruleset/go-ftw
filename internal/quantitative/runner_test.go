@@ -30,17 +30,18 @@ func TestRunnerTestSuite(t *testing.T) {
 
 func (s *runnerTestSuite) SetupTest() {
 	s.params = Params{
-		Lines:         1000,
-		Fast:          10,
-		Rule:          1000,
-		Number:        1000,
-		Directory:     path.Join(s.dir, fmt.Sprintf("coreruleset-%s", crsTestVersion)),
-		ParanoiaLevel: 1,
-		CorpusSize:    "10K",
-		Corpus:        "leipzig",
-		CorpusLang:    "eng",
-		CorpusYear:    "2023",
-		CorpusSource:  "news",
+		Lines:          1000,
+		Fast:           10,
+		Rule:           1000,
+		Number:         1000,
+		Directory:      path.Join(s.dir, fmt.Sprintf("coreruleset-%s", crsTestVersion)),
+		ParanoiaLevel:  1,
+		MaxConcurrency: 10,
+		CorpusSize:     "10K",
+		Corpus:         "leipzig",
+		CorpusLang:     "eng",
+		CorpusYear:     "2023",
+		CorpusSource:   "news",
 	}
 	s.dir = path.Join(os.TempDir())
 	s.Require().NoError(os.MkdirAll(s.dir, 0755))
