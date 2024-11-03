@@ -79,16 +79,14 @@ func (e *localEngine) Create(prefix string, paranoia int) LocalEngine {
 }
 
 // CrsCall benchmarks the CRS WAF with a GET request
-// payload: the string to be passed in the request body
+// payload: the string to be passed as a query parameter
 // returns the status of the HTTP response and a map of the matched rules with their IDs and the data that matched.
 func (e *localEngine) CrsCall(payload string) map[int]string {
-	var matchedRules = make(map[int]string)
-
 	if e.waf == nil {
 		log.Fatal().Msg("local engine not initialized")
 	}
 	// we use the payload in the URI so rules in phase 1 can catch it
-	uri := fmt.Sprintf("/get?payload=%s", url.QueryEscape(payload))
+	uri := fmt.Sprintf("/get?uri_payload=%s", url.QueryEscape(payload))
 
 	tx := e.waf.NewTransaction()
 	tx.ProcessConnection("127.0.0.1", 8080, "127.0.0.1", 8080)
@@ -104,7 +102,7 @@ func (e *localEngine) CrsCall(payload string) map[int]string {
 		log.Error().Err(err).Msg("failed to process request body")
 	}
 
-	matchedRules = getMatchedRules(tx)
+	matchedRules := getMatchedRules(tx)
 
 	// We don't care about the response body for now, nor logging.
 	if err := tx.Close(); err != nil {
@@ -165,9 +163,15 @@ func getMatchedRules(tx types.Transaction) map[int]string {
 		if needToDiscardAdminRule(id) {
 			continue
 		}
-		matchedRules[id] = rule.Data()
+		var logData strings.Builder
+		for i, matchData := range rule.MatchedDatas() {
+			logData.WriteString(" chain#")
+			logData.WriteString(strconv.Itoa(i))
+			logData.WriteString(": ")
+			logData.WriteString(matchData.Value())
+		}
+		matchedRules[id] = logData.String()
 	}
-
 	return matchedRules
 }
 

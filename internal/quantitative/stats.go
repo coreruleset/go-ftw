@@ -6,6 +6,7 @@ package quantitative
 import (
 	"encoding/json"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -23,6 +24,8 @@ type QuantitativeRunStats struct {
 	falsePositives int
 	// falsePositivesPerRule is the aggregated false positives per rule
 	falsePositivesPerRule map[int]int
+	// mu is the mutex to protect the falsePositivesPerRule map
+	mu sync.Mutex
 }
 
 // NewQuantitativeStats returns a new empty stats
@@ -32,6 +35,7 @@ func NewQuantitativeStats() *QuantitativeRunStats {
 		falsePositives:        0,
 		falsePositivesPerRule: make(map[int]int),
 		totalTime:             0,
+		mu:                    sync.Mutex{},
 	}
 }
 
@@ -67,8 +71,10 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 
 // addFalsePositive increments the false positive count and the false positive count for the rule.
 func (s *QuantitativeRunStats) addFalsePositive(rule int) {
+	s.mu.Lock()
 	s.falsePositives++
 	s.falsePositivesPerRule[rule]++
+	s.mu.Unlock()
 }
 
 // FalsePositives returns the total false positives detected

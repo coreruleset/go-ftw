@@ -88,7 +88,7 @@ func Lint() error {
 
 // Test runs all tests.
 func Test() error {
-	if err := sh.RunV("go", "test", "-v", "./..."); err != nil {
+	if err := sh.RunV("go", "test", "-v", "./...", "-race"); err != nil {
 		return err
 	}
 
