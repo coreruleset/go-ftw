@@ -128,7 +128,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary() {
 	s.Require().Equal(q.FalsePositives(), 1)
 
 	q.printSummary(out)
-	s.Require().Equal("Run 1 payloads in 0s\nTotal False positive ratio: 1/1 = 1.0000\nFalse positives per rule id:\n  920100: 1 false positives\n", b.String())
+	s.Require().Equal("Run 1 payloads in 0s\nTotal False positive ratio: 1/1 = 1.0000\nFalse positives per rule id:\n  920100: 1 false positives. FP Ratio: 1/1 = 1.0000\n", b.String())
 }
 
 func TestAddFalsePositiveRace(t *testing.T) {
