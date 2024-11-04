@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/rs/zerolog/log"
@@ -48,11 +49,13 @@ type LeipzigCorpus struct {
 }
 
 func (c *LeipzigCorpus) regenerateFileNames() {
+	size := strings.ToUpper(c.size)
+
 	c.corpusFile = fmt.Sprintf("%s_%s_%s_%s.%s",
-		c.lang, c.source, c.year, c.size,
+		c.lang, c.source, c.year, size,
 		defaultCorpusExt)
 	c.filename = fmt.Sprintf("%s_%s_%s_%s-%s",
-		c.lang, c.source, c.year, c.size,
+		c.lang, c.source, c.year, size,
 		defaultCorpusType)
 }
 

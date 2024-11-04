@@ -158,13 +158,13 @@ func doEngineCall(engine LocalEngine, payload corpus.Payload, specificRule int, 
 		// append the line to the false positives
 		log.Trace().Msgf("False positive with string: %s", payload)
 		log.Trace().Msgf("=> rules matched: %+v", matchedRules)
-		for rule, data := range matchedRules {
+		for ruleId, data := range matchedRules {
 			// check if we only want to show false positives for a specific rule
-			if wantSpecificRuleResults(specificRule, rule) {
+			if wantSpecificRuleResults(specificRule, ruleId) {
 				continue
 			}
-			stats.addFalsePositive(rule)
-			log.Debug().Msgf("**> rule %d with payload %d => %s", rule, payload.LineNumber(), data)
+			stats.addFalsePositive(ruleId)
+			log.Debug().Msgf("**> rule %d with payload %d => %s", ruleId, payload.LineNumber(), data)
 		}
 	}
 }
