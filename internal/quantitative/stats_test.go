@@ -62,22 +62,22 @@ func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 			name: "Test 1",
 			fields: fields{
 				count_:                1,
-				totalTime:             1,
+				totalTime:             time.Second,
 				falsePositives:        1,
 				falsePositivesPerRule: map[int]int{920010: 1},
 			},
-			want:    []byte(`{"count":1,"falsePositives":1,"falsePositivesPerRule":{"920010":1},"totalTime":1}`),
+			want:    []byte(`{"count":1,"falsePositives":1,"falsePositivesPerRule":{"920010":1},"totalTimeSeconds":1}`),
 			wantErr: false,
 		},
 		{
 			name: "Test 2",
 			fields: fields{
 				count_:                2,
-				totalTime:             2,
+				totalTime:             time.Second * 2,
 				falsePositives:        2,
 				falsePositivesPerRule: map[int]int{933100: 2},
 			},
-			want:    []byte(`{"count":2,"falsePositives":2,"falsePositivesPerRule":{"933100":2},"totalTime":2}`),
+			want:    []byte(`{"count":2,"falsePositives":2,"falsePositivesPerRule":{"933100":2},"totalTimeSeconds":2}`),
 			wantErr: false,
 		},
 	}

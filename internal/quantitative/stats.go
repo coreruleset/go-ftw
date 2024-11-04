@@ -108,7 +108,7 @@ func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 	// Custom marshaling logic here
 	return json.Marshal(map[string]interface{}{
 		"count":                 s.count_,
-		"totalTime":             s.totalTime,
+		"totalTimeSeconds":      s.totalTime.Seconds(),
 		"falsePositives":        s.falsePositives,
 		"falsePositivesPerRule": s.falsePositivesPerRule,
 	})
