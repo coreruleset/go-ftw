@@ -78,7 +78,7 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	if outputFilename == "" {
 		outputFile = os.Stdout
 	} else {
-		outputFile, err = os.Open(outputFilename)
+		outputFile, err = os.OpenFile(outputFilename, os.O_RDWR|os.O_CREATE, 0644)
 		if err != nil {
 			return err
 		}

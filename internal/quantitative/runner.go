@@ -47,7 +47,7 @@ type Params struct {
 // RunQuantitativeTests runs all quantitative tests
 func RunQuantitativeTests(params Params, out *output.Output) error {
 	var lc corpus.File
-	out.Println(":hourglass: Running quantitative tests with %d goroutines", params.MaxConcurrency)
+	log.Info().Msgf("⏳Running quantitative tests with %d goroutines", params.MaxConcurrency)
 	log.Trace().Msgf("Rule: %d", params.Rule)
 	log.Trace().Msgf("Payload: %s", params.Payload)
 	log.Trace().Msgf("Directory: %s", params.Directory)
