@@ -17,7 +17,7 @@ require (
 	github.com/knadh/koanf/providers/rawbytes v0.1.0
 	github.com/knadh/koanf/v2 v2.1.1
 	github.com/kyokomi/emoji/v2 v2.2.13
-	github.com/magefile/mage v1.15.1-0.20230912152418-9f54e0f83e2a
+	github.com/magefile/mage v1.15.1-0.20231118170541-2385abb49a1f
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
