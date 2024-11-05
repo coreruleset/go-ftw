@@ -61,7 +61,8 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 			// Print the sorted map
 			for _, rule := range rules {
 				count := s.falsePositivesPerRule[rule]
-				out.Println("  %d: %d false positives", rule, count)
+				perRuleRatio := float64(count) / float64(s.count_)
+				out.Println("  %d: %d false positives. FP Ratio: %d/%d = %.4f", rule, count, count, s.count_, perRuleRatio)
 			}
 		}
 	} else {
@@ -107,7 +108,7 @@ func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 	// Custom marshaling logic here
 	return json.Marshal(map[string]interface{}{
 		"count":                 s.count_,
-		"totalTime":             s.totalTime,
+		"totalTimeSeconds":      s.totalTime.Seconds(),
 		"falsePositives":        s.falsePositives,
 		"falsePositivesPerRule": s.falsePositivesPerRule,
 	})

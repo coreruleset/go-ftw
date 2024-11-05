@@ -165,9 +165,11 @@ func getMatchedRules(tx types.Transaction) map[int]string {
 		}
 		var logData strings.Builder
 		for i, matchData := range rule.MatchedDatas() {
-			logData.WriteString(" chain#")
+			logData.WriteString(" #")
 			logData.WriteString(strconv.Itoa(i))
 			logData.WriteString(": ")
+			logData.WriteString(matchData.Key())
+			logData.WriteString(":")
 			logData.WriteString(matchData.Value())
 		}
 		matchedRules[id] = logData.String()
