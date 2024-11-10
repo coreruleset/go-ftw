@@ -127,7 +127,7 @@ func (r Request) isRaw() bool {
 }
 
 // The request should be created with anything we want. We want to actually break HTTP.
-func buildRequest(r *Request) ([]byte, error) {
+func BuildRequest(r *Request) ([]byte, error) {
 	var err error
 	var b bytes.Buffer
 	var data []byte
