@@ -5,12 +5,13 @@ package quantitative
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path"
 	"testing"
 
-	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/go-getter/v2"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/experimental/corpus"
@@ -45,13 +46,18 @@ func (s *runnerTestSuite) SetupTest() {
 	}
 	s.dir = path.Join(os.TempDir())
 	s.Require().NoError(os.MkdirAll(s.dir, 0755))
+	request := &getter.Request{
+		Src:     crsUrl,
+		Dst:     s.dir,
+		GetMode: getter.ModeAny,
+	}
 	client := &getter.Client{
-		Mode: getter.ClientModeAny,
-		Src:  crsUrl,
-		Dst:  s.dir,
+		Getters: []getter.Getter{
+			new(getter.HttpGetter),
+		},
 	}
 
-	err := client.Get()
+	_, err := client.Get(context.Background(), request)
 	s.Require().NoError(err)
 }
 

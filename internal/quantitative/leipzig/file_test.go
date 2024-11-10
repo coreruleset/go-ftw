@@ -4,15 +4,14 @@
 package leipzig
 
 import (
-	"github.com/stretchr/testify/suite"
+	"path/filepath"
 	"testing"
 
-	"github.com/coreruleset/go-ftw/experimental/corpus"
+	"github.com/stretchr/testify/suite"
 )
 
 type fileTestSuite struct {
 	suite.Suite
-	cache corpus.File
 }
 
 func TestFileSuite(t *testing.T) {
@@ -23,6 +22,6 @@ func (s *fileTestSuite) TestFile_CacheDir() {
 	f := NewFile()
 	f = f.WithCacheDir("cacheDir")
 	s.Require().Equal("cacheDir", f.CacheDir())
-	f = f.WithFilePath("filePath")
-	s.Require().Equal("filePath", f.FilePath())
+	f = f.WithFileName("fileName")
+	s.Require().Equal(filepath.Join("cacheDir", "fileName"), f.FilePath())
 }

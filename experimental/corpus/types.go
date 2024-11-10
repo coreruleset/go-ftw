@@ -54,8 +54,8 @@ type File interface {
 	// WithCacheDir sets the cache directory
 	WithCacheDir(cacheDir string) File
 
-	// WithFilePath sets the file path
-	WithFilePath(filePath string) File
+	// WithFileName sets the filename
+	WithFileName(fileName string) File
 }
 
 // Corpus is the interface that must be implemented to make a corpus available to clients

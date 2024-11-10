@@ -266,7 +266,7 @@ func (s *requestTestSuite) TestRequestRawData() {
 	s.Equal([]byte("This is the RAW data now"), req.RawData())
 }
 
-func (s *requestTestSuite) TestRequestSettingDataaWhenThereIsRawData() {
+func (s *requestTestSuite) TestRequestSettingDataWhenThereIsRawData() {
 	req := generateBaseRawRequestForTesting()
 
 	err := req.SetData([]byte("This is the data now"))
