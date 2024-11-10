@@ -3,12 +3,16 @@
 
 package leipzig
 
-import "github.com/coreruleset/go-ftw/experimental/corpus"
+import (
+	"path/filepath"
+
+	"github.com/coreruleset/go-ftw/experimental/corpus"
+)
 
 // File implements the corpus.File interface.
 type File struct {
 	cacheDir string
-	filePath string
+	fileName string
 }
 
 // NewFile returns a new File
@@ -23,7 +27,7 @@ func (f File) CacheDir() string {
 
 // FilePath is the path to the cached file
 func (f File) FilePath() string {
-	return f.filePath
+	return filepath.Join(f.cacheDir, f.fileName)
 }
 
 // WithCacheDir sets the cache directory
@@ -32,8 +36,8 @@ func (f File) WithCacheDir(cacheDir string) corpus.File {
 	return f
 }
 
-// WithFilePath sets the file path
-func (f File) WithFilePath(filePath string) corpus.File {
-	f.filePath = filePath
+// WithFileName sets the filename
+func (f File) WithFileName(fileName string) corpus.File {
+	f.fileName = fileName
 	return f
 }

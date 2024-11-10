@@ -4,6 +4,7 @@
 package leipzig
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -21,6 +22,6 @@ func (s *fileTestSuite) TestFile_CacheDir() {
 	f := NewFile()
 	f = f.WithCacheDir("cacheDir")
 	s.Require().Equal("cacheDir", f.CacheDir())
-	f = f.WithFilePath("filePath")
-	s.Require().Equal("filePath", f.FilePath())
+	f = f.WithFileName("fileName")
+	s.Require().Equal(filepath.Join("cacheDir", "fileName"), f.FilePath())
 }

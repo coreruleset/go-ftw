@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -165,23 +164,22 @@ func (c *LeipzigCorpus) FetchCorpusFile() corpus.File {
 
 	url := fmt.Sprintf("%s/%s", c.url_, c.corpusFile)
 
-	cacheDir := path.Join(home, ".ftw")
+	cacheDir := filepath.Join(home, ".ftw")
 
 	log.Debug().Msgf("Preparing download of corpus file from %s", url)
-	dest := path.Join(cacheDir, "extracted")
+	dest := filepath.Join(cacheDir, "extracted")
 	if err := os.MkdirAll(dest, os.ModePerm); err != nil {
 		log.Fatal().Err(err).Msg("Could not create destination directory")
 	}
 
-	cache := NewFile().WithCacheDir(cacheDir).WithFilePath(c.filename)
+	cache := NewFile().WithCacheDir(cacheDir).WithFileName(c.filename)
 
 	if cache.FilePath() == "" {
 		log.Fatal().Msg("Cache file path is empty")
 	}
 
-	if info, err := os.Stat(path.Join(home, ".ftw", cache.FilePath())); err == nil {
+	if info, err := os.Stat(cache.FilePath()); err == nil {
 		log.Debug().Msgf("filename %s already exists", info.Name())
-		cache = cache.WithFilePath(path.Join(home, ".ftw", c.filename))
 		return cache
 	}
 
@@ -215,14 +213,20 @@ func (c *LeipzigCorpus) FetchCorpusFile() corpus.File {
 		log.Trace().Msgf("Checking file %s", info.Name())
 
 		if info.Name() == c.filename {
-			newPath := filepath.Join(cacheDir, info.Name())
-			err = os.Rename(path, newPath)
+			if path == cache.FilePath() {
+				// During tests, concurrent fetching may get us here even though the cache
+				// file already exists. On Windows this will cause errors because a file can
+				// only be opened for writing by a single proccess.
+				log.Info().Msgf("Cache already exists for %s", c.filename)
+				return filepath.SkipAll
+			}
+
+			err = os.Rename(path, cache.FilePath())
 			if err != nil {
 				fmt.Println("Error moving:", err)
 				return err
 			}
-			fmt.Println("Moved", path, "to", newPath)
-			cache = cache.WithFilePath(newPath)
+			fmt.Println("Moved", path, "to cache", cache.FilePath())
 		}
 
 		return nil
