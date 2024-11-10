@@ -4,12 +4,13 @@
 package quantitative
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
 	"testing"
 
-	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/go-getter/v2"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -35,13 +36,18 @@ func TestLocalEngineTestSuite(t *testing.T) {
 func (s *localEngineTestSuite) SetupTest() {
 	s.dir = path.Join(os.TempDir())
 	s.Require().NoError(os.MkdirAll(s.dir, 0755))
+	request := &getter.Request{
+		Src:     crsUrl,
+		Dst:     s.dir,
+		GetMode: getter.ModeAny,
+	}
 	client := &getter.Client{
-		Mode: getter.ClientModeAny,
-		Src:  crsUrl,
-		Dst:  s.dir,
+		Getters: []getter.Getter{
+			new(getter.HttpGetter),
+		},
 	}
 
-	err := client.Get()
+	_, err := client.Get(context.Background(), request)
 	s.Require().NoError(err)
 	s.engine = &localEngine{}
 	s.engine = s.engine.Create(path.Join(s.dir, fmt.Sprintf("coreruleset-%s", crsTestVersion)), 1)

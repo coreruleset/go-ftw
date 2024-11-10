@@ -4,15 +4,13 @@
 package leipzig
 
 import (
-	"github.com/stretchr/testify/suite"
 	"testing"
 
-	"github.com/coreruleset/go-ftw/experimental/corpus"
+	"github.com/stretchr/testify/suite"
 )
 
 type fileTestSuite struct {
 	suite.Suite
-	cache corpus.File
 }
 
 func TestFileSuite(t *testing.T) {

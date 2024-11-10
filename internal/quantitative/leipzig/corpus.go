@@ -5,13 +5,14 @@ package leipzig
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/go-getter/v2"
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/experimental/corpus"
@@ -184,14 +185,19 @@ func (c *LeipzigCorpus) FetchCorpusFile() corpus.File {
 		return cache
 	}
 
+	request := &getter.Request{
+		Src:     url,
+		Dst:     dest,
+		GetMode: getter.ModeAny,
+	}
 	client := &getter.Client{
-		Mode: getter.ClientModeAny,
-		Src:  url,
-		Dst:  dest,
+		Getters: []getter.Getter{
+			new(getter.HttpGetter),
+		},
 	}
 
 	log.Info().Msgf("Downloading corpus file from %s", url)
-	err = client.Get()
+	_, err = client.Get(context.Background(), request)
 	if err != nil {
 		log.Fatal().Msgf("download failed: %v", err)
 	}
