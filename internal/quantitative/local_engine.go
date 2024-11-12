@@ -11,8 +11,10 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"unsafe"
 
 	"github.com/corazawaf/coraza/v3"
+	corazaexperimental "github.com/corazawaf/coraza/v3/experimental"
 	"github.com/corazawaf/coraza/v3/types"
 	"github.com/rs/zerolog/log"
 )
@@ -88,7 +90,7 @@ func (e *localEngine) CrsCall(payload string) map[int]string {
 	// we use the payload in the URI so rules in phase 1 can catch it
 	uri := fmt.Sprintf("/get?uri_payload=%s", url.QueryEscape(payload))
 
-	tx := e.waf.NewTransaction()
+	tx := e.waf.NewTransaction().(corazaexperimental.Transaction)
 	tx.ProcessConnection("127.0.0.1", 8080, "127.0.0.1", 8080)
 	tx.ProcessURI(uri, "GET", "HTTP/1.1")
 	tx.AddRequestHeader("Host", "localhost")
@@ -102,9 +104,24 @@ func (e *localEngine) CrsCall(payload string) map[int]string {
 		log.Error().Err(err).Msg("failed to process request body")
 	}
 
+	tx.AddResponseHeader("Content-Type", "text/plain")
+	tx.AddResponseHeader("Content-Length", strconv.Itoa(len(payload)))
+	// See https://github.com/golang/go/issues/53003#issuecomment-1964775055 for StringToBytes non-copying conversion
+	tx.UseResponseBody(unsafe.Slice(unsafe.StringData(payload), len(payload)))
+
+	_ = tx.ProcessResponseHeaders(200, "HTTP/1.1")
+
+	it, err := tx.ProcessResponseBody()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to process response body")
+	}
+
+	if it != nil {
+		log.Error().Msg("interruption detected")
+	}
+
 	matchedRules := getMatchedRules(tx)
 
-	// We don't care about the response body for now, nor logging.
 	if err := tx.Close(); err != nil {
 		log.Error().Err(err).Msg("failed to close transaction")
 	}
@@ -183,8 +200,10 @@ func getMatchedRules(tx types.Transaction) map[int]string {
 func needToDiscardAdminRule(id int) bool {
 	strId := strconv.Itoa(id)
 	if id < 902000 || /* configuration rules */
-		id > 949000 || /* reporting ruls */
+		(id < 950000 && id > 949000) || /* reporting request rules */
+		id > 959000 || /* reporting rules */
 		id == 941010 || /* special rule to remove REQUEST_FILENAME from the target list of all the 941xxx rules */
+		id == 951100 || /* special rule to... TODO document */
 		strings.HasSuffix(strId, "11") || /* detection paranoia level < 1, phase:1 rule */
 		strings.HasSuffix(strId, "12") || /* detection paranoia level < 1, phase:2 rule */
 		strings.HasSuffix(strId, "13") || /* detection paranoia level < 2, phase:1 rule */
