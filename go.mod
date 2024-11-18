@@ -2,7 +2,7 @@ module github.com/coreruleset/go-ftw
 
 go 1.22.3
 
-toolchain go1.22.9
+toolchain go1.23.3
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
