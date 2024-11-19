@@ -4,9 +4,10 @@
 package leipzig
 
 import (
-	"github.com/coreruleset/go-ftw/experimental/corpus"
 	"strconv"
 	"strings"
+
+	"github.com/coreruleset/go-ftw/experimental/corpus"
 )
 
 // Payload implements the corpus.Payload interface.

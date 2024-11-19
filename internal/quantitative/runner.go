@@ -109,19 +109,22 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 
 	for iter := corpusRunner.GetIterator(lc); iter.HasNext(); {
 		payload := iter.Next()
-		stats.incrementRun()
-		content := payload.Content()
-		log.Trace().Msgf("Line: %s", content)
-		// check if we are looking for a specific payload line #
-		if needSpecificPayload(params.Number, stats.Count()) {
-			continue
-		}
-		log.Trace().Msgf("Payload: %s", payload)
 
 		// check if we only want to process a specific number of lines
 		if params.Lines > 0 && stats.Count() >= params.Lines {
 			break
 		}
+
+		stats.incrementRun()
+
+		// check if we are looking for a specific payload line #
+		if skipPayload(params.Number, stats.Count()) {
+			log.Trace().Int("Line #", stats.Count()).Msgf("Line skipped")
+			stats.incrementSkip()
+			continue
+		}
+		log.Trace().Int("Line #", stats.Count()).Msgf("Payload: %s", payload.Content())
+
 		wg.Add(1)
 		ch <- 1
 		go func(runner LocalEngine, payload corpus.Payload, rule int, stats *QuantitativeRunStats) {
@@ -136,9 +139,13 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	return nil
 }
 
-// needSpecificPayload returns true when the line we have is the one we want
-func needSpecificPayload(want int, have int) bool {
-	return want == have
+// skipPayload returns true when the payload corresponding to the provided line has to be skipped
+func skipPayload(want int, have int) bool {
+	// If zero value is set, we have to test all the lines
+	if want == 0 {
+		return false
+	}
+	return want != have
 }
 
 // wantSpecificRuleResults returns true

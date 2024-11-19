@@ -66,7 +66,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 				falsePositives:        1,
 				falsePositivesPerRule: map[int]int{920010: 1},
 			},
-			want:    []byte(`{"count":1,"falsePositives":1,"falsePositivesPerRule":{"920010":1},"totalTimeSeconds":1}`),
+			want:    []byte(`{"count":1,"falsePositives":1,"falsePositivesPerRule":{"920010":1},"skipped":0,"totalTimeSeconds":1}`),
 			wantErr: false,
 		},
 		{
@@ -77,7 +77,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 				falsePositives:        2,
 				falsePositivesPerRule: map[int]int{933100: 2},
 			},
-			want:    []byte(`{"count":2,"falsePositives":2,"falsePositivesPerRule":{"933100":2},"totalTimeSeconds":2}`),
+			want:    []byte(`{"count":2,"falsePositives":2,"falsePositivesPerRule":{"933100":2},"skipped":0,"totalTimeSeconds":2}`),
 			wantErr: false,
 		},
 	}
@@ -126,9 +126,10 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary() {
 
 	q.addFalsePositive(920100)
 	s.Require().Equal(q.FalsePositives(), 1)
+	s.Require().Equal(q.Skipped(), 0)
 
 	q.printSummary(out)
-	s.Require().Equal("Run 1 payloads in 0s\nTotal False positive ratio: 1/1 = 1.0000\nFalse positives per rule id:\n  920100: 1 false positives. FP Ratio: 1/1 = 1.0000\n", b.String())
+	s.Require().Equal("Run 1 payloads (0 skipped) in 0s\nTotal False positive ratio: 1/1 = 1.0000\nFalse positives per rule id:\n  920100: 1 false positives. FP Ratio: 1/1 = 1.0000\n", b.String())
 }
 
 func TestAddFalsePositiveRace(t *testing.T) {
