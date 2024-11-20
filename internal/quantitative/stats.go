@@ -18,6 +18,8 @@ import (
 type QuantitativeRunStats struct {
 	// count_ is the amount of tests executed in this run.
 	count_ int
+	// skipped_ is the amount of tests skipped in this run.
+	skipped_ int
 	// totalTime is the duration over all runs, the sum of all individual run times.
 	totalTime time.Duration
 	// falsePositives is the total false positives detected
@@ -42,28 +44,27 @@ func NewQuantitativeStats() *QuantitativeRunStats {
 // print final statistics
 func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 	log.Debug().Msg("Printing Stats summary")
+	if out.IsJson() {
+		b, _ := json.Marshal(s)
+		out.RawPrint(string(b))
+	}
+	out.Println("Run %d payloads (%d skipped) in %s", s.count_, s.skipped_, s.totalTime)
 	if s.falsePositives > 0 {
-		if out.IsJson() {
-			b, _ := json.Marshal(s)
-			out.RawPrint(string(b))
-		} else {
-			ratio := float64(s.falsePositives) / float64(s.count_)
-			out.Println("Run %d payloads in %s", s.count_, s.totalTime)
-			out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
-			out.Println("False positives per rule id:")
-			// Extract and sort the keys
-			rules := make([]int, 0, len(s.falsePositivesPerRule))
-			for rule := range s.falsePositivesPerRule {
-				rules = append(rules, rule)
-			}
-			sort.Ints(rules)
+		ratio := float64(s.falsePositives) / float64(s.count_)
+		out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
+		out.Println("False positives per rule id:")
+		// Extract and sort the keys
+		rules := make([]int, 0, len(s.falsePositivesPerRule))
+		for rule := range s.falsePositivesPerRule {
+			rules = append(rules, rule)
+		}
+		sort.Ints(rules)
 
-			// Print the sorted map
-			for _, rule := range rules {
-				count := s.falsePositivesPerRule[rule]
-				perRuleRatio := float64(count) / float64(s.count_)
-				out.Println("  %d: %d false positives. FP Ratio: %d/%d = %.4f", rule, count, count, s.count_, perRuleRatio)
-			}
+		// Print the sorted map
+		for _, rule := range rules {
+			count := s.falsePositivesPerRule[rule]
+			perRuleRatio := float64(count) / float64(s.count_)
+			out.Println("  %d: %d false positives. FP Ratio: %d/%d = %.4f", rule, count, count, s.count_, perRuleRatio)
 		}
 	} else {
 		out.Println("No false positives detected with the passed corpus")
@@ -88,9 +89,19 @@ func (s *QuantitativeRunStats) incrementRun() {
 	s.count_++
 }
 
+// incrementSkip increments the amount of tests skipped in this run.
+func (s *QuantitativeRunStats) incrementSkip() {
+	s.skipped_++
+}
+
 // Count returns the amount of tests executed in this run.
 func (s *QuantitativeRunStats) Count() int {
 	return s.count_
+}
+
+// Skipped returns the amount of tests skipped in this run.
+func (s *QuantitativeRunStats) Skipped() int {
+	return s.skipped_
 }
 
 // TotalTime returns the duration over all runs, the sum of all individual run times.
@@ -108,6 +119,7 @@ func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 	// Custom marshaling logic here
 	return json.Marshal(map[string]interface{}{
 		"count":                 s.count_,
+		"skipped":               s.skipped_,
 		"totalTimeSeconds":      s.totalTime.Seconds(),
 		"falsePositives":        s.falsePositives,
 		"falsePositivesPerRule": s.falsePositivesPerRule,

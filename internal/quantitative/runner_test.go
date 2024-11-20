@@ -34,7 +34,6 @@ func (s *runnerTestSuite) SetupTest() {
 		Lines:          1000,
 		Fast:           10,
 		Rule:           1000,
-		Number:         1000,
 		Directory:      path.Join(s.dir, fmt.Sprintf("coreruleset-%s", crsTestVersion)),
 		ParanoiaLevel:  1,
 		MaxConcurrency: 10,
@@ -78,13 +77,20 @@ func (s *runnerTestSuite) TestCorpusFactory() {
 }
 
 func (s *runnerTestSuite) TestRunQuantitative() {
-	// This test is expecting to have at least one rule false positive in the used corpus
-	// If it is not anymore the case, an option could be to use a different corpus language
 	s.Run("with corpus", func() {
 		var b bytes.Buffer
 		out := output.NewOutput("plain", &b)
 		err := RunQuantitativeTests(s.params, out)
-		s.Require().Contains(b.String(), "false positives")
+		s.Require().Contains(b.String(), "Run 1000 payloads (0 skipped)")
+		s.Require().NoError(err)
+	})
+
+	s.Run("with corpus and specific corpus line", func() {
+		s.params.Number = 100
+		var b bytes.Buffer
+		out := output.NewOutput("plain", &b)
+		err := RunQuantitativeTests(s.params, out)
+		s.Require().Contains(b.String(), "(999 skipped)")
 		s.Require().NoError(err)
 	})
 

@@ -58,7 +58,7 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	outputFilename, _ := cmd.Flags().GetString("file")
 	paranoiaLevel, _ := cmd.Flags().GetInt("paranoia-level")
 	payload, _ := cmd.Flags().GetString("payload")
-	number, _ := cmd.Flags().GetInt("number")
+	number, _ := cmd.Flags().GetInt("corpus-line")
 	rule, _ := cmd.Flags().GetInt("rule")
 	wantedOutput, _ := cmd.Flags().GetString("output")
 	maxConcurrency, _ := cmd.Flags().GetInt("max-concurrency")
