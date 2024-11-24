@@ -119,7 +119,6 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 
 		// check if we are looking for a specific payload line #
 		if skipPayload(params.Number, stats.Count()) {
-			log.Trace().Int("Line #", stats.Count()).Msgf("Line skipped")
 			stats.incrementSkip()
 			continue
 		}
