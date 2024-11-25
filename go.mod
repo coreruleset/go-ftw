@@ -2,7 +2,7 @@ module github.com/coreruleset/go-ftw
 
 go 1.22.3
 
-toolchain go1.22.9
+toolchain go1.23.3
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
@@ -12,17 +12,17 @@ require (
 	github.com/go-logr/zerologr v1.2.3
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-getter/v2 v2.2.3
-	github.com/icza/backscanner v0.0.0-20240328210400-b40c3a86dec5
+	github.com/icza/backscanner dff01ac50250
 	github.com/knadh/koanf/parsers/yaml v0.1.0
 	github.com/knadh/koanf/providers/env v1.0.0
 	github.com/knadh/koanf/providers/file v1.1.2
 	github.com/knadh/koanf/providers/rawbytes v0.1.0
 	github.com/knadh/koanf/v2 v2.1.2
 	github.com/kyokomi/emoji/v2 v2.2.13
-	github.com/magefile/mage v1.15.1-0.20231118170541-2385abb49a1f
+	github.com/magefile/mage 32e01077f0aa
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/net v0.31.0
 	golang.org/x/time v0.8.0
