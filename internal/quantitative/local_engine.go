@@ -185,6 +185,7 @@ func needToDiscardAdminRule(id int) bool {
 	if id < 902000 || /* configuration rules */
 		id > 949000 || /* reporting ruls */
 		id == 941010 || /* special rule to remove REQUEST_FILENAME from the target list of all the 941xxx rules */
+		id == 921170 || /* special scaffold rule designed to make the HTTP parameter pollution rules. */
 		strings.HasSuffix(strId, "11") || /* detection paranoia level < 1, phase:1 rule */
 		strings.HasSuffix(strId, "12") || /* detection paranoia level < 1, phase:2 rule */
 		strings.HasSuffix(strId, "13") || /* detection paranoia level < 2, phase:1 rule */
