@@ -371,11 +371,11 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 	markerLine := "X-cRs-TeSt: " + stageID
 	logLines := fmt.Sprint("\n", markerLine,
 		`[id "1"] something else [id "2"]`,
-		`"id": 3, something else {"id":4}`+"\n",
+		`"id": 3, something else {"id":4},`,
+		`something else [id \"5\"]`+"\n",
 		"\n", markerLine)
 	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
 	s.Require().NoError(err)
-
 	cfg.LogFile = filename
 	log, err := os.Open(filename)
 	s.Require().NoError(err)
@@ -388,9 +388,10 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 	ll.WithEndMarker([]byte(markerLine))
 
 	foundRuleIds := ll.TriggeredRules()
-	s.Len(foundRuleIds, 4)
+	s.Len(foundRuleIds, 5)
 	s.Contains(foundRuleIds, uint(1))
 	s.Contains(foundRuleIds, uint(2))
 	s.Contains(foundRuleIds, uint(3))
 	s.Contains(foundRuleIds, uint(4))
+	s.Contains(foundRuleIds, uint(5))
 }
