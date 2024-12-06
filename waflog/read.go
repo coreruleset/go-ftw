@@ -28,7 +28,7 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 	ll.triggeredRulesInitialized = true
 
 	lines := ll.getMarkedLines()
-	regex := regexp.MustCompile(`\[id "(\d+)"\]|"id":\s*"?(\d+)"?`)
+	regex := regexp.MustCompile(`\[id \\?"(\d+)\\?"\]|"id":\s*"?(\d+)"?`)
 	for _, line := range lines {
 		log.Trace().Msgf("ftw/waflog: Looking for any rule in '%s'", line)
 		match := regex.FindAllSubmatch(line, -1)
