@@ -14,6 +14,7 @@ import (
 	"text/template"
 
 	"github.com/coreruleset/ftw-tests-schema/v2/types"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 
@@ -577,4 +578,63 @@ func (s *runTestSuite) TestIsolatedSanity() {
 	stage.Output.Log.ExpectIds = []uint{1, 2}
 	err = RunStage(rc, &check.FTWCheck{}, types.Test{}, stage)
 	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
+}
+
+func (s *runTestSuite) TestVirtualHostMode_Default() {
+	method := "POST"
+	input := &test.Input{
+		Method: &method,
+		Headers: ftwhttp.Header{
+			"Host": "not-localhost_virtual-host",
+		},
+		DestAddr: &s.dest.DestAddr,
+		Port:     &s.dest.Port,
+		Protocol: &s.dest.Protocol,
+	}
+	context := &TestRunContext{
+		Config: config.NewDefaultConfig(),
+	}
+	request := buildMarkerRequest(context, input, uuid.NewString())
+
+	s.Equal("localhost", request.Headers().Get("Host"))
+}
+
+func (s *runTestSuite) TestVirtualHostMode_False() {
+	method := "POST"
+	input := &test.Input{
+		Method: &method,
+		Headers: ftwhttp.Header{
+			"Host": "not-localhost_virtual-host",
+		},
+		DestAddr:        &s.dest.DestAddr,
+		Port:            &s.dest.Port,
+		Protocol:        &s.dest.Protocol,
+		VirtualHostMode: false,
+	}
+	context := &TestRunContext{
+		Config: config.NewDefaultConfig(),
+	}
+	request := buildMarkerRequest(context, input, uuid.NewString())
+
+	s.Equal("localhost", request.Headers().Get("Host"))
+}
+
+func (s *runTestSuite) TestVirtualHostMode_True() {
+	method := "POST"
+	input := &test.Input{
+		Method: &method,
+		Headers: ftwhttp.Header{
+			"Host": "not-localhost_virtual-host",
+		},
+		DestAddr:        &s.dest.DestAddr,
+		Port:            &s.dest.Port,
+		Protocol:        &s.dest.Protocol,
+		VirtualHostMode: true,
+	}
+	context := &TestRunContext{
+		Config: config.NewDefaultConfig(),
+	}
+	request := buildMarkerRequest(context, input, uuid.NewString())
+
+	s.Equal("not-localhost_virtual-host", request.Headers().Get("Host"))
 }
