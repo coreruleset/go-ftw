@@ -143,6 +143,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 	if ll.startMarker == nil || ll.endMarker == nil {
 		log.Fatal().Msg("Both start and end marker must be set before the log can be inspected")
 	}
+
 	fi, err := ll.logFile.Stat()
 	if err != nil {
 		log.Error().Caller().Msgf("cannot read file's size")
