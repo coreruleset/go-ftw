@@ -165,6 +165,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 		Port:     testInput.GetPort(),
 		Protocol: testInput.GetProtocol(),
 	}
+
 	var startMarker []byte
 	if notRunningInCloudMode(ftwCheck) {
 		var err error
