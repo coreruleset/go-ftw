@@ -165,9 +165,10 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 		Port:     testInput.GetPort(),
 		Protocol: testInput.GetProtocol(),
 	}
-
+	var startMarker []byte
 	if notRunningInCloudMode(ftwCheck) {
-		startMarker, err := markAndFlush(runContext, &testInput, stageId)
+		var err error
+		startMarker, err = markAndFlush(runContext, &testInput, stageId, nil)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find start marker: %w", err)
 		}
@@ -194,7 +195,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
-		endMarker, err := markAndFlush(runContext, &testInput, stageId)
+		endMarker, err := markAndFlush(runContext, &testInput, stageId, startMarker)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find end marker: %w", err)
 
@@ -221,7 +222,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	return nil
 }
 
-func markAndFlush(runContext *TestRunContext, testInput *test.Input, stageId string) ([]byte, error) {
+func markAndFlush(runContext *TestRunContext, testInput *test.Input, stageId string, startMarker []byte) ([]byte, error) {
 	req := buildMarkerRequest(runContext, testInput, stageId)
 	dest := &ftwhttp.Destination{
 		DestAddr: testInput.GetDestAddr(),
@@ -239,7 +240,7 @@ func markAndFlush(runContext *TestRunContext, testInput *test.Input, stageId str
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v: %w", dest, err)
 		}
 
-		marker := runContext.LogLines.CheckLogForMarker(stageId, runContext.Config.MaxMarkerLogLines)
+		marker := runContext.LogLines.CheckLogForMarker(stageId, runContext.Config.MaxMarkerLogLines, startMarker)
 		if marker != nil {
 			return marker, nil
 		}
