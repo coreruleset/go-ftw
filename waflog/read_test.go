@@ -50,7 +50,7 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	ll, err := NewFTWLogLines(cfg)
 	s.Require().NoError(err)
 	ll.WithStartMarker([]byte(markerLine))
-	marker := ll.CheckLogForMarker(stageID, 100)
+	marker := ll.CheckLogForMarker(stageID, 100, []byte(markerLine))
 	s.Equal(string(marker), strings.ToLower(markerLine), "unexpectedly found marker")
 }
 
@@ -75,7 +75,7 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 	ll.WithStartMarker([]byte(markerLine))
 	s.Require().NoError(err)
 
-	marker := ll.CheckLogForMarker(stageID, 100)
+	marker := ll.CheckLogForMarker(stageID, 100, []byte(markerLine))
 	s.NotNil(marker, "no marker found")
 
 	s.Equal(marker, bytes.ToLower([]byte(markerLine)), "found unexpected marker")
@@ -358,7 +358,7 @@ func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	}
 	ll.WithStartMarker([]byte(markerLine))
 	ll.WithEndMarker([]byte(markerLine))
-	foundMarker := ll.CheckLogForMarker(stageID, 100)
+	foundMarker := ll.CheckLogForMarker(stageID, 100, nil)
 	s.Equal(strings.ToLower(markerLine), strings.ToLower(string(foundMarker)))
 }
 
