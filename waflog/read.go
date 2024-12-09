@@ -173,6 +173,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 			continue
 		}
 		if endFound && bytes.Equal(lineLower, ll.startMarker) {
+			startFound = true
 			break
 		}
 
