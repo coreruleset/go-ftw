@@ -170,10 +170,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 			break
 		}
 		lineLower := bytes.ToLower(line)
-		if !endFound && bytes.Equal(lineLower, ll.endMarker) {
-			endFound = true
-			continue
-		}
+
 		if !endFound {
 			// Skip lines until we find the end marker. Reading backwards, the line we are looking for are
 			// between the end and start markers.
