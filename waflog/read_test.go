@@ -50,7 +50,7 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	ll, err := NewFTWLogLines(cfg)
 	s.Require().NoError(err)
 	ll.WithStartMarker([]byte(markerLine))
-	marker := ll.CheckLogForMarker(stageID, 100, []byte(markerLine))
+	marker := ll.CheckLogForMarker(stageID, 100)
 	s.Equal(string(marker), strings.ToLower(markerLine), "unexpectedly found marker")
 }
 
@@ -75,7 +75,7 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 	ll.WithStartMarker([]byte(markerLine))
 	s.Require().NoError(err)
 
-	marker := ll.CheckLogForMarker(stageID, 100, []byte(markerLine))
+	marker := ll.CheckLogForMarker(stageID, 100)
 	s.NotNil(marker, "no marker found")
 
 	s.Equal(marker, bytes.ToLower([]byte(markerLine)), "found unexpected marker")
@@ -148,7 +148,7 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithTrailingEmptyLines() {
 		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
 	}
 
-	s.Len(foundLines, 6, "found unexpected number of log lines")
+	s.Len(foundLines, 3, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
 		s.Equalf(foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
@@ -188,7 +188,7 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithPrecedingLines() {
 		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
 	}
 
-	s.Len(foundLines, 4, "found unexpected number of log lines")
+	s.Len(foundLines, 3, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
 		s.Equalf(foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
@@ -201,12 +201,15 @@ func (s *readTestSuite) TestFTWLogLines_Contains() {
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
-	markerLine := "X-cRs-TeSt: " + stageID
-	logLines := `
+	markerLineStart := "X-cRs-TeSt: " + stageID + "-s"
+	markerLineEnd := "X-cRs-TeSt: " + stageID + "-e"
+	logLines :=
+		markerLineStart +
+			`
 [Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
-` + markerLine
+` + markerLineEnd
 	s.filename, err = utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
 	s.Require().NoError(err)
 
@@ -223,8 +226,8 @@ func (s *readTestSuite) TestFTWLogLines_Contains() {
 	f := fields{
 		logFile:             log,
 		LogMarkerHeaderName: []byte(cfg.LogMarkerHeaderName),
-		StartMarker:         []byte(markerLine),
-		EndMarker:           []byte(markerLine),
+		StartMarker:         []byte(markerLineStart),
+		EndMarker:           []byte(markerLineEnd),
 	}
 
 	type args struct {
@@ -273,14 +276,22 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
-	markerLine := fmt.Sprint(`[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
-		"X-cRs-TeSt ", stageID,
+	markerLineStart := fmt.Sprint(`[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
+		"X-cRs-TeSt ", stageID+"-s",
 		`"] [hostname "localhost"] [uri "/status/200"] [unique_id "Y3AZUo3Gja4gB-tPE9uasgAAAA4"]`)
-	logLines := fmt.Sprint("\n", markerLine,
+	markerLineEnd := fmt.Sprint(`[2022-11-12 23:08:18.012580] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
+		"X-cRs-TeSt ", stageID+"-e",
+		`"] [hostname "localhost"] [uri "/status/200"] [unique_id "Y3AZUo3Gja4gB-tPE9uasgBBBB4"]`)
+	logLines := fmt.Sprint("\n", markerLineStart,
 		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`,
 		`[2022-11-12 23:08:18.013007] [core:info] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 AH00128: File does not exist: /apache/htdocs/status/200`,
+<<<<<<< HEAD
 		"\n", markerLine)
 	filename, err := utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
+=======
+		"\n", markerLineEnd)
+	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
+>>>>>>> 5b3386a (start and end marker)
 	s.Require().NoError(err)
 
 	cfg.LogFile = filename
@@ -296,8 +307,8 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 	f := fields{
 		logFile:             log,
 		LogMarkerHeaderName: []byte(cfg.LogMarkerHeaderName),
-		StartMarker:         []byte(markerLine),
-		EndMarker:           []byte(markerLine),
+		StartMarker:         []byte(markerLineStart),
+		EndMarker:           []byte(markerLineEnd),
 	}
 
 	type args struct {
@@ -336,7 +347,6 @@ func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	cfg, err := config.NewConfigFromEnv()
 	s.Require().NoError(err)
 	s.NotNil(cfg)
-
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := fmt.Sprint(`[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
 		"X-cRs-TeSt ", stageID,
@@ -358,7 +368,7 @@ func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	}
 	ll.WithStartMarker([]byte(markerLine))
 	ll.WithEndMarker([]byte(markerLine))
-	foundMarker := ll.CheckLogForMarker(stageID, 100, nil)
+	foundMarker := ll.CheckLogForMarker(stageID, 100)
 	s.Equal(strings.ToLower(markerLine), strings.ToLower(string(foundMarker)))
 }
 
@@ -368,6 +378,7 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 	s.NotNil(cfg)
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+<<<<<<< HEAD
 	markerLine := "X-cRs-TeSt: " + stageID
 	logLines := fmt.Sprint("\n", markerLine, "\n",
 		`other stuff [id "1"] something else [id "2"]`, "\n",
@@ -376,6 +387,16 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 		`other stuff something else [id \"8\"]`, "\n",
 		"\n", markerLine)
 	filename, err := utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
+=======
+	markerLineStart := "X-cRs-TeSt: " + stageID + "-s"
+	markerLineEnd := "X-cRs-TeSt: " + stageID + "-e"
+	logLines := fmt.Sprint("\n", markerLineStart,
+		`[id "1"] something else [id "2"]`,
+		`"id": 3, something else {"id":4},`,
+		`something else [id \"5\"]`+"\n",
+		"\n", markerLineEnd)
+	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
+>>>>>>> 5b3386a (start and end marker)
 	s.Require().NoError(err)
 	cfg.LogFile = filename
 	log, err := os.Open(filename)
@@ -385,8 +406,8 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 		logFile:             log,
 		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
 	}
-	ll.WithStartMarker([]byte(markerLine))
-	ll.WithEndMarker([]byte(markerLine))
+	ll.WithStartMarker([]byte(markerLineStart))
+	ll.WithEndMarker([]byte(markerLineEnd))
 
 	foundRuleIds := ll.TriggeredRules()
 	s.Len(foundRuleIds, 6)

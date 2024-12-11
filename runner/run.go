@@ -23,6 +23,13 @@ import (
 	"github.com/coreruleset/go-ftw/waflog"
 )
 
+const (
+	// start and end UUID suffixes are used to disambiguate start and end markers.
+	// It permits to make the markers unique, while still maintaining one UUID per stage.
+	startUUIDSuffix = "-s"
+	endUUIDSuffix   = "-e"
+)
+
 // Run runs your tests with the specified Config.
 func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c *RunnerConfig, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
@@ -166,10 +173,9 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 		Protocol: testInput.GetProtocol(),
 	}
 
-	var startMarker []byte
 	if notRunningInCloudMode(ftwCheck) {
-		var err error
-		startMarker, err = markAndFlush(runContext, &testInput, stageId, nil)
+		startUUID := stageId + startUUIDSuffix
+		startMarker, err := markAndFlush(runContext, &testInput, startUUID)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find start marker: %w", err)
 		}
@@ -196,7 +202,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
-		endMarker, err := markAndFlush(runContext, &testInput, stageId, startMarker)
+		endUUID := stageId + endUUIDSuffix
+		endMarker, err := markAndFlush(runContext, &testInput, endUUID)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find end marker: %w", err)
 
@@ -223,7 +230,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	return nil
 }
 
-func markAndFlush(runContext *TestRunContext, testInput *test.Input, stageId string, startMarker []byte) ([]byte, error) {
+func markAndFlush(runContext *TestRunContext, testInput *test.Input, stageId string) ([]byte, error) {
 	req := buildMarkerRequest(runContext, testInput, stageId)
 	dest := &ftwhttp.Destination{
 		DestAddr: testInput.GetDestAddr(),
@@ -241,7 +248,7 @@ func markAndFlush(runContext *TestRunContext, testInput *test.Input, stageId str
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v: %w", dest, err)
 		}
 
-		marker := runContext.LogLines.CheckLogForMarker(stageId, runContext.Config.MaxMarkerLogLines, startMarker)
+		marker := runContext.LogLines.CheckLogForMarker(stageId, runContext.Config.MaxMarkerLogLines)
 		if marker != nil {
 			return marker, nil
 		}

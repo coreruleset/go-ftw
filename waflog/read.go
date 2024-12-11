@@ -9,7 +9,6 @@ import (
 	"io"
 	"regexp"
 	"strconv"
-	"time"
 
 	"slices"
 
@@ -18,7 +17,6 @@ import (
 )
 
 const maxRuleIdsEstimate = 15
-const maxSeekAttempts = 10
 
 var ruleIdsSet = make(map[uint]bool, maxRuleIdsEstimate)
 
@@ -144,6 +142,10 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 		log.Fatal().Msg("Both start and end marker must be set before the log can be inspected")
 	}
 
+	if bytes.Equal(ll.startMarker, ll.endMarker) {
+		log.Fatal().Msg("Start and end markers must be different")
+	}
+
 	fi, err := ll.logFile.Stat()
 	if err != nil {
 		log.Error().Caller().Msgf("cannot read file's size")
@@ -172,6 +174,14 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 			endFound = true
 			continue
 		}
+		if !endFound {
+			// Skip lines until we find the end marker. Reading backwards, the line we are looking for are
+			// between the end and start markers.
+			if bytes.Equal(lineLower, ll.endMarker) {
+				endFound = true
+			}
+			continue
+		}
 		if endFound && bytes.Equal(lineLower, ll.startMarker) {
 			startFound = true
 			break
@@ -190,65 +200,54 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 
 // CheckLogForMarker reads the log file and searches for a marker line.
 // stageID is the ID of the current stage, which is part of the marker line
+// At this point, stageID includes also the start or end suffix.
 // readLimit is the maximum numbers of lines to check
-// When startMarker is not nil, the function will ensure that the marker line is not equal to startMarker
-// otherwise, after some retries, a warning is raised.
-func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit uint, startMarker []byte) []byte {
+func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit uint) []byte {
 	var line []byte
-	for seekAttempts := 0; seekAttempts < maxSeekAttempts; seekAttempts++ {
-		offset, err := ll.logFile.Seek(0, io.SeekEnd)
-		if err != nil {
-			log.Error().Caller().Err(err).Msgf("failed to seek end of log file")
-			return nil
-		}
-
-		// Lines in logging can be quite large
-		backscannerOptions := &backscanner.Options{
-			ChunkSize: 4096,
-		}
-		scanner := backscanner.NewOptions(ll.logFile, int(offset), backscannerOptions)
-		stageIDBytes := []byte(stageID)
-		crsHeaderBytes := bytes.ToLower([]byte(ll.LogMarkerHeaderName))
-
-		lineCounter := uint(0)
-		// Look for the header until EOF or `readLimit` lines at most
-		for {
-			if lineCounter > readLimit {
-				log.Debug().Msg("aborting search for marker")
-				return nil
-			}
-			lineCounter++
-
-			line, _, err = scanner.LineBytes()
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					log.Trace().Err(err).Msg("found EOF while looking for log marker")
-					return nil
-				} else {
-					log.Error().Err(err).Msg("failed to inspect next log line for marker")
-					return nil
-				}
-			}
-
-			line = bytes.ToLower(line)
-			if bytes.Contains(line, crsHeaderBytes) {
-				break
-			}
-		}
-
-		// Found the header, now the line should also match the stage ID
-		if bytes.Contains(line, stageIDBytes) {
-			if startMarker != nil && bytes.Equal(startMarker, line) {
-				log.Trace().Msgf("found equal start and end markers: %s. Seeking again...", startMarker)
-				time.Sleep(1 * time.Millisecond)
-				continue
-			}
-			return line
-		}
-
-		log.Debug().Msgf("found unexpected marker line while looking for %s: %s", stageID, line)
+	offset, err := ll.logFile.Seek(0, io.SeekEnd)
+	if err != nil {
+		log.Error().Caller().Err(err).Msgf("failed to seek end of log file")
 		return nil
 	}
-	log.Warn().Msgf("failed to find end marker different from start marker after %d attempts", maxSeekAttempts)
-	return line
+
+	// Lines in logging can be quite large
+	backscannerOptions := &backscanner.Options{
+		ChunkSize: 4096,
+	}
+	scanner := backscanner.NewOptions(ll.logFile, int(offset), backscannerOptions)
+	stageIDBytes := []byte(stageID)
+	crsHeaderBytes := bytes.ToLower([]byte(ll.LogMarkerHeaderName))
+
+	lineCounter := uint(0)
+	// Look for the header until EOF or `readLimit` lines at most
+	for {
+		if lineCounter > readLimit {
+			log.Debug().Msg("aborting search for marker")
+			return nil
+		}
+		lineCounter++
+
+		line, _, err = scanner.LineBytes()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				log.Trace().Err(err).Msg("found EOF while looking for log marker")
+				return nil
+			} else {
+				log.Error().Err(err).Msg("failed to inspect next log line for marker")
+				return nil
+			}
+		}
+
+		line = bytes.ToLower(line)
+		if bytes.Contains(line, crsHeaderBytes) {
+			break
+		}
+	}
+
+	// Found the header, now the line should also match the stage ID
+	if bytes.Contains(line, stageIDBytes) {
+		return line
+	}
+	log.Debug().Msgf("found unexpected marker line while looking for %s: %s", stageID, line)
+	return nil
 }
