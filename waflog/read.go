@@ -200,7 +200,6 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 // At this point, stageID includes also the start or end suffix.
 // readLimit is the maximum numbers of lines to check
 func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit uint) []byte {
-	var line []byte
 	offset, err := ll.logFile.Seek(0, io.SeekEnd)
 	if err != nil {
 		log.Error().Caller().Err(err).Msgf("failed to seek end of log file")
@@ -215,6 +214,7 @@ func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit uint) []byte 
 	stageIDBytes := []byte(stageID)
 	crsHeaderBytes := bytes.ToLower([]byte(ll.LogMarkerHeaderName))
 
+	var line []byte
 	lineCounter := uint(0)
 	// Look for the header until EOF or `readLimit` lines at most
 	for {
