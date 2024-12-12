@@ -19,7 +19,6 @@ require (
 	github.com/knadh/koanf/providers/rawbytes v0.1.0
 	github.com/knadh/koanf/v2 v2.1.2
 	github.com/kyokomi/emoji/v2 v2.2.13
-	github.com/magefile/mage v1.15.1-0.20241126214340-bdc92f694516
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
@@ -33,6 +32,7 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.0 // indirect
+	github.com/magefile/mage v1.15.1-0.20231118170541-2385abb49a1f // indirect
 	github.com/valllabh/ocsf-schema-golang v1.0.3 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
