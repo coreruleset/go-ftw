@@ -79,7 +79,7 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/xanzy/go-gitlab v0.112.0 // indirect
-	golang.org/x/crypto v0.30.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect; indirectt
 	golang.org/x/sys v0.28.0 // indirect
