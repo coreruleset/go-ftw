@@ -124,7 +124,9 @@ Flags:
       --fail-fast                              Fail on first failed test
   -f, --file string                            output file path for ftw tests. Prints to standard output by default.
   -h, --help                                   help for run
-  -i, --include string                         include only tests matching this Go regular expression (e.g. to include only tests beginning with "91", use "^91.*"). \nIf you want more permanent inclusion, check the 'include' option in the config file."
+  -i, --include string                         include only tests matching this Go regular expression (e.g. to include only tests beginning with "91", use "^91.*").
+                                               If you want more permanent inclusion, check the 'include' option in the config file.
+  -T, --include-tags string                    include tests tagged with labels matching this Go regular expression (e.g. to include all tests being tagged with "cookie", use "^cookie$").
   -l, --log-file string                        path to log file to watch for WAF events
       --max-marker-log-lines int               maximum number of lines to search for a marker before aborting (default 500)
       --max-marker-retries int                 maximum number of times the search for log markers will be repeated.
@@ -133,7 +135,6 @@ Flags:
   -r, --rate-limit duration                    Limit the request rate to the server to 1 request per specified duration. 0 is the default, and disables rate limiting.
       --read-timeout duration                  timeout for receiving responses during test execution (default 10s)
       --show-failures-only                     shows only the results of failed tests
-  -T, --include-tags string                    include tests tagged with labels matching this Go regular expression (e.g. to include all tests being tagged with "cookie", use "^cookie$").
   -t, --time                                   show time spent per test
       --wait-delay duration                    Time to wait between retries for all wait operations. (default 1s)
       --wait-for-connection-timeout duration   Http connection timeout, The timeout includes connection time, any redirects, and reading the response body. (default 3s)
@@ -411,7 +412,6 @@ You can configure the name of the HTTP header by setting the `logmarkerheadernam
 Sometimes you need to wait for a backend service to be ready before running the tests. For example, you may need to wait for an additional container to be ready before running the tests.
 Now you can do that by passing the `--wait-for-host` flag. The value of this option is a URL that will be requested, and you can configure the expected result using the following additional flags:
 - `--wait-for-host`:                     Wait for host to be available before running tests.
-- `--wait-delay`:                        Time to wait between retries for all wait operations. (default 1s)
 - `--wait-for-connection-timeout`        Http connection timeout, The timeout includes connection time, any redirects, and reading the response body. (default 3s)
 - `--wait-for-expect-body-json`          Expect response body JSON pattern.
 - `--wait-for-expect-body-regex`         Expect response body pattern.
