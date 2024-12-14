@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"testing"
 	"text/template"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
@@ -102,7 +103,7 @@ func TestRunChoreTestSuite(t *testing.T) {
 }
 
 func (s *runCmdTestSuite) TestHTTPCommandInvalidAddress() {
-	s.rootCmd.SetArgs([]string{"run", "-d", s.tempDir, "--wait-for-host", "http://local host"})
+	s.rootCmd.SetArgs([]string{"run", "-d", s.tempDir, "--" + waitForHostFlag, "http://local host"})
 	cmd, err := s.rootCmd.ExecuteContextC(context.Background())
 
 	s.Equal("run", cmd.Name())
@@ -111,27 +112,139 @@ func (s *runCmdTestSuite) TestHTTPCommandInvalidAddress() {
 }
 
 func (s *runCmdTestSuite) TestHTTPConnectionSuccess() {
-	s.rootCmd.SetArgs([]string{"run", "--cloud", "-d", s.tempDir, "--wait-for-host", s.testHTTPServer.URL})
+	s.rootCmd.SetArgs([]string{"run", "--" + cloudFlag, "-d", s.tempDir, "--" + waitForHostFlag, s.testHTTPServer.URL})
 	_, err := s.rootCmd.ExecuteContextC(context.Background())
 
 	s.Require().NoError(err)
 }
 
 func (s *runCmdTestSuite) TestHTTPConnectionFail() {
-	s.rootCmd.SetArgs([]string{"run", "--cloud", "-d", s.tempDir, "--wait-for-timeout", "2s", "--wait-for-host", "http://not-exists-doomain.tld"})
+	s.rootCmd.SetArgs([]string{"run", "--" + cloudFlag, "-d", s.tempDir, "--" + waitForTimeoutFlag, "2s", "--" + waitForHostFlag, "http://not-exists-doomain.tld"})
 	_, err := s.rootCmd.ExecuteContextC(context.Background())
 
 	s.Equal(context.DeadlineExceeded, err)
 }
 
-// func TestHTTPRequestHeaderSuccess(t *testing.T) {
 func (s *runCmdTestSuite) TestHTTPRequestHeaderSuccess() {
 	s.rootCmd.SetArgs([]string{
-		"run", "--cloud", "-d", s.tempDir,
-		"--wait-for-host", s.testHTTPServer.URL,
-		"--wait-for-expect-body-regex", "(.*User-Agent=\\[Go-http-client/1.1\\].*)",
+		"run", "--" + cloudFlag, "-d", s.tempDir,
+		"--" + waitForHostFlag, s.testHTTPServer.URL,
+		"--" + waitForExpectBodyRegexFlag, `.*User-Agent=\[Go-http-client/1\.1\].*`,
 	})
 	_, err := s.rootCmd.ExecuteContextC(context.Background())
 
 	s.Require().NoError(err)
+}
+
+func (s *runCmdTestSuite) TestFlags() {
+	s.rootCmd.SetArgs([]string{
+		"run",
+		"--" + excludeFlag, "123456",
+		"--" + includeFlag, "789012",
+		"--" + includeTagsFlag, "^a-tag.*$",
+		"--" + dirFlag, "/foo/bar",
+		"--" + outputFlag, "github",
+		"--" + fileFlag, "out.out",
+		"--" + logFileFlag, "/path/to/log.log",
+		"--" + timeFlag,
+		"--" + showFailuresOnlyFlag,
+		"--" + connectTimeoutFlag, "4s",
+		"--" + readTimeoutFlag, "5s",
+		"--" + maxMarkerRetriesFlag, "6",
+		"--" + maxMarkerLogLinesFlag, "7",
+		"--" + waitForHostFlag, "https://some-host.com",
+		"--" + waitDelayFlag, "9s",
+		"--" + waitForTimeoutFlag, "10s",
+		"--" + waitForExpectStatusCodeFlag, "204",
+		"--" + waitForExpectBodyRegexFlag, "^some-body$",
+		"--" + waitForExpectBodyJsonFlag, `{"some": "attribute"}`,
+		"--" + waitForExpectBodyXpathFlag, "count(//p)",
+		"--" + waitForExpectHeaderFlag, "X-Some-Header",
+		"--" + waitForConnectionTimeoutFlag, "11s",
+		"--" + waitForInsecureSkipTlsVerifyFlag,
+		"--" + waitForNoRedirectFlag,
+		"--" + rateLimitFlag, "12s",
+		"--" + failFastFlag,
+	})
+	cmd, _ := s.rootCmd.ExecuteC()
+
+	exclude, err := cmd.Flags().GetString(excludeFlag)
+	s.NoError(err)
+	include, err := cmd.Flags().GetString(includeFlag)
+	s.NoError(err)
+	includeTags, err := cmd.Flags().GetString(includeTagsFlag)
+	s.NoError(err)
+	dir, err := cmd.Flags().GetString(dirFlag)
+	s.NoError(err)
+	output, err := cmd.Flags().GetString(outputFlag)
+	s.NoError(err)
+	file, err := cmd.Flags().GetString(fileFlag)
+	s.NoError(err)
+	logFile, err := cmd.Flags().GetString(logFileFlag)
+	s.NoError(err)
+	_time, err := cmd.Flags().GetBool(timeFlag)
+	s.NoError(err)
+	showFailuresOnly, err := cmd.Flags().GetBool(showFailuresOnlyFlag)
+	s.NoError(err)
+	connectTimeout, err := cmd.Flags().GetDuration(connectTimeoutFlag)
+	s.NoError(err)
+	readTimeout, err := cmd.Flags().GetDuration(readTimeoutFlag)
+	s.NoError(err)
+	maxMarkerRetries, err := cmd.Flags().GetInt(maxMarkerRetriesFlag)
+	s.NoError(err)
+	maxMarkerLogLines, err := cmd.Flags().GetInt(maxMarkerLogLinesFlag)
+	s.NoError(err)
+	waitForHost, err := cmd.Flags().GetString(waitForHostFlag)
+	s.NoError(err)
+	waitDelay, err := cmd.Flags().GetDuration(waitDelayFlag)
+	s.NoError(err)
+	waitForTimeout, err := cmd.Flags().GetDuration(waitForTimeoutFlag)
+	s.NoError(err)
+	waitForExpectStatusCode, err := cmd.Flags().GetInt(waitForExpectStatusCodeFlag)
+	s.NoError(err)
+	waitForExpectBodyRegex, err := cmd.Flags().GetString(waitForExpectBodyRegexFlag)
+	s.NoError(err)
+	waitForExpectBodyJson, err := cmd.Flags().GetString(waitForExpectBodyJsonFlag)
+	s.NoError(err)
+	waitForeExpectBodyXpath, err := cmd.Flags().GetString(waitForExpectBodyXpathFlag)
+	s.NoError(err)
+	waitForExpectHeader, err := cmd.Flags().GetString(waitForExpectHeaderFlag)
+	s.NoError(err)
+	waitForConnectionTimeout, err := cmd.Flags().GetDuration(waitForConnectionTimeoutFlag)
+	s.NoError(err)
+	waitForInsecureSkipTlsVerify, err := cmd.Flags().GetBool(waitForInsecureSkipTlsVerifyFlag)
+	s.NoError(err)
+	waitForNoRedirect, err := cmd.Flags().GetBool(waitForNoRedirectFlag)
+	s.NoError(err)
+	rateLimit, err := cmd.Flags().GetDuration(rateLimitFlag)
+	s.NoError(err)
+	failFast, err := cmd.Flags().GetBool(failFastFlag)
+	s.NoError(err)
+
+	s.Equal("123456", exclude)
+	s.Equal("789012", include)
+	s.Equal("^a-tag.*$", includeTags)
+	s.Equal("/foo/bar", dir)
+	s.Equal("github", output)
+	s.Equal("out.out", file)
+	s.Equal("/path/to/log.log", logFile)
+	s.Equal(true, _time)
+	s.Equal(true, showFailuresOnly)
+	s.Equal(4*time.Second, connectTimeout)
+	s.Equal(5*time.Second, readTimeout)
+	s.Equal(6, maxMarkerRetries)
+	s.Equal(7, maxMarkerLogLines)
+	s.Equal("https://some-host.com", waitForHost)
+	s.Equal(9*time.Second, waitDelay)
+	s.Equal(10*time.Second, waitForTimeout)
+	s.Equal(204, waitForExpectStatusCode)
+	s.Equal("^some-body$", waitForExpectBodyRegex)
+	s.Equal(`{"some": "attribute"}`, waitForExpectBodyJson)
+	s.Equal("count(//p)", waitForeExpectBodyXpath)
+	s.Equal("X-Some-Header", waitForExpectHeader)
+	s.Equal(11*time.Second, waitForConnectionTimeout)
+	s.Equal(true, waitForInsecureSkipTlsVerify)
+	s.Equal(true, waitForNoRedirect)
+	s.Equal(12*time.Second, rateLimit)
+	s.Equal(true, failFast)
 }
