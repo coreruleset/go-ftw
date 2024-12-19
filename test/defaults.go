@@ -81,11 +81,6 @@ func (i *Input) GetRawRequest() ([]byte, error) {
 		// if Encoded, first base64 decode, then dump
 		return base64.StdEncoding.DecodeString(i.EncodedRequest)
 	}
-	//nolint:staticcheck
-	if utils.IsNotEmpty(i.RAWRequest) {
-		//nolint:staticcheck
-		return []byte(i.RAWRequest), nil
-	}
 	return nil, nil
 }
 

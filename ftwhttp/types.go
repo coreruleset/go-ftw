@@ -75,7 +75,6 @@ type Request struct {
 	headers             Header
 	cookies             http.CookieJar
 	data                []byte
-	raw                 []byte
 	autoCompleteHeaders bool
 }
 

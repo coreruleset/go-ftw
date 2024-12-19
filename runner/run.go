@@ -318,14 +318,6 @@ func checkTestSanity(stage *schema.Stage) error {
 	if utils.IsNotEmpty(stage.Input.Data) && stage.Input.EncodedRequest != "" {
 		return errors.New("'data' and 'encoded_request' must not be set simultaneously")
 	}
-	//nolint:staticcheck
-	if utils.IsNotEmpty(stage.Input.Data) && stage.Input.RAWRequest != "" {
-		return errors.New("'data' and 'raw_request' must not be set simultaneously")
-	}
-	//nolint:staticcheck
-	if stage.Input.EncodedRequest != "" && stage.Input.RAWRequest != "" {
-		return errors.New("'encoded_request' and 'raw_request' must not be set simultaneously")
-	}
 	if len(stage.Output.Log.ExpectIds) != 1 && stage.Output.Isolated {
 		return errors.New("'isolated' is only valid if 'expected_ids' has exactly one entry")
 	}
@@ -410,28 +402,18 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 
 func getRequestFromTest(testInput test.Input) *ftwhttp.Request {
 	var req *ftwhttp.Request
-	// get raw request, if anything
-	raw, err := testInput.GetRawRequest()
-	if err != nil {
-		log.Error().Msgf("ftw/run: error getting raw data: %s\n", err.Error())
+
+	rline := &ftwhttp.RequestLine{
+		Method:  testInput.GetMethod(),
+		URI:     testInput.GetURI(),
+		Version: testInput.GetVersion(),
 	}
 
-	// If we use raw or encoded request, then we don't use other fields
-	if raw != nil {
-		req = ftwhttp.NewRawRequest(raw, *testInput.AutocompleteHeaders)
-	} else {
-		rline := &ftwhttp.RequestLine{
-			Method:  testInput.GetMethod(),
-			URI:     testInput.GetURI(),
-			Version: testInput.GetVersion(),
-		}
+	data := testInput.ParseData()
+	// create a new request
+	req = ftwhttp.NewRequest(rline, testInput.Headers,
+		data, *testInput.AutocompleteHeaders)
 
-		data := testInput.ParseData()
-		// create a new request
-		req = ftwhttp.NewRequest(rline, testInput.Headers,
-			data, *testInput.AutocompleteHeaders)
-
-	}
 	return req
 }
 

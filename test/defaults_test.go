@@ -4,7 +4,6 @@
 package test
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -57,34 +56,6 @@ func getTestExampleInput() *Input {
 	return &inputTest
 }
 
-func getRawInput() *Input {
-	destaddr := "192.168.0.1"
-	port := 8080
-	protocol := "http"
-
-	inputTest := Input{
-		DestAddr: &destaddr,
-		Port:     &port,
-		Protocol: &protocol,
-		RAWRequest: `GET / HTTP/1.0
-Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5
-Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.7
-Accept-Encoding: gzip,deflate
-Accept-Language: en-us,en;q=0.5
-Acunetix-Product: WVS/5.0 (Acunetix Web Vulnerability Scanner - EVALUATION)
-Connection: close
-Host: localhost
-Keep-Alive: 300
-Proxy-Connection: keep-alive
-User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; SV1; .NET CLR 2.0.50727)
-		`,
-		SaveCookie:          func() *bool { b := false; return &b }(),
-		AutocompleteHeaders: func() *bool { b := true; return &b }(),
-	}
-
-	return &inputTest
-}
-
 func (s *defaultsTestSuite) TestBasicGetters() {
 	input := getTestExampleInput()
 
@@ -100,8 +71,6 @@ func (s *defaultsTestSuite) TestBasicGetters() {
 	s.Equal("http", proto)
 	uri := input.GetURI()
 	s.Equal("/test", uri)
-	request, _ := input.GetRawRequest()
-	s.Equal([]byte("My Data\n"), request)
 }
 
 func (s *defaultsTestSuite) TestDefaultGetters() {
@@ -126,13 +95,4 @@ func (s *defaultsTestSuite) TestDefaultGetters() {
 	s.Equal("/", val)
 
 	s.Equal([]byte("My Data"), []byte(*inputDefaults.Data))
-}
-
-func (s *defaultsTestSuite) TestRaw() {
-	raw := getRawInput()
-
-	s.True(*raw.AutocompleteHeaders)
-
-	request, _ := raw.GetRawRequest()
-	s.NotEqual(2, bytes.Index(request, []byte("Acunetix")))
 }

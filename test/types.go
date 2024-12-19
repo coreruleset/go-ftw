@@ -108,11 +108,6 @@ func applySimpleOverrides(overrides *config.Overrides, input *Input) {
 	if overrides.EncodedRequest != nil {
 		input.EncodedRequest = *overrides.EncodedRequest
 	}
-
-	if overrides.RAWRequest != nil {
-		//nolint:staticcheck
-		input.RAWRequest = *overrides.RAWRequest
-	}
 }
 
 func applyHeadersOverride(overrides *config.Overrides, input *Input) {
