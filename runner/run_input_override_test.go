@@ -42,7 +42,6 @@ testoverride:
     {{ with .Protocol }}protocol: {{ . }}{{ end }}
     {{ with .Data }}data: {{ . }}{{ end }}
     {{ with .EncodedRequest }}encoded_request: {{ . }}{{ end }}
-    {{ with .RawRequest }}raw_request: {{ . }}{{ end }}
     {{ with .Headers }}
     headers:
       {{ with .Host }}Host: {{ . }}{{ end }}
@@ -89,9 +88,6 @@ var overrideConfigMap = map[string]interface{}{
 	},
 	"TestApplyInputOverrideEncodedRequest": map[string]interface{}{
 		"EncodedRequest": "overrideb64",
-	},
-	"TestApplyInputOverrideRAWRequest": map[string]interface{}{
-		"RawRequest": "overrideraw",
 	},
 	"TestApplyInputOverrideProtocol": map[string]interface{}{
 		"Protocol": "HTTP/1.1",
@@ -352,19 +348,4 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideEncodedRequest() {
 	test.ApplyInputOverrides(s.cfg, &testInput)
 	s.NoError(err, "Failed to apply input overrides")
 	s.Equal(overrideEncodedRequest, testInput.EncodedRequest, "`EncodedRequest` should have been overridden")
-}
-
-func (s *inputOverrideTestSuite) TestApplyInputOverrideRAWRequest() {
-	originalRAWRequest := "original"
-	overrideRAWRequest, err := getOverrideConfigValue("RawRequest")
-	s.Require().NoError(err, "cannot get override value")
-
-	testInput := test.Input{
-		RAWRequest: originalRAWRequest,
-	}
-
-	test.ApplyInputOverrides(s.cfg, &testInput)
-
-	//nolint:staticcheck
-	s.Equal(overrideRAWRequest, testInput.RAWRequest, "`RAWRequest` should have been overridden")
 }

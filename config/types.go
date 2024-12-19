@@ -85,7 +85,6 @@ type Overrides struct {
 	StopMagic               *bool   `yaml:"stop_magic" koanf:"stop_magic,omitempty"`
 	AutocompleteHeaders     *bool   `yaml:"autocomplete_headers" koanf:"autocomplete_headers,omitempty"`
 	EncodedRequest          *string `yaml:"encoded_request,omitempty" koanf:"encoded_request,omitempty"`
-	RAWRequest              *string `yaml:"raw_request,omitempty" koanf:"raw_request,omitempty"`
 	OverrideEmptyHostHeader *bool   `yaml:"override_empty_host_header,omitempty" koanf:"override_empty_host_header,omitempty"`
 }
 

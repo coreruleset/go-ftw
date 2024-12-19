@@ -85,11 +85,6 @@ testoverride:
   input:
     encoded_request: %s
 `,
-	"TestApplyInputOverrideRAWRequest": `---
-testoverride:
-  input:
-    raw_request: %s
-`,
 }
 
 var destinationMap = map[string]string{
@@ -430,37 +425,6 @@ func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
 
 	s.Equal("0", request.Headers().Get("Content-Length"), "Autocompletion should add 'Content-Length' header to POST requests")
 	s.Equal("close", request.Headers().Get("Connection"), "Autocompletion should add 'Connection: close' header")
-}
-
-func (s *runTestSuite) TestGetRawRequestFromTestWithAutocompleteHeaders() {
-	boolean := true
-	method := "POST"
-	input := test.Input{
-		AutocompleteHeaders: &boolean,
-		Method:              &method,
-		Headers:             ftwhttp.Header{},
-		DestAddr:            &s.dest.DestAddr,
-		Port:                &s.dest.Port,
-		Protocol:            &s.dest.Protocol,
-		RAWRequest:          "POST / HTTP/1.1\r\nHost: localhost\r\nUser-Agent: test\r\n\r\n",
-	}
-	request := getRequestFromTest(input)
-
-	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
-	s.Require().NoError(err)
-
-	dest := &ftwhttp.Destination{
-		DestAddr: input.GetDestAddr(),
-		Port:     input.GetPort(),
-		Protocol: input.GetProtocol(),
-	}
-	err = client.NewConnection(*dest)
-	s.Require().NoError(err)
-	_, err = client.Do(*request)
-	s.Require().NoError(err)
-
-	s.Equal("", request.Headers().Get("Content-Length"), "Raw requests should not be modified")
-	s.Equal("", request.Headers().Get("Connection"), "Raw requests should not be modified")
 }
 
 func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {

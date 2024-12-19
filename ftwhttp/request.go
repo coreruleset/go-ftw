@@ -31,17 +31,7 @@ func NewRequest(reqLine *RequestLine, h Header, data []byte, autocompleteHeaders
 		headers:             h.Clone(),
 		cookies:             nil,
 		data:                data,
-		raw:                 nil,
 		autoCompleteHeaders: autocompleteHeaders,
-	}
-	return r
-}
-
-// NewRawRequest creates a new request, an initial request line, and headers
-func NewRawRequest(raw []byte, b bool) *Request {
-	r := &Request{
-		raw:                 raw,
-		autoCompleteHeaders: b,
 	}
 	return r
 }
@@ -57,36 +47,15 @@ func (r Request) WithAutoCompleteHeaders() bool {
 }
 
 // SetData sets the data
-// You can use only one of raw, encoded or data.
+// You can use only one of encoded or data.
 func (r *Request) SetData(data []byte) error {
-	if utils.IsNotEmpty(r.raw) {
-		return errors.New("ftw/http: raw field is already present in this request")
-	}
 	r.data = data
-	return nil
-}
-
-// SetRawData sets the data using raw bytes
-//
-// When using raw data, no other checks will be done.
-// You are responsible of creating the request line, all the headers, and body.
-// You can use only one of raw or data.
-func (r *Request) SetRawData(raw []byte) error {
-	if utils.IsNotEmpty(r.data) {
-		return errors.New("ftw/http: data field is already present in this request")
-	}
-	r.raw = raw
 	return nil
 }
 
 // Data returns the data
 func (r Request) Data() []byte {
 	return r.data
-}
-
-// RawData returns the raw data
-func (r Request) RawData() []byte {
-	return r.raw
 }
 
 // Headers return request headers
@@ -121,84 +90,74 @@ func (r *Request) AddStandardHeaders() {
 	}
 }
 
-// isRaw is a helper that returns true if raw or encoded data
-func (r Request) isRaw() bool {
-	return utils.IsNotEmpty(r.raw)
-}
-
 // The request should be created with anything we want. We want to actually break HTTP.
 func BuildRequest(r *Request) ([]byte, error) {
 	var err error
 	var b bytes.Buffer
 	var data []byte
 
-	// Check if we need to create from all fields
-	if !r.isRaw() {
-		// Request line
-		_, err = fmt.Fprintf(&b, "%s", r.requestLine.ToString())
+	// Request line
+	_, err = fmt.Fprintf(&b, "%s", r.requestLine.ToString())
+	if err != nil {
+		return nil, err
+	}
+
+	// We need to add the remaining headers, unless "NoDefaults"
+	if utils.IsNotEmpty(r.data) && r.WithAutoCompleteHeaders() {
+		// If there is no Content-Type, then we add one
+		r.AddHeader(ContentTypeHeader, "application/x-www-form-urlencoded")
+		data, err = encodeDataParameters(r.headers, r.data)
 		if err != nil {
+			log.Info().Msgf("ftw/http: cannot encode data to: %q", r.data)
 			return nil, err
 		}
-
-		// We need to add the remaining headers, unless "NoDefaults"
-		if utils.IsNotEmpty(r.data) && r.WithAutoCompleteHeaders() {
-			// If there is no Content-Type, then we add one
-			r.AddHeader(ContentTypeHeader, "application/x-www-form-urlencoded")
-			data, err = encodeDataParameters(r.headers, r.data)
-			if err != nil {
-				log.Info().Msgf("ftw/http: cannot encode data to: %q", r.data)
-				return nil, err
-			}
-			err = r.SetData(data)
-			if err != nil {
-				log.Info().Msgf("ftw/http: cannot set data to: %q", r.data)
-				return nil, err
-			}
+		err = r.SetData(data)
+		if err != nil {
+			log.Info().Msgf("ftw/http: cannot set data to: %q", r.data)
+			return nil, err
 		}
+	}
 
-		// Multipart form data needs to end in \r\n, per RFC (and modsecurity make a scene if not)
-		if ct := r.headers.Value(ContentTypeHeader); strings.HasPrefix(ct, "multipart/form-data;") {
-			crlf := []byte("\r\n")
-			lf := []byte("\n")
-			log.Debug().Msgf("ftw/http: with LF only - %d bytes:\n%x\n", len(r.data), r.data)
-			data = bytes.ReplaceAll(r.data, lf, crlf)
-			log.Debug().Msgf("ftw/http: with CRLF - %d bytes:\n%x\n", len(data), data)
-			r.data = data
-		}
+	// Multipart form data needs to end in \r\n, per RFC (and modsecurity make a scene if not)
+	if ct := r.headers.Value(ContentTypeHeader); strings.HasPrefix(ct, "multipart/form-data;") {
+		crlf := []byte("\r\n")
+		lf := []byte("\n")
+		log.Debug().Msgf("ftw/http: with LF only - %d bytes:\n%x\n", len(r.data), r.data)
+		data = bytes.ReplaceAll(r.data, lf, crlf)
+		log.Debug().Msgf("ftw/http: with CRLF - %d bytes:\n%x\n", len(data), data)
+		r.data = data
+	}
 
-		if r.WithAutoCompleteHeaders() {
-			r.AddStandardHeaders()
-		}
+	if r.WithAutoCompleteHeaders() {
+		r.AddStandardHeaders()
+	}
 
-		_, err := r.Headers().WriteBytes(&b)
+	_, err = r.Headers().WriteBytes(&b)
+	if err != nil {
+		log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
+		return nil, err
+	}
+
+	// TODO: handle cookies
+	// if client.Jar != nil {
+	// 	for _, cookie := range client.Jar.Cookies(req.URL) {
+	// 		req.AddCookie(cookie)
+	// 	}
+	// }
+
+	// After headers, we need one blank line
+	_, err = fmt.Fprintf(&b, "\r\n")
+	if err != nil {
+		log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
+		return nil, err
+	}
+	// Now the body, if anything
+	if utils.IsNotEmpty(r.data) {
+		_, err = fmt.Fprintf(&b, "%s", r.data)
 		if err != nil {
 			log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
 			return nil, err
 		}
-
-		// TODO: handle cookies
-		// if client.Jar != nil {
-		// 	for _, cookie := range client.Jar.Cookies(req.URL) {
-		// 		req.AddCookie(cookie)
-		// 	}
-		// }
-
-		// After headers, we need one blank line
-		_, err = fmt.Fprintf(&b, "\r\n")
-		if err != nil {
-			log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
-			return nil, err
-		}
-		// Now the body, if anything
-		if utils.IsNotEmpty(r.data) {
-			_, err = fmt.Fprintf(&b, "%s", r.data)
-			if err != nil {
-				log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
-				return nil, err
-			}
-		}
-	} else {
-		dumpRawData(&b, r.raw)
 	}
 
 	return b.Bytes(), err
@@ -255,8 +214,4 @@ func encodeDataParameters(h Header, data []byte) ([]byte, error) {
 		}
 	}
 	return data, err
-}
-
-func dumpRawData(b *bytes.Buffer, raw []byte) {
-	fmt.Fprintf(b, "%s", raw)
 }
