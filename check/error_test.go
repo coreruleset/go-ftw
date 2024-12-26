@@ -42,7 +42,7 @@ func (s *checkErrorTestSuite) SetupTest() {
 	var err error
 	s.cfg = config.NewDefaultConfig()
 
-	logName, err := utils.CreateTempFileWithContent(logText, "test-*.log")
+	logName, err := utils.CreateTempFileWithContent("", logText, "test-*.log")
 	s.Require().NoError(err)
 	s.cfg.WithLogfile(logName)
 }

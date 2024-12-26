@@ -56,7 +56,7 @@ func TestFilesTestSuite(t *testing.T) {
 }
 
 func (s *filesTestSuite) TestGetTestFromYAML() {
-	filename, _ := utils.CreateTempFileWithContent(yamlTest, "test-yaml-*")
+	filename, _ := utils.CreateTempFileWithContent("", yamlTest, "test-yaml-*")
 	tests, _ := GetTestsFromFiles(filename)
 
 	for _, ft := range tests {
@@ -72,7 +72,7 @@ func (s *filesTestSuite) TestGetTestFromYAML() {
 }
 
 func (s *filesTestSuite) TestGetFromBadYAML() {
-	filename, _ := utils.CreateTempFileWithContent(wrongYamlTest, "test-yaml-*")
+	filename, _ := utils.CreateTempFileWithContent("", wrongYamlTest, "test-yaml-*")
 	_, err := GetTestsFromFiles(filename)
 
 	s.Error(err, "reading yaml should fail")

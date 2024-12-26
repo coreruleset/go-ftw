@@ -110,7 +110,7 @@ func (s *runCloudTestSuite) newTestCloudServer() {
 
 func (s *runCloudTestSuite) TestCloudRun() {
 	s.Run("don't show time and execute all", func() {
-		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 			ShowTime: true,
 			Output:   output.Quiet,
 		}, s.out)

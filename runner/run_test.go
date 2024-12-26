@@ -263,7 +263,7 @@ func TestRunTestsTestSuite(t *testing.T) {
 
 func (s *runTestSuite) TestRunTests_Run() {
 	s.Run("show time and execute all", func() {
-		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 			ShowTime: true,
 			Output:   output.Quiet,
 		}, s.out)
@@ -272,7 +272,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("be verbose and execute all", func() {
-		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 			Include:  regexp.MustCompile("0*"),
 			ShowTime: true,
 		}, s.out)
@@ -283,7 +283,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("don't show time and execute all", func() {
-		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 			Include: regexp.MustCompile("0*"),
 		}, s.out)
 		s.Require().NoError(err)
@@ -293,7 +293,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("execute only test 8 but exclude all", func() {
-		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 			Include: regexp.MustCompile("-8$"), // test ID is matched in format `<ruleId>-<testId>`
 			Exclude: regexp.MustCompile("0*"),
 		}, s.out)
@@ -304,7 +304,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("exclude test 10", func() {
-		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 			Exclude: regexp.MustCompile("-10$"), // test ID is matched in format `<ruleId>-<testId>`
 		}, s.out)
 		s.Require().NoError(err)
@@ -314,7 +314,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("count tests tagged with `tag-10`", func() {
-		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 			IncludeTags: regexp.MustCompile("^tag-10$"),
 		}, s.out)
 		s.Require().NoError(err)
@@ -323,7 +323,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("count tests tagged with `tag-8` and `tag-10`", func() {
-		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 			IncludeTags: regexp.MustCompile("^tag-8$|^tag-10$"),
 		}, s.out)
 		s.Require().NoError(err)
@@ -332,7 +332,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("test exceptions 1", func() {
-		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 			Include: regexp.MustCompile("-1.*"),
 			Exclude: regexp.MustCompile("-0.*"),
 			Output:  output.Quiet,
@@ -346,7 +346,7 @@ func (s *runTestSuite) TestRunTests_Run() {
 
 func (s *runTestSuite) TestRunMultipleMatches() {
 	s.Run("execute multiple...test", func() {
-		res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 			Output: output.Quiet,
 		}, s.out)
 		s.Require().NoError(err)
@@ -355,7 +355,7 @@ func (s *runTestSuite) TestRunMultipleMatches() {
 }
 
 func (s *runTestSuite) TestOverrideRun() {
-	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 		Output: output.Quiet,
 	}, s.out)
 	s.Require().NoError(err)
@@ -364,32 +364,32 @@ func (s *runTestSuite) TestOverrideRun() {
 
 func (s *runTestSuite) TestBrokenOverrideRun() {
 	// the test should succeed, despite the unknown override property
-	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
+	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
 	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestBrokenPortOverrideRun() {
 	// the test should succeed, despite the unknown override property
-	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
+	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
 	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestLogsRun() {
-	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
+	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
 	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestFailedTestsRun() {
-	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
+	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
 	s.Require().NoError(err)
 	s.Equal(1, res.Stats.TotalFailed())
 }
 
 func (s *runTestSuite) TestIgnoredTestsRun() {
-	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{}, s.out)
+	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
 	s.Require().NoError(err)
 	s.Equal(1, len(res.Stats.ForcedPass), "Oops, unexpected number of forced pass tests")
 	s.Equal(1, len(res.Stats.Failed), "Oops, unexpected number of failed tests")
@@ -507,7 +507,7 @@ func (s *runTestSuite) TestRetryOnce() {
 	}
 
 	s.ts.Config.Handler = http.HandlerFunc(handler)
-	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{
+	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
 		Output: output.Quiet,
 	}, s.out)
 	s.Require().NoError(err)
@@ -517,7 +517,7 @@ func (s *runTestSuite) TestRetryOnce() {
 func (s *runTestSuite) TestFailFast() {
 	s.Equal(3, len(s.ftwTests[0].Tests))
 
-	res, err := Run(s.cfg, s.ftwTests, RunnerConfig{FailFast: true}, s.out)
+	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{FailFast: true}, s.out)
 	s.Require().NoError(err)
 	s.Equal(1, res.Stats.TotalFailed(), "Oops, test run failed!")
 	s.Equal(2, res.Stats.Run)

@@ -90,18 +90,47 @@ func NewRunCommand() *cobra.Command {
 	return runCmd
 }
 
-//gocyclo:ignore
 func runE(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
+	runnerConfig, err := buildRunnerConfig(cmd)
+	if err != nil {
+		return err
+	}
+	out, err := buildOutput(cmd)
+	if err != nil {
+		return err
+	}
+
+	dir, _ := cmd.Flags().GetString(dirFlag)
+	files := fmt.Sprintf("%s/**/*.yaml", dir)
+	tests, err := test.GetTestsFromFiles(files)
+	if err != nil {
+		return err
+	}
+
+	_ = out.Println("%s", out.Message("** Starting tests!"))
+
+	currentRun, err := runner.Run(cfg, tests, runnerConfig, out)
+
+	if err != nil {
+		return err
+	}
+
+	if currentRun.Stats.TotalFailed() > 0 {
+		return fmt.Errorf("failed %d tests", currentRun.Stats.TotalFailed())
+	}
+
+	return nil
+}
+
+//gocyclo:ignore
+func buildRunnerConfig(cmd *cobra.Command) (*runner.RunnerConfig, error) {
 	exclude, _ := cmd.Flags().GetString(excludeFlag)
 	include, _ := cmd.Flags().GetString(includeFlag)
 	includeTags, _ := cmd.Flags().GetString(includeTagsFlag)
-	dir, _ := cmd.Flags().GetString(dirFlag)
-	outputFilename, _ := cmd.Flags().GetString(fileFlag)
 	logFilePath, _ := cmd.Flags().GetString(logFileFlag)
 	showTime, _ := cmd.Flags().GetBool(timeFlag)
 	showOnlyFailed, _ := cmd.Flags().GetBool(showFailuresOnlyFlag)
-	wantedOutput, _ := cmd.Flags().GetString(outputFlag)
 	connectTimeout, _ := cmd.Flags().GetDuration(connectTimeoutFlag)
 	readTimeout, _ := cmd.Flags().GetDuration(readTimeoutFlag)
 	maxMarkerRetries, _ := cmd.Flags().GetUint(maxMarkerRetriesFlag)
@@ -123,7 +152,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 
 	if exclude != "" && include != "" {
 		cmd.SilenceUsage = false
-		return fmt.Errorf("you need to choose one: use --%s (%s) or --%s (%s)", includeFlag, include, excludeFlag, exclude)
+		return nil, fmt.Errorf("you need to choose one: use --%s (%s) or --%s (%s)", includeFlag, include, excludeFlag, exclude)
 	}
 	if maxMarkerRetries != 0 {
 		cfg.WithMaxMarkerRetries(maxMarkerRetries)
@@ -135,37 +164,37 @@ func runE(cmd *cobra.Command, _ []string) error {
 		cfg.LogFile = logFilePath
 	}
 
-	files := fmt.Sprintf("%s/**/*.yaml", dir)
-	tests, err := test.GetTestsFromFiles(files)
-
-	if err != nil {
-		return err
-	}
-
-	var includeRE *regexp.Regexp
+	var err error
+	var includeRegex *regexp.Regexp
 	if include != "" {
-		if includeRE, err = regexp.Compile(include); err != nil {
-			return fmt.Errorf("invalid --%s regular expression: %w", includeFlag, err)
+		if includeRegex, err = regexp.Compile(include); err != nil {
+			return nil, fmt.Errorf("invalid --%s regular expression: %w", includeFlag, err)
 		}
+	} else if cfg.IncludeTests != nil {
+		includeRegex = (*regexp.Regexp)(cfg.IncludeTests)
 	}
-	var excludeRE *regexp.Regexp
+	var excludeRegex *regexp.Regexp
 	if exclude != "" {
-		if excludeRE, err = regexp.Compile(exclude); err != nil {
-			return fmt.Errorf("invalid --%s regular expression: %w", excludeFlag, err)
+		if excludeRegex, err = regexp.Compile(exclude); err != nil {
+			return nil, fmt.Errorf("invalid --%s regular expression: %w", excludeFlag, err)
 		}
+	} else if cfg.ExcludeTests != nil {
+		excludeRegex = (*regexp.Regexp)(cfg.ExcludeTests)
 	}
-	var includeTagsRE *regexp.Regexp
+	var includeTagsRegex *regexp.Regexp
 	if includeTags != "" {
-		if includeTagsRE, err = regexp.Compile(includeTags); err != nil {
-			return fmt.Errorf("invalid --%s regular expression: %w", includeTagsFlag, err)
+		if includeTagsRegex, err = regexp.Compile(includeTags); err != nil {
+			return nil, fmt.Errorf("invalid --%s regular expression: %w", includeTagsFlag, err)
 		}
+	} else if cfg.IncludeTags != nil {
+		includeTagsRegex = (*regexp.Regexp)(cfg.IncludeTags)
 	}
 
 	// Add wait4x checkers
 	if waitForHost != "" {
 		_, err := url.Parse(waitForHost)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		hc := http.New(waitForHost,
@@ -189,39 +218,36 @@ func runE(cmd *cobra.Command, _ []string) error {
 			waiter.WithLogger(Logger),
 		)
 		if waiterErr != nil {
-			return waiterErr
+			return nil, waiterErr
 		}
 	}
-	// use outputFile to write to file
-	var outputFile *os.File
-	if outputFilename == "" {
-		outputFile = os.Stdout
-	} else {
-		outputFile, err = os.Open(outputFilename)
-		if err != nil {
-			return err
-		}
-	}
-	out := output.NewOutput(wantedOutput, outputFile)
-	_ = out.Println("%s", out.Message("** Starting tests!"))
-
-	currentRun, err := runner.Run(cfg, tests, runner.RunnerConfig{
-		Include:        includeRE,
-		Exclude:        excludeRE,
-		IncludeTags:    includeTagsRE,
+	return &runner.RunnerConfig{
+		Include:        includeRegex,
+		Exclude:        excludeRegex,
+		IncludeTags:    includeTagsRegex,
 		ShowTime:       showTime,
 		ShowOnlyFailed: showOnlyFailed,
 		ConnectTimeout: connectTimeout,
 		ReadTimeout:    readTimeout,
 		RateLimit:      rateLimit,
 		FailFast:       failFast,
-	}, out)
+	}, nil
+}
 
-	if err != nil {
-		return err
+func buildOutput(cmd *cobra.Command) (*output.Output, error) {
+	outputFilename, _ := cmd.Flags().GetString(fileFlag)
+	wantedOutput, _ := cmd.Flags().GetString(outputFlag)
+
+	// use outputFile to write to file
+	var outputFile *os.File
+	var err error
+	if outputFilename == "" {
+		outputFile = os.Stdout
+	} else {
+		outputFile, err = os.Open(outputFilename)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if currentRun.Stats.TotalFailed() > 0 {
-		return fmt.Errorf("failed %d tests", currentRun.Stats.TotalFailed())
-	}
-	return nil
+	return output.NewOutput(wantedOutput, outputFile), nil
 }

@@ -21,7 +21,7 @@ func TestFilesTestSuite(t *testing.T) {
 }
 
 func (s *testFilesTestSuite) TestCreateTempFile() {
-	filename, err := CreateTempFileWithContent(content, "test-content-*")
+	filename, err := CreateTempFileWithContent("", content, "test-content-*")
 	// Remember to clean up the file afterwards
 	defer os.Remove(filename)
 
@@ -29,7 +29,7 @@ func (s *testFilesTestSuite) TestCreateTempFile() {
 }
 
 func (s *testFilesTestSuite) TestCreateBadTempFile() {
-	filename, err := CreateTempFileWithContent(content, "/dev/null/*")
+	filename, err := CreateTempFileWithContent("", content, "/dev/null/*")
 	// Remember to clean up the file afterwards
 	defer os.Remove(filename)
 
