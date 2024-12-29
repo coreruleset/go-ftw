@@ -16,12 +16,9 @@ import (
 var testData = map[string]string{
 	"TestNewConfigFromFile": `---
 logfile: 'tests/logs/modsec2-apache/apache2/error.log'
-include:
-    '^9.*': 'Include all tests starting with 9'
-exclude:
-    '^920400-2$': 'Exclude this test'
-include_tags:
-    '^cookie$': 'Run test tagged with this label'
+include: '^9.*'
+exclude: '^920400-2$'
+include_tags: '^cookie$'
 testoverride:
   input:
     dest_addr: 'httpbingo.org'
@@ -70,7 +67,7 @@ func (s *envTestSuite) SetupTest() {
 
 func (s *fileTestSuite) BeforeTest(_, name string) {
 	var err error
-	s.filename, _ = utils.CreateTempFileWithContent(testData[name], "test-*.yaml")
+	s.filename, _ = utils.CreateTempFileWithContent("", testData[name], "test-*.yaml")
 	s.cfg, err = NewConfigFromFile(s.filename)
 	s.Require().NoError(err)
 	s.NotNil(s.cfg)
@@ -113,7 +110,7 @@ func (s *baseTestSuite) TestNewDefaultConfig() {
 }
 
 func (s *fileTestSuite) TestNewConfigBadFileConfig() {
-	filename, _ := utils.CreateTempFileWithContent(testData["jsonConfig"], "test-*.yaml")
+	filename, _ := utils.CreateTempFileWithContent("", testData["jsonConfig"], "test-*.yaml")
 	defer func(name string) {
 		err := os.Remove(name)
 		if err != nil {
@@ -126,13 +123,13 @@ func (s *fileTestSuite) TestNewConfigBadFileConfig() {
 }
 
 func (s *fileTestSuite) TestNewConfigFromFile() {
-	s.NotEmpty(s.cfg.IncludeTests, "Include list must not be empty")
+	s.NotEmpty(s.cfg.IncludeTests, "Include regex must not be empty")
+	s.NotEmpty(s.cfg.ExcludeTests, "Exclude regex must not be empty")
 	s.NotEmpty(s.cfg.TestOverride.Overrides, "Ignore list must not be empty")
 
-	for id, text := range s.cfg.IncludeTests {
-		s.Require().Contains((*regexp.Regexp)(id).String(), "^9.*", "Looks like we could not find item to include")
-		s.Require().Equal("Include all tests starting with 9", text, "Text doesn't match")
-	}
+	s.Require().Contains((*regexp.Regexp)(s.cfg.IncludeTests).String(), "^9.*", "Looks like we could not find item to include")
+	s.Require().Contains((*regexp.Regexp)(s.cfg.ExcludeTests).String(), "^920400-2$", "Looks like we could not find item to exclude")
+
 	for id, text := range s.cfg.TestOverride.Ignore {
 		s.Contains((*regexp.Regexp)(id).String(), "920400-1$", "Looks like we could not find item to ignore")
 		s.Equal("This test result must be ignored", text, "Text doesn't match")

@@ -44,12 +44,12 @@ type FTWConfiguration struct {
 	MaxMarkerRetries uint `koanf:"maxmarkerretries"`
 	// MaxMarkerLogLines is the maximum number of lines to search for a marker before aborting
 	MaxMarkerLogLines uint `koanf:"maxmarkerloglines"`
-	// IncludeTests is a list of tests to include (same as --include)
-	IncludeTests map[*FTWRegexp]string `koanf:"include"`
-	// ExcludeTests is a list of tests to exclude (same as --exclude)
-	ExcludeTests map[*FTWRegexp]string `koanf:"exclude"`
-	// IncludeTags is a list of tags matching tests to run (same as --tag)
-	IncludeTags map[*FTWRegexp]string `koanf:"include_tags"`
+	// IncludeTests is a regular expression for tests to include, matched against the rule ID (same as --include)
+	IncludeTests *FTWRegexp `koanf:"include"`
+	// ExcludeTests is a regular expression for tests to exclude, matched against the rule ID (same as --exclude)
+	ExcludeTests *FTWRegexp `koanf:"exclude"`
+	// IncludeTags is a regular expression for tests to include, matched aginst the tags of tests (same as --tag)
+	IncludeTags *FTWRegexp `koanf:"include_tags"`
 }
 
 type PlatformOverrides struct {

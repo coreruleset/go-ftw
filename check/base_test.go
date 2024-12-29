@@ -42,7 +42,7 @@ func (s *checkBaseTestSuite) BeforeTest(_, name string) {
 	var logName string
 	s.cfg, err = config.NewConfigFromString(configMap[name])
 	s.Require().NoError(err)
-	logName, err = utils.CreateTempFileWithContent(logText, "test-*.log")
+	logName, err = utils.CreateTempFileWithContent("", logText, "test-*.log")
 	s.Require().NoError(err)
 	s.cfg.WithLogfile(logName)
 }

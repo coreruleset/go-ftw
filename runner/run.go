@@ -23,7 +23,7 @@ import (
 )
 
 // Run runs your tests with the specified Config.
-func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c RunnerConfig, out *output.Output) (*TestRunContext, error) {
+func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c *RunnerConfig, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
 
 	logLines, err := waflog.NewFTWLogLines(cfg)
@@ -48,7 +48,7 @@ func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c RunnerConfig, ou
 
 	runContext := &TestRunContext{
 		Config:         cfg,
-		RunnerConfig:   &c,
+		RunnerConfig:   c,
 		Include:        c.Include,
 		Exclude:        c.Exclude,
 		IncludeTags:    c.IncludeTags,

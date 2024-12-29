@@ -6,8 +6,9 @@ package check
 import (
 	"testing"
 
-	"github.com/stretchr/testify/suite"
 	"slices"
+
+	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/utils"
@@ -21,7 +22,7 @@ type checkStatusTestSuite struct {
 func (s *checkStatusTestSuite) SetupTest() {
 	var err error
 	s.cfg = config.NewDefaultConfig()
-	logName, err := utils.CreateTempFileWithContent(logText, "test-*.log")
+	logName, err := utils.CreateTempFileWithContent("", logText, "test-*.log")
 	s.Require().NoError(err)
 	s.cfg.WithLogfile(logName)
 }

@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/fs"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -67,11 +67,10 @@ func (s *runCmdTestSuite) setupMockHTTPServer() *httptest.Server {
 }
 
 func (s *runCmdTestSuite) SetupTest() {
+	// This directory will be cleaned up automatically after the test completes
 	s.tempDir = s.T().TempDir()
 
 	s.testHTTPServer = s.setupMockHTTPServer()
-	err := os.MkdirAll(s.tempDir, fs.ModePerm)
-	s.Require().NoError(err)
 	testUrl, err := url.Parse(s.testHTTPServer.URL)
 	s.Require().NoError(err)
 	port, err := strconv.Atoi(testUrl.Port())
@@ -93,8 +92,6 @@ func (s *runCmdTestSuite) SetupTest() {
 }
 
 func (s *runCmdTestSuite) TearDownTest() {
-	err := os.RemoveAll(s.tempDir)
-	s.Require().NoError(err)
 	s.testHTTPServer.Close()
 }
 
@@ -247,4 +244,157 @@ func (s *runCmdTestSuite) TestFlags() {
 	s.Equal(true, waitForNoRedirect)
 	s.Equal(12*time.Second, rateLimit)
 	s.Equal(true, failFast)
+}
+
+func (s *runCmdTestSuite) TestGlobalInclude() {
+	configYaml := `---
+include: '^9.*'
+`
+	configFile, err := os.CreateTemp(s.tempDir, "global-config-*.yaml")
+	s.Require().NoError(err)
+	_, err = io.WriteString(configFile, configYaml)
+	s.Require().NoError(err)
+	err = configFile.Close()
+	s.Require().NoError(err)
+
+	s.rootCmd.SetArgs([]string{
+		"run",
+		"--config", configFile.Name(),
+		"-d", s.tempDir,
+	})
+	cmd, _ := s.rootCmd.ExecuteC()
+
+	runnerConfig, err := buildRunnerConfig(cmd)
+	s.Require().NoError(err)
+
+	s.NotNil(runnerConfig.Include)
+	s.Equal("^9.*", runnerConfig.Include.String())
+}
+
+func (s *runCmdTestSuite) TestGlobalIncludeOverriddenByCmdLineFlag() {
+	configYaml := `---
+include: '^9.*'
+`
+	configFile, err := os.CreateTemp(s.tempDir, "global-config.yaml")
+	s.Require().NoError(err)
+	_, err = io.WriteString(configFile, configYaml)
+	s.Require().NoError(err)
+	err = configFile.Close()
+	s.Require().NoError(err)
+
+	s.rootCmd.SetArgs([]string{
+		"run",
+		"--config", configFile.Name(),
+		"-d", s.tempDir,
+		"--include", "^1.*",
+	})
+	cmd, _ := s.rootCmd.ExecuteC()
+
+	runnerConfig, err := buildRunnerConfig(cmd)
+	s.Require().NoError(err)
+
+	s.NotNil(runnerConfig.Include)
+	s.Equal("^1.*", runnerConfig.Include.String())
+}
+
+func (s *runCmdTestSuite) TestGlobalExclude() {
+	configYaml := `---
+exclude: '^9.*'
+`
+	configFile, err := os.CreateTemp(s.tempDir, "global-config.yaml")
+	s.Require().NoError(err)
+	_, err = io.WriteString(configFile, configYaml)
+	s.Require().NoError(err)
+	err = configFile.Close()
+	s.Require().NoError(err)
+
+	s.rootCmd.SetArgs([]string{
+		"run",
+		"--config", configFile.Name(),
+		"-d", s.tempDir,
+	})
+	cmd, _ := s.rootCmd.ExecuteC()
+
+	runnerConfig, err := buildRunnerConfig(cmd)
+	s.Require().NoError(err)
+
+	s.NotNil(runnerConfig.Exclude)
+	s.Equal("^9.*", runnerConfig.Exclude.String())
+}
+
+func (s *runCmdTestSuite) TestGlobalExcludeOverriddenByCmdLineFlag() {
+	configYaml := `---
+exclude: '^9.*'
+`
+	configFile, err := os.CreateTemp(s.tempDir, "global-config.yaml")
+	s.Require().NoError(err)
+	_, err = io.WriteString(configFile, configYaml)
+	s.Require().NoError(err)
+	err = configFile.Close()
+	s.Require().NoError(err)
+
+	s.rootCmd.SetArgs([]string{
+		"run",
+		"--config", configFile.Name(),
+		"-d", s.tempDir,
+		"--exclude", "^1.*",
+	})
+	cmd, _ := s.rootCmd.ExecuteC()
+
+	runnerConfig, err := buildRunnerConfig(cmd)
+	s.Require().NoError(err)
+
+	s.NotNil(runnerConfig.Exclude)
+	s.Equal("^1.*", runnerConfig.Exclude.String())
+}
+
+func (s *runCmdTestSuite) TestGlobalIncludeTags() {
+	configYaml := `---
+include_tags: '^springfield.*'
+`
+	configFile, err := os.CreateTemp(s.tempDir, "global-config.yaml")
+	s.Require().NoError(err)
+	_, err = io.WriteString(configFile, configYaml)
+	s.Require().NoError(err)
+	err = configFile.Close()
+	s.Require().NoError(err)
+
+	s.rootCmd.SetArgs([]string{
+		"run",
+		"--config", configFile.Name(),
+		"-d", s.tempDir,
+	})
+	cmd, _ := s.rootCmd.ExecuteC()
+
+	runnerConfig, err := buildRunnerConfig(cmd)
+	s.Require().NoError(err)
+
+	s.NotNil(runnerConfig.IncludeTags)
+	s.Equal("^springfield.*", runnerConfig.IncludeTags.String())
+}
+
+func (s *runCmdTestSuite) TestGlobalIncludeTagsOverriddenByCmdLineFlag() {
+	configYaml := `---
+include_tags: '^springfield.*'
+`
+	configFile, err := os.CreateTemp(s.tempDir, "global-config.yaml")
+	s.Require().NoError(err)
+	_, err = io.WriteString(configFile, configYaml)
+	s.Require().NoError(err)
+	err = configFile.Close()
+	s.Require().NoError(err)
+
+	s.rootCmd.SetArgs([]string{
+		"run",
+		"--config", configFile.Name(),
+		"-d", s.tempDir,
+		"--include-tags", "^powerplant.*",
+	})
+	cmd, _ := s.rootCmd.ExecuteC()
+
+	runnerConfig, err := buildRunnerConfig(cmd)
+	s.Require().NoError(err)
+
+	s.NotNil(runnerConfig.IncludeTags)
+	s.Equal("^powerplant.*", runnerConfig.IncludeTags.String())
 }
