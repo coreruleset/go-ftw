@@ -43,20 +43,27 @@ type RunStats struct {
 	RunTime map[string]time.Duration `json:"runtime"`
 	// TotalTime is the duration over all runs, the sum of all individual run times.
 	TotalTime time.Duration
+	// TriggeredRules maps triggered rules to stages of tests
+	TriggeredRules map[string][][]uint `json:"triggered-rules"`
 }
+
+// type rulesByStage struct {
+// 	Stages map[uint][]uint `json:"stages"`
+// }
 
 // NewRunStats creates and initializes a new Stats struct.
 func NewRunStats() *RunStats {
 	return &RunStats{
-		Run:        0,
-		Success:    []string{},
-		Failed:     []string{},
-		Skipped:    []string{},
-		Ignored:    []string{},
-		ForcedPass: []string{},
-		ForcedFail: []string{},
-		RunTime:    make(map[string]time.Duration),
-		TotalTime:  0,
+		Run:            0,
+		Success:        []string{},
+		Failed:         []string{},
+		Skipped:        []string{},
+		Ignored:        []string{},
+		ForcedPass:     []string{},
+		ForcedFail:     []string{},
+		RunTime:        make(map[string]time.Duration),
+		TotalTime:      0,
+		TriggeredRules: make(map[string][][]uint),
 	}
 }
 
@@ -86,8 +93,10 @@ func (stats *RunStats) addResultToStats(result TestResult, testCase *schema.Test
 	}
 }
 
-func (stats *RunStats) addStageResultToStats(testCase *schema.Test, stageTime time.Duration) {
+func (stats *RunStats) addStageResultToStats(testCase *schema.Test, stageTime time.Duration, triggeredRules []uint) {
 	stats.RunTime[testCase.IdString()] += stageTime
+	byStage := stats.TriggeredRules[testCase.IdString()]
+	stats.TriggeredRules[testCase.IdString()] = append(byStage, triggeredRules)
 	stats.TotalTime += stageTime
 }
 
