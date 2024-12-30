@@ -5,6 +5,7 @@ package runner
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -601,4 +602,40 @@ func (s *runTestSuite) TestVirtualHostMode_True() {
 	request := buildMarkerRequest(context, input, uuid.NewString())
 
 	s.Equal("not-localhost_virtual-host", request.Headers().Get("Host"))
+}
+
+func (s *runTestSuite) TestGetRequestFromData() {
+	data := "This is Springfield"
+	boolean := true
+	method := "POST"
+	input := test.Input{
+		AutocompleteHeaders: &boolean,
+		Method:              &method,
+		Headers:             ftwhttp.Header{},
+		DestAddr:            &s.dest.DestAddr,
+		Port:                &s.dest.Port,
+		Protocol:            &s.dest.Protocol,
+		Data:                &data,
+	}
+	request := getRequestFromTest(input)
+
+	s.Equal(data, string(request.Data()))
+}
+
+func (s *runTestSuite) TestGetRequestFromEncodedData() {
+	data := base64.StdEncoding.EncodeToString([]byte("This is Springfield"))
+	boolean := true
+	method := "POST"
+	input := test.Input{
+		AutocompleteHeaders: &boolean,
+		Method:              &method,
+		Headers:             ftwhttp.Header{},
+		DestAddr:            &s.dest.DestAddr,
+		Port:                &s.dest.Port,
+		Protocol:            &s.dest.Protocol,
+		Data:                &data,
+	}
+	request := getRequestFromTest(input)
+
+	s.Equal(data, string(request.Data()))
 }
