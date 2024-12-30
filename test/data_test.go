@@ -82,8 +82,104 @@ uri: "/"
 	err := yaml.Unmarshal([]byte(yamlString), &input)
 
 	s.Require().NoError(err)
-	data = input.ParseData()
+	data = input.parseData()
 	s.Equal([]byte(repeatTestSprig), data)
 
 	s.True(*input.AutocompleteHeaders)
+}
+
+func (s *dataTestSuite) TestGetData_FromDataWithTemplate() {
+	yamlString := `
+dest_addr: "127.0.0.1"
+method: ""
+port: 80
+headers:
+User-Agent: "ModSecurity CRS 3 Tests"
+Host: "localhost"
+Content-Type: "application/x-www-form-urlencoded"
+data: 'foo=%3d{{ "+" | repeat 34 }}'
+version: ""
+protocol: "http"
+autocomplete_headers: true
+uri: "/"
+`
+	input := Input{}
+	var data []byte
+	err := yaml.Unmarshal([]byte(yamlString), &input)
+
+	s.Require().NoError(err)
+	data = input.GetData()
+	s.Equal([]byte(repeatTestSprig), data)
+
+	s.True(*input.AutocompleteHeaders)
+}
+
+func (s *dataTestSuite) TestGetData_FromData_InvalidTemplate() {
+	yamlString := `
+dest_addr: "127.0.0.1"
+method: ""
+port: 80
+headers:
+User-Agent: "ModSecurity CRS 3 Tests"
+Host: "localhost"
+Content-Type: "application/x-www-form-urlencoded"
+data: 'foo=%3d{{ "+" | repeat 34 }'
+version: ""
+protocol: "http"
+autocomplete_headers: true
+uri: "/"
+`
+	input := Input{}
+	var data []byte
+	err := yaml.Unmarshal([]byte(yamlString), &input)
+
+	s.Require().NoError(err)
+	data = input.GetData()
+	s.Nil(data)
+}
+
+func (s *dataTestSuite) TestGetData_FromEncodedData() {
+	yamlString := `
+dest_addr: "127.0.0.1"
+method: ""
+port: 80
+headers:
+User-Agent: "ModSecurity CRS 3 Tests"
+Host: "localhost"
+Content-Type: "application/x-www-form-urlencoded"
+encoded_data: VGhpcyBpcyBTcHJpbmdmaWVsZA==
+version: ""
+protocol: "http"
+uri: "/"
+`
+	input := Input{}
+	var data []byte
+	err := yaml.Unmarshal([]byte(yamlString), &input)
+
+	s.Require().NoError(err)
+	data = input.GetData()
+	s.Equal("This is Springfield", string(data))
+}
+
+func (s *dataTestSuite) TestGetData_FromEncodedData_InvalidEncoding() {
+	yamlString := `
+dest_addr: "127.0.0.1"
+method: ""
+port: 80
+headers:
+User-Agent: "ModSecurity CRS 3 Tests"
+Host: "localhost"
+Content-Type: "application/x-www-form-urlencoded"
+encoded_data: VGhpcyBpcyBTcHJpbmdmaWVsZA===
+version: ""
+protocol: "http"
+uri: "/"
+`
+	input := Input{}
+	var data []byte
+	err := yaml.Unmarshal([]byte(yamlString), &input)
+
+	s.Require().NoError(err)
+	data = input.GetData()
+	s.Nil(data)
 }
