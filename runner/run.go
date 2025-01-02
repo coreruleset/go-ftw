@@ -409,7 +409,7 @@ func getRequestFromTest(testInput test.Input) *ftwhttp.Request {
 		Version: testInput.GetVersion(),
 	}
 
-	data := testInput.ParseData()
+	data := testInput.GetData()
 	// create a new request
 	req = ftwhttp.NewRequest(rline, testInput.Headers,
 		data, *testInput.AutocompleteHeaders)
