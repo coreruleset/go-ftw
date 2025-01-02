@@ -165,11 +165,15 @@ func postLoadTest(ruleId uint, testId uint, test *schema.Test) {
 
 func postLoadStage(stage *schema.Stage) {
 	postLoadInput((*Input)(&stage.Input))
+	postLoadOutput((*Output)(&stage.Output))
 }
 
 func postLoadInput(input *Input) {
 	//nolint:staticcheck
 	postProcessAutocompleteHeaders(input.AutocompleteHeaders, input.StopMagic, input)
+}
+func postLoadOutput(output *Output) {
+	postProcessLogContains(output)
 }
 
 func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, input *Input) {
@@ -188,4 +192,18 @@ func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, 
 	// StopMagic has the inverse boolean logic
 	//nolint:staticcheck
 	input.StopMagic = func() *bool { b := !finalValue; return &b }()
+}
+
+func postProcessLogContains(output *Output) {
+	log := &output.Log
+	//nolint:staticcheck
+	if output.LogContains != "" && log.ExpectIds == nil && log.MatchRegex == "" {
+		//nolint:staticcheck
+		log.MatchRegex = output.LogContains
+	}
+	//nolint:staticcheck
+	if output.NoLogContains != "" && log.NoExpectIds == nil && log.NoMatchRegex == "" {
+		//nolint:staticcheck
+		log.NoMatchRegex = output.NoLogContains
+	}
 }
