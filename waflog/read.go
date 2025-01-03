@@ -20,6 +20,17 @@ const maxRuleIdsEstimate = 15
 
 var ruleIdsSet = make(map[uint]bool, maxRuleIdsEstimate)
 
+// These regexes provide flexibility in parsing how the rule ID is logged.
+//   - [id "999999"]
+//   - [id \"999999\"] (escaped quotes)
+//   - ["id":"999999"]
+//   - [\"id\":\"999999\"] (escaped quotes)
+var stdLogIdRegex = regexp.MustCompile(`\[(?:id |\\?"id\\?":)\\?"(\d+)\\?"\]`)
+
+// - {"id":4}
+// - {..., "id":4,..}
+var jsonLogIdRegex = regexp.MustCompile(`(?:\{|,)\s*"id":\s*(\d+)`)
+
 // TriggeredRules returns the IDs of all the rules found in the log for the current test
 func (ll *FTWLogLines) TriggeredRules() []uint {
 	if ll.triggeredRulesInitialized {
@@ -29,33 +40,28 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 
 	lines := ll.getMarkedLines()
 
-	// This regex provides flexibility in parsing how the rule ID is logged.
-	// `\[id \\?"(\d+)\\?"\]` supports:
-	//	- [id "999999"]
-	//	- [id \"999999\"] (escaped quotes)
-	// `"id":\s*"?(\d+)"?` supports:
-	//	- ["id":"999999"]
-	//	- {"id":4}
-	regex := regexp.MustCompile(`\[id \\?"(\d+)\\?"\]|"id":\s*"?(\d+)"?`)
 	for _, line := range lines {
 		log.Trace().Msgf("ftw/waflog: Looking for any rule in '%s'", line)
+		regex := stdLogIdRegex
 		match := regex.FindAllSubmatch(line, -1)
+		if match == nil {
+			regex = jsonLogIdRegex
+			match = regex.FindAllSubmatch(line, -1)
+		}
 		if match != nil {
 			log.Trace().Msgf("ftw/waflog: Found '%s' at '%s'", regex.String(), line)
 			for _, nextMatch := range match {
-				for index := 1; index <= 2; index++ {
-					submatchBytes := nextMatch[index]
-					if len(submatchBytes) == 0 {
-						continue
-					}
-					submatch := string(submatchBytes)
-					ruleId, err := strconv.ParseUint(submatch, 10, 0)
-					if err != nil {
-						log.Error().Caller().Msgf("Failed to parse uint from %s", submatch)
-						continue
-					}
-					ruleIdsSet[uint(ruleId)] = true
+				submatchBytes := nextMatch[1]
+				if len(submatchBytes) == 0 {
+					continue
 				}
+				submatch := string(submatchBytes)
+				ruleId, err := strconv.ParseUint(submatch, 10, 0)
+				if err != nil {
+					log.Error().Caller().Msgf("Failed to parse uint from %s", submatch)
+					continue
+				}
+				ruleIdsSet[uint(ruleId)] = true
 			}
 		}
 	}
