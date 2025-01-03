@@ -244,7 +244,7 @@ func buildOutput(cmd *cobra.Command) (*output.Output, error) {
 	if outputFilename == "" {
 		outputFile = os.Stdout
 	} else {
-		outputFile, err = os.Open(outputFilename)
+		outputFile, err = os.Create(outputFilename)
 		if err != nil {
 			return nil, err
 		}
