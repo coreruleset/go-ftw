@@ -369,10 +369,11 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 
 	stageID := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := "X-cRs-TeSt: " + stageID
-	logLines := fmt.Sprint("\n", markerLine,
-		`[id "1"] something else [id "2"]`,
-		`"id": 3, something else {"id":4},`,
-		`something else [id \"5\"]`+"\n",
+	logLines := fmt.Sprint("\n", markerLine, "\n",
+		`other stuff [id "1"] something else [id "2"]`, "\n",
+		`other stuff {"blah": "bort,"id": 3}, something else {"id":5},`, "\n",
+		`other stuff {"id": 6}, something else ["id":7],`, "\n",
+		`other stuff something else [id \"8\"]`, "\n",
 		"\n", markerLine)
 	filename, err := utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
 	s.Require().NoError(err)
@@ -388,10 +389,43 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 	ll.WithEndMarker([]byte(markerLine))
 
 	foundRuleIds := ll.TriggeredRules()
-	s.Len(foundRuleIds, 5)
+	s.Len(foundRuleIds, 6)
 	s.Contains(foundRuleIds, uint(1))
 	s.Contains(foundRuleIds, uint(2))
 	s.Contains(foundRuleIds, uint(3))
-	s.Contains(foundRuleIds, uint(4))
 	s.Contains(foundRuleIds, uint(5))
+	s.Contains(foundRuleIds, uint(6))
+	s.Contains(foundRuleIds, uint(8))
+}
+
+func (s *readTestSuite) TestFalsePositiveIds() {
+	cfg, err := config.NewConfigFromEnv()
+	s.Require().NoError(err)
+	s.NotNil(cfg)
+
+	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+	markerLine := "X-cRs-TeSt: " + stageID
+	logLines := fmt.Sprint("\n", markerLine,
+		`2025/01/02 12:19:00 [info] 117#117: *16117 ModSecurity: Warning. Matched "Operator `,
+		"`Rx' + with parameter `%u[4e00-9fa5]{3,}' against variable `TX:matched' (Value: `",
+		`{"anonym":0,"key":"","sn":"","id":"168838233072272454","from":4,"token":"bridge"}' ) [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf"] [line "973"] [id "942370"] [rev ""] [msg "Detects classic SQL injection probings 2/3"] [data "Matched Data: \x22:\x22\x22,\x22 found within TX:matched: {\x22anonym\x22:0,\x22key\x22:\x22\x22,\x22sn\x22:\x22\x22,\x22id\x22:\x22168838233072272454\x22,\x22from\x22:4,\x22token\x22:\x22bridge\x22}"] [severity "2"] [ver "OWASP_CRS/3.3.2"] [maturity "0"] [accuracy "0"] [tag "modsecurity"] [tag "modsecurity"] [tag "modsecurity"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-sqli"] [tag "OWASP_CRS"] [tag "capec/1000/152/248/66"] [tag "PCI/6.5.2"] [tag "paranoia-level/2"] [tag "CVE-2018-2380"] [tag "APP/SAP CRM"] [hostname "172.18.0.3"] [uri "/cps5/site/aust"] [unique_id "173582034044.678876"] [ref "o1,38v79,261t:urlDecodeUnio16,6v1542,81t:urlDecodeUnit:utf8toUnicode"], client: 172.18.0.1, server: localhost, request: "GET /cps5/site/aust?cb=jsonp_bridge_1688382331340_2474076564328216&op=0&s_info=%7B%22lang%22%3A%22zh-CN%22%2C%22cbit%22%3A24%2C%22rsl%22%3A%221920*1080%22%2C%22tz%22%3A%22UTC%2B8%3A0%22%2C%22xst%22%3A%22%22%2C%22referrer%22%3A%22https%253A%252F%252Fwww.baidu.com%252Flink%253Furl%253DPukzFxKXUAPWz2bGom-5-N5FroXNtyu0tc9pzXJz8ma%2526wd%253D%2526eqid%253Df68a4a19000c43c70000000464a2ab71%22%2C%22xstlink%22%3A%22http%253A%252F%252Fwww.authing.co%252F%22%7D&url=http%3A%2F%2Fwww.authing.co%2F&siteToken=fa8cc78cf376a0ce56fe3eeed5c06e5f&dev=0&ser=3&bst=1688382327210&AFDbiz=%7B%22ev%22%3A%22page_enter%22%2C%22customer%22%3A%2230208105%22%2C%22bid%22%3A%22168838233072272454%22%2C%22length%22%3A0%7D&AFDjt=31%24eyJrIj4iNyI0Iix5IkciQEZJSkZMR0lKSUxNUyJJIkFqIjwiNTs%2BPztBPD4%2FPkFCSCI%2BIjYzIlEiSlBTVFBWUTM0MzM3OCIzIit5IkYiQz9AIj4iOCJQIktHTklUIkoiaiI8IlQ%2Bd3VJS`,
+		"\n",
+		"\n", markerLine)
+	filename, err := utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
+	s.Require().NoError(err)
+	cfg.LogFile = filename
+	log, err := os.Open(filename)
+	s.T().Cleanup(func() { _ = log.Close })
+	s.Require().NoError(err)
+
+	ll := &FTWLogLines{
+		logFile:             log,
+		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
+	}
+	ll.WithStartMarker([]byte(markerLine))
+	ll.WithEndMarker([]byte(markerLine))
+
+	foundRuleIds := ll.TriggeredRules()
+	s.Len(foundRuleIds, 1)
+	s.Contains(foundRuleIds, uint(942370))
 }
