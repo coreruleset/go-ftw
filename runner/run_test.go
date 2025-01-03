@@ -639,3 +639,27 @@ func (s *runTestSuite) TestGetRequestFromEncodedData() {
 
 	s.Equal(data, string(request.Data()))
 }
+
+func (s *runTestSuite) TestTriggeredRules() {
+	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
+	s.Require().NoError(err)
+	triggeredRules := map[string][][]uint{
+		"123456-1": {{
+			920210,
+			920300,
+			949110,
+			980130,
+		}},
+		"123456-2": {{
+			920210,
+			920300,
+			949110,
+			980130,
+		}, {
+			920210,
+			920300,
+			949110,
+			980130,
+		}}}
+	s.Equal(triggeredRules, res.Stats.TriggeredRules, "Oops, triggered rules don't match expectation")
+}

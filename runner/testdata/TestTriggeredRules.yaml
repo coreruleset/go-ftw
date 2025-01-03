@@ -1,0 +1,39 @@
+---
+meta:
+  author: "tester"
+  description: "Example Test"
+rule_id: 123456
+tests:
+  - test_id: 1
+    description: "tests for verifying recording of triggered rules"
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "none.host"
+        output:
+          status: 413
+  - test_id: 2
+    description: "access real external site"
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "{{ .TestAddr }}"
+        output:
+          expect_error: False
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "{{ .TestAddr }}"
+        output:
+          expect_error: False

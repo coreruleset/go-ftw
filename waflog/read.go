@@ -69,6 +69,7 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 	for ruleId := range ruleIdsSet {
 		ruleIds = append(ruleIds, ruleId)
 	}
+	slices.Sort(ruleIds)
 	ll.triggeredRules = ruleIds
 	// Reset map for next use
 	for key := range ruleIdsSet {

@@ -88,6 +88,8 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 			runContext.Stats.addResultToStats(Skipped, &testCase)
 			continue
 		}
+		runContext.StartTest()
+
 		test.ApplyPlatformOverrides(runContext.Config, &testCase)
 		// this is just for printing once the next test
 		if changed && !runContext.ShowOnlyFailed {
@@ -116,7 +118,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 				}
 			}
 		}
-		runContext.Stats.addResultToStats(runContext.Result, &testCase)
+		runContext.EndTest(&testCase)
 		if runContext.RunnerConfig.FailFast && runContext.Stats.TotalFailed() > 0 {
 			break
 		}
@@ -133,7 +135,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 //
 //gocyclo:ignore
 func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase schema.Test, stage schema.Stage) error {
-	stageStartTime := time.Now()
+	runContext.StartStage()
 	stageId := uuid.NewString()
 	// Apply global overrides initially
 	testInput := (test.Input)(stage.Input)
@@ -152,7 +154,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	// Do not even run test if result is overridden. Directly set and display the overridden result.
 	if overridden := overriddenTestResult(ftwCheck, &testCase); overridden != Failed {
 		runContext.Result = overridden
-		displayResult(&testCase, runContext, overridden, time.Duration(0), time.Duration(0))
+		displayResult(&testCase, runContext, overridden, time.Duration(0))
 		return nil
 	}
 
@@ -208,14 +210,11 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	}
 
 	roundTripTime := runContext.Client.GetRoundTripTime().RoundTripDuration()
-	stageTime := time.Since(stageStartTime)
 
-	runContext.Result = testResult
+	runContext.EndStage(&testCase, testResult, ftwCheck.GetTriggeredRules())
 
 	// show the result unless quiet was passed in the command line
-	displayResult(&testCase, runContext, testResult, roundTripTime, stageTime)
-
-	runContext.Stats.addStageResultToStats(&testCase, stageTime)
+	displayResult(&testCase, runContext, testResult, roundTripTime)
 
 	return nil
 }
@@ -325,14 +324,14 @@ func checkTestSanity(stage *schema.Stage) error {
 	return nil
 }
 
-func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult, roundTripTime time.Duration, stageTime time.Duration) {
+func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult, roundTripTime time.Duration) {
 	switch result {
 	case Success:
 		if !rc.ShowOnlyFailed {
-			rc.Output.Println(rc.Output.Message("+ passed in %s (RTT %s)"), stageTime, roundTripTime)
+			rc.Output.Println(rc.Output.Message("+ passed in %s (RTT %s)"), rc.CurrentStageDuration, roundTripTime)
 		}
 	case Failed:
-		rc.Output.Println(rc.Output.Message("- %s failed in %s (RTT %s)"), testCase.IdString(), stageTime, roundTripTime)
+		rc.Output.Println(rc.Output.Message("- %s failed in %s (RTT %s)"), testCase.IdString(), rc.CurrentStageDuration, roundTripTime)
 	case Ignored:
 		if !rc.ShowOnlyFailed {
 			rc.Output.Println(rc.Output.Message(":information:test ignored"))

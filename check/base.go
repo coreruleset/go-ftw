@@ -112,6 +112,13 @@ func (c *FTWCheck) SetEndMarker(marker []byte) {
 	c.log.WithEndMarker(marker)
 }
 
+func (c *FTWCheck) GetTriggeredRules() []uint {
+	if c.CloudMode() {
+		return nil
+	}
+	return c.log.TriggeredRules()
+}
+
 func (c *FTWCheck) Close() error {
 	return c.log.Cleanup()
 }

@@ -49,6 +49,7 @@ const (
 	waitForInsecureSkipTlsVerifyFlag = "wait-for-insecure-skip-tls-verify"
 	waitForNoRedirectFlag            = "wait-for-no-redirect"
 	waitForTimeoutFlag               = "wait-for-timeout"
+	reportTriggeredRulesFlag         = "report-triggered-rules"
 )
 
 // NewRunCmd represents the run command
@@ -86,6 +87,7 @@ func NewRunCommand() *cobra.Command {
 	runCmd.Flags().Bool(waitForNoRedirectFlag, http.DefaultNoRedirect, "Do not follow HTTP 3xx redirects.")
 	runCmd.Flags().DurationP(rateLimitFlag, "r", 0, "Limit the request rate to the server to 1 request per specified duration. 0 is the default, and disables rate limiting.")
 	runCmd.Flags().Bool(failFastFlag, false, "Fail on first failed test")
+	runCmd.Flags().Bool(reportTriggeredRulesFlag, false, "Report triggered rules for each test")
 
 	return runCmd
 }
