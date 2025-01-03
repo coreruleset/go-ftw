@@ -111,11 +111,8 @@ func (h Header) WriteBytes(b *bytes.Buffer) (int, error) {
 	return count, nil
 }
 
-// Clone returns a copy of h or nil if h is nil.
+// Clone returns a copy of h
 func (h Header) Clone() Header {
-	if h == nil {
-		return nil
-	}
 	clone := make(Header)
 
 	for n, v := range h {

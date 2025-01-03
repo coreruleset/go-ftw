@@ -289,3 +289,17 @@ func (s *requestTestSuite) TestRequestEncodesPostData() {
 		})
 	}
 }
+
+func (s *requestTestSuite) TestNewRequest_EmptyHeaders() {
+	rl := &RequestLine{
+		Method:  "POST",
+		URI:     "/path",
+		Version: "1.1",
+	}
+
+	req := NewRequest(rl, nil, []byte{}, false)
+
+	headers := req.Headers()
+	s.NotNil(headers)
+	s.Empty(headers)
+}
