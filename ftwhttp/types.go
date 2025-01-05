@@ -76,6 +76,8 @@ type Request struct {
 	cookies             http.CookieJar
 	data                []byte
 	autoCompleteHeaders bool
+	isRaw               bool
+	rawRequest          []byte
 }
 
 // Response represents the http response received from the server/waf

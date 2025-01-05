@@ -1,0 +1,18 @@
+---
+meta:
+  author: "tester"
+  description: "Tests for verifying encoded_request"
+rule_id: 123456
+tests:
+  - test_id: 1
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "none.host"
+          encoded_request: "garbage"
+        output:
+          status: 200
