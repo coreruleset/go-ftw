@@ -4,12 +4,9 @@
 package test
 
 import (
-	"encoding/base64"
-
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 
 	"github.com/coreruleset/go-ftw/ftwhttp"
-	"github.com/coreruleset/go-ftw/utils"
 )
 
 type Input schema.Input
@@ -73,21 +70,4 @@ func (i *Input) GetHeaders() ftwhttp.Header {
 		return ftwhttp.Header{}
 	}
 	return ftwhttp.Header(i.Headers)
-}
-
-// GetRawRequest returns the proper raw data, and error if there was none
-func (i *Input) GetRawRequest() ([]byte, error) {
-	if utils.IsNotEmpty(i.EncodedRequest) {
-		// if Encoded, first base64 decode, then dump
-		return base64.StdEncoding.DecodeString(i.EncodedRequest)
-	}
-	return nil, nil
-}
-
-// GetAutocompleteHeaders returns the autocompleteHeaders value, defaults to true
-func (i *Input) GetAutocompleteHeaders() bool {
-	if i.AutocompleteHeaders == nil {
-		return true
-	}
-	return *i.AutocompleteHeaders
 }

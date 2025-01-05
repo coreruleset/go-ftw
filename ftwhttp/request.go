@@ -26,14 +26,22 @@ func (rl RequestLine) ToString() string {
 
 // NewRequest creates a new request, an initial request line, and headers
 func NewRequest(reqLine *RequestLine, h Header, data []byte, autocompleteHeaders bool) *Request {
-	r := &Request{
+	return &Request{
 		requestLine:         reqLine,
 		headers:             h.Clone(),
 		cookies:             nil,
 		data:                data,
 		autoCompleteHeaders: autocompleteHeaders,
+		isRaw:               false,
 	}
-	return r
+}
+
+// NewRawRequest creates a new request from raw data
+func NewRawRequest(data []byte) *Request {
+	return &Request{
+		rawRequest: data,
+		isRaw:      true,
+	}
 }
 
 // SetAutoCompleteHeaders sets the value to the corresponding bool

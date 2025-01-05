@@ -4,6 +4,7 @@
 package runner
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -158,8 +159,6 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 		return nil
 	}
 
-	var req *ftwhttp.Request
-
 	// Destination is needed for a request
 	dest := &ftwhttp.Destination{
 		DestAddr: testInput.GetDestAddr(),
@@ -175,9 +174,12 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 		ftwCheck.SetStartMarker(startMarker)
 	}
 
-	req = getRequestFromTest(testInput)
+	req, err := getRequestFromTest(testInput)
+	if err != nil {
+		return fmt.Errorf("failed to read request from test specification: %w", err)
+	}
 
-	err := runContext.Client.NewConnection(*dest)
+	err = runContext.Client.NewConnection(*dest)
 
 	if err != nil && !expectErr {
 		return fmt.Errorf("can't connect to destination %+v: %w", dest, err)
@@ -399,8 +401,14 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 	return Success
 }
 
-func getRequestFromTest(testInput test.Input) *ftwhttp.Request {
-	var req *ftwhttp.Request
+func getRequestFromTest(testInput test.Input) (*ftwhttp.Request, error) {
+	if utils.IsNotEmpty(testInput.EncodedRequest) {
+		data, err := base64.StdEncoding.DecodeString(testInput.EncodedRequest)
+		if err != nil {
+			return nil, err
+		}
+		return ftwhttp.NewRawRequest(data), nil
+	}
 
 	rline := &ftwhttp.RequestLine{
 		Method:  testInput.GetMethod(),
@@ -409,11 +417,8 @@ func getRequestFromTest(testInput test.Input) *ftwhttp.Request {
 	}
 
 	data := testInput.GetData()
-	// create a new request
-	req = ftwhttp.NewRequest(rline, testInput.Headers,
-		data, *testInput.AutocompleteHeaders)
-
-	return req
+	return ftwhttp.NewRequest(rline, testInput.Headers,
+		data, *testInput.AutocompleteHeaders), nil
 }
 
 func notRunningInCloudMode(c *check.FTWCheck) bool {

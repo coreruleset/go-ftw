@@ -84,9 +84,15 @@ func (c *Connection) receive() (io.Reader, error) {
 // Request will use all the inputs and send a raw http request to the destination
 func (c *Connection) Request(request *Request) error {
 	// Build request first, then connect and send, so timers are accurate
-	data, err := BuildRequest(request)
-	if err != nil {
-		return fmt.Errorf("ftw/http: fatal error building request: %w", err)
+	var data []byte
+	var err error
+	if request.isRaw {
+		data = request.rawRequest
+	} else {
+		data, err = BuildRequest(request)
+		if err != nil {
+			return fmt.Errorf("ftw/http: fatal error building request: %w", err)
+		}
 	}
 
 	log.Debug().Msgf("ftw/http: sending data:\n%s\n", data)

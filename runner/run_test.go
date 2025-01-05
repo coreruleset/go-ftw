@@ -24,6 +24,7 @@ import (
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/test"
+	"github.com/coreruleset/go-ftw/waflog"
 )
 
 var logText = `[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
@@ -233,8 +234,7 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	}
 
 	// create a temporary file to hold the test
-	tempDir := s.T().TempDir()
-	testFileContents, err := os.CreateTemp(tempDir, "mock-test-*.yaml")
+	testFileContents, err := os.CreateTemp(s.T().TempDir(), "mock-test-*.yaml")
 	s.Require().NoError(err, "cannot create temporary file")
 	err = tmpl.Execute(testFileContents, vars)
 	s.Require().NoError(err, "cannot execute template")
@@ -245,17 +245,6 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	s.Require().NoError(err, "cannot get tests from file")
 	// save the name of the temporary file so we can delete it later
 	s.tempFileName = testFileContents.Name()
-}
-
-func (s *runTestSuite) AfterTest(_ string, _ string) {
-	err := os.Remove(s.logFilePath)
-	s.Require().NoError(err, "cannot remove log file")
-	log.Info().Msgf("Deleting temporary file '%s'", s.logFilePath)
-	if s.tempFileName != "" {
-		err = os.Remove(s.tempFileName)
-		s.Require().NoError(err, "cannot remove test file")
-		s.tempFileName = ""
-	}
 }
 
 func TestRunTestsTestSuite(t *testing.T) {
@@ -409,7 +398,8 @@ func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
 	}
-	request := getRequestFromTest(input)
+	request, err := getRequestFromTest(input)
+	s.Require().NoError(err)
 
 	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
 	s.Require().NoError(err)
@@ -439,7 +429,8 @@ func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
 	}
-	request := getRequestFromTest(input)
+	request, err := getRequestFromTest(input)
+	s.Require().NoError(err)
 
 	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
 	s.Require().NoError(err)
@@ -617,7 +608,8 @@ func (s *runTestSuite) TestGetRequestFromData() {
 		Protocol:            &s.dest.Protocol,
 		Data:                &data,
 	}
-	request := getRequestFromTest(input)
+	request, err := getRequestFromTest(input)
+	s.Require().NoError(err)
 
 	s.Equal(data, string(request.Data()))
 }
@@ -635,7 +627,8 @@ func (s *runTestSuite) TestGetRequestFromEncodedData() {
 		Protocol:            &s.dest.Protocol,
 		Data:                &data,
 	}
-	request := getRequestFromTest(input)
+	request, err := getRequestFromTest(input)
+	s.Require().NoError(err)
 
 	s.Equal(data, string(request.Data()))
 }
@@ -662,4 +655,51 @@ func (s *runTestSuite) TestTriggeredRules() {
 			980130,
 		}}}
 	s.Equal(triggeredRules, res.Stats.TriggeredRules, "Oops, triggered rules don't match expectation")
+}
+
+func (s *runTestSuite) TestEncodedRequest() {
+	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
+	s.Require().NoError(err)
+	ll, err := waflog.NewFTWLogLines(s.cfg)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
+	s.Require().NoError(err)
+
+	context := &TestRunContext{
+		Config:   s.cfg,
+		Client:   client,
+		LogLines: ll,
+		Stats:    NewRunStats(),
+		Output:   s.out,
+	}
+	stage := s.ftwTests[0].Tests[0].Stages[0]
+	_check, err := check.NewCheck(s.cfg)
+	s.T().Cleanup(func() { _ = _check.Close() })
+	s.Require().NoError(err)
+
+	err = RunStage(context, _check, types.Test{}, stage)
+	s.Require().NoError(err)
+	s.Equal(Success, context.Result)
+}
+
+func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
+	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
+	s.Require().NoError(err)
+	ll, err := waflog.NewFTWLogLines(s.cfg)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
+	s.Require().NoError(err)
+
+	context := &TestRunContext{
+		Config:   s.cfg,
+		Client:   client,
+		LogLines: ll,
+		Stats:    NewRunStats(),
+		Output:   s.out,
+	}
+	stage := s.ftwTests[0].Tests[0].Stages[0]
+	_check, err := check.NewCheck(s.cfg)
+	s.T().Cleanup(func() { _ = _check.Close() })
+	s.Require().NoError(err)
+
+	err = RunStage(context, _check, types.Test{}, stage)
+	s.Error(err, "failed to read request from test specification: illegal base64 data at input byte 4")
 }
