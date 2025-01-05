@@ -234,8 +234,7 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	}
 
 	// create a temporary file to hold the test
-	tempDir := s.T().TempDir()
-	testFileContents, err := os.CreateTemp(tempDir, "mock-test-*.yaml")
+	testFileContents, err := os.CreateTemp(s.T().TempDir(), "mock-test-*.yaml")
 	s.Require().NoError(err, "cannot create temporary file")
 	err = tmpl.Execute(testFileContents, vars)
 	s.Require().NoError(err, "cannot execute template")
@@ -246,17 +245,6 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	s.Require().NoError(err, "cannot get tests from file")
 	// save the name of the temporary file so we can delete it later
 	s.tempFileName = testFileContents.Name()
-}
-
-func (s *runTestSuite) AfterTest(_ string, _ string) {
-	err := os.Remove(s.logFilePath)
-	s.Require().NoError(err, "cannot remove log file")
-	log.Info().Msgf("Deleting temporary file '%s'", s.logFilePath)
-	if s.tempFileName != "" {
-		err = os.Remove(s.tempFileName)
-		s.Require().NoError(err, "cannot remove test file")
-		s.tempFileName = ""
-	}
 }
 
 func TestRunTestsTestSuite(t *testing.T) {
@@ -673,6 +661,7 @@ func (s *runTestSuite) TestEncodedRequest() {
 	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
 	s.Require().NoError(err)
 	ll, err := waflog.NewFTWLogLines(s.cfg)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
 	s.Require().NoError(err)
 
 	context := &TestRunContext{
@@ -684,6 +673,7 @@ func (s *runTestSuite) TestEncodedRequest() {
 	}
 	stage := s.ftwTests[0].Tests[0].Stages[0]
 	_check, err := check.NewCheck(s.cfg)
+	s.T().Cleanup(func() { _ = _check.Close() })
 	s.Require().NoError(err)
 
 	err = RunStage(context, _check, types.Test{}, stage)
@@ -695,6 +685,7 @@ func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
 	s.Require().NoError(err)
 	ll, err := waflog.NewFTWLogLines(s.cfg)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
 	s.Require().NoError(err)
 
 	context := &TestRunContext{
@@ -706,6 +697,7 @@ func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 	}
 	stage := s.ftwTests[0].Tests[0].Stages[0]
 	_check, err := check.NewCheck(s.cfg)
+	s.T().Cleanup(func() { _ = _check.Close() })
 	s.Require().NoError(err)
 
 	err = RunStage(context, _check, types.Test{}, stage)
