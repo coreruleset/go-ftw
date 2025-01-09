@@ -138,12 +138,12 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 	}
 	ll.markedLinesInitialized = true
 
-	if ll.startMarker == nil || ll.endMarker == nil {
+	if len(ll.startMarker) == 0 || len(ll.endMarker) == 0 {
 		log.Fatal().Msg("Both start and end marker must be set before the log can be inspected")
 	}
 
 	if bytes.Equal(ll.startMarker, ll.endMarker) {
-		log.Fatal().Msg("Start and end markers must be different")
+		log.Fatal().Msgf("Start and end markers must be different. %q", ll.startMarker)
 	}
 
 	fi, err := ll.logFile.Stat()

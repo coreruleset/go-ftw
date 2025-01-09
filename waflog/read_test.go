@@ -35,10 +35,11 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	s.NotNil(cfg)
 
 	stageId := "dead-beaf-deadbeef-deadbeef-dead"
-	markerLine := "X-cRs-TeSt: " + stageId
+	startMarkerLine := "X-cRs-TeSt: " + stageId + "-s"
+	endMarkerLine := "X-cRs-TeSt: " + stageId + "-e"
 	logLines := `
 [Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
-` + markerLine + `
+` + startMarkerLine + `
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 `
@@ -49,9 +50,9 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 
 	ll, err := NewFTWLogLines(cfg)
 	s.Require().NoError(err)
-	ll.WithStartMarker([]byte(markerLine))
-	marker := ll.CheckLogForMarker(stageId, 100)
-	s.Equal(string(marker), strings.ToLower(markerLine), "unexpectedly found marker")
+	ll.WithStartMarker([]byte(startMarkerLine))
+	marker := ll.CheckLogForMarker(endMarkerLine, 100)
+	s.Nil(marker, "unexpectedly found marker")
 }
 
 func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
@@ -411,13 +412,14 @@ func (s *readTestSuite) TestFalsePositiveIds() {
 	s.NotNil(cfg)
 
 	stageId := "dead-beaf-deadbeef-deadbeef-dead"
-	markerLine := "X-cRs-TeSt: " + stageId
-	logLines := fmt.Sprint("\n", markerLine,
+	markerLineStart := "X-cRs-TeSt: " + stageId + "-s"
+	markerLineEnd := "X-cRs-TeSt: " + stageId + "-e"
+	logLines := fmt.Sprint("\n", markerLineStart, "\n",
 		`2025/01/02 12:19:00 [info] 117#117: *16117 ModSecurity: Warning. Matched "Operator `,
 		"`Rx' + with parameter `%u[4e00-9fa5]{3,}' against variable `TX:matched' (Value: `",
 		`{"anonym":0,"key":"","sn":"","id":"168838233072272454","from":4,"token":"bridge"}' ) [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-942-APPLICATION-ATTACK-SQLI.conf"] [line "973"] [id "942370"] [rev ""] [msg "Detects classic SQL injection probings 2/3"] [data "Matched Data: \x22:\x22\x22,\x22 found within TX:matched: {\x22anonym\x22:0,\x22key\x22:\x22\x22,\x22sn\x22:\x22\x22,\x22id\x22:\x22168838233072272454\x22,\x22from\x22:4,\x22token\x22:\x22bridge\x22}"] [severity "2"] [ver "OWASP_CRS/3.3.2"] [maturity "0"] [accuracy "0"] [tag "modsecurity"] [tag "modsecurity"] [tag "modsecurity"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-sqli"] [tag "OWASP_CRS"] [tag "capec/1000/152/248/66"] [tag "PCI/6.5.2"] [tag "paranoia-level/2"] [tag "CVE-2018-2380"] [tag "APP/SAP CRM"] [hostname "172.18.0.3"] [uri "/cps5/site/aust"] [unique_id "173582034044.678876"] [ref "o1,38v79,261t:urlDecodeUnio16,6v1542,81t:urlDecodeUnit:utf8toUnicode"], client: 172.18.0.1, server: localhost, request: "GET /cps5/site/aust?cb=jsonp_bridge_1688382331340_2474076564328216&op=0&s_info=%7B%22lang%22%3A%22zh-CN%22%2C%22cbit%22%3A24%2C%22rsl%22%3A%221920*1080%22%2C%22tz%22%3A%22UTC%2B8%3A0%22%2C%22xst%22%3A%22%22%2C%22referrer%22%3A%22https%253A%252F%252Fwww.baidu.com%252Flink%253Furl%253DPukzFxKXUAPWz2bGom-5-N5FroXNtyu0tc9pzXJz8ma%2526wd%253D%2526eqid%253Df68a4a19000c43c70000000464a2ab71%22%2C%22xstlink%22%3A%22http%253A%252F%252Fwww.authing.co%252F%22%7D&url=http%3A%2F%2Fwww.authing.co%2F&siteToken=fa8cc78cf376a0ce56fe3eeed5c06e5f&dev=0&ser=3&bst=1688382327210&AFDbiz=%7B%22ev%22%3A%22page_enter%22%2C%22customer%22%3A%2230208105%22%2C%22bid%22%3A%22168838233072272454%22%2C%22length%22%3A0%7D&AFDjt=31%24eyJrIj4iNyI0Iix5IkciQEZJSkZMR0lKSUxNUyJJIkFqIjwiNTs%2BPztBPD4%2FPkFCSCI%2BIjYzIlEiSlBTVFBWUTM0MzM3OCIzIit5IkYiQz9AIj4iOCJQIktHTklUIkoiaiI8IlQ%2Bd3VJS`,
 		"\n",
-		"\n", markerLine)
+		"\n", markerLineEnd)
 	filename, err := utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
 	s.Require().NoError(err)
 	cfg.LogFile = filename
@@ -429,8 +431,8 @@ func (s *readTestSuite) TestFalsePositiveIds() {
 		logFile:             log,
 		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
 	}
-	ll.WithStartMarker([]byte(markerLine))
-	ll.WithEndMarker([]byte(markerLine))
+	ll.WithStartMarker([]byte(markerLineStart))
+	ll.WithEndMarker([]byte(markerLineEnd))
 
 	foundRuleIds := ll.TriggeredRules()
 	s.Len(foundRuleIds, 1)
