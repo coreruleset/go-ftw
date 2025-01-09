@@ -26,8 +26,8 @@ import (
 const (
 	// start and end UUID suffixes are used to disambiguate start and end markers.
 	// It permits to make the markers unique, while still maintaining one UUID per stage.
-	startUUIDSuffix = "-s"
-	endUUIDSuffix   = "-e"
+	startUuidSuffix = "-s"
+	endUuidSuffix   = "-e"
 )
 
 // Run runs your tests with the specified Config.
@@ -174,8 +174,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
-		startUUID := stageId + startUUIDSuffix
-		startMarker, err := markAndFlush(runContext, &testInput, startUUID)
+		startId := stageId + startUuidSuffix
+		startMarker, err := markAndFlush(runContext, &testInput, startId)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find start marker: %w", err)
 		}
@@ -202,8 +202,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
-		endUUID := stageId + endUUIDSuffix
-		endMarker, err := markAndFlush(runContext, &testInput, endUUID)
+		endId := stageId + endUuidSuffix
+		endMarker, err := markAndFlush(runContext, &testInput, endId)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find end marker: %w", err)
 

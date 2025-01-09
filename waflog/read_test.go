@@ -34,8 +34,8 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	s.Require().NoError(err)
 	s.NotNil(cfg)
 
-	stageID := "dead-beaf-deadbeef-deadbeef-dead"
-	markerLine := "X-cRs-TeSt: " + stageID
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
+	markerLine := "X-cRs-TeSt: " + stageId
 	logLines := `
 [Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 ` + markerLine + `
@@ -50,7 +50,7 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	ll, err := NewFTWLogLines(cfg)
 	s.Require().NoError(err)
 	ll.WithStartMarker([]byte(markerLine))
-	marker := ll.CheckLogForMarker(stageID, 100)
+	marker := ll.CheckLogForMarker(stageId, 100)
 	s.Equal(string(marker), strings.ToLower(markerLine), "unexpectedly found marker")
 }
 
@@ -59,8 +59,8 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 	s.Require().NoError(err)
 	s.NotNil(cfg)
 
-	stageID := "dead-beaf-deadbeef-deadbeef-dead"
-	markerLine := "X-cRs-TeSt: " + stageID
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
+	markerLine := "X-cRs-TeSt: " + stageId
 	logLines := `
 [Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
@@ -75,7 +75,7 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 	ll.WithStartMarker([]byte(markerLine))
 	s.Require().NoError(err)
 
-	marker := ll.CheckLogForMarker(stageID, 100)
+	marker := ll.CheckLogForMarker(stageId, 100)
 	s.NotNil(marker, "no marker found")
 
 	s.Equal(marker, bytes.ToLower([]byte(markerLine)), "found unexpected marker")
@@ -86,9 +86,9 @@ func (s *readTestSuite) TestReadGetMarkedLines() {
 	s.Require().NoError(err)
 	s.NotNil(cfg)
 
-	stageID := "dead-beaf-deadbeef-deadbeef-dead"
-	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
-	endMarkerLine := "X-cRs-TeSt: " + stageID + " -end"
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
+	startMarkerLine := "X-cRs-TeSt: " + stageId + " -start"
+	endMarkerLine := "X-cRs-TeSt: " + stageId + " -end"
 	logLinesOnly :=
 		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
@@ -123,9 +123,9 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithTrailingEmptyLines() {
 	s.Require().NoError(err)
 	s.NotNil(cfg)
 
-	stageID := "dead-beaf-deadbeef-deadbeef-dead"
-	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
-	endMarkerLine := "X-cRs-TeSt: " + stageID + " -end"
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
+	startMarkerLine := "X-cRs-TeSt: " + stageId + " -start"
+	endMarkerLine := "X-cRs-TeSt: " + stageId + " -end"
 	logLinesOnly :=
 		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
@@ -160,9 +160,9 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithPrecedingLines() {
 	s.Require().NoError(err)
 	s.NotNil(cfg)
 
-	stageID := "dead-beaf-deadbeef-deadbeef-dead"
-	startMarkerLine := "X-cRs-TeSt: " + stageID + " -start"
-	endMarkerLine := "X-cRs-TeSt: " + stageID + " -end"
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
+	startMarkerLine := "X-cRs-TeSt: " + stageId + " -start"
+	endMarkerLine := "X-cRs-TeSt: " + stageId + " -end"
 	precedingLines :=
 		`[Tue Jan 04 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 	[Tue Jan 04 02:22:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
@@ -200,9 +200,9 @@ func (s *readTestSuite) TestFTWLogLines_Contains() {
 	s.Require().NoError(err)
 	s.NotNil(cfg)
 
-	stageID := "dead-beaf-deadbeef-deadbeef-dead"
-	markerLineStart := "X-cRs-TeSt: " + stageID + "-s"
-	markerLineEnd := "X-cRs-TeSt: " + stageID + "-e"
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
+	markerLineStart := "X-cRs-TeSt: " + stageId + "-s"
+	markerLineEnd := "X-cRs-TeSt: " + stageId + "-e"
 	logLines :=
 		markerLineStart +
 			`
@@ -275,23 +275,18 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 	s.Require().NoError(err)
 	s.NotNil(cfg)
 
-	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLineStart := fmt.Sprint(`[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
-		"X-cRs-TeSt ", stageID+"-s",
+		"X-cRs-TeSt ", stageId+"-s",
 		`"] [hostname "localhost"] [uri "/status/200"] [unique_id "Y3AZUo3Gja4gB-tPE9uasgAAAA4"]`)
 	markerLineEnd := fmt.Sprint(`[2022-11-12 23:08:18.012580] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
-		"X-cRs-TeSt ", stageID+"-e",
+		"X-cRs-TeSt ", stageId+"-e",
 		`"] [hostname "localhost"] [uri "/status/200"] [unique_id "Y3AZUo3Gja4gB-tPE9uasgBBBB4"]`)
 	logLines := fmt.Sprint("\n", markerLineStart,
 		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`,
 		`[2022-11-12 23:08:18.013007] [core:info] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 AH00128: File does not exist: /apache/htdocs/status/200`,
-<<<<<<< HEAD
-		"\n", markerLine)
-	filename, err := utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
-=======
 		"\n", markerLineEnd)
-	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
->>>>>>> 5b3386a (start and end marker)
+	filename, err := utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
 	s.Require().NoError(err)
 
 	cfg.LogFile = filename
@@ -347,9 +342,9 @@ func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	cfg, err := config.NewConfigFromEnv()
 	s.Require().NoError(err)
 	s.NotNil(cfg)
-	stageID := "dead-beaf-deadbeef-deadbeef-dead"
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
 	markerLine := fmt.Sprint(`[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
-		"X-cRs-TeSt ", stageID,
+		"X-cRs-TeSt ", stageId,
 		`"] [hostname "localhost"] [uri "/status/200"] [unique_id "Y3AZUo3Gja4gB-tPE9uasgAAAA4"]`)
 	logLines := fmt.Sprint("\n", markerLine,
 		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`,
@@ -368,7 +363,7 @@ func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	}
 	ll.WithStartMarker([]byte(markerLine))
 	ll.WithEndMarker([]byte(markerLine))
-	foundMarker := ll.CheckLogForMarker(stageID, 100)
+	foundMarker := ll.CheckLogForMarker(stageId, 100)
 	s.Equal(strings.ToLower(markerLine), strings.ToLower(string(foundMarker)))
 }
 
@@ -377,26 +372,17 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 	s.Require().NoError(err)
 	s.NotNil(cfg)
 
-	stageID := "dead-beaf-deadbeef-deadbeef-dead"
-<<<<<<< HEAD
-	markerLine := "X-cRs-TeSt: " + stageID
-	logLines := fmt.Sprint("\n", markerLine, "\n",
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
+	markerLineStart := "X-cRs-TeSt: " + stageId + "-s"
+	markerLineEnd := "X-cRs-TeSt: " + stageId + "-e"
+	logLines := fmt.Sprint("\n", markerLineStart, "\n",
 		`other stuff [id "1"] something else [id "2"]`, "\n",
 		`other stuff {"blah": "bort,"id": 3}, something else {"id":5},`, "\n",
 		`other stuff {"id": 6}, something else ["id":7],`, "\n",
 		`other stuff something else [id \"8\"]`, "\n",
-		"\n", markerLine)
-	filename, err := utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
-=======
-	markerLineStart := "X-cRs-TeSt: " + stageID + "-s"
-	markerLineEnd := "X-cRs-TeSt: " + stageID + "-e"
-	logLines := fmt.Sprint("\n", markerLineStart,
-		`[id "1"] something else [id "2"]`,
-		`"id": 3, something else {"id":4},`,
-		`something else [id \"5\"]`+"\n",
 		"\n", markerLineEnd)
-	filename, err := utils.CreateTempFileWithContent(logLines, "test-errorlog-")
->>>>>>> 5b3386a (start and end marker)
+	filename, err := utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
+
 	s.Require().NoError(err)
 	cfg.LogFile = filename
 	log, err := os.Open(filename)
@@ -424,8 +410,8 @@ func (s *readTestSuite) TestFalsePositiveIds() {
 	s.Require().NoError(err)
 	s.NotNil(cfg)
 
-	stageID := "dead-beaf-deadbeef-deadbeef-dead"
-	markerLine := "X-cRs-TeSt: " + stageID
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
+	markerLine := "X-cRs-TeSt: " + stageId
 	logLines := fmt.Sprint("\n", markerLine,
 		`2025/01/02 12:19:00 [info] 117#117: *16117 ModSecurity: Warning. Matched "Operator `,
 		"`Rx' + with parameter `%u[4e00-9fa5]{3,}' against variable `TX:matched' (Value: `",
