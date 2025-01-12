@@ -4,149 +4,182 @@
 package ftwhttp
 
 import (
-	"bytes"
+	"bufio"
 	"io"
 	"net/textproto"
-	"sort"
+	"slices"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 )
 
 const (
-	// ContentTypeHeader gives you the string for content type
-	ContentTypeHeader string = "Content-Type"
+	headerSeparator = ": "
+	headerDelimiter = "\r\n"
 )
 
-// Based on https://golang.org/src/net/http/header.go
-
-// Header is a simplified version of headers, where there is only one header per key.
-// The original golang stdlib uses a proper string slice to map this.
-type Header map[string]string
-
-// stringWriter implements WriteString on a Writer.
-type stringWriter struct {
-	w io.Writer
+// Header is a representation of the HTTP header section.
+// It holds an ordered list of HeaderTuples.
+type Header struct {
+	canonicalNames map[string]uint
+	entries        []HeaderTuple
 }
 
-// WriteString writes the string on a Writer
-func (w stringWriter) WriteString(s string) (n int, err error) {
-	return w.w.Write([]byte(s))
+// HeaderTuple is a representation of an HTTP header. It consists
+// of a name and value.
+type HeaderTuple struct {
+	Name  string
+	Value string
 }
 
-// Add adds the (key, value) pair to the headers if it does not exist
-// The key is case-insensitive
-func (h Header) Add(key, value string) {
-	if h.Get(key) == "" {
-		h.Set(key, value)
+// Creates an empty Header. You should not initialize the struct directly.
+func NewHeader() *Header {
+	return &Header{
+		canonicalNames: map[string]uint{},
+		entries:        []HeaderTuple{},
 	}
 }
 
-// Set sets the header entries associated with key to
-// the single element value. It replaces any existing
-// values associated with a case-insensitive key.
-func (h Header) Set(key, value string) {
-	h.Del(key)
-	h[key] = value
-}
-
-// Get gets the value associated with the given key.
-// If there are no values associated with the key, Get returns "".
-// The key is case-insensitive
-func (h Header) Get(key string) string {
-	if h == nil {
-		return ""
+// Creates a new Header from a map of HTTP header names and values.
+//
+// This is a convenience and legacy fallback method. In the future,
+// headers should be specified as a list, in order to guarantee order
+// and to allow requests to contain the same header multiple times,
+// potentially, but not necessarily, with different values.
+func NewHeaderFromMap(headerMap map[string]string) *Header {
+	header := NewHeader()
+	keys := make([]string, 0, len(headerMap))
+	for key := range headerMap {
+		keys = append(keys, key)
 	}
-	v := h[h.getKeyMatchingCanonicalKey(key)]
+	// Sort keys so that header constructed from a map has a
+	// deterministic output.
+	slices.Sort(keys)
 
-	return v
+	for _, key := range keys {
+		header.Add(key, headerMap[key])
+	}
+	return header
 }
 
-// Value is a wrapper to Get
-func (h Header) Value(key string) string {
-	return h.Get(key)
-}
-
-// Del deletes the value associated with key.
-// The key is case-insensitive
-func (h Header) Del(key string) {
-	delete(h, h.getKeyMatchingCanonicalKey(key))
-}
-
-// Write writes a header in wire format.
-func (h Header) Write(w io.Writer) error {
-	ws, ok := w.(io.StringWriter)
+// Add a new HTTP header to the Header.
+func (h *Header) Add(name string, value string) {
+	key := canonicalKey(name)
+	count, ok := h.canonicalNames[key]
 	if !ok {
-		ws = stringWriter{w}
+		count = 0
 	}
+	h.canonicalNames[key] = count + 1
+	h.entries = append(h.entries, HeaderTuple{name, value})
+}
 
-	sorted := h.getSortedHeadersByName()
+// Set replaces any existing HTTP headers of the same canonical
+// name with this new entry.
+func (h *Header) Set(name string, value string) {
+	key := canonicalKey(name)
+	retainees := []HeaderTuple{}
+	for _, tuple := range h.entries {
+		if canonicalKey(tuple.Name) != key {
+			retainees = append(retainees, tuple)
+		}
+	}
+	h.entries = retainees
+	h.Add(name, value)
+}
 
-	for _, key := range sorted {
-		// we want all headers "as-is"
-		s := key + ": " + h[key] + "\r\n"
-		if _, err := ws.WriteString(s); err != nil {
+// Returns true if the Header contains any HTTP header that
+// matches the canonical name.
+func (h *Header) HasAny(name string) bool {
+	key := canonicalKey(name)
+	_, ok := h.canonicalNames[key]
+	return ok
+}
+
+// Returns true if the Header contains any HTTP header that
+// matches the canonical name and canoncial value.
+// Values are compared using strings.EqualFold.
+func (h *Header) HasAnyValue(name string, value string) bool {
+	identity := func(a string) string { return a }
+	return h.hasAnyValue(name, value, identity, identity, strings.EqualFold)
+}
+
+// Returns true if the Header contains any HTTP header that
+// matches the canonical name and has a value containing the
+// specified substring.
+// Both, the header value and the search string are lower-cased
+// before performing the search.
+func (h *Header) HasAnyValueContaining(name string, value string) bool {
+	return h.hasAnyValue(name, value, strings.ToLower, strings.ToLower, strings.Contains)
+}
+
+// Returns all HeaderTuples that match the canonical header name.
+// If no matches are found the returned array will be empty.
+func (h *Header) GetAll(name string) []HeaderTuple {
+	return h.getAll(canonicalKey(name), canonicalKey)
+}
+
+// Write writes the header to the provided writer
+func (h *Header) Write(writer io.Writer) error {
+	buf := bufio.NewWriter(writer)
+	for _, tuple := range h.entries {
+		if log.Trace().Enabled() {
+			log.Trace().Msgf("Writing header: %s: %s", tuple.Name, tuple.Value)
+		}
+		if _, err := buf.WriteString(tuple.Name); err != nil {
 			return err
 		}
-	}
-
-	return nil
-
-}
-
-// WriteBytes writes a header in a ByteWriter.
-func (h Header) WriteBytes(b *bytes.Buffer) (int, error) {
-	sorted := h.getSortedHeadersByName()
-	count := 0
-	for _, key := range sorted {
-		// we want all headers "as-is"
-		s := key + ": " + h[key] + "\r\n"
-		log.Trace().Msgf("Writing header: %s", s)
-		n, err := b.Write([]byte(s))
-		count += n
-		if err != nil {
-			return count, err
+		if _, err := buf.WriteString(headerSeparator); err != nil {
+			return err
 		}
-	}
-
-	return count, nil
-}
-
-// Clone returns a copy of h
-func (h Header) Clone() Header {
-	clone := make(Header)
-
-	for n, v := range h {
-		clone[n] = v
-	}
-
-	return clone
-}
-
-// sortHeadersByName gets headers sorted by name
-// This way the output is predictable, for tests
-func (h Header) getSortedHeadersByName() []string {
-	keys := make([]string, 0, len(h))
-	for k := range h {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	return keys
-}
-
-// getKeyMatchingCanonicalKey finds a key matching with the given one, provided both are canonicalised
-func (h Header) getKeyMatchingCanonicalKey(searchKey string) string {
-	searchKey = canonicalKey(searchKey)
-	for k := range h {
-		if searchKey == canonicalKey(k) {
-			return k
+		if _, err := buf.WriteString(tuple.Value); err != nil {
+			return err
 		}
-	}
+		if _, err := buf.WriteString(headerDelimiter); err != nil {
+			return err
+		}
 
-	return ""
+	}
+	return buf.Flush()
 }
 
-// canonicalKey transforms given to the canonical form
+// Creates a clone of the Header.
+// If the Header is nil or empty, a non-nil empty Header will be returned.
+func (h *Header) Clone() *Header {
+	newHeader := NewHeader()
+	if h == nil {
+		return newHeader
+	}
+	for _, tuple := range h.entries {
+		newHeader.Add(tuple.Name, tuple.Value)
+	}
+	return newHeader
+}
+
 func canonicalKey(key string) string {
 	return textproto.CanonicalMIMEHeaderKey(key)
+}
+
+func (h *Header) getAll(name string, canonicalizer func(key string) string) []HeaderTuple {
+	matches := []HeaderTuple{}
+	for _, tuple := range h.entries {
+		if canonicalizer(tuple.Name) == name {
+			matches = append(matches, tuple)
+		}
+	}
+
+	return matches
+}
+
+func (h *Header) hasAnyValue(name string, value string, valueTransfomer func(a string) string, needleTransformer func(a string) string, comparator func(a string, b string) bool) bool {
+	key := canonicalKey(name)
+	if _, ok := h.canonicalNames[key]; !ok {
+		return ok
+	}
+	transformedValue := valueTransfomer(value)
+	for _, tuple := range h.entries {
+		if canonicalKey(tuple.Name) == key && comparator(needleTransformer(tuple.Value), transformedValue) {
+			return true
+		}
+	}
+	return false
 }

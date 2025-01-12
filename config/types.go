@@ -8,8 +8,6 @@ import (
 	"regexp"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
-
-	"github.com/coreruleset/go-ftw/ftwhttp"
 )
 
 // RunMode represents the mode of the test run
@@ -72,15 +70,15 @@ type FTWTestOverride struct {
 
 // Overrides represents the overridden inputs that have to be applied to tests
 type Overrides struct {
-	DestAddr   *string        `yaml:"dest_addr,omitempty" koanf:"dest_addr,omitempty"`
-	Port       *int           `yaml:"port,omitempty" koanf:"port,omitempty"`
-	Protocol   *string        `yaml:"protocol,omitempty" koanf:"protocol,omitempty"`
-	URI        *string        `yaml:"uri,omitempty" koanf:"uri,omitempty"`
-	Version    *string        `yaml:"version,omitempty" koanf:"version,omitempty"`
-	Headers    ftwhttp.Header `yaml:"headers,omitempty" koanf:"headers,omitempty"`
-	Method     *string        `yaml:"method,omitempty" koanf:"method,omitempty"`
-	Data       *string        `yaml:"data,omitempty" koanf:"data,omitempty"`
-	SaveCookie *bool          `yaml:"save_cookie,omitempty" koanf:"save_cookie,omitempty"`
+	DestAddr   *string           `yaml:"dest_addr,omitempty" koanf:"dest_addr,omitempty"`
+	Port       *int              `yaml:"port,omitempty" koanf:"port,omitempty"`
+	Protocol   *string           `yaml:"protocol,omitempty" koanf:"protocol,omitempty"`
+	URI        *string           `yaml:"uri,omitempty" koanf:"uri,omitempty"`
+	Version    *string           `yaml:"version,omitempty" koanf:"version,omitempty"`
+	Headers    map[string]string `yaml:"headers,omitempty" koanf:"headers,omitempty"`
+	Method     *string           `yaml:"method,omitempty" koanf:"method,omitempty"`
+	Data       *string           `yaml:"data,omitempty" koanf:"data,omitempty"`
+	SaveCookie *bool             `yaml:"save_cookie,omitempty" koanf:"save_cookie,omitempty"`
 	// Deprecated: replaced with AutocompleteHeaders
 	StopMagic               *bool   `yaml:"stop_magic" koanf:"stop_magic,omitempty"`
 	AutocompleteHeaders     *bool   `yaml:"autocomplete_headers" koanf:"autocomplete_headers,omitempty"`

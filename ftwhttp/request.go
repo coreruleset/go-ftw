@@ -10,10 +10,11 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/rs/zerolog/log"
 
+	header_names "github.com/coreruleset/go-ftw/ftwhttp/header_names"
+	header_values "github.com/coreruleset/go-ftw/ftwhttp/header_values"
 	"github.com/coreruleset/go-ftw/utils"
 )
 
@@ -25,7 +26,7 @@ func (rl RequestLine) ToString() string {
 }
 
 // NewRequest creates a new request, an initial request line, and headers
-func NewRequest(reqLine *RequestLine, h Header, data []byte, autocompleteHeaders bool) *Request {
+func NewRequest(reqLine *RequestLine, h *Header, data []byte, autocompleteHeaders bool) *Request {
 	return &Request{
 		requestLine:         reqLine,
 		headers:             h.Clone(),
@@ -67,16 +68,16 @@ func (r Request) Data() []byte {
 }
 
 // Headers return request headers
-func (r Request) Headers() Header {
+func (r Request) Headers() *Header {
 	return r.headers
 }
 
 // SetHeaders sets the request headers
-func (r *Request) SetHeaders(h Header) {
+func (r *Request) SetHeaders(h *Header) {
 	r.headers = h
 }
 
-// AddHeader adds a new header to the request, if doesn't exist
+// AddHeader adds a new header to the request
 func (r *Request) AddHeader(name string, value string) {
 	r.headers.Add(name, value)
 }
@@ -89,12 +90,16 @@ func (r *Request) AddHeader(name string, value string) {
 //     permits a body (the spec says that the client SHOULD send `Content-Length`
 //     in that case)
 func (r *Request) AddStandardHeaders() {
-	if r.headers.Get("Connection") == "" {
-		r.headers.Add("Connection", "close")
+	if !r.headers.HasAny(header_names.Connection) {
+		r.headers.Add(header_names.Connection, "close")
+	}
+
+	if r.headers.HasAny(header_names.ContentLength) {
+		return
 	}
 
 	if len(r.data) > 0 || methodsWithBodyRegex.MatchString(r.requestLine.Method) {
-		r.headers.Add("Content-Length", strconv.Itoa(len(r.data)))
+		r.headers.Add(header_names.ContentLength, strconv.Itoa(len(r.data)))
 	}
 }
 
@@ -105,15 +110,17 @@ func BuildRequest(r *Request) ([]byte, error) {
 	var data []byte
 
 	// Request line
-	_, err = fmt.Fprintf(&b, "%s", r.requestLine.ToString())
+	_, err = b.WriteString(r.requestLine.ToString())
 	if err != nil {
 		return nil, err
 	}
 
 	// We need to add the remaining headers, unless "NoDefaults"
 	if utils.IsNotEmpty(r.data) && r.WithAutoCompleteHeaders() {
-		// If there is no Content-Type, then we add one
-		r.AddHeader(ContentTypeHeader, "application/x-www-form-urlencoded")
+		if !r.Headers().HasAny(header_names.ContentType) {
+			// If there is no Content-Type, then we add one
+			r.AddHeader(header_names.ContentType, header_values.ApplicationXWwwFormUrlencoded)
+		}
 		data, err = encodeDataParameters(r.headers, r.data)
 		if err != nil {
 			log.Info().Msgf("ftw/http: cannot encode data to: %q", r.data)
@@ -127,7 +134,7 @@ func BuildRequest(r *Request) ([]byte, error) {
 	}
 
 	// Multipart form data needs to end in \r\n, per RFC (and modsecurity make a scene if not)
-	if ct := r.headers.Value(ContentTypeHeader); strings.HasPrefix(ct, "multipart/form-data;") {
+	if r.headers.HasAnyValueContaining(header_names.ContentType, "multipart/form-data;") {
 		crlf := []byte("\r\n")
 		lf := []byte("\n")
 		log.Debug().Msgf("ftw/http: with LF only - %d bytes:\n%x\n", len(r.data), r.data)
@@ -140,28 +147,21 @@ func BuildRequest(r *Request) ([]byte, error) {
 		r.AddStandardHeaders()
 	}
 
-	_, err = r.Headers().WriteBytes(&b)
+	err = r.Headers().Write(&b)
 	if err != nil {
 		log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
 		return nil, err
 	}
 
-	// TODO: handle cookies
-	// if client.Jar != nil {
-	// 	for _, cookie := range client.Jar.Cookies(req.URL) {
-	// 		req.AddCookie(cookie)
-	// 	}
-	// }
-
 	// After headers, we need one blank line
-	_, err = fmt.Fprintf(&b, "\r\n")
+	_, err = b.WriteString("\r\n")
 	if err != nil {
 		log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
 		return nil, err
 	}
 	// Now the body, if anything
 	if utils.IsNotEmpty(r.data) {
-		_, err = fmt.Fprintf(&b, "%s", r.data)
+		_, err = b.Write(r.data)
 		if err != nil {
 			log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
 			return nil, err
@@ -172,14 +172,14 @@ func BuildRequest(r *Request) ([]byte, error) {
 }
 
 // encodeDataParameters url encode parameters in data
-func encodeDataParameters(h Header, data []byte) ([]byte, error) {
+func encodeDataParameters(h *Header, data []byte) ([]byte, error) {
 	if len(data) == 0 {
 		return nil, nil
 	}
 
 	var err error
 
-	if h.Get(ContentTypeHeader) == "application/x-www-form-urlencoded" {
+	if h.HasAnyValue(header_names.ContentType, header_values.ApplicationXWwwFormUrlencoded) {
 		// Best effort attempt to determine if the data is already escaped by seeing if unescaping has any effect.
 		if escapedData, err := url.QueryUnescape(string(data)); escapedData == string(data) {
 			if err != nil {
