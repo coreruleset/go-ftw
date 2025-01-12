@@ -189,7 +189,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 		ll.markedLines = append(ll.markedLines, saneCopy)
 	}
 	if !startFound {
-		log.Debug().Msg("starter marker not found while getting marked lines")
+		log.Debug().Msg("start marker not found while collecting marked lines")
 	}
 
 	return ll.markedLines

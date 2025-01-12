@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	// start and end UUID suffixes are used to disambiguate start and end markers.
-	// It permits to make the markers unique, while still maintaining one UUID per stage.
+	// Start and end UUID suffixes are used to disambiguate start and end markers.
+	// The suffixes make the markers unique, while still maintaining one UUID per stage.
 	startUuidSuffix = "-s"
 	endUuidSuffix   = "-e"
 )
