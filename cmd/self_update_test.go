@@ -4,11 +4,17 @@
 package cmd
 
 import (
+	"bytes"
+	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path"
+	"runtime"
 	"testing"
 
+	"github.com/coreruleset/go-ftw/internal/updater"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -16,6 +22,10 @@ type selfUpdateTestSuite struct {
 	suite.Suite
 	tempDir        string
 	executablePath string
+}
+
+func (s *selfUpdateTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func (s *selfUpdateTestSuite) SetupTest() {
@@ -38,40 +48,45 @@ func TestRunSelfUpdateTestSuite(t *testing.T) {
 	suite.Run(t, new(selfUpdateTestSuite))
 }
 
-// func (s *selfUpdateTestSuite) TestSelfUpdateDev() {
-//	_, err := updater.Updater("v0.0.0-dev", s.executablePath)
-//	s.Require().NoError(err)
-//}
-//
-//func (s *selfUpdateTestSuite) TestSelfUpdateBigVersion() {
-//	newVersion, err := updater.Updater("v10000.1.1", s.executablePath)
-//	s.Require().NoError(err)
-//	s.Equal("v10000.1.1", newVersion)
-//}
-//
-//func (s *selfUpdateTestSuite) TestSelfUpdateWithExecutablePath() {
-//	newVersion, err := updater.Updater("v1.3.7", s.executablePath)
-//	s.Require().NoError(err)
-//	s.NotEmpty(newVersion)
-//
-//	s.FileExists(s.executablePath, "The executable should exist")
-//	contents, err := os.ReadFile(s.executablePath)
-//	s.Require().NoError(err)
-//	s.NotContains(string(contents), "Fake Binary", "The executable should be replaced")
-//
-//	var out, stderr bytes.Buffer
-//
-//	cmd := exec.Command(s.executablePath, "version")
-//	cmd.Stdout = &out
-//	cmd.Stderr = &stderr
-//
-//	err = cmd.Run()
-//	if err == nil {
-//		versionString := fmt.Sprintf("ftw %s", newVersion)
-//		s.Contains(out.String(), versionString)
-//	} else {
-//		s.Equal("exit status 1", err.Error())
-//		oldBinaryWithUnsupportedVersionFlagError := "Error: unknown command \"version\" for \"go-ftw\"\nRun 'go-ftw --help' for usage.\n"
-//		s.Equal(oldBinaryWithUnsupportedVersionFlagError, stderr.String())
-//	}
-//}
+func (s *selfUpdateTestSuite) TestSelfUpdateDev() {
+	_, err := updater.Updater("v0.0.0-dev", s.executablePath)
+	s.Require().NoError(err)
+}
+
+func (s *selfUpdateTestSuite) TestSelfUpdateBigVersion() {
+	newVersion, err := updater.Updater("v10000.1.1", s.executablePath)
+	s.Require().NoError(err)
+	s.Equal("v10000.1.1", newVersion)
+}
+
+func (s *selfUpdateTestSuite) TestSelfUpdateWithExecutablePath() {
+	if runtime.GOOS == "windows" {
+		// Using exec on Windows isn't fun
+		s.T().SkipNow()
+	}
+
+	newVersion, err := updater.Updater("v1.1.2", s.executablePath)
+	s.Require().NoError(err)
+	s.NotEmpty(newVersion)
+
+	s.FileExists(s.executablePath, "The executable should exist")
+	contents, err := os.ReadFile(s.executablePath)
+	s.Require().NoError(err)
+	s.NotContains(string(contents), "Fake Binary", "The executable should be replaced")
+
+	var out, stderr bytes.Buffer
+
+	cmd := exec.Command(s.executablePath, "version")
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+	if err == nil {
+		versionString := fmt.Sprintf("ftw %s", newVersion)
+		s.Contains(out.String(), versionString)
+	} else {
+		s.Equal("exit status 1", err.Error())
+		oldBinaryWithUnsupportedVersionFlagError := "Error: unknown command \"version\" for \"go-ftw\"\nRun 'go-ftw --help' for usage.\n"
+		s.Equal(oldBinaryWithUnsupportedVersionFlagError, stderr.String())
+	}
+}
