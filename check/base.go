@@ -116,6 +116,10 @@ func (c *FTWCheck) GetTriggeredRules() []uint {
 	if c.CloudMode() {
 		return nil
 	}
+	// When a test is expecting to trigger an error and it effectively does, markers are not set.
+	if len(c.log.StartMarker()) == 0 || len(c.log.EndMarker()) == 0 {
+		return nil
+	}
 	return c.log.TriggeredRules()
 }
 

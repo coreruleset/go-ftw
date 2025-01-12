@@ -23,6 +23,13 @@ import (
 	"github.com/coreruleset/go-ftw/waflog"
 )
 
+const (
+	// Start and end UUID suffixes are used to disambiguate start and end markers.
+	// The suffixes make the markers unique, while still maintaining one UUID per stage.
+	startUuidSuffix = "-s"
+	endUuidSuffix   = "-e"
+)
+
 // Run runs your tests with the specified Config.
 func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c *RunnerConfig, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
@@ -167,7 +174,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
-		startMarker, err := markAndFlush(runContext, &testInput, stageId)
+		startId := stageId + startUuidSuffix
+		startMarker, err := markAndFlush(runContext, &testInput, startId)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find start marker: %w", err)
 		}
@@ -194,7 +202,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
-		endMarker, err := markAndFlush(runContext, &testInput, stageId)
+		endId := stageId + endUuidSuffix
+		endMarker, err := markAndFlush(runContext, &testInput, endId)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find end marker: %w", err)
 

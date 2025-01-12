@@ -138,13 +138,17 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 	}
 	ll.markedLinesInitialized = true
 
-	if ll.startMarker == nil || ll.endMarker == nil {
+	if len(ll.startMarker) == 0 || len(ll.endMarker) == 0 {
 		log.Fatal().Msg("Both start and end marker must be set before the log can be inspected")
+	}
+
+	if bytes.Equal(ll.startMarker, ll.endMarker) {
+		log.Fatal().Msgf("Start and end markers must be different. %q", ll.startMarker)
 	}
 
 	fi, err := ll.logFile.Stat()
 	if err != nil {
-		log.Error().Caller().Msgf("cannot read file's size")
+		log.Error().Caller().Msg("cannot read file's size")
 		return ll.markedLines
 	}
 
@@ -153,6 +157,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 		ChunkSize: 4096,
 	}
 	scanner := backscanner.NewOptions(ll.logFile, int(fi.Size()), backscannerOptions)
+	startFound := false
 	endFound := false
 	// end marker is the *first* marker when reading backwards,
 	// start marker is the *last* marker
@@ -165,11 +170,17 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 			break
 		}
 		lineLower := bytes.ToLower(line)
-		if !endFound && bytes.Equal(lineLower, ll.endMarker) {
-			endFound = true
+
+		if !endFound {
+			// Skip lines until we find the end marker. Reading backwards, the lines we are looking for are
+			// between the end and start markers.
+			if bytes.Equal(lineLower, ll.endMarker) {
+				endFound = true
+			}
 			continue
 		}
 		if endFound && bytes.Equal(lineLower, ll.startMarker) {
+			startFound = true
 			break
 		}
 
@@ -177,17 +188,20 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 		copy(saneCopy, line)
 		ll.markedLines = append(ll.markedLines, saneCopy)
 	}
+	if !startFound {
+		log.Debug().Msg("start marker not found while collecting marked lines")
+	}
 
 	return ll.markedLines
 }
 
 // CheckLogForMarker reads the log file and searches for a marker line.
-// stageID is the ID of the current stage, which is part of the marker line
+// markerId is the ID of the current stage + suffix (for start / end), which is part of the marker line
 // readLimit is the maximum numbers of lines to check
-func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit uint) []byte {
+func (ll *FTWLogLines) CheckLogForMarker(markerId string, readLimit uint) []byte {
 	offset, err := ll.logFile.Seek(0, io.SeekEnd)
 	if err != nil {
-		log.Error().Caller().Err(err).Msgf("failed to seek end of log file")
+		log.Error().Caller().Err(err).Msg("failed to seek end of log file")
 		return nil
 	}
 
@@ -196,7 +210,7 @@ func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit uint) []byte 
 		ChunkSize: 4096,
 	}
 	scanner := backscanner.NewOptions(ll.logFile, int(offset), backscannerOptions)
-	stageIDBytes := []byte(stageID)
+	stageIDBytes := []byte(markerId)
 	crsHeaderBytes := bytes.ToLower([]byte(ll.LogMarkerHeaderName))
 
 	var line []byte
@@ -230,7 +244,6 @@ func (ll *FTWLogLines) CheckLogForMarker(stageID string, readLimit uint) []byte 
 	if bytes.Contains(line, stageIDBytes) {
 		return line
 	}
-
-	log.Debug().Msgf("found unexpected marker line while looking for %s: %s", stageID, line)
+	log.Debug().Msgf("found unexpected marker line while looking for %s: %s", markerId, line)
 	return nil
 }

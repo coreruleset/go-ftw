@@ -629,7 +629,7 @@ And a sample code:
     cfg.TestOverride.Input.DestAddr = &host
     cfg.TestOverride.Input.Port = &port
 
-    res, err := runner.Run(cfg, tests, runner.RunnerConfig{
+    res, err := runner.Run(cfg, tests, &runner.RunnerConfig{
                     ShowTime: false,
                     }, output.NewOutput("quiet", os.Stdout))
     if err != nil {
