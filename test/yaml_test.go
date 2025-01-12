@@ -7,12 +7,17 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v3"
 )
 
 type yamlTestSuite struct {
 	suite.Suite
+}
+
+func (s *yamlTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestYamlTestSuite(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -35,6 +36,10 @@ mode: "cloud"`,
 type checkBaseTestSuite struct {
 	suite.Suite
 	cfg *config.FTWConfiguration
+}
+
+func (s *checkBaseTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func (s *checkBaseTestSuite) BeforeTest(_, name string) {

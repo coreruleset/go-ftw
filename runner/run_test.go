@@ -16,6 +16,7 @@ import (
 
 	"github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 
@@ -102,6 +103,10 @@ type runTestSuite struct {
 	ts           *httptest.Server
 	dest         *ftwhttp.Destination
 	tempFileName string
+}
+
+func (s *runTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func (s *runTestSuite) newTestServer(logLines string) {

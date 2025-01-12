@@ -6,11 +6,16 @@ package leipzig
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
 type payloadTestSuite struct {
 	suite.Suite
+}
+
+func (s *payloadTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestPayloadTestSuite(t *testing.T) {

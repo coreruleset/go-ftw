@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/output"
@@ -16,6 +17,10 @@ import (
 
 type statsTestSuite struct {
 	suite.Suite
+}
+
+func (s *statsTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestStatsTestSuite(t *testing.T) {
@@ -132,7 +137,8 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary() {
 	s.Require().Equal("Run 1 payloads (0 skipped) in 0s\nTotal False positive ratio: 1/1 = 1.0000\nFalse positives per rule id:\n  920100: 1 false positives. FP Ratio: 1/1 = 1.0000\n", b.String())
 }
 
-func TestAddFalsePositiveRace(t *testing.T) {
+// FIXME: can we drop this thest? It has no success / fail condition
+func (s *statsTestSuite) TestAddFalsePositiveRace() {
 	stats := &QuantitativeRunStats{
 		falsePositivesPerRule: make(map[int]int),
 	}

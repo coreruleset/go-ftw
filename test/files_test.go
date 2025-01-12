@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/utils"
@@ -49,6 +50,10 @@ this is not yaml
 
 type filesTestSuite struct {
 	suite.Suite
+}
+
+func (s *filesTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestFilesTestSuite(t *testing.T) {

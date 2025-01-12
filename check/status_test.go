@@ -8,6 +8,7 @@ import (
 
 	"slices"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -17,6 +18,10 @@ import (
 type checkStatusTestSuite struct {
 	suite.Suite
 	cfg *config.FTWConfiguration
+}
+
+func (s *checkStatusTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func (s *checkStatusTestSuite) SetupTest() {

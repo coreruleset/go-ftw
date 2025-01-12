@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -32,6 +33,10 @@ var outputTest = []struct {
 
 type outputTestSuite struct {
 	suite.Suite
+}
+
+func (s *outputTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestOutputTestSuite(t *testing.T) {

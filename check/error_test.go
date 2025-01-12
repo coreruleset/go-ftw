@@ -7,6 +7,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -32,6 +33,10 @@ var expectedFailTests = []struct {
 type checkErrorTestSuite struct {
 	suite.Suite
 	cfg *config.FTWConfiguration
+}
+
+func (s *checkErrorTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestCheckErrorTestSuite(t *testing.T) {
