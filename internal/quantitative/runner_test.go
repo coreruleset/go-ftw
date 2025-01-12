@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-getter/v2"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/experimental/corpus"
@@ -23,6 +24,10 @@ type runnerTestSuite struct {
 	params Params
 	c      corpus.Corpus
 	dir    string
+}
+
+func (s *runnerTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestRunnerTestSuite(t *testing.T) {

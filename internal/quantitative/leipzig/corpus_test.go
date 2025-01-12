@@ -6,6 +6,7 @@ package leipzig
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/experimental/corpus"
@@ -16,6 +17,10 @@ type leipzigCorpusTestSuite struct {
 	corpus corpus.Corpus
 	cache  corpus.File
 	iter   corpus.Iterator
+}
+
+func (s *leipzigCorpusTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestLeipzigCorpusTestSuite(t *testing.T) {

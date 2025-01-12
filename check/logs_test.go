@@ -6,6 +6,7 @@ package check
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -34,6 +35,10 @@ type checkLogsTestSuite struct {
 
 func TestCheckLogsTestSuite(t *testing.T) {
 	suite.Run(t, new(checkLogsTestSuite))
+}
+
+func (s *checkLogsTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func (s *checkLogsTestSuite) SetupTest() {

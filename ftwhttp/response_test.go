@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -18,6 +19,10 @@ type responseTestSuite struct {
 	suite.Suite
 	client *Client
 	ts     *httptest.Server
+}
+
+func (s *responseTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestHResponseTestSuite(t *testing.T) {

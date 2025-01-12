@@ -6,6 +6,7 @@ package test
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v3"
 )
@@ -14,6 +15,10 @@ var repeatTestSprig = `foo=%3d++++++++++++++++++++++++++++++++++`
 
 type dataTestSuite struct {
 	suite.Suite
+}
+
+func (s *dataTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestDataTestSuite(t *testing.T) {

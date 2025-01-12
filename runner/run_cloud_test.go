@@ -12,6 +12,7 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 
@@ -29,6 +30,10 @@ type runCloudTestSuite struct {
 	ts           *httptest.Server
 	dest         *ftwhttp.Destination
 	tempFileName string
+}
+
+func (s *runCloudTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestRunCloudTestSuite(t *testing.T) {

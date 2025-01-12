@@ -13,7 +13,7 @@ type rootCmdTestSuite struct {
 	suite.Suite
 }
 
-func TestRootChoreTestSuite(t *testing.T) {
+func TestRootTestSuite(t *testing.T) {
 	suite.Run(t, new(rootCmdTestSuite))
 }
 

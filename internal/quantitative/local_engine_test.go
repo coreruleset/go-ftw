@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-getter/v2"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -27,6 +28,10 @@ type localEngineTestSuite struct {
 	suite.Suite
 	dir    string
 	engine LocalEngine
+}
+
+func (s *localEngineTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestLocalEngineTestSuite(t *testing.T) {

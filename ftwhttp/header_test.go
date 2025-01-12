@@ -1,11 +1,3 @@
-// Copyright 2010 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-// Copyright 2011 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package ftwhttp
 
 import (
@@ -14,6 +6,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -65,6 +58,10 @@ type headerTestSuite struct {
 
 func TestHeaderTestSuite(t *testing.T) {
 	suite.Run(t, new(headerTestSuite))
+}
+
+func (s *headerTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func (s *headerTestSuite) TestHeaderWrite() {
@@ -196,6 +193,7 @@ var testHeader = Header{
 var buf bytes.Buffer
 
 func BenchmarkHeaderWrite(b *testing.B) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		buf.Reset()

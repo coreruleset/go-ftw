@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/utils"
@@ -45,10 +46,6 @@ type fileTestSuite struct {
 	cfg      *FTWConfiguration
 }
 
-type envTestSuite struct {
-	suite.Suite
-}
-
 type baseTestSuite struct {
 	suite.Suite
 }
@@ -56,13 +53,14 @@ type baseTestSuite struct {
 func TestConfigTestSuite(t *testing.T) {
 	suite.Run(t, new(baseTestSuite))
 	suite.Run(t, new(fileTestSuite))
-	suite.Run(t, new(envTestSuite))
 }
 
-func (s *fileTestSuite) SetupTest() {
+func (s *baseTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
-func (s *envTestSuite) SetupTest() {
+func (s *fileTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func (s *fileTestSuite) BeforeTest(_, name string) {

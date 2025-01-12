@@ -6,11 +6,16 @@ package ftwhttp
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
 type connectionTestSuite struct {
 	suite.Suite
+}
+
+func (s *connectionTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestConnectionTestSuite(t *testing.T) {

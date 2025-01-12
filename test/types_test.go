@@ -6,11 +6,16 @@ package test
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
 type typesTestSuite struct {
 	suite.Suite
+}
+
+func (s *typesTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestTypesTestSuite(t *testing.T) {
