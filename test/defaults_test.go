@@ -6,6 +6,7 @@ package test
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/ftwhttp"
@@ -13,6 +14,10 @@ import (
 
 type defaultsTestSuite struct {
 	suite.Suite
+}
+
+func (s *defaultsTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestDefaultsTestSuite(t *testing.T) {

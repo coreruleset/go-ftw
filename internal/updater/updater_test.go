@@ -6,6 +6,7 @@ package updater
 import (
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -13,10 +14,8 @@ type updaterTestSuite struct {
 	suite.Suite
 }
 
-func (s *updaterTestSuite) SetupTest() {
-}
-
-func (s *updaterTestSuite) TearDownTest() {
+func (s *updaterTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestRunUpdaterTestSuite(t *testing.T) {

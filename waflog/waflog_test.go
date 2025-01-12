@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -14,6 +15,10 @@ import (
 
 type waflogTestSuite struct {
 	suite.Suite
+}
+
+func (s *waflogTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestWafLogTestSuite(t *testing.T) {

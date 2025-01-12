@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/time/rate"
 )
@@ -28,6 +29,10 @@ type clientTestSuite struct {
 
 func TestClientTestSuite(t *testing.T) {
 	suite.Run(t, new(clientTestSuite))
+}
+
+func (s *clientTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func (s *clientTestSuite) SetupTest() {

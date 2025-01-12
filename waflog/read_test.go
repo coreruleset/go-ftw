@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -19,6 +20,10 @@ import (
 type readTestSuite struct {
 	suite.Suite
 	filename string
+}
+
+func (s *readTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestReadTestSuite(t *testing.T) {
