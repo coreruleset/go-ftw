@@ -135,10 +135,8 @@ func BuildRequest(r *Request) ([]byte, error) {
 
 	// Multipart form data needs to end in \r\n, per RFC (and modsecurity make a scene if not)
 	if r.headers.HasAnyValueContaining(header_names.ContentType, "multipart/form-data;") {
-		crlf := []byte("\r\n")
-		lf := []byte("\n")
 		log.Debug().Msgf("ftw/http: with LF only - %d bytes:\n%x\n", len(r.data), r.data)
-		data = bytes.ReplaceAll(r.data, lf, crlf)
+		data = bytes.ReplaceAll(r.data, []byte("\n"), []byte(HeaderDelimiter))
 		log.Debug().Msgf("ftw/http: with CRLF - %d bytes:\n%x\n", len(data), data)
 		r.data = data
 	}
@@ -154,7 +152,7 @@ func BuildRequest(r *Request) ([]byte, error) {
 	}
 
 	// After headers, we need one blank line
-	_, err = b.WriteString("\r\n")
+	_, err = b.WriteString(HeaderDelimiter)
 	if err != nil {
 		log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
 		return nil, err
