@@ -35,8 +35,9 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	s.NotNil(cfg)
 
 	stageId := "dead-beaf-deadbeef-deadbeef-dead"
-	startMarkerLine := "X-cRs-TeSt: " + stageId + "-s"
-	endMarkerLine := "X-cRs-TeSt: " + stageId + "-e"
+	startStageId := stageId + "-s"
+	endStageID := stageId + "-e"
+	startMarkerLine := "X-cRs-TeSt: " + startStageId
 	logLines := `
 [Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 ` + startMarkerLine + `
@@ -51,8 +52,10 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	ll, err := NewFTWLogLines(cfg)
 	s.Require().NoError(err)
 	ll.WithStartMarker([]byte(startMarkerLine))
-	marker := ll.CheckLogForMarker(endMarkerLine, 100)
-	s.Nil(marker, "unexpectedly found marker")
+	marker := ll.CheckLogForMarker(startStageId, 100)
+	s.Equal(string(marker), strings.ToLower(startMarkerLine), "unexpectedly missing start marker")
+	marker = ll.CheckLogForMarker(endStageID, 100)
+	s.Nil(marker, "unexpectedly found end marker")
 }
 
 func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
@@ -80,6 +83,46 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 	s.NotNil(marker, "no marker found")
 
 	s.Equal(marker, bytes.ToLower([]byte(markerLine)), "found unexpected marker")
+}
+
+// This test checks that the log lines are read correctly when the end marker is repeated multiple times.
+// It can happen when the log is not flushed immediately, the end marker is not found in the first iteration, and therefore
+// the end marker is produced multiple times in the log.
+// Prior to using start and end markers, it might have been possible to use as log lines only the lines between the last two end markers.
+func (s *readTestSuite) TestReadCheckLogForMarkerWithMultipleMarkersAtEnd() {
+	cfg, err := config.NewConfigFromEnv()
+	s.Require().NoError(err)
+	s.NotNil(cfg)
+
+	stageId := "dead-beaf-deadbeef-deadbeef-dead"
+	startMarkerLine := "X-cRs-TeSt: " + stageId + " -start"
+	endMarkerLine := "X-cRs-TeSt: " + stageId + " -end"
+	logLinesOnly :=
+		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
+	[Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
+	[Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
+	logLines := fmt.Sprintf("%s\n%s\n%s\n%s", startMarkerLine, logLinesOnly, endMarkerLine, endMarkerLine)
+	s.filename, err = utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
+	s.Require().NoError(err)
+
+	cfg.LogFile = s.filename
+
+	ll, err := NewFTWLogLines(cfg)
+	s.Require().NoError(err)
+	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
+	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
+
+	foundLines := ll.getMarkedLines()
+	// logs are scanned backwards, we need to reverse the order of lines for comparison
+	for i, j := 0, len(foundLines)-1; i < j; i, j = i+1, j-1 {
+		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
+	}
+	// 4 lines are expected, 3 are the meaningful log lines (logLinesOnly), and the 4th is the repeat end marker.
+	s.Len(foundLines, 4, "found unexpected number of log lines")
+
+	for index, line := range strings.Split(logLinesOnly, "\n") {
+		s.Equalf(foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
+	}
 }
 
 func (s *readTestSuite) TestReadGetMarkedLines() {

@@ -148,7 +148,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 
 	fi, err := ll.logFile.Stat()
 	if err != nil {
-		log.Error().Caller().Msgf("cannot read file's size")
+		log.Error().Caller().Msg("cannot read file's size")
 		return ll.markedLines
 	}
 
