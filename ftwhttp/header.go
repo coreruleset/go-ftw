@@ -14,8 +14,10 @@ import (
 )
 
 const (
-	headerSeparator = ": "
-	headerDelimiter = "\r\n"
+	// HeaderSeparator is used to separate header name and value
+	HeaderSeparator = ": "
+	// HeaderDelimiter marks then end of a header (CRLF)
+	HeaderDelimiter = "\r\n"
 )
 
 // Header is a representation of the HTTP header section.
@@ -45,7 +47,7 @@ func NewHeader() *Header {
 // This is a convenience and legacy fallback method. In the future,
 // headers should be specified as a list, in order to guarantee order
 // and to allow requests to contain the same header multiple times,
-// potentially, but not necessarily, with different values.
+// potentially with different values.
 func NewHeaderFromMap(headerMap map[string]string) *Header {
 	header := NewHeader()
 	keys := make([]string, 0, len(headerMap))
@@ -121,20 +123,11 @@ func (h *Header) GetAll(name string) []HeaderTuple {
 // Write writes the header to the provided writer
 func (h *Header) Write(writer io.Writer) error {
 	buf := bufio.NewWriter(writer)
-	for _, tuple := range h.entries {
+	for index, tuple := range h.entries {
 		if log.Trace().Enabled() {
-			log.Trace().Msgf("Writing header: %s: %s", tuple.Name, tuple.Value)
+			log.Trace().Msgf("Writing header %d: %s: %s", index, tuple.Name, tuple.Value)
 		}
-		if _, err := buf.WriteString(tuple.Name); err != nil {
-			return err
-		}
-		if _, err := buf.WriteString(headerSeparator); err != nil {
-			return err
-		}
-		if _, err := buf.WriteString(tuple.Value); err != nil {
-			return err
-		}
-		if _, err := buf.WriteString(headerDelimiter); err != nil {
+		if _, err := buf.WriteString(tuple.Name + HeaderSeparator + tuple.Value + HeaderDelimiter); err != nil {
 			return err
 		}
 
