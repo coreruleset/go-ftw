@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/ftwhttp"
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 )
 
 type defaultsTestSuite struct {
@@ -27,13 +27,12 @@ func TestDefaultsTestSuite(t *testing.T) {
 func getTestInputDefaults() *Input {
 	data := "My Data"
 
-	inputDefaults := Input{
-		Headers:             make(ftwhttp.Header),
+	return NewInput(&schema.Input{
+		Headers:             map[string]string{},
 		Data:                &data,
 		SaveCookie:          func() *bool { b := false; return &b }(),
 		AutocompleteHeaders: func() *bool { b := false; return &b }(),
-	}
-	return &inputDefaults
+	})
 }
 
 func getTestExampleInput() *Input {
@@ -44,21 +43,19 @@ func getTestExampleInput() *Input {
 	method := "REPORT"
 	version := "HTTP/1.1"
 
-	inputTest := Input{
+	return NewInput(&schema.Input{
 		DestAddr:            &destaddr,
 		Port:                &port,
 		Protocol:            &protocol,
 		URI:                 &uri,
 		Version:             &version,
-		Headers:             make(ftwhttp.Header),
+		Headers:             map[string]string{},
 		Method:              &method,
 		Data:                nil,
 		EncodedRequest:      "TXkgRGF0YQo=",
 		SaveCookie:          func() *bool { b := false; return &b }(),
 		AutocompleteHeaders: func() *bool { b := false; return &b }(),
-	}
-
-	return &inputTest
+	})
 }
 
 func (s *defaultsTestSuite) TestBasicGetters() {

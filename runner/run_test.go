@@ -15,6 +15,7 @@ import (
 	"text/template"
 
 	"github.com/coreruleset/ftw-tests-schema/v2/types"
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -23,6 +24,7 @@ import (
 	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
+	"github.com/coreruleset/go-ftw/ftwhttp/header_names"
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/waflog"
@@ -395,14 +397,14 @@ func (s *runTestSuite) TestIgnoredTestsRun() {
 func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
 	boolean := true
 	method := "POST"
-	input := test.Input{
+	input := test.NewInput(&schema.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             ftwhttp.Header{},
+		Headers:             map[string]string{},
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
-	}
+	})
 	request, err := getRequestFromTest(input)
 	s.Require().NoError(err)
 
@@ -419,21 +421,26 @@ func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
 	_, err = client.Do(*request)
 	s.Require().NoError(err)
 
-	s.Equal("0", request.Headers().Get("Content-Length"), "Autocompletion should add 'Content-Length' header to POST requests")
-	s.Equal("close", request.Headers().Get("Connection"), "Autocompletion should add 'Connection: close' header")
+	contentLengthHeaders := request.Headers().GetAll(header_names.ContentLength)
+	s.Len(contentLengthHeaders, 1)
+	s.Equal("0", contentLengthHeaders[0].Value, "Autocompletion should add 'Content-Length' header to POST requests")
+
+	connectionHeaders := request.Headers().GetAll(header_names.Connection)
+	s.Len(connectionHeaders, 1)
+	s.Equal("close", connectionHeaders[0].Value, "Autocompletion should add 'Connection: close' header")
 }
 
 func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
 	boolean := false
 	method := "POST"
-	input := test.Input{
+	input := test.NewInput(&schema.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             ftwhttp.Header{},
+		Headers:             map[string]string{},
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
-	}
+	})
 	request, err := getRequestFromTest(input)
 	s.Require().NoError(err)
 
@@ -450,8 +457,8 @@ func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
 	_, err = client.Do(*request)
 	s.Require().NoError(err)
 
-	s.Equal("", request.Headers().Get("Content-Length"), "Autocompletion is disabled")
-	s.Equal("", request.Headers().Get("Connection"), "Autocompletion is disabled")
+	s.False(request.Headers().HasAny(header_names.ContentLength), "Autocompletion is disabled")
+	s.False(request.Headers().HasAny(header_names.Connection), "Autocompletion is disabled")
 }
 
 // This test case verifies that the `retry_once` option works around a race condition in phase 5,
@@ -543,76 +550,82 @@ func (s *runTestSuite) TestIsolatedSanity() {
 
 func (s *runTestSuite) TestVirtualHostMode_Default() {
 	method := "POST"
-	input := &test.Input{
+	input := test.NewInput(&schema.Input{
 		Method: &method,
-		Headers: ftwhttp.Header{
+		Headers: map[string]string{
 			"Host": "not-localhost_virtual-host",
 		},
 		DestAddr: &s.dest.DestAddr,
 		Port:     &s.dest.Port,
 		Protocol: &s.dest.Protocol,
-	}
+	})
 	context := &TestRunContext{
 		Config: config.NewDefaultConfig(),
 	}
 	request := buildMarkerRequest(context, input, uuid.NewString())
 
-	s.Equal("localhost", request.Headers().Get("Host"))
+	hostHeaders := request.Headers().GetAll("Host")
+	s.Len(hostHeaders, 1)
+	s.Equal("localhost", hostHeaders[0].Value)
 }
 
 func (s *runTestSuite) TestVirtualHostMode_False() {
 	method := "POST"
-	input := &test.Input{
+	input := test.NewInput(&schema.Input{
 		Method: &method,
-		Headers: ftwhttp.Header{
+		Headers: map[string]string{
 			"Host": "not-localhost_virtual-host",
 		},
 		DestAddr:        &s.dest.DestAddr,
 		Port:            &s.dest.Port,
 		Protocol:        &s.dest.Protocol,
 		VirtualHostMode: false,
-	}
+	})
 	context := &TestRunContext{
 		Config: config.NewDefaultConfig(),
 	}
 	request := buildMarkerRequest(context, input, uuid.NewString())
 
-	s.Equal("localhost", request.Headers().Get("Host"))
+	hostHeaders := request.Headers().GetAll("Host")
+	s.Len(hostHeaders, 1)
+	s.Equal("localhost", hostHeaders[0].Value)
 }
 
 func (s *runTestSuite) TestVirtualHostMode_True() {
 	method := "POST"
-	input := &test.Input{
+	input := test.NewInput(&schema.Input{
 		Method: &method,
-		Headers: ftwhttp.Header{
+		Headers: map[string]string{
 			"Host": "not-localhost_virtual-host",
 		},
 		DestAddr:        &s.dest.DestAddr,
 		Port:            &s.dest.Port,
 		Protocol:        &s.dest.Protocol,
 		VirtualHostMode: true,
-	}
+	})
 	context := &TestRunContext{
 		Config: config.NewDefaultConfig(),
 	}
 	request := buildMarkerRequest(context, input, uuid.NewString())
 
-	s.Equal("not-localhost_virtual-host", request.Headers().Get("Host"))
+	hostHeaders := request.Headers().GetAll("Host")
+	s.Len(hostHeaders, 1)
+	s.Equal("not-localhost_virtual-host", hostHeaders[0].Value)
 }
 
 func (s *runTestSuite) TestGetRequestFromData() {
 	data := "This is Springfield"
 	boolean := true
 	method := "POST"
-	input := test.Input{
+	input := test.NewInput(&schema.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             ftwhttp.Header{},
+		Headers:             map[string]string{},
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
 		Data:                &data,
-	}
+	})
 	request, err := getRequestFromTest(input)
 	s.Require().NoError(err)
 
@@ -623,15 +636,15 @@ func (s *runTestSuite) TestGetRequestFromEncodedData() {
 	data := base64.StdEncoding.EncodeToString([]byte("This is Springfield"))
 	boolean := true
 	method := "POST"
-	input := test.Input{
+	input := test.NewInput(&schema.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             ftwhttp.Header{},
+		Headers:             map[string]string{},
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
 		Data:                &data,
-	}
+	})
 	request, err := getRequestFromTest(input)
 	s.Require().NoError(err)
 
