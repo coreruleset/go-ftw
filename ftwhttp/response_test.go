@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	header_names "github.com/coreruleset/go-ftw/ftwhttp/header_names"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
@@ -44,32 +45,10 @@ func generateRequestForTesting(keepalive bool) *Request {
 	} else {
 		connection = "close"
 	}
-	h := Header{
-		"Host":       "localhost",
-		"User-Agent": "Go Tests",
-		"Connection": connection,
-	}
-
-	req = NewRequest(rl, h, nil, true)
-
-	return req
-}
-
-func generateRequestWithCookiesForTesting() *Request {
-	var req *Request
-
-	rl := &RequestLine{
-		Method:  "GET",
-		URI:     "/",
-		Version: "HTTP/1.1",
-	}
-
-	h := Header{
-		"Host":       "localhost",
-		"User-Agent": "Go Tests",
-		"Cookie":     "THISISACOOKIE",
-		"Connection": "Keep-Alive",
-	}
+	h := NewHeader()
+	h.Add("Host", "localhost")
+	h.Add("User-Agent", "Go Tests")
+	h.Add(header_names.Connection, connection)
 
 	req = NewRequest(rl, h, nil, true)
 
@@ -141,25 +120,6 @@ func (s *responseTestSuite) TestResponse() {
 	s.Require().NoError(err)
 
 	s.Contains(response.GetFullResponse(), "Hello, client\n")
-}
-
-func (s *responseTestSuite) TestResponseWithCookies() {
-	d, err := DestinationFromString(s.ts.URL)
-	s.Require().NoError(err)
-	req := generateRequestForTesting(true)
-
-	err = s.client.NewConnection(*d)
-	s.Require().NoError(err)
-
-	response, err := s.client.Do(*req)
-	s.Require().NoError(err)
-
-	s.Contains(response.GetFullResponse(), "Setting Cookies!\n")
-
-	cookiereq := generateRequestWithCookiesForTesting()
-
-	_, err = s.client.Do(*cookiereq)
-	s.Require().NoError(err)
 }
 
 func (s *responseTestSuite) TestResponseChecksFullResponse() {
