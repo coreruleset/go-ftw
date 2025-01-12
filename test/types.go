@@ -15,7 +15,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/ftwhttp"
 )
 
 // ApplyInputOverride will check if config had global overrides and write that into the test.
@@ -27,7 +26,7 @@ func ApplyInputOverrides(conf *config.FTWConfiguration, input *Input) {
 	//nolint:staticcheck
 	if overrides.AutocompleteHeaders != nil || overrides.StopMagic != nil {
 		//nolint:staticcheck
-		postProcessAutocompleteHeaders(overrides.AutocompleteHeaders, overrides.StopMagic, input)
+		postProcessAutocompleteHeaders(overrides.AutocompleteHeaders, overrides.StopMagic, input.Input)
 	}
 }
 
@@ -66,11 +65,12 @@ func applyDestAddrOverride(overrides *config.Overrides, input *Input) {
 	if overrides.DestAddr != nil {
 		input.DestAddr = overrides.DestAddr
 		if input.Headers == nil {
-			input.Headers = ftwhttp.Header{}
+			input.Headers = map[string]string{}
 		}
+		headers := input.GetHeaders()
 		if overrides.OverrideEmptyHostHeader != nil &&
 			*overrides.OverrideEmptyHostHeader &&
-			input.GetHeaders().Get("Host") == "" {
+			!headers.HasAny("Host") {
 			input.GetHeaders().Set("Host", *overrides.DestAddr)
 		}
 	}
@@ -111,13 +111,12 @@ func applySimpleOverrides(overrides *config.Overrides, input *Input) {
 }
 
 func applyHeadersOverride(overrides *config.Overrides, input *Input) {
-	if overrides.Headers != nil {
-		if input.Headers == nil {
-			input.Headers = ftwhttp.Header{}
-		}
-		for k, v := range overrides.Headers {
-			input.GetHeaders().Set(k, v)
-		}
+	if overrides.Headers == nil {
+		return
+	}
+	headers := input.GetHeaders()
+	for k, v := range overrides.Headers {
+		headers.Set(k, v)
 	}
 }
 
@@ -164,19 +163,19 @@ func postLoadTest(ruleId uint, testId uint, test *schema.Test) {
 }
 
 func postLoadStage(stage *schema.Stage) {
-	postLoadInput((*Input)(&stage.Input))
-	postLoadOutput((*Output)(&stage.Output))
+	postLoadInput(&stage.Input)
+	postLoadOutput(&stage.Output)
 }
 
-func postLoadInput(input *Input) {
+func postLoadInput(input *schema.Input) {
 	//nolint:staticcheck
 	postProcessAutocompleteHeaders(input.AutocompleteHeaders, input.StopMagic, input)
 }
-func postLoadOutput(output *Output) {
+func postLoadOutput(output *schema.Output) {
 	postProcessLogContains(output)
 }
 
-func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, input *Input) {
+func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, input *schema.Input) {
 	autocompleteHeadersMissing := autocompleteHeaders == nil
 	stopMagicMissing := stopMagic == nil
 	// default value
@@ -194,7 +193,7 @@ func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, 
 	input.StopMagic = func() *bool { b := !finalValue; return &b }()
 }
 
-func postProcessLogContains(output *Output) {
+func postProcessLogContains(output *schema.Output) {
 	log := &output.Log
 	//nolint:staticcheck
 	if output.LogContains != "" && log.ExpectIds == nil && log.MatchRegex == "" {
