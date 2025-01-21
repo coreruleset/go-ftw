@@ -39,7 +39,10 @@ func (s *connectionTestSuite) TestMultipleRequestTypes() {
 		Version: "HTTP/1.1",
 	}
 
-	h := Header{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"}
+	h := NewHeader()
+	h.Add("Accept", "*/*")
+	h.Add("User-Agent", "go-ftw test agent")
+	h.Add("Host", "localhost")
 
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, true)
