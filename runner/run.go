@@ -146,8 +146,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 	runContext.StartStage()
 	stageId := uuid.NewString()
 	// Apply global overrides initially
-	testInput := (test.Input)(stage.Input)
-	test.ApplyInputOverrides(runContext.Config, &testInput)
+	testInput := test.NewInput(&stage.Input)
+	test.ApplyInputOverrides(runContext.Config, testInput)
 	expectedOutput := stage.Output
 	expectErr := false
 	if expectedOutput.ExpectError != nil {
@@ -175,7 +175,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 
 	if notRunningInCloudMode(ftwCheck) {
 		startId := stageId + startUuidSuffix
-		startMarker, err := markAndFlush(runContext, &testInput, startId)
+		startMarker, err := markAndFlush(runContext, testInput, startId)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find start marker: %w", err)
 		}
@@ -203,7 +203,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase sch
 
 	if notRunningInCloudMode(ftwCheck) {
 		endId := stageId + endUuidSuffix
-		endMarker, err := markAndFlush(runContext, &testInput, endId)
+		endMarker, err := markAndFlush(runContext, testInput, endId)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find end marker: %w", err)
 
@@ -262,15 +262,23 @@ func buildMarkerRequest(runContext *TestRunContext, testInput *test.Input, stage
 		// Use the value of the `Host` header of the test for
 		// internal requests as well, so that all requests target
 		// the same virtual host.
-		host = testInput.GetHeaders().Get("Host")
+		headers := testInput.GetHeaders()
+		if !headers.HasAny("Host") {
+			log.Error().Msg("'VirtualHostMode' enabled but no 'Host' header specified")
+		}
+		hostHeaders := headers.GetAll("Host")
+		if len(hostHeaders) > 1 {
+			log.Error().Msg("'VirtualHostMode' enabled but more than one 'Host' header specified")
+		} else {
+			host = hostHeaders[0].Value
+		}
 	}
 
-	headers := &ftwhttp.Header{
-		"Accept":                              "*/*",
-		"User-Agent":                          "go-ftw test agent",
-		"Host":                                host,
-		runContext.Config.LogMarkerHeaderName: stageId,
-	}
+	header := ftwhttp.NewHeader()
+	header.Add("Accept", "*/*")
+	header.Add("User-Agent", "go-ftw test agent")
+	header.Add("Host", host)
+	header.Add(runContext.Config.LogMarkerHeaderName, stageId)
 
 	rline := &ftwhttp.RequestLine{
 		Method: "GET",
@@ -281,7 +289,7 @@ func buildMarkerRequest(runContext *TestRunContext, testInput *test.Input, stage
 		Version: "HTTP/1.1",
 	}
 
-	return ftwhttp.NewRequest(rline, *headers, nil, true)
+	return ftwhttp.NewRequest(rline, header, nil, true)
 }
 
 func needToSkipTest(runContext *TestRunContext, testCase *schema.Test) bool {
@@ -410,7 +418,7 @@ func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError er
 	return Success
 }
 
-func getRequestFromTest(testInput test.Input) (*ftwhttp.Request, error) {
+func getRequestFromTest(testInput *test.Input) (*ftwhttp.Request, error) {
 	if utils.IsNotEmpty(testInput.EncodedRequest) {
 		data, err := base64.StdEncoding.DecodeString(testInput.EncodedRequest)
 		if err != nil {
@@ -426,7 +434,7 @@ func getRequestFromTest(testInput test.Input) (*ftwhttp.Request, error) {
 	}
 
 	data := testInput.GetData()
-	return ftwhttp.NewRequest(rline, testInput.Headers,
+	return ftwhttp.NewRequest(rline, testInput.GetHeaders(),
 		data, *testInput.AutocompleteHeaders), nil
 }
 
