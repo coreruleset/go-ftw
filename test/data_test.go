@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
+	"github.com/coreruleset/go-ftw/ftwhttp/header_values"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v3"
@@ -34,12 +35,13 @@ port: 80
 headers:
 User-Agent: "ModSecurity CRS 3 Tests"
 Host: "localhost"
-Content-Type: header_values.ApplicationXWwwFormUrlencoded
+Content-Type: ` + header_values.ApplicationXWwwFormUrlencoded + `
 data: "hi=test"
 protocol: "http"
 autocomplete_headers: true
 uri: "/"
 `
+
 	input := &schema.Input{}
 	err := yaml.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
@@ -54,7 +56,7 @@ port: 80
 headers:
 User-Agent: "ModSecurity CRS 3 Tests"
 Host: "localhost"
-Content-Type: header_values.ApplicationXWwwFormUrlencoded
+Content-Type: ` + header_values.ApplicationXWwwFormUrlencoded + `
 data: "hi=test"
 version: ""
 protocol: "http"
@@ -76,7 +78,7 @@ port: 80
 headers:
 User-Agent: "ModSecurity CRS 3 Tests"
 Host: "localhost"
-Content-Type: header_values.ApplicationXWwwFormUrlencoded
+Content-Type: ` + header_values.ApplicationXWwwFormUrlencoded + `
 data: 'foo=%3d{{ "+" | repeat 34 }}'
 version: ""
 protocol: "http"
@@ -103,7 +105,7 @@ port: 80
 headers:
 User-Agent: "ModSecurity CRS 3 Tests"
 Host: "localhost"
-Content-Type: header_values.ApplicationXWwwFormUrlencoded
+Content-Type: ` + header_values.ApplicationXWwwFormUrlencoded + `
 data: 'foo=%3d{{ "+" | repeat 34 }}'
 version: ""
 protocol: "http"
@@ -130,7 +132,7 @@ port: 80
 headers:
 User-Agent: "ModSecurity CRS 3 Tests"
 Host: "localhost"
-Content-Type: header_values.ApplicationXWwwFormUrlencoded
+Content-Type: ` + header_values.ApplicationXWwwFormUrlencoded + `
 data: 'foo=%3d{{ "+" | repeat 34 }'
 version: ""
 protocol: "http"
@@ -155,7 +157,7 @@ port: 80
 headers:
 User-Agent: "ModSecurity CRS 3 Tests"
 Host: "localhost"
-Content-Type: header_values.ApplicationXWwwFormUrlencoded
+Content-Type: ` + header_values.ApplicationXWwwFormUrlencoded + `
 encoded_data: VGhpcyBpcyBTcHJpbmdmaWVsZA==
 version: ""
 protocol: "http"
@@ -179,7 +181,7 @@ port: 80
 headers:
 User-Agent: "ModSecurity CRS 3 Tests"
 Host: "localhost"
-Content-Type: header_values.ApplicationXWwwFormUrlencoded
+Content-Type: ` + header_values.ApplicationXWwwFormUrlencoded + `
 encoded_data: VGhpcyBpcyBTcHJpbmdmaWVsZA===
 version: ""
 protocol: "http"
