@@ -108,6 +108,9 @@ func applySimpleOverrides(overrides *config.Overrides, input *Input) {
 	if overrides.EncodedRequest != nil {
 		input.EncodedRequest = *overrides.EncodedRequest
 	}
+	if overrides.VirtualHostMode != nil {
+		input.VirtualHostMode = *overrides.VirtualHostMode
+	}
 }
 
 func applyHeadersOverride(overrides *config.Overrides, input *Input) {

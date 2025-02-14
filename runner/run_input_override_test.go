@@ -43,6 +43,7 @@ testoverride:
     {{ with .Data }}data: {{ . }}{{ end }}
     {{ with .EncodedRequest }}encoded_request: {{ . }}{{ end }}
     {{ with .Headers }}
+    {{ with .VirtualHostMode }}virtual_host_mode: {{ . }}{{ end }}
     headers:
       {{ with .Host }}Host: {{ . }}{{ end }}
       {{ with .UniqueID }}unique_id: {{ . }}{{ end }}
@@ -88,6 +89,9 @@ var overrideConfigMap = map[string]interface{}{
 	},
 	"TestApplyInputOverrideEncodedRequest": map[string]interface{}{
 		"EncodedRequest": "overrideb64",
+	},
+	"TestApplyInputOverrideVirtualHostMode": map[string]interface{}{
+		"VirtualHostMode": "true",
 	},
 	"TestApplyInputOverrideProtocol": map[string]interface{}{
 		"Protocol": "HTTP/1.1",
@@ -346,6 +350,18 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideEncodedRequest() {
 		EncodedRequest: originalEncodedRequest,
 	}
 	test.ApplyInputOverrides(s.cfg, &testInput)
-	s.NoError(err, "Failed to apply input overrides")
 	s.Equal(overrideEncodedRequest, testInput.EncodedRequest, "`EncodedRequest` should have been overridden")
+}
+
+func (s *inputOverrideTestSuite) TestApplyInputOverrideVirtualHostMode() {
+	originalVirtualHostMode := true
+	overrideVirtualHostMode, err := getOverrideConfigValue("VirtualHostMode")
+	s.Require().NoError(err, "cannot get override value")
+	overrideVirtualHostModeBool, err := strconv.ParseBool(overrideVirtualHostMode)
+	s.Require().NoError(err)
+	testInput := test.Input{
+		VirtualHostMode: originalVirtualHostMode,
+	}
+	test.ApplyInputOverrides(s.cfg, &testInput)
+	s.Equal(overrideVirtualHostModeBool, testInput.VirtualHostMode, "`VirtualHostMode` should have been overridden")
 }

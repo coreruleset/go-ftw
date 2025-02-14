@@ -86,6 +86,7 @@ type Overrides struct {
 	AutocompleteHeaders     *bool   `yaml:"autocomplete_headers" koanf:"autocomplete_headers,omitempty"`
 	EncodedRequest          *string `yaml:"encoded_request,omitempty" koanf:"encoded_request,omitempty"`
 	OverrideEmptyHostHeader *bool   `yaml:"override_empty_host_header,omitempty" koanf:"override_empty_host_header,omitempty"`
+	VirtualHostMode         *bool   `yaml:"virtual_host_mode,omitempty" koanf:"virtual_host_mode,omitempty"`
 }
 
 // FTWRegexp is a wrapper around regexp.Regexp that implements the Unmarshaler interface
