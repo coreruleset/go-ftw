@@ -362,9 +362,9 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideVirtualHostMode() {
 	s.Require().NoError(err, "cannot get override value")
 	overrideVirtualHostModeBool, err := strconv.ParseBool(overrideVirtualHostMode)
 	s.Require().NoError(err)
-	testInput := test.Input{
+	testInput := test.NewInput(&schema.Input{
 		VirtualHostMode: originalVirtualHostMode,
-	}
-	test.ApplyInputOverrides(s.cfg, &testInput)
+	})
+	test.ApplyInputOverrides(s.cfg, testInput)
 	s.Equal(overrideVirtualHostModeBool, testInput.VirtualHostMode, "`VirtualHostMode` should have been overridden")
 }
