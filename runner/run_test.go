@@ -400,7 +400,7 @@ func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
 	input := test.NewInput(&schema.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             map[string]string{},
+		OrderedHeaders:      []schema.HeaderTuple{},
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
@@ -436,7 +436,7 @@ func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
 	input := test.NewInput(&schema.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             map[string]string{},
+		OrderedHeaders:      []schema.HeaderTuple{},
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
@@ -552,8 +552,8 @@ func (s *runTestSuite) TestVirtualHostMode_Default() {
 	method := "POST"
 	input := test.NewInput(&schema.Input{
 		Method: &method,
-		Headers: map[string]string{
-			"Host": "not-localhost_virtual-host",
+		OrderedHeaders: []schema.HeaderTuple{
+			{Name: "Host", Value: "not-localhost_virtual-host"},
 		},
 		DestAddr: &s.dest.DestAddr,
 		Port:     &s.dest.Port,
@@ -573,8 +573,8 @@ func (s *runTestSuite) TestVirtualHostMode_False() {
 	method := "POST"
 	input := test.NewInput(&schema.Input{
 		Method: &method,
-		Headers: map[string]string{
-			"Host": "not-localhost_virtual-host",
+		OrderedHeaders: []schema.HeaderTuple{
+			{Name: "Host", Value: "not-localhost_virtual-host"},
 		},
 		DestAddr:        &s.dest.DestAddr,
 		Port:            &s.dest.Port,
@@ -595,8 +595,9 @@ func (s *runTestSuite) TestVirtualHostMode_True() {
 	method := "POST"
 	input := test.NewInput(&schema.Input{
 		Method: &method,
-		Headers: map[string]string{
-			"Host": "not-localhost_virtual-host",
+		OrderedHeaders: []types.HeaderTuple{
+			{Name: "Host",
+				Value: "not-localhost_virtual-host"},
 		},
 		DestAddr:        &s.dest.DestAddr,
 		Port:            &s.dest.Port,
@@ -620,7 +621,7 @@ func (s *runTestSuite) TestGetRequestFromData() {
 	input := test.NewInput(&schema.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             map[string]string{},
+		OrderedHeaders:      []schema.HeaderTuple{},
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,
@@ -639,7 +640,7 @@ func (s *runTestSuite) TestGetRequestFromEncodedData() {
 	input := test.NewInput(&schema.Input{
 		AutocompleteHeaders: &boolean,
 		Method:              &method,
-		Headers:             map[string]string{},
+		OrderedHeaders:      []schema.HeaderTuple{},
 		DestAddr:            &s.dest.DestAddr,
 		Port:                &s.dest.Port,
 		Protocol:            &s.dest.Protocol,

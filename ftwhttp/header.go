@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"io"
 	"net/textproto"
-	"slices"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -42,24 +41,11 @@ func NewHeader() *Header {
 	}
 }
 
-// Creates a new Header from a map of HTTP header names and values.
-//
-// This is a convenience and legacy fallback method. In the future,
-// headers should be specified as a list, in order to guarantee order
-// and to allow requests to contain the same header multiple times,
-// potentially with different values.
-func NewHeaderFromMap(headerMap map[string]string) *Header {
+// Creates an empty Header. You should not initialize the struct directly.
+func NewHeaderWithEntries(entries []*HeaderTuple) *Header {
 	header := NewHeader()
-	keys := make([]string, 0, len(headerMap))
-	for key := range headerMap {
-		keys = append(keys, key)
-	}
-	// Sort keys so that header constructed from a map has a
-	// deterministic output.
-	slices.Sort(keys)
-
-	for _, key := range keys {
-		header.Add(key, headerMap[key])
+	for _, tuple := range entries {
+		header.Add(tuple.Name, tuple.Value)
 	}
 	return header
 }

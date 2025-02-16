@@ -13,6 +13,7 @@ import (
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	overridesSchema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/maps"
 
 	"github.com/coreruleset/go-ftw/config"
 )
@@ -175,6 +176,7 @@ func postLoadStage(stage *schema.Stage) {
 func postLoadInput(input *schema.Input) {
 	//nolint:staticcheck
 	postProcessAutocompleteHeaders(input.AutocompleteHeaders, input.StopMagic, input)
+	postProcessHeaders(input)
 }
 func postLoadOutput(output *schema.Output) {
 	postProcessLogContains(output)
@@ -209,5 +211,23 @@ func postProcessLogContains(output *schema.Output) {
 	if output.NoLogContains != "" && log.NoExpectIds == nil && log.NoMatchRegex == "" {
 		//nolint:staticcheck
 		log.NoMatchRegex = output.NoLogContains
+	}
+}
+
+//nolint:staticcheck
+func postProcessHeaders(input *schema.Input) {
+	if input.Headers == nil || input.OrderedHeaders != nil {
+		return
+	}
+
+	sortedHeaderNames := maps.Keys(input.Headers)
+	// sort headers to guarantee stable ordering of headers
+	slices.Sort(sortedHeaderNames)
+	input.OrderedHeaders = make([]schema.HeaderTuple, len(sortedHeaderNames))
+	for index, name := range sortedHeaderNames {
+		input.OrderedHeaders[index] = schema.HeaderTuple{
+			Name:  name,
+			Value: input.Headers[name],
+		}
 	}
 }

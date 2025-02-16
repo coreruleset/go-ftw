@@ -17,29 +17,29 @@ var headerWriteTests = []struct {
 		NewHeader(), "",
 	},
 	{
-		NewHeaderFromMap(map[string]string{
-			header_names.ContentType:   "text/html; charset=UTF-8",
-			header_names.ContentLength: "0",
+		NewHeaderWithEntries([]*HeaderTuple{
+			{header_names.ContentType, "text/html; charset=UTF-8"},
+			{header_names.ContentLength, "0"},
 		}),
-		"Content-Length: 0\r\nContent-Type: text/html; charset=UTF-8\r\n",
+		"Content-Type: text/html; charset=UTF-8\r\nContent-Length: 0\r\n",
 	},
 	{
-		NewHeaderFromMap(map[string]string{
-			header_names.ContentLength: "1",
+		NewHeaderWithEntries([]*HeaderTuple{
+			{header_names.ContentLength, "1"},
 		}),
 		"Content-Length: 1\r\n",
 	},
 	{
-		NewHeaderFromMap(map[string]string{
-			"Expires":                  "-1",
-			header_names.ContentLength: "0",
-			"Content-Encoding":         "gzip",
+		NewHeaderWithEntries([]*HeaderTuple{
+			{"Expires", "-1"},
+			{header_names.ContentLength, "0"},
+			{"Content-Encoding", "gzip"},
 		}),
-		"Content-Encoding: gzip\r\nContent-Length: 0\r\nExpires: -1\r\n",
+		"Expires: -1\r\nContent-Length: 0\r\nContent-Encoding: gzip\r\n",
 	},
 	{
-		NewHeaderFromMap(map[string]string{
-			"Blank": "",
+		NewHeaderWithEntries([]*HeaderTuple{
+			{"Blank", ""},
 		}),
 		"Blank: \r\n",
 	},
@@ -65,18 +65,17 @@ func (s *headerTestSuite) TestNewHeader() {
 	s.Empty(newHeader.entries)
 }
 
-func (s *headerTestSuite) TestNewHeaderFromMap() {
-	entries := map[string]string{
-		"Header-Two": "value-2",
-		"Header-One": "value-1",
-		"header-two": "something else",
+func (s *headerTestSuite) TestNewHeaderEntries() {
+	entries := []*HeaderTuple{
+		{"Header-Two", "value-2"},
+		{"Header-One", "value-1"},
+		{"header-two", "something else"},
 	}
-	newHeader := NewHeaderFromMap(entries)
+	newHeader := NewHeaderWithEntries(entries)
 	s.Len(newHeader.canonicalNames, 2)
 	s.Len(newHeader.entries, 3)
-	// Alphabetically sorted for consistency
-	s.Equal("Header-One", newHeader.entries[0].Name)
-	s.Equal("Header-Two", newHeader.entries[1].Name)
+	s.Equal("Header-Two", newHeader.entries[0].Name)
+	s.Equal("Header-One", newHeader.entries[1].Name)
 	s.Equal("header-two", newHeader.entries[2].Name)
 }
 
@@ -226,12 +225,12 @@ func (s *headerTestSuite) TestCloneNilHeader() {
 
 func BenchmarkHeaderWrite(b *testing.B) {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
-	header := NewHeaderFromMap(map[string]string{
-		"Host":                     "coreruleset.org",
-		header_names.ContentLength: "123",
-		header_names.ContentType:   "text/plain",
-		"Date":                     "some date at some time Z",
-		"Server":                   "DefaultUserAgent",
+	header := NewHeaderWithEntries([]*HeaderTuple{
+		{"Host", "coreruleset.org"},
+		{header_names.ContentLength, "123"},
+		{header_names.ContentType, "text/plain"},
+		{"Date", "some date at some time Z"},
+		{"Server", "DefaultUserAgent"},
 	})
 	buf := &bytes.Buffer{}
 

@@ -282,6 +282,88 @@ tests:
             no_expect_ids: [123456]
 `
 
+var headersEmpty = `---
+meta:
+  author: "tester"
+  description: "Example Test"
+rule_id: 123456
+tests:
+  - test_id: 1
+    stages:
+      - input:
+          dest_addr: "localhost"
+        output:
+          no_log_contains: homer
+          log:
+            no_expect_ids: [123456]
+`
+
+var onlyHeaders = `---
+meta:
+  author: "tester"
+  description: "Example Test"
+rule_id: 123456
+tests:
+  - test_id: 1
+    stages:
+      - input:
+          dest_addr: "localhost"
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+        output:
+          no_log_contains: homer
+          log:
+            no_expect_ids: [123456]
+`
+
+var onlyOrderedHeaders = `---
+meta:
+  author: "tester"
+  description: "Example Test"
+rule_id: 123456
+tests:
+  - test_id: 1
+    stages:
+      - input:
+          dest_addr: "localhost"
+          ordered_headers:
+            - name: User-Agent
+              value: "ordered agent"
+            - name: Accept
+              value: "ordered/agent"
+        output:
+          no_log_contains: homer
+          log:
+            no_expect_ids: [123456]
+`
+
+var headersAndOrderedHeaders = `---
+meta:
+  author: "tester"
+  description: "Example Test"
+rule_id: 123456
+tests:
+  - test_id: 1
+    stages:
+      - input:
+          dest_addr: "localhost"
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+          ordered_headers:
+            - name: User-Agent
+              value: "ordered agent"
+            - name: Accept
+              value: "ordered/agent"
+        output:
+          no_log_contains: homer
+          log:
+            no_expect_ids: [123456]
+`
+
 func (s *typesTestSuite) TestAutocompleteHeadersDefault_StopMagicDefault() {
 	test, err := GetTestFromYaml([]byte(autocompleteHeadersDefaultYaml), "")
 	s.NoError(err, "Parsing YAML shouldn't fail")
@@ -417,4 +499,63 @@ func (s *typesTestSuite) TestNoLogContainsDoesNotOverrideNoExpectIds() {
 
 	output := test.Tests[0].Stages[0].Output
 	s.Equal("", output.Log.NoMatchRegex)
+}
+
+func (s *typesTestSuite) TestPostLoadHeaders_EmptyHeaders() {
+	test, err := GetTestFromYaml([]byte(headersEmpty), "")
+	s.NoError(err, "Parsing YAML shouldn't fail")
+
+	input := test.Tests[0].Stages[0].Input
+	//nolint:staticcheck
+	s.Nil(input.Headers)
+	s.Nil(input.OrderedHeaders)
+}
+
+//nolint:staticcheck
+func (s *typesTestSuite) TestPostLoadHeaders_OnlyHeaders() {
+	test, err := GetTestFromYaml([]byte(onlyHeaders), "")
+	s.NoError(err, "Parsing YAML shouldn't fail")
+
+	input := test.Tests[0].Stages[0].Input
+	s.NotNil(input.Headers)
+	s.NotNil(input.OrderedHeaders)
+	s.Len(input.Headers, 3)
+	s.Len(input.OrderedHeaders, 3)
+	s.Equal("Accept", input.OrderedHeaders[0].Name)
+	s.Equal("*/*", input.OrderedHeaders[0].Value)
+	s.Equal("Host", input.OrderedHeaders[1].Name)
+	s.Equal("localhost", input.OrderedHeaders[1].Value)
+	s.Equal("User-Agent", input.OrderedHeaders[2].Name)
+	s.Equal("ModSecurity CRS 3 Tests", input.OrderedHeaders[2].Value)
+}
+
+func (s *typesTestSuite) TestPostLoadHeaders_OnlyOrderedHeaders() {
+	test, err := GetTestFromYaml([]byte(onlyOrderedHeaders), "")
+	s.NoError(err, "Parsing YAML shouldn't fail")
+
+	input := test.Tests[0].Stages[0].Input
+	//nolint:staticcheck
+	s.Nil(input.Headers)
+	s.NotNil(input.OrderedHeaders)
+	s.Len(input.OrderedHeaders, 2)
+	s.Equal("User-Agent", input.OrderedHeaders[0].Name)
+	s.Equal("ordered agent", input.OrderedHeaders[0].Value)
+	s.Equal("Accept", input.OrderedHeaders[1].Name)
+	s.Equal("ordered/agent", input.OrderedHeaders[1].Value)
+}
+
+//nolint:staticcheck
+func (s *typesTestSuite) TestPostLoadHeaders_HeadersAndOrderedHeaders() {
+	test, err := GetTestFromYaml([]byte(headersAndOrderedHeaders), "")
+	s.NoError(err, "Parsing YAML shouldn't fail")
+
+	input := test.Tests[0].Stages[0].Input
+	s.NotNil(input.Headers)
+	s.NotNil(input.OrderedHeaders)
+	s.Len(input.Headers, 3)
+	s.Len(input.OrderedHeaders, 2)
+	s.Equal("User-Agent", input.OrderedHeaders[0].Name)
+	s.Equal("ordered agent", input.OrderedHeaders[0].Value)
+	s.Equal("Accept", input.OrderedHeaders[1].Name)
+	s.Equal("ordered/agent", input.OrderedHeaders[1].Value)
 }

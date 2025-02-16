@@ -82,10 +82,15 @@ func (i *Input) GetHeaders() *ftwhttp.Header {
 		return i.effectiveHeaders
 	}
 
-	if i.Headers == nil {
+	if i.OrderedHeaders == nil {
 		i.effectiveHeaders = ftwhttp.NewHeader()
+		return i.effectiveHeaders
 	} else {
-		i.effectiveHeaders = ftwhttp.NewHeaderFromMap(i.Headers)
+		tuples := make([]*ftwhttp.HeaderTuple, 0, len(i.OrderedHeaders))
+		for _, tuple := range i.OrderedHeaders {
+			tuples = append(tuples, &ftwhttp.HeaderTuple{Name: tuple.Name, Value: tuple.Value})
+		}
+		i.effectiveHeaders = ftwhttp.NewHeaderWithEntries(tuples)
 	}
 	return i.effectiveHeaders
 }

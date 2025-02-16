@@ -137,7 +137,11 @@ func (s *clientTestSuite) TestGetTrackedTime() {
 		Version: "HTTP/1.1",
 	}
 
-	h := NewHeaderFromMap(map[string]string{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"})
+	h := NewHeaderWithEntries([]*HeaderTuple{
+		{"Accept", "*/*"},
+		{"User-Agent", "go-ftw test agent"},
+		{"Host", "localhost"},
+	})
 
 	data := []byte(`test=me&one=two&one=twice`)
 	req := NewRequest(rl, h, data, true)

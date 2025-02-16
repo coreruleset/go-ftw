@@ -152,6 +152,7 @@ func (s *inputOverrideTestSuite) BeforeTest(_ string, name string) {
 	}
 }
 
+//nolint:staticcheck
 func (s *inputOverrideTestSuite) TestSetHostFromDestAddr() {
 	originalHost := "original.com"
 	overrideHost, err := getOverrideConfigValue("DestAddr")
@@ -207,11 +208,10 @@ func (s *inputOverrideTestSuite) TestSetHeaderOverridingExistingOne() {
 	s.Require().NoError(err, "cannot get override value")
 
 	testInput := test.NewInput(&schema.Input{
-		Headers: map[string]string{"unique_id": originalHeaderValue},
+		OrderedHeaders: []schema.HeaderTuple{{Name: "unique_id", Value: originalHeaderValue}},
 	})
 
-	//nolint:staticcheck
-	s.NotNil(testInput.Headers, "Header map must exist before overriding any header")
+	s.NotNil(testInput.OrderedHeaders, "Header map must exist before overriding any header")
 
 	test.ApplyInputOverrides(s.cfg, testInput)
 
@@ -226,11 +226,10 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrides() {
 	s.Require().NoError(err, "cannot get override value")
 
 	testInput := test.NewInput(&schema.Input{
-		Headers: map[string]string{"unique_id": originalHeaderValue},
+		OrderedHeaders: []schema.HeaderTuple{{Name: "unique_id", Value: originalHeaderValue}},
 	})
 
-	//nolint:staticcheck
-	s.NotNil(testInput.Headers, "Header map must exist before overriding any header")
+	s.NotNil(testInput.OrderedHeaders, "Header map must exist before overriding any header")
 
 	test.ApplyInputOverrides(s.cfg, testInput)
 
