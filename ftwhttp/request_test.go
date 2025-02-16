@@ -33,7 +33,11 @@ func generateBaseRequestForTesting() *Request {
 		Version: "HTTP/1.4",
 	}
 
-	h := NewHeaderFromMap(map[string]string{"Host": "localhost", "This": "Header", header_names.Connection: "Not-Closed"})
+	h := NewHeaderWithEntries([]*HeaderTuple{
+		{"Host", "localhost"},
+		{"This", "Header"},
+		{header_names.Connection, "Not-Closed"},
+	})
 
 	req = NewRequest(rl, h, []byte("Data"), true)
 
@@ -41,7 +45,11 @@ func generateBaseRequestForTesting() *Request {
 }
 
 func (s *requestTestSuite) TestAddStandardHeadersWhenConnectionHeaderIsPresent() {
-	req := NewRequest(&RequestLine{}, NewHeaderFromMap(map[string]string{header_names.Connection: "Not-Closed"}), []byte("Data"), true)
+	req := NewRequest(&RequestLine{}, NewHeaderWithEntries(
+		[]*HeaderTuple{{header_names.Connection, "Not-Closed"}}),
+		[]byte("Data"),
+		true,
+	)
 
 	req.AddStandardHeaders()
 
@@ -191,7 +199,11 @@ func (s *requestTestSuite) TestWithAutocompleteRequest() {
 		Version: "HTTP/1.1",
 	}
 
-	h := NewHeaderFromMap(map[string]string{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"})
+	h := NewHeaderWithEntries([]*HeaderTuple{
+		{"Accept", "*/*"},
+		{"User-Agent", "go-ftw test agent"},
+		{"Host", "localhost"},
+	})
 
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, true)
@@ -208,7 +220,11 @@ func (s *requestTestSuite) TestWithoutAutocompleteRequest() {
 		Version: "1.1",
 	}
 
-	h := NewHeaderFromMap(map[string]string{"Accept": "*/*", "User-Agent": "go-ftw test agent", "Host": "localhost"})
+	h := NewHeaderWithEntries([]*HeaderTuple{
+		{"Accept", "*/*"},
+		{"User-Agent", "go-ftw test agent"},
+		{"Host", "localhost"},
+	})
 
 	data := []byte(`test=me&one=two`)
 	req = NewRequest(rl, h, data, false)
