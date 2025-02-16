@@ -323,6 +323,7 @@ Tests can be altered using four lists:
   - `data`: overrides data sent in the request
   - `autocomplete_headers`: overrides header autocompletion (currently sets `Connection: close` and `Content-Length` for requests with body data)
   - `encodedrequest`: overrides base64 encoded request
+  - `virtual_host_mode`: set the `Host` header specified in tests for internal requests as well (overrides sending internal requests to `localhost`)
 - `ignore` is for tests you want to ignore. You should add a comment on why you ignore the test
 - `forcepass` is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
 - `forcefail` is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
