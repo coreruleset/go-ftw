@@ -28,7 +28,7 @@ func getTestInputDefaults() *Input {
 	data := "My Data"
 
 	return NewInput(&schema.Input{
-		Headers:             map[string]string{},
+		OrderedHeaders:      []schema.HeaderTuple{},
 		Data:                &data,
 		SaveCookie:          func() *bool { b := false; return &b }(),
 		AutocompleteHeaders: func() *bool { b := false; return &b }(),
@@ -49,7 +49,7 @@ func getTestExampleInput() *Input {
 		Protocol:            &protocol,
 		URI:                 &uri,
 		Version:             &version,
-		Headers:             map[string]string{},
+		OrderedHeaders:      []schema.HeaderTuple{},
 		Method:              &method,
 		Data:                nil,
 		EncodedRequest:      "TXkgRGF0YQo=",

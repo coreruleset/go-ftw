@@ -265,12 +265,13 @@ func buildMarkerRequest(runContext *TestRunContext, testInput *test.Input, stage
 		headers := testInput.GetHeaders()
 		if !headers.HasAny("Host") {
 			log.Error().Msg("'VirtualHostMode' enabled but no 'Host' header specified")
-		}
-		hostHeaders := headers.GetAll("Host")
-		if len(hostHeaders) > 1 {
-			log.Error().Msg("'VirtualHostMode' enabled but more than one 'Host' header specified")
 		} else {
-			host = hostHeaders[0].Value
+			hostHeaders := headers.GetAll("Host")
+			if len(hostHeaders) > 1 {
+				log.Error().Msg("'VirtualHostMode' enabled but more than one 'Host' header specified")
+			} else {
+				host = hostHeaders[0].Value
+			}
 		}
 	}
 
