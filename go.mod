@@ -7,7 +7,7 @@ toolchain go1.24.0
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/corazawaf/coraza/v3 v3.3.2
-	github.com/coreruleset/ftw-tests-schema/v2 v2.2.0
+	github.com/coreruleset/ftw-tests-schema/v2 v2.3.0
 	github.com/creativeprojects/go-selfupdate v1.4.1
 	github.com/go-logr/zerologr v1.2.3
 	github.com/google/uuid v1.6.0
