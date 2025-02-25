@@ -426,6 +426,7 @@ func getRequestFromTest(testInput test.Input) (*ftwhttp.Request, error) {
 	}
 
 	data := testInput.GetData()
+	//nolint:staticcheck
 	return ftwhttp.NewRequest(rline, testInput.Headers,
 		data, *testInput.AutocompleteHeaders), nil
 }

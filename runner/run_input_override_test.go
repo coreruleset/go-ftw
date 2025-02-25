@@ -173,6 +173,7 @@ func (s *inputOverrideTestSuite) TestSetHostFromDestAddr() {
 
 	s.Equal(overrideHost, *testInput.DestAddr, "`dest_addr` should have been overridden")
 
+	//nolint:staticcheck
 	s.NotNil(testInput.Headers, "Header map must exist after overriding `dest_addr`")
 
 	hostHeader := testInput.GetHeaders().Get("Host")
@@ -209,6 +210,7 @@ func (s *inputOverrideTestSuite) TestSetHeaderOverridingExistingOne() {
 		Headers: ftwhttp.Header{"unique_id": originalHeaderValue},
 	}
 
+	//nolint:staticcheck
 	s.NotNil(testInput.Headers, "Header map must exist before overriding any header")
 
 	test.ApplyInputOverrides(s.cfg, &testInput)
@@ -227,6 +229,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrides() {
 		Headers: ftwhttp.Header{"unique_id": originalHeaderValue},
 	}
 
+	//nolint:staticcheck
 	s.NotNil(testInput.Headers, "Header map must exist before overriding any header")
 
 	test.ApplyInputOverrides(s.cfg, &testInput)
