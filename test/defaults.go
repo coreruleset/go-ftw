@@ -65,6 +65,8 @@ func (i *Input) GetPort() int {
 }
 
 // GetHeaders returns the headers wrapped in a ftwhttp.Header
+//
+//nolint:staticcheck
 func (i *Input) GetHeaders() ftwhttp.Header {
 	if i.Headers == nil {
 		return ftwhttp.Header{}

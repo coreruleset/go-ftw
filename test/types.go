@@ -62,6 +62,7 @@ func basicApplyPlatformOverrides(override *overridesSchema.TestOverride, testCas
 	}
 }
 
+//nolint:staticcheck
 func applyDestAddrOverride(overrides *config.Overrides, input *Input) {
 	if overrides.DestAddr != nil {
 		input.DestAddr = overrides.DestAddr
@@ -113,6 +114,7 @@ func applySimpleOverrides(overrides *config.Overrides, input *Input) {
 	}
 }
 
+//nolint:staticcheck
 func applyHeadersOverride(overrides *config.Overrides, input *Input) {
 	if overrides.Headers != nil {
 		if input.Headers == nil {

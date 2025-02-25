@@ -56,6 +56,7 @@ tests:
 	err := yaml.Unmarshal([]byte(yamlString), test)
 	s.Require().NoError(err)
 
+	//nolint:staticcheck
 	headers := test.FTWTest.Tests[0].Stages[0].Input.Headers
 	s.Contains(headers, expectedKey)
 	s.Equal(expectedValue, headers[expectedKey])
