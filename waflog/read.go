@@ -48,21 +48,19 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 			regex = jsonLogIdRegex
 			match = regex.FindAllSubmatch(line, -1)
 		}
-		if match != nil {
-			log.Trace().Msgf("ftw/waflog: Found '%s' at '%s'", regex.String(), line)
-			for _, nextMatch := range match {
-				submatchBytes := nextMatch[1]
-				if len(submatchBytes) == 0 {
-					continue
-				}
-				submatch := string(submatchBytes)
-				ruleId, err := strconv.ParseUint(submatch, 10, 0)
-				if err != nil {
-					log.Error().Caller().Msgf("Failed to parse uint from %s", submatch)
-					continue
-				}
-				ruleIdsSet[uint(ruleId)] = true
+		for _, nextMatch := range match {
+			submatchBytes := nextMatch[1]
+			if len(submatchBytes) == 0 {
+				continue
 			}
+			submatch := string(submatchBytes)
+			ruleId, err := strconv.ParseUint(submatch, 10, 0)
+			if err != nil {
+				log.Error().Caller().Msgf("Failed to parse uint from %s", submatch)
+				continue
+			}
+			log.Trace().Msgf("ftw/waflog: Found '%d' at '%s'", ruleId, line)
+			ruleIdsSet[uint(ruleId)] = true
 		}
 	}
 	ruleIds := make([]uint, 0, len(ruleIdsSet))
