@@ -25,6 +25,7 @@ import (
 const (
 	connectTimeoutFlag               = "connect-timeout"
 	dirFlag                          = "dir"
+	globFlag                         = "glob"
 	excludeFlag                      = "exclude"
 	failFastFlag                     = "fail-fast"
 	fileFlag                         = "file"
@@ -65,6 +66,7 @@ func NewRunCommand() *cobra.Command {
 	runCmd.Flags().StringP(includeFlag, "i", "", "include only tests matching this Go regular expression (e.g. to include only tests beginning with \"91\", use \"^91.*\"). \nIf you want more permanent inclusion, check the 'include' option in the config file.")
 	runCmd.Flags().StringP(includeTagsFlag, "T", "", "include tests tagged with labels matching this Go regular expression (e.g. to include all tests being tagged with \"cookie\", use \"^cookie$\").")
 	runCmd.Flags().StringP(dirFlag, "d", ".", "recursively find yaml tests in this directory")
+	runCmd.Flags().StringP(globFlag, "g", "*.y*ml", "override the filename glob pattern for matching test files")
 	runCmd.Flags().StringP(outputFlag, "o", "normal", "output type for ftw tests. \"normal\" is the default.")
 	runCmd.Flags().StringP(fileFlag, "f", "", "output file path for ftw tests. Prints to standard output by default.")
 	runCmd.Flags().StringP(logFileFlag, "l", "", "path to log file to watch for WAF events")
@@ -103,13 +105,10 @@ func runE(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	dir, _ := cmd.Flags().GetString(dirFlag)
-	files := fmt.Sprintf("%s/**/*.yaml", dir)
-	tests, err := test.GetTestsFromFiles(files)
+	tests, err := loadTests(cmd)
 	if err != nil {
 		return err
 	}
-
 	_ = out.Println("%s", out.Message("** Starting tests!"))
 
 	currentRun, err := runner.Run(cfg, tests, runnerConfig, out)
@@ -252,4 +251,15 @@ func buildOutput(cmd *cobra.Command) (*output.Output, error) {
 		}
 	}
 	return output.NewOutput(wantedOutput, outputFile), nil
+}
+
+func loadTests(cmd *cobra.Command) ([]*test.FTWTest, error) {
+	dir, _ := cmd.Flags().GetString(dirFlag)
+	filenameGlob, _ := cmd.Flags().GetString(globFlag)
+	files := fmt.Sprintf("%s/**/%s", dir, filenameGlob)
+	tests, err := test.GetTestsFromFiles(files)
+	if err != nil {
+		return nil, err
+	}
+	return tests, nil
 }

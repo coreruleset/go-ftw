@@ -12,6 +12,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"text/template"
@@ -25,6 +27,7 @@ var testFileContentsTemplate = `---
 meta:
   author: "go-ftw"
   description: "Test file for go-ftw"
+rule_id: 1
 tests:
   - # Standard GET request
     test_id: 1234
@@ -140,6 +143,7 @@ func (s *runCmdTestSuite) TestFlags() {
 		"--" + includeFlag, "789012",
 		"--" + includeTagsFlag, "^a-tag.*$",
 		"--" + dirFlag, "/foo/bar",
+		"--" + globFlag, "*.yyy*l",
 		"--" + outputFlag, "github",
 		"--" + fileFlag, "out.out",
 		"--" + logFileFlag, "/path/to/log.log",
@@ -172,6 +176,8 @@ func (s *runCmdTestSuite) TestFlags() {
 	includeTags, err := cmd.Flags().GetString(includeTagsFlag)
 	s.NoError(err)
 	dir, err := cmd.Flags().GetString(dirFlag)
+	s.NoError(err)
+	filenameGlob, err := cmd.Flags().GetString(globFlag)
 	s.NoError(err)
 	output, err := cmd.Flags().GetString(outputFlag)
 	s.NoError(err)
@@ -222,6 +228,7 @@ func (s *runCmdTestSuite) TestFlags() {
 	s.Equal("789012", include)
 	s.Equal("^a-tag.*$", includeTags)
 	s.Equal("/foo/bar", dir)
+	s.Equal("*.yyy*l", filenameGlob)
 	s.Equal("github", output)
 	s.Equal("out.out", file)
 	s.Equal("/path/to/log.log", logFile)
@@ -397,4 +404,48 @@ include_tags: '^springfield.*'
 
 	s.NotNil(runnerConfig.IncludeTags)
 	s.Equal("^powerplant.*", runnerConfig.IncludeTags.String())
+}
+
+func (s *runCmdTestSuite) TestFilenameGlobFlag() {
+	baseFiles, err := filepath.Glob(fmt.Sprintf("%s/*.yaml", s.tempDir))
+	s.Require().NoError(err)
+	s.Len(baseFiles, 1)
+	base, err := os.Open(baseFiles[0])
+	s.Require().NoError(err)
+
+	for _, name := range []string{
+		"matching_file.yyyml",
+		"matching_file.yyyxl",
+		"matching_file.yyyl",
+		"non_matching_file.yyl",
+		"yyyml",
+	} {
+		target, err := os.OpenFile(path.Join(s.tempDir, name), os.O_CREATE|os.O_WRONLY, os.ModePerm)
+		s.Require().NoError(err)
+		_, err = base.Seek(0, 0)
+		s.Require().NoError(err)
+		_, err = io.Copy(target, base)
+		s.Require().NoError(err)
+		s.Require().NoError(target.Close())
+	}
+	s.Require().NoError(base.Close())
+	s.Require().NoError(os.Remove(base.Name()))
+
+	s.rootCmd.SetArgs([]string{
+		"run",
+		"-d", s.tempDir,
+		"-g", "*.yyy*l",
+	})
+	cmd, _ := s.rootCmd.ExecuteC()
+	tests, err := loadTests(cmd)
+	s.Require().NoError(err)
+	s.Len(tests, 3)
+
+	testFileNames := []string{}
+	for _, test := range tests {
+		testFileNames = append(testFileNames, filepath.Base(test.FileName))
+	}
+	s.Contains(testFileNames, "matching_file.yyyml")
+	s.Contains(testFileNames, "matching_file.yyyxl")
+	s.Contains(testFileNames, "matching_file.yyyl")
 }
