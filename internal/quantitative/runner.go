@@ -149,11 +149,7 @@ func skipPayload(want int, have int) bool {
 
 // wantSpecificRuleResults returns true
 func wantSpecificRuleResults(specific int, rule int) bool {
-	skip := false
-	if specific > 0 && specific != rule {
-		skip = true
-	}
-	return skip
+	return specific > 0 && specific != rule
 }
 
 // doEngineCall
