@@ -13,9 +13,9 @@ import (
 	"github.com/go-logr/zerologr"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"wait4x.dev/v2/checker"
-	"wait4x.dev/v2/checker/http"
-	"wait4x.dev/v2/waiter"
+	"wait4x.dev/v3/checker"
+	"wait4x.dev/v3/checker/http"
+	"wait4x.dev/v3/waiter"
 
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/runner"
