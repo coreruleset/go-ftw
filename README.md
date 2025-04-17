@@ -501,7 +501,7 @@ Global Flags:
 
 This will run with the default leipzig corpus and size of 10K payloads.
 ```bash
-❯ ./go-ftw quantitative -d ../coreruleset -s 10K
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K
 Running quantitative tests
 Run 10000 payloads in 18.482979709s
 Total False positive ratio: 408/10000 = 0.0408
@@ -519,7 +519,7 @@ False positives per rule:
 
 This will run with the default leipzig corpus and size of 10K payloads, but only for the rule 920350.
 ```bash
-❯ ./go-ftw quantitative -d ../coreruleset -s 10K -r 932270
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K -r 932270
 Running quantitative tests
 Run 10000 payloads in 15.218343083s
 Total False positive ratio: 2/10000 = 0.0002
@@ -529,7 +529,7 @@ False positives per rule:
 
 If you add `--debug` to the command, you will see the payloads that cause false positives.
 ```bash
-❯ ./go-ftw quantitative -d ../coreruleset -s 10K --debug
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K --debug
 Running quantitative tests
 12:32PM DBG Preparing download of corpus file from https://downloads.wortschatz-leipzig.de/corpora/eng_news_2023_10K.tar.gz
 12:32PM DBG filename eng_news_2023_10K-sentences.txt already exists
@@ -545,7 +545,7 @@ Running quantitative tests
 
 The default language for the corpus is English, but you can change it to German using the `-L` flag.
 ```bash
-❯ ./go-ftw quantitative -d ../coreruleset -s 10K -L deu
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K -L deu
 Running quantitative tests
 4:18PM INF Downloading corpus file from https://downloads.wortschatz-leipzig.de/corpora/deu_news_2023_10K.tar.gz
 Moved /Users/fzipitria/.ftw/extracted/deu_news_2023_10K/deu_news_2023_10K-sentences.txt to /Users/fzipitria/.ftw/deu_news_2023_10K-sentences.txt
@@ -560,7 +560,7 @@ False positives per rule:
 
 Results can be shown in JSON format also, to be processed by other tools.
 ```bash
-❯ ./go-ftw quantitative -d ../coreruleset -s 10K -o json
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K -o json
 
 {"count":10000,"falsePositives":408,"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"totalTime":15031086083}%
 ```
