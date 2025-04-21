@@ -8,16 +8,16 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/corazawaf/coraza/v3 v3.3.3
 	github.com/coreruleset/ftw-tests-schema/v2 v2.3.0
-	github.com/creativeprojects/go-selfupdate v1.4.1
+	github.com/creativeprojects/go-selfupdate v1.5.0
 	github.com/go-logr/zerologr v1.2.3
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-getter/v2 v2.2.3
 	github.com/icza/backscanner v0.0.0-20241124160932-dff01ac50250
 	github.com/knadh/koanf/parsers/yaml v0.1.0
-	github.com/knadh/koanf/providers/env v1.0.0
-	github.com/knadh/koanf/providers/file v1.1.2
+	github.com/knadh/koanf/providers/env v1.1.0
+	github.com/knadh/koanf/providers/file v1.2.0
 	github.com/knadh/koanf/providers/rawbytes v0.1.0
-	github.com/knadh/koanf/v2 v2.1.2
+	github.com/knadh/koanf/v2 v2.2.0
 	github.com/kyokomi/emoji/v2 v2.2.13
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.9.1
@@ -25,7 +25,7 @@ require (
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/net v0.39.0
 	golang.org/x/time v0.11.0
-	wait4x.dev/v3 v3.2.0
+	wait4x.dev/v3 v3.3.0
 )
 
 require (
