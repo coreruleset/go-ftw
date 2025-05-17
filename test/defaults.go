@@ -9,11 +9,21 @@ import (
 	"github.com/coreruleset/go-ftw/ftwhttp"
 )
 
-type Input schema.Input
+type Input struct {
+	*schema.Input
+	effectiveHeaders *ftwhttp.Header
+}
 type Output schema.Output
 type FTWTest struct {
 	schema.FTWTest `yaml:",inline"`
 	FileName       string
+}
+
+func NewInput(input *schema.Input) *Input {
+	return &Input{
+		input,
+		nil,
+	}
 }
 
 // GetMethod returns the proper semantic when the field is empty
@@ -67,9 +77,20 @@ func (i *Input) GetPort() int {
 // GetHeaders returns the headers wrapped in a ftwhttp.Header
 //
 //nolint:staticcheck
-func (i *Input) GetHeaders() ftwhttp.Header {
-	if i.Headers == nil {
-		return ftwhttp.Header{}
+func (i *Input) GetHeaders() *ftwhttp.Header {
+	if i.effectiveHeaders != nil {
+		return i.effectiveHeaders
 	}
-	return ftwhttp.Header(i.Headers)
+
+	if i.OrderedHeaders == nil {
+		i.effectiveHeaders = ftwhttp.NewHeader()
+		return i.effectiveHeaders
+	} else {
+		tuples := make([]*ftwhttp.HeaderTuple, 0, len(i.OrderedHeaders))
+		for _, tuple := range i.OrderedHeaders {
+			tuples = append(tuples, &ftwhttp.HeaderTuple{Name: tuple.Name, Value: tuple.Value})
+		}
+		i.effectiveHeaders = ftwhttp.NewHeaderWithEntries(tuples)
+	}
+	return i.effectiveHeaders
 }
