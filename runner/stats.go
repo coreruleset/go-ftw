@@ -5,6 +5,7 @@ package runner
 
 import (
 	"encoding/json"
+	"slices"
 	"time"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
@@ -96,7 +97,7 @@ func (stats *RunStats) addResultToStats(result TestResult, testCase *schema.Test
 func (stats *RunStats) addStageResultToStats(testCase *schema.Test, stageTime time.Duration, triggeredRules []uint) {
 	stats.RunTime[testCase.IdString()] += stageTime
 	byStage := stats.TriggeredRules[testCase.IdString()]
-	stats.TriggeredRules[testCase.IdString()] = append(byStage, triggeredRules)
+	stats.TriggeredRules[testCase.IdString()] = append(byStage, slices.Clone(triggeredRules))
 	stats.TotalTime += stageTime
 }
 

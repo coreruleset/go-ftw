@@ -21,19 +21,14 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/ftwhttp/header_names"
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/test"
+	"github.com/coreruleset/go-ftw/utils"
 	"github.com/coreruleset/go-ftw/waflog"
 )
-
-var logText = `[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
-[Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
-[Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
-[Tue Jan 05 02:21:09.647668 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:inbound_anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/RESPONSE-980-CORRELATION.conf"] [line "87"] [id "980130"] [msg "Inbound Anomaly Score Exceeded (Total Inbound Score: 5 - SQLI=0,XSS=0,RFI=0,LFI=0,RCE=0,PHPI=0,HTTP=0,SESS=0): individual paranoia level scores: 3, 2, 0, 0"] [ver "OWASP_CRS/3.3.0"] [tag "event-correlation"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
 
 var testConfigMap = map[string]string{
 	"BaseConfig": `---
@@ -99,12 +94,13 @@ var destinationMap = map[string]string{
 type runTestSuite struct {
 	suite.Suite
 	cfg          *config.FTWConfiguration
+	runnerConfig *config.RunnerConfig
 	ftwTests     []*test.FTWTest
 	logFilePath  string
 	out          *output.Output
 	ts           *httptest.Server
 	dest         *ftwhttp.Destination
-	tempFileName string
+	context      *TestRunContext
 }
 
 func (s *runTestSuite) SetupSuite() {
@@ -119,7 +115,8 @@ func (s *runTestSuite) newTestServer(logLines string) {
 func (s *runTestSuite) newTestServerWithHandlerGenerator(serverHandler func(logLines string) http.HandlerFunc, logLines string) {
 	var err error
 	var handler http.HandlerFunc
-	s.setUpLogFileForTestServer()
+	s.logFilePath, err = utils.CreateTempFile(s.T().TempDir(), "go-ftw-test-*.log")
+	s.Require().NoError(err)
 
 	if serverHandler == nil {
 		handler = s.getDefaultTestServerHandler(logLines)
@@ -138,21 +135,6 @@ func (s *runTestSuite) getDefaultTestServerHandler(logLines string) http.Handler
 		_, _ = w.Write([]byte("Hello, client"))
 
 		s.writeMarkerOrMessageToTestServerLog(logLines, r)
-	}
-}
-
-func (s *runTestSuite) setUpLogFileForTestServer() {
-	// log to the configured file
-	if s.cfg != nil && s.cfg.RunMode == config.DefaultRunMode {
-		s.logFilePath = s.cfg.LogFile
-	}
-	// if no file has been configured, create one and handle cleanup
-	if s.logFilePath == "" {
-		file, err := os.CreateTemp(s.T().TempDir(), "go-ftw-test-*.log")
-		s.Require().NoError(err)
-		err = file.Close()
-		s.Require().NoError(err)
-		s.logFilePath = file.Name()
 	}
 }
 
@@ -188,12 +170,8 @@ func (s *runTestSuite) TearDownTest() {
 }
 
 func (s *runTestSuite) BeforeTest(_ string, name string) {
-	s.cfg = config.NewDefaultConfig()
 	// setup test webserver (not a waf)
 	s.newTestServer(logText)
-	if s.logFilePath != "" {
-		s.cfg.WithLogfile(s.logFilePath)
-	}
 
 	var err error
 	var cfg string
@@ -231,7 +209,11 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	s.cfg, err = config.NewConfigFromString(buf.String())
 	s.Require().NoError(err, "cannot get config from string")
 	if s.logFilePath != "" {
-		s.cfg.WithLogfile(s.logFilePath)
+		s.cfg.LogFile = s.logFilePath
+	}
+	s.runnerConfig = config.NewRunnerConfiguration(s.cfg)
+	s.context = &TestRunContext{
+		RunnerConfig: s.runnerConfig,
 	}
 	// get tests template from file
 	tmpl, err := template.ParseFiles(fmt.Sprintf("testdata/%s.yaml", name))
@@ -250,8 +232,6 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	// get tests from file
 	s.ftwTests, err = test.GetTestsFromFiles(testFileContents.Name())
 	s.Require().NoError(err, "cannot get tests from file")
-	// save the name of the temporary file so we can delete it later
-	s.tempFileName = testFileContents.Name()
 }
 
 func TestRunTestsTestSuite(t *testing.T) {
@@ -260,19 +240,17 @@ func TestRunTestsTestSuite(t *testing.T) {
 
 func (s *runTestSuite) TestRunTests_Run() {
 	s.Run("show time and execute all", func() {
-		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-			ShowTime: true,
-			Output:   output.Quiet,
-		}, s.out)
+		s.runnerConfig.ShowTime = true
+		s.runnerConfig.Output = output.Quiet
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 		s.Require().NoError(err)
 		s.Equalf(res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
 	})
 
 	s.Run("be verbose and execute all", func() {
-		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-			Include:  regexp.MustCompile("0*"),
-			ShowTime: true,
-		}, s.out)
+		s.runnerConfig.Include = regexp.MustCompile("0*")
+		s.runnerConfig.ShowTime = true
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 5, "verbose and execute all failed")
 		s.Len(res.Stats.Skipped, 0, "verbose and execute all failed")
@@ -280,9 +258,8 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("don't show time and execute all", func() {
-		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-			Include: regexp.MustCompile("0*"),
-		}, s.out)
+		s.runnerConfig.Include = regexp.MustCompile("0*")
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 5, "do not show time and execute all failed")
 		s.Len(res.Stats.Skipped, 0, "do not show time and execute all failed")
@@ -290,10 +267,10 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("execute only test 8 but exclude all", func() {
-		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-			Include: regexp.MustCompile("-8$"), // test ID is matched in format `<ruleId>-<testId>`
-			Exclude: regexp.MustCompile("0*"),
-		}, s.out)
+		// test ID is matched in format `<ruleId>-<testId>`
+		s.runnerConfig.Include = regexp.MustCompile("-8$")
+		s.runnerConfig.Exclude = regexp.MustCompile("0*")
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 1, "execute only test 008 but exclude all")
 		s.Len(res.Stats.Skipped, 4, "execute only test 008 but exclude all")
@@ -301,9 +278,11 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("exclude test 10", func() {
-		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-			Exclude: regexp.MustCompile("-10$"), // test ID is matched in format `<ruleId>-<testId>`
-		}, s.out)
+		// test ID is matched in format `<ruleId>-<testId>`
+		s.runnerConfig.Exclude = regexp.MustCompile("-10$")
+		s.runnerConfig.Include = nil
+		s.runnerConfig.IncludeTags = nil
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 4, "failed to exclude test")
 		s.Len(res.Stats.Skipped, 1, "failed to exclude test")
@@ -311,29 +290,29 @@ func (s *runTestSuite) TestRunTests_Run() {
 	})
 
 	s.Run("count tests tagged with `tag-10`", func() {
-		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-			IncludeTags: regexp.MustCompile("^tag-10$"),
-		}, s.out)
+		s.runnerConfig.IncludeTags = regexp.MustCompile("^tag-10$")
+		s.runnerConfig.Include = nil
+		s.runnerConfig.Exclude = nil
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 1, "failed to incorporate tagged test")
 		s.Equal(res.Stats.TotalFailed(), 0, "failed to incorporate tagged test")
 	})
 
 	s.Run("count tests tagged with `tag-8` and `tag-10`", func() {
-		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-			IncludeTags: regexp.MustCompile("^tag-8$|^tag-10$"),
-		}, s.out)
+		s.runnerConfig.IncludeTags = regexp.MustCompile("^tag-8$|^tag-10$")
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 2, "failed to incorporate tagged test")
 		s.Equal(res.Stats.TotalFailed(), 0, "failed to incorporate tagged test")
 	})
 
 	s.Run("test exceptions 1", func() {
-		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-			Include: regexp.MustCompile("-1.*"),
-			Exclude: regexp.MustCompile("-0.*"),
-			Output:  output.Quiet,
-		}, s.out)
+		s.runnerConfig.Include = regexp.MustCompile("-1.*")
+		s.runnerConfig.Exclude = regexp.MustCompile("-0.*")
+		s.runnerConfig.IncludeTags = nil
+		s.runnerConfig.Output = output.Quiet
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 		s.Require().NoError(err)
 		s.Len(res.Stats.Success, 4, "failed to test exceptions")
 		s.Len(res.Stats.Skipped, 1, "failed to test exceptions")
@@ -343,50 +322,48 @@ func (s *runTestSuite) TestRunTests_Run() {
 
 func (s *runTestSuite) TestRunMultipleMatches() {
 	s.Run("execute multiple...test", func() {
-		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-			Output: output.Quiet,
-		}, s.out)
+		s.runnerConfig.Output = output.Quiet
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 		s.Require().NoError(err)
 		s.Equalf(res.Stats.TotalFailed(), 1, "Oops, %d tests failed to run! Expected 1 failing test", res.Stats.TotalFailed())
 	})
 }
 
 func (s *runTestSuite) TestOverrideRun() {
-	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-		Output: output.Quiet,
-	}, s.out)
+	s.runnerConfig.Output = output.Quiet
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestBrokenOverrideRun() {
 	// the test should succeed, despite the unknown override property
-	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestBrokenPortOverrideRun() {
 	// the test should succeed, despite the unknown override property
-	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestLogsRun() {
-	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
 func (s *runTestSuite) TestFailedTestsRun() {
-	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.Equal(1, res.Stats.TotalFailed())
 }
 
 func (s *runTestSuite) TestIgnoredTestsRun() {
-	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.Equal(1, len(res.Stats.ForcedPass), "Oops, unexpected number of forced pass tests")
 	s.Equal(1, len(res.Stats.Failed), "Oops, unexpected number of failed tests")
@@ -511,9 +488,9 @@ func (s *runTestSuite) TestRetryOnce() {
 	}
 
 	s.ts.Config.Handler = http.HandlerFunc(handler)
-	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-		Output: output.Quiet,
-	}, s.out)
+
+	s.runnerConfig.Output = output.Quiet
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.Equalf(res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
 }
@@ -521,16 +498,14 @@ func (s *runTestSuite) TestRetryOnce() {
 func (s *runTestSuite) TestFailFast() {
 	s.Equal(3, len(s.ftwTests[0].Tests))
 
-	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{FailFast: true}, s.out)
+	s.runnerConfig.FailFast = true
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.Equal(1, res.Stats.TotalFailed(), "Oops, test run failed!")
 	s.Equal(2, res.Stats.Run)
 }
 
 func (s *runTestSuite) TestIsolatedSanity() {
-	rc := &TestRunContext{
-		Config: s.cfg,
-	}
 	stage := types.Stage{
 		Input: types.Input{},
 		Output: types.Output{
@@ -540,11 +515,11 @@ func (s *runTestSuite) TestIsolatedSanity() {
 			},
 		},
 	}
-	err := RunStage(rc, &check.FTWCheck{}, types.Test{}, stage)
+	err := RunStage(s.context, &FTWCheck{}, types.Test{}, stage)
 	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
 
 	stage.Output.Log.ExpectIds = []uint{1, 2}
-	err = RunStage(rc, &check.FTWCheck{}, types.Test{}, stage)
+	err = RunStage(s.context, &FTWCheck{}, types.Test{}, stage)
 	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
 }
 
@@ -560,7 +535,7 @@ func (s *runTestSuite) TestVirtualHostMode_Default() {
 		Protocol: &s.dest.Protocol,
 	})
 	context := &TestRunContext{
-		Config: config.NewDefaultConfig(),
+		RunnerConfig: config.NewRunnerConfiguration(config.NewDefaultConfig()),
 	}
 	request := buildMarkerRequest(context, input, uuid.NewString())
 
@@ -582,7 +557,7 @@ func (s *runTestSuite) TestVirtualHostMode_False() {
 		VirtualHostMode: false,
 	})
 	context := &TestRunContext{
-		Config: config.NewDefaultConfig(),
+		RunnerConfig: config.NewRunnerConfiguration(config.NewDefaultConfig()),
 	}
 	request := buildMarkerRequest(context, input, uuid.NewString())
 
@@ -605,7 +580,7 @@ func (s *runTestSuite) TestVirtualHostMode_True() {
 		VirtualHostMode: true,
 	})
 	context := &TestRunContext{
-		Config: config.NewDefaultConfig(),
+		RunnerConfig: config.NewRunnerConfiguration(config.NewDefaultConfig()),
 	}
 	request := buildMarkerRequest(context, input, uuid.NewString())
 
@@ -653,7 +628,7 @@ func (s *runTestSuite) TestGetRequestFromEncodedData() {
 }
 
 func (s *runTestSuite) TestTriggeredRules() {
-	res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{}, s.out)
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	triggeredRules := map[string][][]uint{
 		"123456-1": {{
@@ -679,46 +654,44 @@ func (s *runTestSuite) TestTriggeredRules() {
 func (s *runTestSuite) TestEncodedRequest() {
 	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
 	s.Require().NoError(err)
-	ll, err := waflog.NewFTWLogLines(s.cfg)
-	s.T().Cleanup(func() { _ = ll.Cleanup() })
+	ll, err := waflog.NewFTWLogLines(s.runnerConfig)
 	s.Require().NoError(err)
 
-	context := &TestRunContext{
-		Config:   s.cfg,
-		Client:   client,
-		LogLines: ll,
-		Stats:    NewRunStats(),
-		Output:   s.out,
+	s.context = &TestRunContext{
+		RunnerConfig: s.runnerConfig,
+		Client:       client,
+		LogLines:     ll,
+		Stats:        NewRunStats(),
+		Output:       s.out,
 	}
 	stage := s.ftwTests[0].Tests[0].Stages[0]
-	_check, err := check.NewCheck(s.cfg)
+	_check, err := NewCheck(s.context)
 	s.T().Cleanup(func() { _ = _check.Close() })
 	s.Require().NoError(err)
 
-	err = RunStage(context, _check, types.Test{}, stage)
+	err = RunStage(s.context, _check, types.Test{}, stage)
 	s.Require().NoError(err)
-	s.Equal(Success, context.Result)
+	s.Equal(Success, s.context.Result)
 }
 
 func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
 	s.Require().NoError(err)
-	ll, err := waflog.NewFTWLogLines(s.cfg)
-	s.T().Cleanup(func() { _ = ll.Cleanup() })
+	ll, err := waflog.NewFTWLogLines(s.runnerConfig)
 	s.Require().NoError(err)
 
-	context := &TestRunContext{
-		Config:   s.cfg,
-		Client:   client,
-		LogLines: ll,
-		Stats:    NewRunStats(),
-		Output:   s.out,
+	s.context = &TestRunContext{
+		RunnerConfig: s.runnerConfig,
+		Client:       client,
+		LogLines:     ll,
+		Stats:        NewRunStats(),
+		Output:       s.out,
 	}
 	stage := s.ftwTests[0].Tests[0].Stages[0]
-	_check, err := check.NewCheck(s.cfg)
+	_check, err := NewCheck(s.context)
 	s.T().Cleanup(func() { _ = _check.Close() })
 	s.Require().NoError(err)
 
-	err = RunStage(context, _check, types.Test{}, stage)
+	err = RunStage(s.context, _check, types.Test{}, stage)
 	s.Error(err, "failed to read request from test specification: illegal base64 data at input byte 4")
 }

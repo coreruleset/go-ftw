@@ -14,7 +14,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/time/rate"
 
-	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/output"
@@ -31,23 +30,23 @@ const (
 )
 
 // Run runs your tests with the specified Config.
-func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c *RunnerConfig, out *output.Output) (*TestRunContext, error) {
+func Run(runnerConfig *config.RunnerConfig, tests []*test.FTWTest, out *output.Output) (*TestRunContext, error) {
 	out.Println("%s", out.Message("** Running go-ftw!"))
 
-	logLines, err := waflog.NewFTWLogLines(cfg)
+	logLines, err := waflog.NewFTWLogLines(runnerConfig)
 	if err != nil {
 		return &TestRunContext{}, err
 	}
 
 	conf := ftwhttp.NewClientConfig()
-	if c.ConnectTimeout != 0 {
-		conf.ConnectTimeout = c.ConnectTimeout
+	if runnerConfig.ConnectTimeout != 0 {
+		conf.ConnectTimeout = runnerConfig.ConnectTimeout
 	}
-	if c.ReadTimeout != 0 {
-		conf.ReadTimeout = c.ReadTimeout
+	if runnerConfig.ReadTimeout != 0 {
+		conf.ReadTimeout = runnerConfig.ReadTimeout
 	}
-	if c.RateLimit != 0 {
-		conf.RateLimiter = rate.NewLimiter(rate.Every(c.RateLimit), 1)
+	if runnerConfig.RateLimit != 0 {
+		conf.RateLimiter = rate.NewLimiter(rate.Every(runnerConfig.RateLimit), 1)
 	}
 	client, err := ftwhttp.NewClient(conf)
 	if err != nil {
@@ -55,14 +54,13 @@ func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c *RunnerConfig, o
 	}
 
 	runContext := &TestRunContext{
-		Config:         cfg,
-		RunnerConfig:   c,
-		Include:        c.Include,
-		Exclude:        c.Exclude,
-		IncludeTags:    c.IncludeTags,
-		ShowTime:       c.ShowTime,
+		RunnerConfig:   runnerConfig,
+		Include:        runnerConfig.Include,
+		Exclude:        runnerConfig.Exclude,
+		IncludeTags:    runnerConfig.IncludeTags,
+		ShowTime:       runnerConfig.ShowTime,
 		Output:         out,
-		ShowOnlyFailed: c.ShowOnlyFailed,
+		ShowOnlyFailed: runnerConfig.ShowOnlyFailed,
 		Stats:          NewRunStats(),
 		Client:         client,
 		LogLines:       logLines,
@@ -72,7 +70,7 @@ func Run(cfg *config.FTWConfiguration, tests []*test.FTWTest, c *RunnerConfig, o
 		if err := RunTest(runContext, tc); err != nil {
 			return &TestRunContext{}, err
 		}
-		if c.FailFast && runContext.Stats.TotalFailed() > 0 {
+		if runnerConfig.FailFast && runContext.Stats.TotalFailed() > 0 {
 			break
 		}
 	}
@@ -98,7 +96,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 		}
 		runContext.StartTest()
 
-		test.ApplyPlatformOverrides(runContext.Config, &testCase)
+		test.ApplyPlatformOverrides(runContext.RunnerConfig, &testCase)
 		// this is just for printing once the next test
 		if changed && !runContext.ShowOnlyFailed {
 			runContext.Output.Println(runContext.Output.Message("=> executing tests in file %s"), ftwTest.Meta.Name)
@@ -110,7 +108,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 		}
 		// Iterate over stages
 		for _, stage := range testCase.Stages {
-			ftwCheck, err := check.NewCheck(runContext.Config)
+			ftwCheck, err := NewCheck(runContext)
 			if err != nil {
 				return err
 			}
@@ -142,12 +140,12 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 // stage is the stage you want to run
 //
 //gocyclo:ignore
-func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase schema.Test, stage schema.Stage) error {
+func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Test, stage schema.Stage) error {
 	runContext.StartStage()
 	stageId := uuid.NewString()
 	// Apply global overrides initially
 	testInput := test.NewInput(&stage.Input)
-	test.ApplyInputOverrides(runContext.Config, testInput)
+	test.ApplyInputOverrides(runContext.RunnerConfig, testInput)
 	expectedOutput := stage.Output
 	expectErr := false
 	if expectedOutput.ExpectError != nil {
@@ -237,7 +235,7 @@ func markAndFlush(runContext *TestRunContext, testInput *test.Input, stageId str
 		Port:     testInput.GetPort(),
 		Protocol: testInput.GetProtocol(),
 	}
-	for i := runContext.Config.MaxMarkerRetries; i > 0; i-- {
+	for i := runContext.RunnerConfig.MaxMarkerRetries; i > 0; i-- {
 		err := runContext.Client.NewOrReusedConnection(*dest)
 		if err != nil {
 			return nil, fmt.Errorf("ftw/run: can't connect to destination %+v: %w", dest, err)
@@ -248,12 +246,12 @@ func markAndFlush(runContext *TestRunContext, testInput *test.Input, stageId str
 			return nil, fmt.Errorf("ftw/run: failed sending request to %+v: %w", dest, err)
 		}
 
-		marker := runContext.LogLines.CheckLogForMarker(stageId, runContext.Config.MaxMarkerLogLines)
+		marker := runContext.LogLines.CheckLogForMarker(stageId, runContext.RunnerConfig.MaxMarkerLogLines)
 		if marker != nil {
 			return marker, nil
 		}
 	}
-	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.Config.LogFile)
+	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.RunnerConfig.LogFilePath)
 }
 
 func buildMarkerRequest(runContext *TestRunContext, testInput *test.Input, stageId string) *ftwhttp.Request {
@@ -279,7 +277,7 @@ func buildMarkerRequest(runContext *TestRunContext, testInput *test.Input, stage
 	header.Add("Accept", "*/*")
 	header.Add("User-Agent", "go-ftw test agent")
 	header.Add("Host", host)
-	header.Add(runContext.Config.LogMarkerHeaderName, stageId)
+	header.Add(runContext.RunnerConfig.LogMarkerHeaderName, stageId)
 
 	rline := &ftwhttp.RequestLine{
 		Method: "GET",
@@ -367,7 +365,7 @@ func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult,
 	}
 }
 
-func overriddenTestResult(c *check.FTWCheck, testCase *schema.Test) TestResult {
+func overriddenTestResult(c *FTWCheck, testCase *schema.Test) TestResult {
 	if c.ForcedIgnore(testCase) {
 		return Ignored
 	}
@@ -384,7 +382,7 @@ func overriddenTestResult(c *check.FTWCheck, testCase *schema.Test) TestResult {
 }
 
 // checkResult has the logic for verifying the result for the test sent
-func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError error) TestResult {
+func checkResult(c *FTWCheck, response *ftwhttp.Response, responseError error) TestResult {
 	// Request might return an error, but it could be expected, we check that first
 	if expected, succeeded := c.AssertExpectError(responseError); expected {
 		if succeeded {
@@ -440,7 +438,7 @@ func getRequestFromTest(testInput *test.Input) (*ftwhttp.Request, error) {
 		data, *testInput.AutocompleteHeaders), nil
 }
 
-func notRunningInCloudMode(c *check.FTWCheck) bool {
+func notRunningInCloudMode(c *FTWCheck) bool {
 	return !c.CloudMode()
 }
 

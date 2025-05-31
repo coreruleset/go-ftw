@@ -4,24 +4,20 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
-	schema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/rawbytes"
 	koanfv2 "github.com/knadh/koanf/v2"
-	"github.com/rs/zerolog/log"
 )
 
 // NewDefaultConfig initializes the configuration with default values
 func NewDefaultConfig() *FTWConfiguration {
 	cfg := &FTWConfiguration{
 		LogFile:             "",
-		PlatformOverrides:   PlatformOverrides{},
 		LogMarkerHeaderName: DefaultLogMarkerHeaderName,
 		RunMode:             DefaultRunMode,
 		MaxMarkerRetries:    DefaultMaxMarkerRetries,
@@ -100,80 +96,35 @@ func NewConfigFromString(conf string) (*FTWConfiguration, error) {
 	return unmarshalConfig(k)
 }
 
-// LoadPlatformOverrides loads platform overrides from the specified file path
-func (c *FTWConfiguration) LoadPlatformOverrides(overridesFile string) error {
-	if overridesFile == "" {
-		log.Trace().Msg("No overrides file specified, skipping.")
-		return nil
-	}
-	if _, err := os.Stat(overridesFile); err != nil {
-		return fmt.Errorf("could not find overrides file '%s'", overridesFile)
-	}
+// // WithLogfile changes the logfile in the configuration.
+// func (c *FTWConfiguration) WithLogfile(logfile string) {
+// 	c.LogFile = logfile
+// }
 
-	log.Debug().Msgf("Loading platform overrides from '%s'", overridesFile)
+// // WithOverrides sets the overrides in the configuration.
+// func (c *FTWConfiguration) WithOverrides(overrides FTWTestOverride) {
+// 	c.TestOverride = overrides
+// }
 
-	k := getKoanfInstance()
-	err := k.Load(file.Provider(overridesFile), yaml.Parser())
-	if err != nil {
-		return err
-	}
+// // WithRunMode sets the RunMode.
+// func (c *FTWConfiguration) WithRunMode(runMode RunMode) {
+// 	c.RunMode = runMode
+// }
 
-	overrides, err := unmarshalPlatformOverrides(k)
-	if err != nil {
-		return err
-	}
+// // WithLogMarkerHeaderName sets the new LogMarker header name.
+// func (c *FTWConfiguration) WithLogMarkerHeaderName(name string) {
+// 	c.LogMarkerHeaderName = name
+// }
 
-	c.PlatformOverrides.FTWOverrides = *overrides
-	c.populatePlatformOverridesMap()
+// // WithMaxMarkerRetries sets the new amount of retries we are doing to find markers in the logfile.
+// func (c *FTWConfiguration) WithMaxMarkerRetries(retries uint) {
+// 	c.MaxMarkerRetries = retries
+// }
 
-	return nil
-}
-
-func (c *FTWConfiguration) populatePlatformOverridesMap() {
-	rulesMap := map[uint][]*schema.TestOverride{}
-	for i := 0; i < len(c.PlatformOverrides.TestOverrides); i++ {
-		testOverride := &c.PlatformOverrides.TestOverrides[i]
-		var list []*schema.TestOverride
-		list, ok := rulesMap[testOverride.RuleId]
-		if !ok {
-			list = []*schema.TestOverride{}
-		}
-		list = append(list, testOverride)
-		rulesMap[testOverride.RuleId] = list
-
-	}
-	c.PlatformOverrides.OverridesMap = rulesMap
-}
-
-// WithLogfile changes the logfile in the configuration.
-func (c *FTWConfiguration) WithLogfile(logfile string) {
-	c.LogFile = logfile
-}
-
-// WithOverrides sets the overrides in the configuration.
-func (c *FTWConfiguration) WithOverrides(overrides FTWTestOverride) {
-	c.TestOverride = overrides
-}
-
-// WithRunMode sets the RunMode.
-func (c *FTWConfiguration) WithRunMode(runMode RunMode) {
-	c.RunMode = runMode
-}
-
-// WithLogMarkerHeaderName sets the new LogMarker header name.
-func (c *FTWConfiguration) WithLogMarkerHeaderName(name string) {
-	c.LogMarkerHeaderName = name
-}
-
-// WithMaxMarkerRetries sets the new amount of retries we are doing to find markers in the logfile.
-func (c *FTWConfiguration) WithMaxMarkerRetries(retries uint) {
-	c.MaxMarkerRetries = retries
-}
-
-// WithMaxMarkerLogLines sets the new amount of lines we go back in the logfile attempting to find markers.
-func (c *FTWConfiguration) WithMaxMarkerLogLines(amount uint) {
-	c.MaxMarkerLogLines = amount
-}
+// // WithMaxMarkerLogLines sets the new amount of lines we go back in the logfile attempting to find markers.
+// func (c *FTWConfiguration) WithMaxMarkerLogLines(amount uint) {
+// 	c.MaxMarkerLogLines = amount
+// }
 
 // Unmarshal the loaded koanf instance into a configuration object
 func unmarshalConfig(k *koanfv2.Koanf) (*FTWConfiguration, error) {
@@ -184,17 +135,6 @@ func unmarshalConfig(k *koanfv2.Koanf) (*FTWConfiguration, error) {
 	}
 
 	return config, nil
-}
-
-// Unmarshal the loaded koanf instance into an FTWOverrides object
-func unmarshalPlatformOverrides(k *koanfv2.Koanf) (*schema.FTWOverrides, error) {
-	overrides := &schema.FTWOverrides{}
-	err := k.UnmarshalWithConf("", overrides, koanfv2.UnmarshalConf{Tag: "yaml"})
-	if err != nil {
-		return nil, err
-	}
-
-	return overrides, nil
 }
 
 // Get the global koanf instance

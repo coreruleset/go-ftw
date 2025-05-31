@@ -19,6 +19,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/coreruleset/go-ftw/utils"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
 )
@@ -257,16 +258,12 @@ func (s *runCmdTestSuite) TestGlobalInclude() {
 	configYaml := `---
 include: '^9.*'
 `
-	configFile, err := os.CreateTemp(s.tempDir, "global-config-*.yaml")
-	s.Require().NoError(err)
-	_, err = io.WriteString(configFile, configYaml)
-	s.Require().NoError(err)
-	err = configFile.Close()
+	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config-*.yaml")
 	s.Require().NoError(err)
 
 	s.rootCmd.SetArgs([]string{
 		"run",
-		"--config", configFile.Name(),
+		"--config", configFile,
 		"-d", s.tempDir,
 	})
 	cmd, _ := s.rootCmd.ExecuteC()
@@ -282,16 +279,12 @@ func (s *runCmdTestSuite) TestGlobalIncludeOverriddenByCmdLineFlag() {
 	configYaml := `---
 include: '^9.*'
 `
-	configFile, err := os.CreateTemp(s.tempDir, "global-config.yaml")
-	s.Require().NoError(err)
-	_, err = io.WriteString(configFile, configYaml)
-	s.Require().NoError(err)
-	err = configFile.Close()
+	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
 	s.Require().NoError(err)
 
 	s.rootCmd.SetArgs([]string{
 		"run",
-		"--config", configFile.Name(),
+		"--config", configFile,
 		"-d", s.tempDir,
 		"--include", "^1.*",
 	})
@@ -308,16 +301,12 @@ func (s *runCmdTestSuite) TestGlobalExclude() {
 	configYaml := `---
 exclude: '^9.*'
 `
-	configFile, err := os.CreateTemp(s.tempDir, "global-config.yaml")
-	s.Require().NoError(err)
-	_, err = io.WriteString(configFile, configYaml)
-	s.Require().NoError(err)
-	err = configFile.Close()
+	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
 	s.Require().NoError(err)
 
 	s.rootCmd.SetArgs([]string{
 		"run",
-		"--config", configFile.Name(),
+		"--config", configFile,
 		"-d", s.tempDir,
 	})
 	cmd, _ := s.rootCmd.ExecuteC()
@@ -333,16 +322,12 @@ func (s *runCmdTestSuite) TestGlobalExcludeOverriddenByCmdLineFlag() {
 	configYaml := `---
 exclude: '^9.*'
 `
-	configFile, err := os.CreateTemp(s.tempDir, "global-config.yaml")
-	s.Require().NoError(err)
-	_, err = io.WriteString(configFile, configYaml)
-	s.Require().NoError(err)
-	err = configFile.Close()
+	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
 	s.Require().NoError(err)
 
 	s.rootCmd.SetArgs([]string{
 		"run",
-		"--config", configFile.Name(),
+		"--config", configFile,
 		"-d", s.tempDir,
 		"--exclude", "^1.*",
 	})
@@ -359,16 +344,12 @@ func (s *runCmdTestSuite) TestGlobalIncludeTags() {
 	configYaml := `---
 include_tags: '^springfield.*'
 `
-	configFile, err := os.CreateTemp(s.tempDir, "global-config.yaml")
-	s.Require().NoError(err)
-	_, err = io.WriteString(configFile, configYaml)
-	s.Require().NoError(err)
-	err = configFile.Close()
+	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
 	s.Require().NoError(err)
 
 	s.rootCmd.SetArgs([]string{
 		"run",
-		"--config", configFile.Name(),
+		"--config", configFile,
 		"-d", s.tempDir,
 	})
 	cmd, _ := s.rootCmd.ExecuteC()
@@ -384,16 +365,12 @@ func (s *runCmdTestSuite) TestGlobalIncludeTagsOverriddenByCmdLineFlag() {
 	configYaml := `---
 include_tags: '^springfield.*'
 `
-	configFile, err := os.CreateTemp(s.tempDir, "global-config.yaml")
-	s.Require().NoError(err)
-	_, err = io.WriteString(configFile, configYaml)
-	s.Require().NoError(err)
-	err = configFile.Close()
+	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
 	s.Require().NoError(err)
 
 	s.rootCmd.SetArgs([]string{
 		"run",
-		"--config", configFile.Name(),
+		"--config", configFile,
 		"-d", s.tempDir,
 		"--include-tags", "^powerplant.*",
 	})

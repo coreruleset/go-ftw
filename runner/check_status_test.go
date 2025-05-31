@@ -1,7 +1,7 @@
 // Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
-package check
+package runner
 
 import (
 	"testing"
@@ -17,7 +17,9 @@ import (
 
 type checkStatusTestSuite struct {
 	suite.Suite
-	cfg *config.FTWConfiguration
+	cfg          *config.FTWConfiguration
+	runnerConfig *config.RunnerConfig
+	context      *TestRunContext
 }
 
 func (s *checkStatusTestSuite) SetupSuite() {
@@ -27,9 +29,12 @@ func (s *checkStatusTestSuite) SetupSuite() {
 func (s *checkStatusTestSuite) SetupTest() {
 	var err error
 	s.cfg = config.NewDefaultConfig()
-	logName, err := utils.CreateTempFileWithContent("", logText, "test-*.log")
+	s.cfg.LogFile, err = utils.CreateTempFileWithContent("", "", "test-*.log")
 	s.Require().NoError(err)
-	s.cfg.WithLogfile(logName)
+	s.runnerConfig = config.NewRunnerConfiguration(s.cfg)
+	s.context = &TestRunContext{
+		RunnerConfig: s.runnerConfig,
+	}
 }
 
 func TestCheckStatusTestSuite(t *testing.T) {
@@ -37,7 +42,7 @@ func TestCheckStatusTestSuite(t *testing.T) {
 }
 
 func (s *checkStatusTestSuite) TestStatusOK() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
 	c.SetExpectStatus(0)
@@ -61,7 +66,7 @@ func (s *checkStatusTestSuite) TestStatusOK() {
 
 // always match since no status expectation set
 func (s *checkStatusTestSuite) TestCloudModePositiveMatch_AlwaysMatch() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 	c.cfg.RunMode = config.CloudRunMode
 	s.True(c.CloudMode(), "couldn't detect cloud mode")
@@ -80,7 +85,7 @@ func (s *checkStatusTestSuite) TestCloudModePositiveMatch_AlwaysMatch() {
 }
 
 func (s *checkStatusTestSuite) TestCloudModePositiveMatch() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 	c.cfg.RunMode = config.CloudRunMode
 	s.True(c.CloudMode(), "couldn't detect cloud mode")
@@ -104,7 +109,7 @@ func (s *checkStatusTestSuite) TestCloudModePositiveMatch() {
 
 // always match since no status expectation set
 func (s *checkStatusTestSuite) TestCloudModeNegativeMatch_AlwaysMatch() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 	c.cfg.RunMode = config.CloudRunMode
 	s.True(c.CloudMode(), "couldn't detect cloud mode")
@@ -124,7 +129,7 @@ func (s *checkStatusTestSuite) TestCloudModeNegativeMatch_AlwaysMatch() {
 
 // status expectation set, only match specific statuses
 func (s *checkStatusTestSuite) TestCloudModeNegativeMatch_SpecificMatch() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 	c.cfg.RunMode = config.CloudRunMode
 	s.True(c.CloudMode(), "couldn't detect cloud mode")

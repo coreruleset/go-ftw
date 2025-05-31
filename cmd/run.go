@@ -17,6 +17,7 @@ import (
 	"wait4x.dev/v3/checker/http"
 	"wait4x.dev/v3/waiter"
 
+	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/runner"
 	"github.com/coreruleset/go-ftw/test"
@@ -111,7 +112,7 @@ func runE(cmd *cobra.Command, _ []string) error {
 	}
 	_ = out.Println("%s", out.Message("** Starting tests!"))
 
-	currentRun, err := runner.Run(cfg, tests, runnerConfig, out)
+	currentRun, err := runner.Run(runnerConfig, tests, out)
 
 	if err != nil {
 		return err
@@ -125,17 +126,11 @@ func runE(cmd *cobra.Command, _ []string) error {
 }
 
 //gocyclo:ignore
-func buildRunnerConfig(cmd *cobra.Command) (*runner.RunnerConfig, error) {
+func buildRunnerConfig(cmd *cobra.Command) (*config.RunnerConfig, error) {
 	exclude, _ := cmd.Flags().GetString(excludeFlag)
 	include, _ := cmd.Flags().GetString(includeFlag)
 	includeTags, _ := cmd.Flags().GetString(includeTagsFlag)
 	logFilePath, _ := cmd.Flags().GetString(logFileFlag)
-	showTime, _ := cmd.Flags().GetBool(timeFlag)
-	showOnlyFailed, _ := cmd.Flags().GetBool(showFailuresOnlyFlag)
-	connectTimeout, _ := cmd.Flags().GetDuration(connectTimeoutFlag)
-	readTimeout, _ := cmd.Flags().GetDuration(readTimeoutFlag)
-	maxMarkerRetries, _ := cmd.Flags().GetUint(maxMarkerRetriesFlag)
-	maxMarkerLogLines, _ := cmd.Flags().GetUint(maxMarkerLogLinesFlag)
 	// wait4x flags
 	waitForHost, _ := cmd.Flags().GetString(waitForHostFlag)
 	timeout, _ := cmd.Flags().GetDuration(waitForTimeoutFlag)
@@ -148,49 +143,45 @@ func buildRunnerConfig(cmd *cobra.Command) (*runner.RunnerConfig, error) {
 	connectionTimeout, _ := cmd.Flags().GetDuration(waitForConnectionTimeoutFlag)
 	insecureSkipTLSVerify, _ := cmd.Flags().GetBool(waitForInsecureSkipTlsVerifyFlag)
 	noRedirect, _ := cmd.Flags().GetBool(waitForNoRedirectFlag)
-	rateLimit, _ := cmd.Flags().GetDuration(rateLimitFlag)
-	failFast, _ := cmd.Flags().GetBool(failFastFlag)
 
 	if exclude != "" && include != "" {
 		cmd.SilenceUsage = false
-		return nil, fmt.Errorf("you need to choose one: use --%s (%s) or --%s (%s)", includeFlag, include, excludeFlag, exclude)
+		return nil, fmt.Errorf("inlusion *and* exclusion specified. You need to choose either --%s (%s) or --%s (%s)", includeFlag, include, excludeFlag, exclude)
 	}
-	if maxMarkerRetries != 0 {
-		cfg.WithMaxMarkerRetries(maxMarkerRetries)
-	}
-	if maxMarkerLogLines != 0 {
-		cfg.WithMaxMarkerLogLines(maxMarkerLogLines)
+
+	runnerConfig := config.NewRunnerConfiguration(cfg)
+	runnerConfig.ShowTime, _ = cmd.Flags().GetBool(timeFlag)
+	runnerConfig.ShowOnlyFailed, _ = cmd.Flags().GetBool(showFailuresOnlyFlag)
+	runnerConfig.ConnectTimeout, _ = cmd.Flags().GetDuration(connectTimeoutFlag)
+	runnerConfig.ReadTimeout, _ = cmd.Flags().GetDuration(readTimeoutFlag)
+	runnerConfig.MaxMarkerRetries, _ = cmd.Flags().GetUint(maxMarkerRetriesFlag)
+	runnerConfig.MaxMarkerLogLines, _ = cmd.Flags().GetUint(maxMarkerLogLinesFlag)
+	runnerConfig.RateLimit, _ = cmd.Flags().GetDuration(rateLimitFlag)
+	runnerConfig.FailFast, _ = cmd.Flags().GetBool(failFastFlag)
+
+	if cloud {
+		runnerConfig.RunMode = config.CloudRunMode
 	}
 	if logFilePath != "" {
-		cfg.LogFile = logFilePath
+		runnerConfig.LogFilePath = logFilePath
 	}
 
 	var err error
-	var includeRegex *regexp.Regexp
 	if include != "" {
-		if includeRegex, err = regexp.Compile(include); err != nil {
+		if runnerConfig.Include, err = regexp.Compile(include); err != nil {
 			return nil, fmt.Errorf("invalid --%s regular expression: %w", includeFlag, err)
 		}
-	} else if cfg.IncludeTests != nil {
-		includeRegex = (*regexp.Regexp)(cfg.IncludeTests)
 	}
-	var excludeRegex *regexp.Regexp
 	if exclude != "" {
-		if excludeRegex, err = regexp.Compile(exclude); err != nil {
+		if runnerConfig.Exclude, err = regexp.Compile(exclude); err != nil {
 			return nil, fmt.Errorf("invalid --%s regular expression: %w", excludeFlag, err)
 		}
-	} else if cfg.ExcludeTests != nil {
-		excludeRegex = (*regexp.Regexp)(cfg.ExcludeTests)
 	}
-	var includeTagsRegex *regexp.Regexp
 	if includeTags != "" {
-		if includeTagsRegex, err = regexp.Compile(includeTags); err != nil {
+		if runnerConfig.IncludeTags, err = regexp.Compile(includeTags); err != nil {
 			return nil, fmt.Errorf("invalid --%s regular expression: %w", includeTagsFlag, err)
 		}
-	} else if cfg.IncludeTags != nil {
-		includeTagsRegex = (*regexp.Regexp)(cfg.IncludeTags)
 	}
-
 	// Add wait4x checkers
 	if waitForHost != "" {
 		_, err := url.Parse(waitForHost)
@@ -222,17 +213,12 @@ func buildRunnerConfig(cmd *cobra.Command) (*runner.RunnerConfig, error) {
 			return nil, waiterErr
 		}
 	}
-	return &runner.RunnerConfig{
-		Include:        includeRegex,
-		Exclude:        excludeRegex,
-		IncludeTags:    includeTagsRegex,
-		ShowTime:       showTime,
-		ShowOnlyFailed: showOnlyFailed,
-		ConnectTimeout: connectTimeout,
-		ReadTimeout:    readTimeout,
-		RateLimit:      rateLimit,
-		FailFast:       failFast,
-	}, nil
+
+	err = runnerConfig.LoadPlatformOverrides(overridesFile)
+	if err != nil {
+		log.Fatal().Msg("failed to load platform overrides")
+	}
+	return runnerConfig, nil
 }
 
 func buildOutput(cmd *cobra.Command) (*output.Output, error) {
