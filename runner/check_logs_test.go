@@ -1,7 +1,7 @@
 // Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
-package check
+package runner
 
 import (
 	"testing"
@@ -31,6 +31,7 @@ type checkLogsTestSuite struct {
 	cfg     *config.FTWConfiguration
 	logName string
 	check   *FTWCheck
+	context *TestRunContext
 }
 
 func TestCheckLogsTestSuite(t *testing.T) {
@@ -44,12 +45,15 @@ func (s *checkLogsTestSuite) SetupSuite() {
 func (s *checkLogsTestSuite) SetupTest() {
 	var err error
 	s.cfg = config.NewDefaultConfig()
+	s.context = &TestRunContext{
+		Config: s.cfg,
+	}
 
 	s.logName, err = utils.CreateTempFileWithContent("", logText, "test-*.log")
 	s.Require().NoError(err)
 	s.cfg.WithLogfile(s.logName)
 
-	s.check, err = NewCheck(s.cfg)
+	s.check, err = NewCheck(s.context)
 	s.Require().NoError(err)
 
 	s.check.log.WithStartMarker([]byte(markerStart))

@@ -14,7 +14,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/time/rate"
 
-	"github.com/coreruleset/go-ftw/check"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/output"
@@ -110,7 +109,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 		}
 		// Iterate over stages
 		for _, stage := range testCase.Stages {
-			ftwCheck, err := check.NewCheck(runContext.Config)
+			ftwCheck, err := NewCheck(runContext)
 			if err != nil {
 				return err
 			}
@@ -142,7 +141,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 // stage is the stage you want to run
 //
 //gocyclo:ignore
-func RunStage(runContext *TestRunContext, ftwCheck *check.FTWCheck, testCase schema.Test, stage schema.Stage) error {
+func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Test, stage schema.Stage) error {
 	runContext.StartStage()
 	stageId := uuid.NewString()
 	// Apply global overrides initially
@@ -358,7 +357,7 @@ func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult,
 	}
 }
 
-func overriddenTestResult(c *check.FTWCheck, testCase *schema.Test) TestResult {
+func overriddenTestResult(c *FTWCheck, testCase *schema.Test) TestResult {
 	if c.ForcedIgnore(testCase) {
 		return Ignored
 	}
@@ -375,7 +374,7 @@ func overriddenTestResult(c *check.FTWCheck, testCase *schema.Test) TestResult {
 }
 
 // checkResult has the logic for verifying the result for the test sent
-func checkResult(c *check.FTWCheck, response *ftwhttp.Response, responseError error) TestResult {
+func checkResult(c *FTWCheck, response *ftwhttp.Response, responseError error) TestResult {
 	// Request might return an error, but it could be expected, we check that first
 	if expected, succeeded := c.AssertExpectError(responseError); expected {
 		if succeeded {
@@ -431,7 +430,7 @@ func getRequestFromTest(testInput test.Input) (*ftwhttp.Request, error) {
 		data, *testInput.AutocompleteHeaders), nil
 }
 
-func notRunningInCloudMode(c *check.FTWCheck) bool {
+func notRunningInCloudMode(c *FTWCheck) bool {
 	return !c.CloudMode()
 }
 

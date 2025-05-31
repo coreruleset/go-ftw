@@ -1,7 +1,7 @@
 // Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
-package check
+package runner
 
 import (
 	"errors"
@@ -32,7 +32,8 @@ var expectedFailTests = []struct {
 
 type checkErrorTestSuite struct {
 	suite.Suite
-	cfg *config.FTWConfiguration
+	cfg     *config.FTWConfiguration
+	context *TestRunContext
 }
 
 func (s *checkErrorTestSuite) SetupSuite() {
@@ -50,10 +51,13 @@ func (s *checkErrorTestSuite) SetupTest() {
 	logName, err := utils.CreateTempFileWithContent("", logText, "test-*.log")
 	s.Require().NoError(err)
 	s.cfg.WithLogfile(logName)
+	s.context = &TestRunContext{
+		Config: s.cfg,
+	}
 }
 
 func (s *checkErrorTestSuite) TestAssertResponseErrorOK() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 	for _, e := range expectedOKTests {
 		c.SetExpectError(e.expected)
@@ -64,7 +68,7 @@ func (s *checkErrorTestSuite) TestAssertResponseErrorOK() {
 }
 
 func (s *checkErrorTestSuite) TestAssertResponseFail() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
 	for _, e := range expectedFailTests {

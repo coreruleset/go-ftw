@@ -1,7 +1,7 @@
 // Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
-package check
+package runner
 
 import (
 	"testing"
@@ -30,7 +30,8 @@ var expectedResponseFailTests = []struct {
 
 type checkResponseTestSuite struct {
 	suite.Suite
-	cfg *config.FTWConfiguration
+	cfg     *config.FTWConfiguration
+	context *TestRunContext
 }
 
 func TestCheckResponseTestSuite(t *testing.T) {
@@ -47,10 +48,13 @@ func (s *checkResponseTestSuite) SetupTest() {
 	logName, err := utils.CreateTempFileWithContent("", logText, "test-*.log")
 	s.Require().NoError(err)
 	s.cfg.WithLogfile(logName)
+	s.context = &TestRunContext{
+		Config: s.cfg,
+	}
 }
 
 func (s *checkResponseTestSuite) TestAssertResponseTextErrorOK() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)
@@ -59,7 +63,7 @@ func (s *checkResponseTestSuite) TestAssertResponseTextErrorOK() {
 }
 
 func (s *checkResponseTestSuite) TestAssertResponseTextFailOK() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 	for _, e := range expectedResponseFailTests {
 		c.SetExpectResponse(e.expected)
@@ -68,7 +72,7 @@ func (s *checkResponseTestSuite) TestAssertResponseTextFailOK() {
 }
 
 func (s *checkResponseTestSuite) TestAssertResponseTextChecksFullResponseOK() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 	for _, e := range expectedResponseOKTests {
 		c.SetExpectResponse(e.expected)

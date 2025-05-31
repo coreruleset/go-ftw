@@ -1,7 +1,7 @@
 // Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
-package check
+package runner
 
 import (
 	"testing"
@@ -35,7 +35,8 @@ mode: "cloud"`,
 
 type checkBaseTestSuite struct {
 	suite.Suite
-	cfg *config.FTWConfiguration
+	cfg     *config.FTWConfiguration
+	context *TestRunContext
 }
 
 func (s *checkBaseTestSuite) SetupSuite() {
@@ -50,6 +51,9 @@ func (s *checkBaseTestSuite) BeforeTest(_, name string) {
 	logName, err = utils.CreateTempFileWithContent("", logText, "test-*.log")
 	s.Require().NoError(err)
 	s.cfg.WithLogfile(logName)
+	s.context = &TestRunContext{
+		Config: s.cfg,
+	}
 }
 
 func TestCheckBaseTestSuite(t *testing.T) {
@@ -57,7 +61,7 @@ func TestCheckBaseTestSuite(t *testing.T) {
 }
 
 func (s *checkBaseTestSuite) TestNewCheck() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
 	for _, text := range c.cfg.TestOverride.Ignore {
@@ -82,7 +86,7 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 }
 
 func (s *checkBaseTestSuite) TestForced() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
 	s.True(c.ForcedIgnore(&schema.Test{RuleId: 942200, TestId: 1}), "Can't find ignored value")
@@ -101,7 +105,7 @@ func (s *checkBaseTestSuite) TestForced() {
 }
 
 func (s *checkBaseTestSuite) TestSetMarkers() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
 	c.SetStartMarker([]byte("TesTingStArtMarKer"))

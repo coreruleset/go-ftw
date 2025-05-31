@@ -1,7 +1,7 @@
 // Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
-package check
+package runner
 
 import (
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
@@ -19,14 +19,14 @@ type FTWCheck struct {
 }
 
 // NewCheck creates a new FTWCheck, allowing to inject the configuration
-func NewCheck(c *config.FTWConfiguration) (*FTWCheck, error) {
-	ll, err := waflog.NewFTWLogLines(c)
+func NewCheck(context *TestRunContext) (*FTWCheck, error) {
+	ll, err := waflog.NewFTWLogLines(context.Config)
 	if err != nil {
 		return nil, err
 	}
 	check := &FTWCheck{
 		log:      ll,
-		cfg:      c,
+		cfg:      context.Config,
 		expected: &test.Output{},
 	}
 
