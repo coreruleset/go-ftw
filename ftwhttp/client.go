@@ -7,12 +7,11 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"net"
 	"net/http/cookiejar"
 	"strings"
 	"time"
-
-	"fmt"
 
 	"github.com/rs/zerolog/log"
 	"golang.org/x/net/publicsuffix"

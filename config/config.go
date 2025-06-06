@@ -96,36 +96,6 @@ func NewConfigFromString(conf string) (*FTWConfiguration, error) {
 	return unmarshalConfig(k)
 }
 
-// // WithLogfile changes the logfile in the configuration.
-// func (c *FTWConfiguration) WithLogfile(logfile string) {
-// 	c.LogFile = logfile
-// }
-
-// // WithOverrides sets the overrides in the configuration.
-// func (c *FTWConfiguration) WithOverrides(overrides FTWTestOverride) {
-// 	c.TestOverride = overrides
-// }
-
-// // WithRunMode sets the RunMode.
-// func (c *FTWConfiguration) WithRunMode(runMode RunMode) {
-// 	c.RunMode = runMode
-// }
-
-// // WithLogMarkerHeaderName sets the new LogMarker header name.
-// func (c *FTWConfiguration) WithLogMarkerHeaderName(name string) {
-// 	c.LogMarkerHeaderName = name
-// }
-
-// // WithMaxMarkerRetries sets the new amount of retries we are doing to find markers in the logfile.
-// func (c *FTWConfiguration) WithMaxMarkerRetries(retries uint) {
-// 	c.MaxMarkerRetries = retries
-// }
-
-// // WithMaxMarkerLogLines sets the new amount of lines we go back in the logfile attempting to find markers.
-// func (c *FTWConfiguration) WithMaxMarkerLogLines(amount uint) {
-// 	c.MaxMarkerLogLines = amount
-// }
-
 // Unmarshal the loaded koanf instance into a configuration object
 func unmarshalConfig(k *koanfv2.Koanf) (*FTWConfiguration, error) {
 	config := NewDefaultConfig()
