@@ -318,7 +318,7 @@ Tests can be altered using four lists:
   - `protocol`: overrides the protocol
   - `uri`: overrides the uri
   - `version`: overrides the HTTP version. E.g. "HTTP/1.1"
-  - `headers`: overrides headers, the format is a map of strings
+  - `ordered_headers`: overrides headers, the format is a list of `name` / `value` pairs
   - `method`: overrides the method used to perform the request
   - `data`: overrides data sent in the request
   - `autocomplete_headers`: overrides header autocompletion (currently sets `Connection: close` and `Content-Length` for requests with body data)

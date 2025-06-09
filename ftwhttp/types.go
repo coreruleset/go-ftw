@@ -72,7 +72,7 @@ type RequestLine struct {
 // This struct without defaults represents the previous "autocomplete headers" behavior
 type Request struct {
 	requestLine         *RequestLine
-	headers             Header
+	headers             *Header
 	cookies             http.CookieJar
 	data                []byte
 	autoCompleteHeaders bool
