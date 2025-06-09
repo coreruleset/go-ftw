@@ -212,7 +212,7 @@ func (s *fileTestSuite) TestNewConfigFromFileRunMode() {
 
 func (s *fileTestSuite) TestNewDefaultConfigWithParams() {
 	cfg := NewDefaultConfig()
-	cfg.WithLogfile("mylogfile.log")
+	cfg.LogFile = "mylogfile.log"
 	s.Equal("mylogfile.log", cfg.LogFile)
 	overrides := FTWTestOverride{
 		Overrides: Overrides{},
@@ -220,80 +220,19 @@ func (s *fileTestSuite) TestNewDefaultConfigWithParams() {
 		ForcePass: nil,
 		ForceFail: nil,
 	}
-	cfg.WithOverrides(overrides)
+	cfg.TestOverride = overrides
 	s.Equal(overrides, cfg.TestOverride)
-	cfg.WithLogMarkerHeaderName("NEW-MARKER-TEST")
+	cfg.LogMarkerHeaderName = "NEW-MARKER-TEST"
 	s.Equal("NEW-MARKER-TEST", cfg.LogMarkerHeaderName)
-	cfg.WithRunMode(CloudRunMode)
+	cfg.RunMode = CloudRunMode
 	s.Equal(CloudRunMode, cfg.RunMode)
 }
 
 func (s *baseTestSuite) TestWithMaxMarker() {
 	cfg := NewDefaultConfig()
-	cfg.WithMaxMarkerRetries(19)
+	cfg.MaxMarkerRetries = 19
 	s.Equal(uint(19), cfg.MaxMarkerRetries)
-	cfg.WithMaxMarkerLogLines(111)
+	cfg.MaxMarkerLogLines = 111
 	s.Equal(uint(111), cfg.MaxMarkerLogLines)
 
-}
-
-func (s *baseTestSuite) TestPlatformOverridesDefaults() {
-	overrides := NewDefaultConfig().PlatformOverrides
-	meta := overrides.Meta
-	s.Empty(meta.Annotations)
-	s.Empty(meta.Engine)
-	s.Empty(meta.Platform)
-	s.Empty(overrides.Version)
-	s.Empty(overrides.TestOverrides)
-}
-
-func (s *baseTestSuite) TestLoadPlatformOverrides() {
-	tempDir := s.T().TempDir()
-	overridesFile, err := os.CreateTemp(tempDir, "overrides.yaml")
-	s.Require().NoError(err)
-	defer overridesFile.Close()
-	_, err = overridesFile.WriteString(`---
-version: "v0.0.0"
-meta:
-  engine: "coraza"
-  platform: "go"
-  annotations:
-    - purpose: "Test loading overrides"
-test_overrides:
-  - rule_id: 920100
-    test_ids: [4, 8]
-    reason: 'Invalid uri, Coraza not reached - 404 page not found'
-    output:
-      status: 404
-      log:
-        match_regex: 'match.*me'
-        no_expect_ids: [1234]
-      response_contains: '404'`)
-
-	s.Require().NoError(err)
-
-	cfg := NewDefaultConfig()
-	err = cfg.LoadPlatformOverrides(overridesFile.Name())
-	s.Require().NoError(err)
-
-	overrides := cfg.PlatformOverrides
-	meta := overrides.Meta
-	s.Equal("v0.0.0", overrides.Version)
-	s.Equal("coraza", meta.Engine)
-	s.Equal("go", meta.Platform)
-	s.Len(meta.Annotations, 1)
-	value, ok := meta.Annotations["purpose"]
-	s.True(ok)
-	s.Equal("Test loading overrides", value)
-
-	s.Len(overrides.TestOverrides, 1)
-	entry := overrides.TestOverrides[0]
-	s.Equal(uint(920100), entry.RuleId)
-	s.ElementsMatch([]uint{4, 8}, entry.TestIds)
-	s.Equal("Invalid uri, Coraza not reached - 404 page not found", entry.Reason)
-	s.Equal(404, entry.Output.Status)
-	s.Equal("match.*me", entry.Output.Log.MatchRegex)
-	s.Len(entry.Output.Log.NoExpectIds, 1)
-	s.Equal(uint(1234), entry.Output.Log.NoExpectIds[0])
-	s.Equal("404", entry.Output.ResponseContains)
 }

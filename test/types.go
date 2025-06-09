@@ -19,7 +19,7 @@ import (
 )
 
 // ApplyInputOverride will check if config had global overrides and write that into the test.
-func ApplyInputOverrides(conf *config.FTWConfiguration, input *Input) {
+func ApplyInputOverrides(conf *config.RunnerConfig, input *Input) {
 	overrides := &conf.TestOverride.Overrides
 	applySimpleOverrides(overrides, input)
 	applyDestAddrOverride(overrides, input)
@@ -31,7 +31,7 @@ func ApplyInputOverrides(conf *config.FTWConfiguration, input *Input) {
 	}
 }
 
-func ApplyPlatformOverrides(conf *config.FTWConfiguration, testCase *schema.Test) {
+func ApplyPlatformOverrides(conf *config.RunnerConfig, testCase *schema.Test) {
 	platformOverrides := conf.PlatformOverrides
 	log.Debug().Msgf("Applying overrides for engine '%s', platform '%s'", platformOverrides.Meta.Engine, platformOverrides.Meta.Platform)
 	overrides, ok := platformOverrides.OverridesMap[testCase.RuleId]

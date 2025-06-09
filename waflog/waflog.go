@@ -13,12 +13,14 @@ import (
 )
 
 // NewFTWLogLines is the base struct for reading the log file
-func NewFTWLogLines(cfg *config.FTWConfiguration) (*FTWLogLines, error) {
+func NewFTWLogLines(cfg *config.RunnerConfig) (*FTWLogLines, error) {
 	ll := &FTWLogLines{
+		logFilePath:         cfg.LogFilePath,
+		runMode:             cfg.RunMode,
 		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
 	}
 
-	if err := ll.openLogFile(cfg); err != nil {
+	if err := ll.openLogFile(); err != nil {
 		return nil, fmt.Errorf("cannot open log file: %w", err)
 	}
 
@@ -48,12 +50,12 @@ func (ll *FTWLogLines) Cleanup() error {
 	return nil
 }
 
-func (ll *FTWLogLines) openLogFile(cfg *config.FTWConfiguration) error {
+func (ll *FTWLogLines) openLogFile() error {
 	// Using a log file is not required in cloud mode
-	if cfg.RunMode == config.DefaultRunMode {
-		if cfg.LogFile != "" && ll.logFile == nil {
+	if ll.runMode == config.DefaultRunMode {
+		if ll.logFilePath != "" && ll.logFile == nil {
 			var err error
-			ll.logFile, err = os.Open(cfg.LogFile)
+			ll.logFile, err = os.Open(ll.logFilePath)
 			return err
 		}
 	}

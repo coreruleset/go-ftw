@@ -1,7 +1,7 @@
 // Copyright 2024 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
-package check
+package runner
 
 import (
 	"testing"
@@ -13,6 +13,7 @@ import (
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/waflog"
 )
 
 var configMap = map[string]string{
@@ -35,7 +36,9 @@ mode: "cloud"`,
 
 type checkBaseTestSuite struct {
 	suite.Suite
-	cfg *config.FTWConfiguration
+	cfg          *config.FTWConfiguration
+	runnerConfig *config.RunnerConfig
+	context      *TestRunContext
 }
 
 func (s *checkBaseTestSuite) SetupSuite() {
@@ -44,12 +47,16 @@ func (s *checkBaseTestSuite) SetupSuite() {
 
 func (s *checkBaseTestSuite) BeforeTest(_, name string) {
 	var err error
-	var logName string
 	s.cfg, err = config.NewConfigFromString(configMap[name])
 	s.Require().NoError(err)
-	logName, err = utils.CreateTempFileWithContent("", logText, "test-*.log")
+	s.cfg.LogFile, err = utils.CreateTempFileWithContent("", logText, "test-*.log")
 	s.Require().NoError(err)
-	s.cfg.WithLogfile(logName)
+	s.runnerConfig = config.NewRunnerConfiguration(s.cfg)
+	s.context = &TestRunContext{
+		RunnerConfig: s.runnerConfig,
+	}
+	s.context.LogLines, err = waflog.NewFTWLogLines(s.runnerConfig)
+	s.Require().NoError(err)
 }
 
 func TestCheckBaseTestSuite(t *testing.T) {
@@ -57,7 +64,7 @@ func TestCheckBaseTestSuite(t *testing.T) {
 }
 
 func (s *checkBaseTestSuite) TestNewCheck() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
 	for _, text := range c.cfg.TestOverride.Ignore {
@@ -82,7 +89,7 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 }
 
 func (s *checkBaseTestSuite) TestForced() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
 	s.True(c.ForcedIgnore(&schema.Test{RuleId: 942200, TestId: 1}), "Can't find ignored value")
@@ -101,7 +108,7 @@ func (s *checkBaseTestSuite) TestForced() {
 }
 
 func (s *checkBaseTestSuite) TestSetMarkers() {
-	c, err := NewCheck(s.cfg)
+	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
 	c.SetStartMarker([]byte("TesTingStArtMarKer"))

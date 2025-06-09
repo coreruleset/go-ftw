@@ -23,8 +23,9 @@ import (
 
 type inputOverrideTestSuite struct {
 	suite.Suite
-	cfg         *config.FTWConfiguration
-	logFilePath string
+	cfg          *config.FTWConfiguration
+	runnerConfig *config.RunnerConfig
+	logFilePath  string
 }
 
 var configTemplate = `
@@ -132,9 +133,6 @@ func TestInputOverrideTestSuite(t *testing.T) {
 	suite.Run(t, new(inputOverrideTestSuite))
 }
 
-func (s *inputOverrideTestSuite) SetupTest() {
-}
-
 func (s *inputOverrideTestSuite) BeforeTest(_ string, name string) {
 	var err error
 
@@ -147,8 +145,9 @@ func (s *inputOverrideTestSuite) BeforeTest(_ string, name string) {
 	s.Require().NoError(err, "cannot execute template")
 	s.cfg, err = config.NewConfigFromString(buf.String())
 	s.Require().NoError(err, "cannot get config from string")
+	s.runnerConfig = config.NewRunnerConfiguration(s.cfg)
 	if s.logFilePath != "" {
-		s.cfg.WithLogfile(s.logFilePath)
+		s.runnerConfig.LogFilePath = s.logFilePath
 	}
 }
 
@@ -161,7 +160,7 @@ func (s *inputOverrideTestSuite) TestSetHostFromDestAddr() {
 	testInput := test.NewInput(&schema.Input{
 		DestAddr: &originalHost,
 	})
-	cfg := &config.FTWConfiguration{
+	cfg := &config.RunnerConfig{
 		TestOverride: config.FTWTestOverride{
 			Overrides: config.Overrides{
 				DestAddr:                &overrideHost,
@@ -191,7 +190,7 @@ func (s *inputOverrideTestSuite) TestSetHostFromHostHeaderOverride() {
 		DestAddr: &originalDestAddr,
 	})
 
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	hostHeaders := testInput.GetHeaders().GetAll("Host")
 	s.Len(hostHeaders, 1)
@@ -213,7 +212,7 @@ func (s *inputOverrideTestSuite) TestSetHeaderOverridingExistingOne() {
 
 	s.NotNil(testInput.OrderedHeaders, "Header map must exist before overriding any header")
 
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	overriddenHeaders := testInput.GetHeaders().GetAll("unique_id")
 	s.Len(overriddenHeaders, 1)
@@ -231,7 +230,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrides() {
 
 	s.NotNil(testInput.OrderedHeaders, "Header map must exist before overriding any header")
 
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	overriddenHeaders := testInput.GetHeaders().GetAll("unique_id")
 	s.Len(overriddenHeaders, 1)
@@ -247,7 +246,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideURI() {
 		URI: &originalURI,
 	})
 
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	s.Equal(overrideURI, *testInput.URI, "`URI` should have been overridden")
 }
@@ -260,7 +259,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideVersion() {
 	testInput := test.NewInput(&schema.Input{
 		Version: &originalVersion,
 	})
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	s.Equal(overrideVersion, *testInput.Version, "`Version` should have been overridden")
 }
@@ -273,7 +272,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideMethod() {
 	testInput := test.NewInput(&schema.Input{
 		Method: &originalMethod,
 	})
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	s.Equal(overrideMethod, *testInput.Method, "`Method` should have been overridden")
 }
@@ -286,7 +285,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideData() {
 	testInput := test.NewInput(&schema.Input{
 		Data: &originalData,
 	})
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	s.Equal(overrideData, *testInput.Data, "`Data` should have been overridden")
 }
@@ -299,7 +298,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideStopMagic() {
 	testInput := test.NewInput(&schema.Input{
 		StopMagic: func() *bool { b := false; return &b }(),
 	})
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	// nolint
 	s.Equal(overrideStopMagic, *testInput.StopMagic, "`StopMagic` should have been overridden")
@@ -313,7 +312,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideAutocompleteHeaders() {
 	testInput := test.NewInput(&schema.Input{
 		AutocompleteHeaders: func() *bool { b := false; return &b }(),
 	})
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	// nolint
 	s.Equal(overrideAutocompleteHeaders, *testInput.AutocompleteHeaders, "`AutocompleteHeaders` should have been overridden")
@@ -326,7 +325,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideNoAutocompleteHeaders() {
 	s.Nil(s.cfg.TestOverride.Overrides.AutocompleteHeaders)
 	//nolint:staticcheck
 	s.Nil(s.cfg.TestOverride.Overrides.StopMagic)
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	s.False(*testInput.AutocompleteHeaders, "`AutocompleteHeaders` should not have been overridden")
 }
@@ -338,7 +337,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideNoStopMagic() {
 	s.Nil(s.cfg.TestOverride.Overrides.AutocompleteHeaders)
 	//nolint:staticcheck
 	s.Nil(s.cfg.TestOverride.Overrides.StopMagic)
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	//nolint:staticcheck
 	s.True(*testInput.StopMagic, "`AutocompleteHeaders` should not have been overridden")
@@ -351,7 +350,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideEncodedRequest() {
 	testInput := test.NewInput(&schema.Input{
 		EncodedRequest: originalEncodedRequest,
 	})
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 	s.Equal(overrideEncodedRequest, testInput.EncodedRequest, "`EncodedRequest` should have been overridden")
 }
 
@@ -364,6 +363,6 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideVirtualHostMode() {
 	testInput := test.NewInput(&schema.Input{
 		VirtualHostMode: originalVirtualHostMode,
 	})
-	test.ApplyInputOverrides(s.cfg, testInput)
+	test.ApplyInputOverrides(s.runnerConfig, testInput)
 	s.Equal(overrideVirtualHostModeBool, testInput.VirtualHostMode, "`VirtualHostMode` should have been overridden")
 }

@@ -94,7 +94,7 @@ func (c *Client) NewOrReusedConnection(d Destination) error {
 
 // dial tries to establish a connection
 func (c *Client) dial(d Destination) (net.Conn, error) {
-	hostPort := fmt.Sprintf("%s:%d", d.DestAddr, d.Port)
+	hostPort := net.JoinHostPort(d.DestAddr, fmt.Sprint(d.Port))
 
 	// Fatal error: dial tcp 127.0.0.1:80: connect: connection refused
 	// strings.HasSuffix(err.String(), "connection refused") {

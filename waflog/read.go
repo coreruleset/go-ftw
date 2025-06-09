@@ -18,7 +18,7 @@ import (
 
 const maxRuleIdsEstimate = 15
 
-var ruleIdsSet = make(map[uint]bool, maxRuleIdsEstimate)
+var ruleIdsSet = make(map[uint]struct{}, maxRuleIdsEstimate)
 
 // These regexes provide flexibility in parsing how the rule ID is logged.
 //   - [id "999999"]
@@ -60,7 +60,7 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 				continue
 			}
 			log.Trace().Msgf("ftw/waflog: Found '%d' at '%s'", ruleId, line)
-			ruleIdsSet[uint(ruleId)] = true
+			ruleIdsSet[uint(ruleId)] = struct{}{}
 		}
 	}
 	ruleIds := make([]uint, 0, len(ruleIdsSet))

@@ -22,6 +22,7 @@ const (
 )
 
 var (
+	cfg           = config.NewDefaultConfig()
 	cfgFile       string
 	overridesFile string
 	debug         bool
@@ -29,12 +30,10 @@ var (
 	cloud         bool
 )
 
-var cfg = config.NewDefaultConfig()
-
 // NewRootCommand represents the base command when called without any subcommands
 func NewRootCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:   "ftw run",
+		Use:   "go-ftw",
 		Short: "Framework for Testing WAFs - Go Version",
 	}
 	rootCmd.PersistentFlags().StringVar(&cfgFile, configFlag, "", "specify config file (default is $PWD/.ftw.yaml)")
@@ -83,9 +82,5 @@ func initConfig() {
 	}
 	if cloud {
 		cfg.RunMode = config.CloudRunMode
-	}
-	err = cfg.LoadPlatformOverrides(overridesFile)
-	if err != nil {
-		log.Fatal("failed to load platform overrides")
 	}
 }

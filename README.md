@@ -626,13 +626,13 @@ And a sample code:
     if err != nil {
         log.Fatal(err)
     }
-    cfg.WithLogfile(errorPath)
+    cfg.LogFile = errorPath
     cfg.TestOverride.Input.DestAddr = &host
     cfg.TestOverride.Input.Port = &port
+    runnerConfig := config.NewRunnerConfiguration(cfg)
+    runnerConfig.ShowTime = false
 
-    res, err := runner.Run(cfg, tests, &runner.RunnerConfig{
-                    ShowTime: false,
-                    }, output.NewOutput("quiet", os.Stdout))
+    res, err := runner.Run(runnerConfig, tests, output.NewOutput("quiet", os.Stdout))
     if err != nil {
         log.Fatal(err)
     }

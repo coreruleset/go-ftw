@@ -53,8 +53,9 @@ func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
+	runnerConfig := config.NewRunnerConfiguration(cfg)
 
-	ll, err := NewFTWLogLines(cfg)
+	ll, err := NewFTWLogLines(runnerConfig)
 	s.Require().NoError(err)
 	ll.WithStartMarker([]byte(startMarkerLine))
 	marker := ll.CheckLogForMarker(startStageId, 100)
@@ -79,8 +80,9 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
+	runnerConfig := config.NewRunnerConfiguration(cfg)
 
-	ll, err := NewFTWLogLines(cfg)
+	ll, err := NewFTWLogLines(runnerConfig)
 	ll.WithStartMarker([]byte(markerLine))
 	s.Require().NoError(err)
 
@@ -111,8 +113,9 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMultipleMarkersAtEnd() {
 	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
+	runnerConfig := config.NewRunnerConfiguration(cfg)
 
-	ll, err := NewFTWLogLines(cfg)
+	ll, err := NewFTWLogLines(runnerConfig)
 	s.Require().NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
@@ -147,8 +150,9 @@ func (s *readTestSuite) TestReadGetMarkedLines() {
 	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
+	runnerConfig := config.NewRunnerConfiguration(cfg)
 
-	ll, err := NewFTWLogLines(cfg)
+	ll, err := NewFTWLogLines(runnerConfig)
 	s.Require().NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
@@ -184,8 +188,9 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithTrailingEmptyLines() {
 	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
+	runnerConfig := config.NewRunnerConfiguration(cfg)
 
-	ll, err := NewFTWLogLines(cfg)
+	ll, err := NewFTWLogLines(runnerConfig)
 	s.Require().NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
@@ -224,8 +229,9 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithPrecedingLines() {
 	s.Require().NoError(err)
 
 	cfg.LogFile = s.filename
+	runnerConfig := config.NewRunnerConfiguration(cfg)
 
-	ll, err := NewFTWLogLines(cfg)
+	ll, err := NewFTWLogLines(runnerConfig)
 	s.Require().NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))

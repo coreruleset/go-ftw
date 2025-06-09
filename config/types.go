@@ -8,7 +8,6 @@ import (
 	"regexp"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
-	overrides_schema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
 )
 
 // RunMode represents the mode of the test run
@@ -31,8 +30,6 @@ const (
 type FTWConfiguration struct {
 	// Logfile is the path to the file that contains the WAF logs to check. The path may be absolute or relative, in which case it will be interpreted as relative to the current working directory.
 	LogFile string `koanf:"logfile"`
-	// PlatformOverrides holds platform specific overrides for tests in the test suite
-	PlatformOverrides PlatformOverrides `koanf:"platformoverrides"`
 	// TestOverride holds the test overrides that will apply globally
 	TestOverride FTWTestOverride `koanf:"testoverride"`
 	// LogMarkerHeaderName is the name of the header that will be used by the test framework to mark positions in the log file
@@ -49,11 +46,6 @@ type FTWConfiguration struct {
 	ExcludeTests *FTWRegexp `koanf:"exclude"`
 	// IncludeTags is a regular expression for tests to include, matched aginst the tags of tests (same as --tag)
 	IncludeTags *FTWRegexp `koanf:"include_tags"`
-}
-
-type PlatformOverrides struct {
-	overrides_schema.FTWOverrides
-	OverridesMap map[uint][]*overrides_schema.TestOverride
 }
 
 // FTWTestOverride holds four lists:

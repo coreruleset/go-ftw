@@ -8,10 +8,13 @@ import (
 	"os"
 
 	"slices"
+
+	"github.com/coreruleset/go-ftw/config"
 )
 
 // FTWLogLines represents the filename to search for logs in a certain timespan
 type FTWLogLines struct {
+	logFilePath               string
 	logFile                   *os.File
 	LogMarkerHeaderName       []byte
 	startMarker               []byte
@@ -20,6 +23,7 @@ type FTWLogLines struct {
 	markedLines               [][]byte
 	markedLinesInitialized    bool
 	triggeredRulesInitialized bool
+	runMode                   config.RunMode
 }
 
 func (ll *FTWLogLines) StartMarker() []byte {

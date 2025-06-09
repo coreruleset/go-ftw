@@ -25,6 +25,7 @@ import (
 type runCloudTestSuite struct {
 	suite.Suite
 	cfg          *config.FTWConfiguration
+	runnerConfig *config.RunnerConfig
 	ftwTests     []*test.FTWTest
 	out          *output.Output
 	ts           *httptest.Server
@@ -73,6 +74,7 @@ func (s *runCloudTestSuite) BeforeTest(_ string, name string) {
 	}
 
 	s.cfg = config.NewCloudConfig()
+	s.runnerConfig = config.NewRunnerConfiguration(s.cfg)
 	// get tests template from file
 	tmpl, err := template.ParseFiles(fmt.Sprintf("testdata/%s.yaml", name))
 	s.Require().NoError(err)
@@ -115,10 +117,9 @@ func (s *runCloudTestSuite) newTestCloudServer() {
 
 func (s *runCloudTestSuite) TestCloudRun() {
 	s.Run("don't show time and execute all", func() {
-		res, err := Run(s.cfg, s.ftwTests, &RunnerConfig{
-			ShowTime: true,
-			Output:   output.Quiet,
-		}, s.out)
+		s.runnerConfig.ShowTime = true
+		s.runnerConfig.Output = output.Quiet
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 		s.Require().NoError(err)
 		s.Equalf(res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
 	})
