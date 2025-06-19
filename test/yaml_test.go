@@ -87,14 +87,14 @@ tests:
 	s.Require().NoError(err)
 
 	//nolint:staticcheck
-	headers := test.FTWTest.Tests[0].Stages[0].Input.Headers
+	headers := test.Tests[0].Stages[0].Input.Headers
 	s.Len(headers, 2)
 	s.Contains(headers, "User-Agent")
 	s.Equal("test agent", headers["User-Agent"])
 	s.Contains(headers, "Accept")
 	s.Equal("*/*", headers["Accept"])
 
-	orderedHeaders := test.FTWTest.Tests[0].Stages[0].Input.OrderedHeaders
+	orderedHeaders := test.Tests[0].Stages[0].Input.OrderedHeaders
 	s.Len(orderedHeaders, 4)
 	s.Equal("Host", orderedHeaders[0].Name)
 	s.Equal("localhost", orderedHeaders[0].Value)

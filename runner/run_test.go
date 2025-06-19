@@ -14,7 +14,6 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/coreruleset/ftw-tests-schema/v2/types"
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -506,20 +505,20 @@ func (s *runTestSuite) TestFailFast() {
 }
 
 func (s *runTestSuite) TestIsolatedSanity() {
-	stage := types.Stage{
-		Input: types.Input{},
-		Output: types.Output{
+	stage := schema.Stage{
+		Input: schema.Input{},
+		Output: schema.Output{
 			Isolated: true,
-			Log: types.Log{
+			Log: schema.Log{
 				ExpectIds: []uint{},
 			},
 		},
 	}
-	err := RunStage(s.context, &FTWCheck{}, types.Test{}, stage)
+	err := RunStage(s.context, &FTWCheck{}, schema.Test{}, stage)
 	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
 
 	stage.Output.Log.ExpectIds = []uint{1, 2}
-	err = RunStage(s.context, &FTWCheck{}, types.Test{}, stage)
+	err = RunStage(s.context, &FTWCheck{}, schema.Test{}, stage)
 	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
 }
 
@@ -570,7 +569,7 @@ func (s *runTestSuite) TestVirtualHostMode_True() {
 	method := "POST"
 	input := test.NewInput(&schema.Input{
 		Method: &method,
-		OrderedHeaders: []types.HeaderTuple{
+		OrderedHeaders: []schema.HeaderTuple{
 			{Name: "Host",
 				Value: "not-localhost_virtual-host"},
 		},
@@ -669,7 +668,7 @@ func (s *runTestSuite) TestEncodedRequest() {
 	s.T().Cleanup(func() { _ = _check.Close() })
 	s.Require().NoError(err)
 
-	err = RunStage(s.context, _check, types.Test{}, stage)
+	err = RunStage(s.context, _check, schema.Test{}, stage)
 	s.Require().NoError(err)
 	s.Equal(Success, s.context.Result)
 }
@@ -692,6 +691,6 @@ func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 	s.T().Cleanup(func() { _ = _check.Close() })
 	s.Require().NoError(err)
 
-	err = RunStage(s.context, _check, types.Test{}, stage)
+	err = RunStage(s.context, _check, schema.Test{}, stage)
 	s.Error(err, "failed to read request from test specification: illegal base64 data at input byte 4")
 }
