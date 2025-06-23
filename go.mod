@@ -23,7 +23,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/yargevad/filepathx v1.0.0
-	golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476
+	golang.org/x/exp b7579e27df2b
 	golang.org/x/net v0.40.0
 	golang.org/x/time v0.11.0
 	wait4x.dev/v3 v3.3.1
