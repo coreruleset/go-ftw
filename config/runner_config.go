@@ -43,6 +43,9 @@ type RunnerConfig struct {
 	TestOverride        FTWTestOverride
 	MaxMarkerRetries    uint
 	MaxMarkerLogLines   uint
+	// SkipTlsVerification skips certificate validation. Useful for connecting
+	// to domains with a self-signed certificate.
+	SkipTlsVerification bool
 }
 
 type PlatformOverrides struct {
@@ -58,6 +61,7 @@ func NewRunnerConfiguration(cfg *FTWConfiguration) *RunnerConfig {
 		MaxMarkerLogLines:   cfg.MaxMarkerLogLines,
 		MaxMarkerRetries:    cfg.MaxMarkerRetries,
 		RunMode:             cfg.RunMode,
+		SkipTlsVerification: cfg.SkipTlsVerification,
 	}
 
 	if cfg.IncludeTests != nil {
