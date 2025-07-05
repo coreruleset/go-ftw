@@ -165,6 +165,8 @@ func (s *runTestSuite) writeMarkerOrMessageToTestServerLog(logLines string, r *h
 }
 
 func (s *runTestSuite) TearDownTest() {
+	err := s.context.LogLines.Cleanup()
+	s.NoError(err)
 	s.ts.Close()
 }
 
@@ -384,7 +386,7 @@ func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
 	request, err := getRequestFromTest(input)
 	s.Require().NoError(err)
 
-	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
+	client, err := ftwhttp.NewClientWithConfig(ftwhttp.NewClientConfig())
 	s.Require().NoError(err)
 
 	dest := &ftwhttp.Destination{
@@ -420,7 +422,7 @@ func (s *runTestSuite) TestGetRequestFromTestWithoutAutocompleteHeaders() {
 	request, err := getRequestFromTest(input)
 	s.Require().NoError(err)
 
-	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
+	client, err := ftwhttp.NewClientWithConfig(ftwhttp.NewClientConfig())
 	s.Require().NoError(err)
 
 	dest := &ftwhttp.Destination{
@@ -651,7 +653,7 @@ func (s *runTestSuite) TestTriggeredRules() {
 }
 
 func (s *runTestSuite) TestEncodedRequest() {
-	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
+	client, err := ftwhttp.NewClientWithConfig(ftwhttp.NewClientConfig())
 	s.Require().NoError(err)
 	ll, err := waflog.NewFTWLogLines(s.runnerConfig)
 	s.Require().NoError(err)
@@ -665,7 +667,6 @@ func (s *runTestSuite) TestEncodedRequest() {
 	}
 	stage := s.ftwTests[0].Tests[0].Stages[0]
 	_check, err := NewCheck(s.context)
-	s.T().Cleanup(func() { _ = _check.Close() })
 	s.Require().NoError(err)
 
 	err = RunStage(s.context, _check, schema.Test{}, stage)
@@ -674,7 +675,7 @@ func (s *runTestSuite) TestEncodedRequest() {
 }
 
 func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
-	client, err := ftwhttp.NewClient(ftwhttp.NewClientConfig())
+	client, err := ftwhttp.NewClientWithConfig(ftwhttp.NewClientConfig())
 	s.Require().NoError(err)
 	ll, err := waflog.NewFTWLogLines(s.runnerConfig)
 	s.Require().NoError(err)
@@ -688,7 +689,6 @@ func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 	}
 	stage := s.ftwTests[0].Tests[0].Stages[0]
 	_check, err := NewCheck(s.context)
-	s.T().Cleanup(func() { _ = _check.Close() })
 	s.Require().NoError(err)
 
 	err = RunStage(s.context, _check, schema.Test{}, stage)

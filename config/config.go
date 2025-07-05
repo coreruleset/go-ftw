@@ -16,14 +16,13 @@ import (
 
 // NewDefaultConfig initializes the configuration with default values
 func NewDefaultConfig() *FTWConfiguration {
-	cfg := &FTWConfiguration{
+	return &FTWConfiguration{
 		LogFile:             "",
 		LogMarkerHeaderName: DefaultLogMarkerHeaderName,
 		RunMode:             DefaultRunMode,
 		MaxMarkerRetries:    DefaultMaxMarkerRetries,
 		MaxMarkerLogLines:   DefaultMaxMarkerLogLines,
 	}
-	return cfg
 }
 
 // NewCloudConfig initializes the configuration with cloud values

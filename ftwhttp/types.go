@@ -22,6 +22,9 @@ type ClientConfig struct {
 	RootCAs *x509.CertPool
 	// RateLimiter is the rate limiter to use for requests.
 	RateLimiter *rate.Limiter
+	// SkipTlsVerification skips certificate validation. Useful for connecting
+	// to domains with a self-signed certificate.
+	SkipTlsVerification bool
 }
 
 // Client is the top level abstraction in http

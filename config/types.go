@@ -46,6 +46,8 @@ type FTWConfiguration struct {
 	ExcludeTests *FTWRegexp `koanf:"exclude"`
 	// IncludeTags is a regular expression for tests to include, matched aginst the tags of tests (same as --tag)
 	IncludeTags *FTWRegexp `koanf:"include_tags"`
+	// to domains with a self-signed certificate.
+	SkipTlsVerification bool `koanf:"skip_tls_verification"`
 }
 
 // FTWTestOverride holds four lists:

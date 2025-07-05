@@ -7,28 +7,47 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"net"
 	"net/http/cookiejar"
 	"strings"
 	"time"
 
+	"fmt"
+
+	"github.com/coreruleset/go-ftw/config"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/net/publicsuffix"
 	"golang.org/x/time/rate"
 )
 
-// NewClientConfig returns a new ClientConfig with reasonable defaults.
-func NewClientConfig() ClientConfig {
-	return ClientConfig{
-		ConnectTimeout: 3 * time.Second,
-		ReadTimeout:    1 * time.Second,
-		RateLimiter:    rate.NewLimiter(rate.Inf, 1),
+func NewClientConfig() *ClientConfig {
+	return &ClientConfig{
+		ConnectTimeout:      3 * time.Second,
+		ReadTimeout:         1 * time.Second,
+		RateLimiter:         rate.NewLimiter(rate.Inf, 1),
+		SkipTlsVerification: false,
 	}
 }
 
+// NewClientConfig returns a new ClientConfig with reasonable defaults.
+func NewClientConfigFromConfig(runnerConfig *config.RunnerConfig) *ClientConfig {
+	config := NewClientConfig()
+	if runnerConfig.ConnectTimeout != 0 {
+		config.ConnectTimeout = runnerConfig.ConnectTimeout
+	}
+	if runnerConfig.ReadTimeout != 0 {
+		config.ReadTimeout = runnerConfig.ReadTimeout
+	}
+	if runnerConfig.RateLimit != 0 {
+		config.RateLimiter = rate.NewLimiter(rate.Every(runnerConfig.RateLimit), 1)
+	}
+	config.SkipTlsVerification = runnerConfig.SkipTlsVerification
+
+	return config
+}
+
 // NewClient initializes the http client, creating the cookiejar
-func NewClient(config ClientConfig) (*Client, error) {
+func NewClientWithConfig(config *ClientConfig) (*Client, error) {
 	// All users of cookiejar should import "golang.org/x/net/publicsuffix"
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
@@ -36,9 +55,14 @@ func NewClient(config ClientConfig) (*Client, error) {
 	}
 	c := &Client{
 		Jar:    jar,
-		config: config,
+		config: *config,
 	}
 	return c, nil
+}
+
+// NewClient initializes the http client, creating the cookiejar
+func NewClient(runnerConfig *config.RunnerConfig) (*Client, error) {
+	return NewClientWithConfig(NewClientConfigFromConfig(runnerConfig))
 }
 
 // SetRootCAs sets the root CAs for the client.
@@ -96,18 +120,16 @@ func (c *Client) NewOrReusedConnection(d Destination) error {
 func (c *Client) dial(d Destination) (net.Conn, error) {
 	hostPort := net.JoinHostPort(d.DestAddr, fmt.Sprint(d.Port))
 
-	// Fatal error: dial tcp 127.0.0.1:80: connect: connection refused
-	// strings.HasSuffix(err.String(), "connection refused") {
 	if strings.ToLower(d.Protocol) == "https" {
-		// Commenting InsecureSkipVerify: true.
 		return tls.DialWithDialer(
 			&net.Dialer{
 				Timeout: c.config.ConnectTimeout,
 			},
 			"tcp", hostPort,
 			&tls.Config{
-				MinVersion: tls.VersionTLS12,
-				RootCAs:    c.config.RootCAs,
+				MinVersion:         tls.VersionTLS12,
+				RootCAs:            c.config.RootCAs,
+				InsecureSkipVerify: c.config.SkipTlsVerification,
 			})
 	}
 

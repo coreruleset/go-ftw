@@ -154,6 +154,7 @@ func (s *runCmdTestSuite) TestFlags() {
 		"--" + readTimeoutFlag, "5s",
 		"--" + maxMarkerRetriesFlag, "6",
 		"--" + maxMarkerLogLinesFlag, "7",
+		"--" + skipTlsVerificationFlag,
 		"--" + waitForHostFlag, "https://some-host.com",
 		"--" + waitDelayFlag, "9s",
 		"--" + waitForTimeoutFlag, "10s",
@@ -163,7 +164,6 @@ func (s *runCmdTestSuite) TestFlags() {
 		"--" + waitForExpectBodyXpathFlag, "count(//p)",
 		"--" + waitForExpectHeaderFlag, "X-Some-Header",
 		"--" + waitForConnectionTimeoutFlag, "11s",
-		"--" + waitForInsecureSkipTlsVerifyFlag,
 		"--" + waitForNoRedirectFlag,
 		"--" + rateLimitFlag, "12s",
 		"--" + failFastFlag,
@@ -194,9 +194,11 @@ func (s *runCmdTestSuite) TestFlags() {
 	s.NoError(err)
 	readTimeout, err := cmd.Flags().GetDuration(readTimeoutFlag)
 	s.NoError(err)
-	maxMarkerRetries, err := cmd.Flags().GetInt(maxMarkerRetriesFlag)
+	maxMarkerRetries, err := cmd.Flags().GetUint(maxMarkerRetriesFlag)
 	s.NoError(err)
-	maxMarkerLogLines, err := cmd.Flags().GetInt(maxMarkerLogLinesFlag)
+	maxMarkerLogLines, err := cmd.Flags().GetUint(maxMarkerLogLinesFlag)
+	s.NoError(err)
+	waitForInsecureSkipTlsVerify, err := cmd.Flags().GetBool(skipTlsVerificationFlag)
 	s.NoError(err)
 	waitForHost, err := cmd.Flags().GetString(waitForHostFlag)
 	s.NoError(err)
@@ -215,8 +217,6 @@ func (s *runCmdTestSuite) TestFlags() {
 	waitForExpectHeader, err := cmd.Flags().GetString(waitForExpectHeaderFlag)
 	s.NoError(err)
 	waitForConnectionTimeout, err := cmd.Flags().GetDuration(waitForConnectionTimeoutFlag)
-	s.NoError(err)
-	waitForInsecureSkipTlsVerify, err := cmd.Flags().GetBool(waitForInsecureSkipTlsVerifyFlag)
 	s.NoError(err)
 	waitForNoRedirect, err := cmd.Flags().GetBool(waitForNoRedirectFlag)
 	s.NoError(err)
@@ -237,8 +237,8 @@ func (s *runCmdTestSuite) TestFlags() {
 	s.Equal(true, showFailuresOnly)
 	s.Equal(4*time.Second, connectTimeout)
 	s.Equal(5*time.Second, readTimeout)
-	s.Equal(6, maxMarkerRetries)
-	s.Equal(7, maxMarkerLogLines)
+	s.Equal(uint(6), maxMarkerRetries)
+	s.Equal(uint(7), maxMarkerLogLines)
 	s.Equal("https://some-host.com", waitForHost)
 	s.Equal(9*time.Second, waitDelay)
 	s.Equal(10*time.Second, waitForTimeout)
