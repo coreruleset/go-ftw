@@ -44,7 +44,7 @@ func (ll *FTWLogLines) WithEndMarker(marker []byte) {
 
 // Cleanup closes the log file
 func (ll *FTWLogLines) Cleanup() error {
-	if ll.logFile != nil {
+	if ll != nil && ll.logFile != nil {
 		return ll.logFile.Close()
 	}
 	return nil

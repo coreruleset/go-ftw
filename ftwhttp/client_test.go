@@ -38,7 +38,7 @@ func (s *clientTestSuite) SetupSuite() {
 
 func (s *clientTestSuite) SetupTest() {
 	var err error
-	s.client, err = NewClient(NewClientConfig())
+	s.client, err = NewClientWithConfig(NewClientConfig())
 	s.Require().NoError(err)
 	s.Require().Equal(s.client.config.RateLimiter, rate.NewLimiter(rate.Inf, 1))
 	s.Nil(s.client.Transport, "Transport not expected to be initialized yet")

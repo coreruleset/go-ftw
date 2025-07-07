@@ -118,7 +118,3 @@ func (c *FTWCheck) GetTriggeredRules() []uint {
 	}
 	return c.log.TriggeredRules()
 }
-
-func (c *FTWCheck) Close() error {
-	return c.log.Cleanup()
-}

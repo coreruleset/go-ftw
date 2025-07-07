@@ -12,7 +12,6 @@ import (
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/time/rate"
 
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
@@ -38,17 +37,7 @@ func Run(runnerConfig *config.RunnerConfig, tests []*test.FTWTest, out *output.O
 		return &TestRunContext{}, err
 	}
 
-	conf := ftwhttp.NewClientConfig()
-	if runnerConfig.ConnectTimeout != 0 {
-		conf.ConnectTimeout = runnerConfig.ConnectTimeout
-	}
-	if runnerConfig.ReadTimeout != 0 {
-		conf.ReadTimeout = runnerConfig.ReadTimeout
-	}
-	if runnerConfig.RateLimit != 0 {
-		conf.RateLimiter = rate.NewLimiter(rate.Every(runnerConfig.RateLimit), 1)
-	}
-	client, err := ftwhttp.NewClient(conf)
+	client, err := ftwhttp.NewClient(runnerConfig)
 	if err != nil {
 		return &TestRunContext{}, err
 	}
@@ -112,7 +101,6 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 			if err != nil {
 				return err
 			}
-			defer ftwCheck.Close()
 			if err := RunStage(runContext, ftwCheck, testCase, stage); err != nil {
 				if err.Error() == "retry-once" {
 					log.Info().Msgf("Retrying test once: %s", testCase.IdString())
