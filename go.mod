@@ -25,7 +25,7 @@ require (
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
 	golang.org/x/net v0.41.0
-	golang.org/x/time v0.11.0
+	golang.org/x/time v0.12.0
 	wait4x.dev/v3 v3.4.0
 )
 
