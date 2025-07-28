@@ -135,6 +135,7 @@ Flags:
   -r, --rate-limit duration                    Limit the request rate to the server to 1 request per specified duration. 0 is the default, and disables rate limiting.
       --read-timeout duration                  timeout for receiving responses during test execution (default 10s)
       --show-failures-only                     shows only the results of failed tests
+      -skip-tls-verification                   Skips TLS certificate checks. Useful for testing domains with self-signed TLS ceritificates.
   -t, --time                                   show time spent per test
       --wait-delay duration                    Time to wait between retries for all wait operations. (default 1s)
       --wait-for-connection-timeout duration   Http connection timeout, The timeout includes connection time, any redirects, and reading the response body. (default 3s)
@@ -144,7 +145,6 @@ Flags:
       --wait-for-expect-header string          Expect response header pattern.
       --wait-for-expect-status-code int        Expect response code e.g. 200, 204, ... .
       --wait-for-host string                   Wait for host to be available before running tests.
-      --wait-for-insecure-skip-tls-verify      Skips tls certificate checks for the HTTPS request.
       --wait-for-no-redirect                   Do not follow HTTP 3xx redirects.
       --wait-for-timeout duration              Sets the timeout for all wait operations, 0 is unlimited. (default 10s)
 

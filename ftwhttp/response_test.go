@@ -84,7 +84,7 @@ func (s *responseTestSuite) responseWithCookies(w http.ResponseWriter, r *http.R
 
 func (s *responseTestSuite) SetupTest() {
 	var err error
-	s.client, err = NewClient(NewClientConfig())
+	s.client, err = NewClientWithConfig(NewClientConfig())
 	s.Require().NoError(err)
 }
 

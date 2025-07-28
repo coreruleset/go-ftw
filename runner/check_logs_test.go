@@ -66,7 +66,7 @@ func (s *checkLogsTestSuite) SetupTest() {
 }
 
 func (s *checkLogsTestSuite) TearDownTest() {
-	err := s.check.Close()
+	err := s.context.LogLines.Cleanup()
 	s.Require().NoError(err)
 }
 
