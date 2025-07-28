@@ -42,6 +42,8 @@ type Params struct {
 	CorpusYear string
 	// CorpusSource is the source of the corpus: e.g. most corpus will have a source like "news", "web", "wikipedia", etc.
 	CorpusSource string
+	// CorpusInput is the input file path for raw corpus
+	CorpusInput string
 	// MaxConcurrency is the maximum number of goroutines spawned
 	MaxConcurrency int
 }
@@ -90,6 +92,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	log.Trace().Msgf("Corpus name: %s", params.Corpus)
 	log.Trace().Msgf("Corpus year: %s", params.CorpusYear)
 	log.Trace().Msgf("Corpus source: %s", params.CorpusSource)
+	log.Trace().Msgf("Corpus input: %s", params.CorpusInput)
 
 	// create a new corpusRunner
 	corpusRunner, err := CorpusFactory(params.Corpus, params.CorpusLocalPath)
@@ -101,6 +104,11 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 		WithYear(params.CorpusYear).
 		WithSource(params.CorpusSource).
 		WithLanguage(params.CorpusLang)
+
+	// For raw corpus, set the file path
+	if params.Corpus == corpus.Raw {
+		corpusRunner = corpusRunner.WithURL(params.CorpusInput)
+	}
 
 	// download the corpusRunner file
 	lc = corpusRunner.FetchCorpusFile()

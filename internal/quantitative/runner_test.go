@@ -77,6 +77,11 @@ func (s *runnerTestSuite) TestCorpusFactory() {
 	s.Require().NotNil(s.c)
 	s.Require().Equal(s.c.URL(), "https://downloads.wortschatz-leipzig.de/corpora")
 
+	s.c, err = CorpusFactory(corpus.Raw)
+	s.Require().NoError(err)
+	s.Require().NotNil(s.c)
+	s.Require().Equal(s.c.URL(), "")
+
 	userDefinedCacheDir := s.T().TempDir()
 	s.c, err = CorpusFactory(corpus.Leipzig, userDefinedCacheDir)
 	s.Require().NoError(err)
