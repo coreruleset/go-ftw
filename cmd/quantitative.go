@@ -22,6 +22,7 @@ const (
 	corpusSizeFlag     = "corpus-size"
 	corpusSourceFlag   = "corpus-source"
 	corpusYearFlag     = "corpus-year"
+	corpusInputFlag    = "corpus-input"
 	crsPathFlag        = "crs-path"
 	corpusFileFlag     = "file"
 	linesFlag          = "lines"
@@ -54,6 +55,7 @@ func NewQuantitativeCmd() *cobra.Command {
 	runCmd.Flags().StringP(corpusSizeFlag, "s", "100K", "Corpus size to use for the quantitative tests. Most corpora will have sizes like \"100K\", \"1M\", etc.")
 	runCmd.Flags().StringP(corpusYearFlag, "y", "2023", "Corpus year to use for the quantitative tests. Most corpus will have a year like \"2023\", \"2022\", etc.")
 	runCmd.Flags().StringP(corpusSourceFlag, "S", "news", "Corpus source to use for the quantitative tests. Most corpus will have a source like \"news\", \"web\", \"wikipedia\", etc.")
+	runCmd.Flags().StringP(corpusInputFlag, "i", "", "Input file path for raw corpus. Required when using --corpus raw.")
 	runCmd.Flags().StringP(crsPathFlag, "C", ".", "Path to top folder of local CRS installation.")
 	runCmd.Flags().StringP(corpusFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
 	runCmd.Flags().StringP(corpusOutputFlag, "o", "normal", "Output type for quantitative tests. \"normal\" is the default.")
@@ -69,6 +71,7 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	corpusLang, _ := cmd.Flags().GetString(corpusLangFlag)
 	corpusYear, _ := cmd.Flags().GetString(corpusYearFlag)
 	corpusSource, _ := cmd.Flags().GetString(corpusSourceFlag)
+	corpusInput, _ := cmd.Flags().GetString(corpusInputFlag)
 	directory, _ := cmd.Flags().GetString(crsPathFlag)
 	lines, _ := cmd.Flags().GetInt(linesFlag)
 	outputFilename, _ := cmd.Flags().GetString(corpusFileFlag)
@@ -86,6 +89,11 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 
 	if paranoiaLevel > 1 && rule > 0 {
 		return fmt.Errorf("paranoia level and rule ID cannot be used together")
+	}
+
+	// Validate corpus input for raw corpus
+	if corpusTypeAsString == "raw" && corpusInput == "" {
+		return fmt.Errorf("--corpus-input is required when using --corpus raw")
 	}
 
 	// use outputFile to write to file
@@ -115,6 +123,7 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 		CorpusYear:     corpusYear,
 		CorpusLang:     corpusLang,
 		CorpusSource:   corpusSource,
+		CorpusInput:    corpusInput,
 		Directory:      directory,
 		Lines:          lines,
 		ParanoiaLevel:  paranoiaLevel,
