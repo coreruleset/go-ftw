@@ -2,7 +2,7 @@ module github.com/coreruleset/go-ftw
 
 go 1.23.5
 
-toolchain go1.24.5
+toolchain go1.24.6
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
@@ -26,7 +26,7 @@ require (
 	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792
 	golang.org/x/net v0.42.0
 	golang.org/x/time v0.12.0
-	wait4x.dev/v3 v3.5.0
+	wait4x.dev/v3 v3.5.1
 )
 
 require (
