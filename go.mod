@@ -1,8 +1,6 @@
 module github.com/coreruleset/go-ftw
 
-go 1.23.5
-
-toolchain go1.25.0
+go 1.24.0
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
@@ -23,8 +21,8 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/yargevad/filepathx v1.0.0
-	golang.org/x/exp 42675adae3e6
-	golang.org/x/net v0.42.0
+	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
+	golang.org/x/net v0.43.0
 	golang.org/x/time v0.12.0
 	wait4x.dev/v3 v3.5.1
 )
@@ -81,11 +79,11 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/xanzy/go-gitlab v0.115.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/oauth2 v0.29.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 	rsc.io/binaryregexp v0.2.0 // indirect
 )
