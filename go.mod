@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/corazawaf/coraza/v3 v3.3.3
 	github.com/coreruleset/ftw-tests-schema/v2 v2.3.0
-	github.com/creativeprojects/go-selfupdate v1.5.0
+	github.com/creativeprojects/go-selfupdate v1.5.1
 	github.com/go-logr/zerologr v1.2.3
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-getter/v2 v2.2.3
@@ -18,8 +18,8 @@ require (
 	github.com/knadh/koanf/v2 v2.2.2
 	github.com/kyokomi/emoji/v2 v2.2.13
 	github.com/rs/zerolog v1.34.0
-	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.11.0
+	github.com/spf13/cobra v1.10.1
+	github.com/stretchr/testify v1.11.1
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
 	golang.org/x/net v0.43.0
