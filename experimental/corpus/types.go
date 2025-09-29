@@ -25,6 +25,7 @@ type Type string
 
 const (
 	Leipzig Type = "leipzig"
+	Raw     Type = "raw"
 	NoType  Type = "none"
 )
 
@@ -36,6 +37,9 @@ func (t *Type) Set(value string) error {
 	switch value {
 	case "leipzig":
 		*t = Leipzig
+		return nil
+	case "raw":
+		*t = Raw
 		return nil
 	default:
 		return fmt.Errorf("invalid option for Type: '%s'", value)
