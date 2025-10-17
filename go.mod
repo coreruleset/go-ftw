@@ -24,7 +24,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/exp v0.0.0-20251017212417-90e834f514db
-	golang.org/x/net v0.43.0
+	golang.org/x/net v0.46.0
 	golang.org/x/time v0.12.0
 	wait4x.dev/v3 v3.5.1
 )
