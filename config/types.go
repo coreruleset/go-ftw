@@ -48,6 +48,8 @@ type FTWConfiguration struct {
 	IncludeTags *FTWRegexp `koanf:"include_tags"`
 	// to domains with a self-signed certificate.
 	SkipTlsVerification bool `koanf:"skip_tls_verification"`
+	// AddRuleAndTestIdToStageId adds the rule ID and test ID to the stage ID
+	AddRuleAndTestIdToStageId bool `koanf:"add_rule_and_test_id_to_stage_id"`
 }
 
 // FTWTestOverride holds four lists:

@@ -46,6 +46,9 @@ type RunnerConfig struct {
 	// SkipTlsVerification skips certificate validation. Useful for connecting
 	// to domains with a self-signed certificate.
 	SkipTlsVerification bool
+	// AddRuleAndTestIdToStageId adds rule ID and test ID to stage ID.
+	// Useful for searching the log lines for the particular test.
+	AddRuleAndTestIdToStageId bool
 }
 
 type PlatformOverrides struct {
@@ -55,13 +58,14 @@ type PlatformOverrides struct {
 
 func NewRunnerConfiguration(cfg *FTWConfiguration) *RunnerConfig {
 	runnerConfig := &RunnerConfig{
-		LogMarkerHeaderName: cfg.LogMarkerHeaderName,
-		LogFilePath:         cfg.LogFile,
-		TestOverride:        cfg.TestOverride,
-		MaxMarkerLogLines:   cfg.MaxMarkerLogLines,
-		MaxMarkerRetries:    cfg.MaxMarkerRetries,
-		RunMode:             cfg.RunMode,
-		SkipTlsVerification: cfg.SkipTlsVerification,
+		LogMarkerHeaderName:       cfg.LogMarkerHeaderName,
+		LogFilePath:               cfg.LogFile,
+		TestOverride:              cfg.TestOverride,
+		MaxMarkerLogLines:         cfg.MaxMarkerLogLines,
+		MaxMarkerRetries:          cfg.MaxMarkerRetries,
+		RunMode:                   cfg.RunMode,
+		SkipTlsVerification:       cfg.SkipTlsVerification,
+		AddRuleAndTestIdToStageId: cfg.AddRuleAndTestIdToStageId,
 	}
 
 	if cfg.IncludeTests != nil {
