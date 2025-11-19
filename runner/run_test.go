@@ -679,6 +679,7 @@ func (s *runTestSuite) TestEncodedRequest() {
 	err = RunStage(s.context, _check, schema.Test{}, stage)
 	s.Require().NoError(err)
 	s.Equal(Success, s.context.Result)
+	s.False(s.context.RunnerConfig.AddRuleAndTestIdToStageId)
 	s.checkStartMarkerAndEndMarker()
 }
 
@@ -702,6 +703,7 @@ func (s *runTestSuite) TestEncodedRequest_AddRuleAndTestIdToStageId() {
 	err = RunStage(s.context, _check, schema.Test{}, stage)
 	s.Require().NoError(err)
 	s.Equal(Success, s.context.Result)
+	s.True(s.context.RunnerConfig.AddRuleAndTestIdToStageId)
 	s.checkStartMarkerAndEndMarker()
 }
 
