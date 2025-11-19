@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"regexp"
+	"strings"
 	"testing"
 	"text/template"
 
@@ -83,6 +84,12 @@ testoverride:
 testoverride:
   input:
     encoded_request: %s
+`,
+	"TestEncodedRequest_AddRuleAndTestIdToStageId": `---
+testoverride:
+  ignore:
+    "920400-1": "This test result must be ignored"
+add_rule_and_test_id_to_stage_id: true
 `,
 }
 
@@ -672,6 +679,30 @@ func (s *runTestSuite) TestEncodedRequest() {
 	err = RunStage(s.context, _check, schema.Test{}, stage)
 	s.Require().NoError(err)
 	s.Equal(Success, s.context.Result)
+	s.checkStartMarkerAndEndMarker()
+}
+
+func (s *runTestSuite) TestEncodedRequest_AddRuleAndTestIdToStageId() {
+	client, err := ftwhttp.NewClientWithConfig(ftwhttp.NewClientConfig())
+	s.Require().NoError(err)
+	ll, err := waflog.NewFTWLogLines(s.runnerConfig)
+	s.Require().NoError(err)
+
+	s.context = &TestRunContext{
+		RunnerConfig: s.runnerConfig,
+		Client:       client,
+		LogLines:     ll,
+		Stats:        NewRunStats(),
+		Output:       s.out,
+	}
+	stage := s.ftwTests[0].Tests[0].Stages[0]
+	_check, err := NewCheck(s.context)
+	s.Require().NoError(err)
+
+	err = RunStage(s.context, _check, schema.Test{}, stage)
+	s.Require().NoError(err)
+	s.Equal(Success, s.context.Result)
+	s.checkStartMarkerAndEndMarker()
 }
 
 func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
@@ -693,4 +724,23 @@ func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 
 	err = RunStage(s.context, _check, schema.Test{}, stage)
 	s.Error(err, "failed to read request from test specification: illegal base64 data at input byte 4")
+}
+
+func (s *runTestSuite) checkStartMarkerAndEndMarker() {
+	startMarker := string(s.context.LogLines.StartMarker())
+	endMarker := string(s.context.LogLines.EndMarker())
+	log.Info().Msgf("startMarker=%s, endMarker=%s, AddRuleAndTestIdToStageId=%v",
+		startMarker, endMarker, s.runnerConfig.AddRuleAndTestIdToStageId)
+
+	markerHeader := strings.ToLower(s.context.RunnerConfig.LogMarkerHeaderName)
+	var ruleIdAndTestIdPat string
+	if s.runnerConfig.AddRuleAndTestIdToStageId {
+		ruleIdAndTestIdPat = `[0-9]+-[0-9]+-`
+	}
+	const uuidPat = `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`
+
+	startIdPat := fmt.Sprintf(`%s:\[%s%s%s\]`, markerHeader, ruleIdAndTestIdPat, uuidPat, startUuidSuffix)
+	s.Require().Regexp(startIdPat, startMarker)
+	endIdPat := fmt.Sprintf(`%s:\[%s%s%s\]`, markerHeader, ruleIdAndTestIdPat, uuidPat, endUuidSuffix)
+	s.Require().Regexp(endIdPat, endMarker)
 }
