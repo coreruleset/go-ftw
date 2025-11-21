@@ -130,12 +130,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 //gocyclo:ignore
 func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Test, stage schema.Stage) error {
 	runContext.StartStage()
-	var stageId string
-	if runContext.RunnerConfig.AddRuleAndTestIdToStageId {
-		stageId = fmt.Sprintf("%d-%d-%s", testCase.RuleId, testCase.TestId, uuid.NewString())
-	} else {
-		stageId = uuid.NewString()
-	}
+	stageId := fmt.Sprintf("%d-%d-%s", testCase.RuleId, testCase.TestId, uuid.NewString())
 	// Apply global overrides initially
 	testInput := test.NewInput(&stage.Input)
 	test.ApplyInputOverrides(runContext.RunnerConfig, testInput)
