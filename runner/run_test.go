@@ -673,7 +673,6 @@ func (s *runTestSuite) TestEncodedRequest() {
 	err = RunStage(s.context, _check, schema.Test{}, stage)
 	s.Require().NoError(err)
 	s.Equal(Success, s.context.Result)
-	s.checkStartMarkerAndEndMarker()
 }
 
 func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
@@ -697,7 +696,27 @@ func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 	s.Error(err, "failed to read request from test specification: illegal base64 data at input byte 4")
 }
 
-func (s *runTestSuite) checkStartMarkerAndEndMarker() {
+func (s *runTestSuite) TestEncodedRequest_StageId() {
+	client, err := ftwhttp.NewClientWithConfig(ftwhttp.NewClientConfig())
+	s.Require().NoError(err)
+	ll, err := waflog.NewFTWLogLines(s.runnerConfig)
+	s.Require().NoError(err)
+
+	s.context = &TestRunContext{
+		RunnerConfig: s.runnerConfig,
+		Client:       client,
+		LogLines:     ll,
+		Stats:        NewRunStats(),
+		Output:       s.out,
+	}
+	stage := s.ftwTests[0].Tests[0].Stages[0]
+	_check, err := NewCheck(s.context)
+	s.Require().NoError(err)
+
+	err = RunStage(s.context, _check, schema.Test{}, stage)
+	s.Require().NoError(err)
+	s.Equal(Success, s.context.Result)
+
 	startMarker := string(s.context.LogLines.StartMarker())
 	endMarker := string(s.context.LogLines.EndMarker())
 	log.Info().Msgf("startMarker=%s, endMarker=%s", startMarker, endMarker)
