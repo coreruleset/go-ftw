@@ -10,7 +10,6 @@ import (
 	"time"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/config"
@@ -19,13 +18,6 @@ import (
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/utils"
 	"github.com/coreruleset/go-ftw/waflog"
-)
-
-const (
-	// Start and end UUID suffixes are used to disambiguate start and end markers.
-	// The suffixes make the markers unique, while still maintaining one UUID per stage.
-	startUuidSuffix = "-s"
-	endUuidSuffix   = "-e"
 )
 
 // Run runs your tests with the specified Config.
@@ -130,7 +122,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 //gocyclo:ignore
 func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Test, stage schema.Stage) error {
 	runContext.StartStage()
-	stageId := uuid.NewString()
+	stageId := utils.GenerateStageId(testCase.RuleId, testCase.TestId)
 	// Apply global overrides initially
 	testInput := test.NewInput(&stage.Input)
 	test.ApplyInputOverrides(runContext.RunnerConfig, testInput)
@@ -160,7 +152,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
-		startId := stageId + startUuidSuffix
+		startId := utils.CreateStartMarker(stageId)
 		startMarker, err := markAndFlush(runContext, testInput, startId)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find start marker: %w", err)
@@ -188,7 +180,7 @@ func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
-		endId := stageId + endUuidSuffix
+		endId := utils.CreateEndMarker(stageId)
 		endMarker, err := markAndFlush(runContext, testInput, endId)
 		if err != nil && !expectErr {
 			return fmt.Errorf("failed to find end marker: %w", err)
