@@ -57,9 +57,8 @@ func (r Request) WithAutoCompleteHeaders() bool {
 
 // SetData sets the data
 // You can use only one of encoded or data.
-func (r *Request) SetData(data []byte) error {
+func (r *Request) SetData(data []byte) {
 	r.data = data
-	return nil
 }
 
 // Data returns the data
@@ -98,8 +97,8 @@ func (r *Request) AddStandardHeaders() {
 		return
 	}
 
-	if len(r.data) > 0 || methodsWithBodyRegex.MatchString(r.requestLine.Method) {
-		r.headers.Add(header_names.ContentLength, strconv.Itoa(len(r.data)))
+	if len(r.Data()) > 0 || methodsWithBodyRegex.MatchString(r.requestLine.Method) {
+		r.headers.Add(header_names.ContentLength, strconv.Itoa(len(r.Data())))
 	}
 }
 
@@ -116,29 +115,25 @@ func BuildRequest(r *Request) ([]byte, error) {
 	}
 
 	// We need to add the remaining headers, unless "NoDefaults"
-	if utils.IsNotEmpty(r.data) && r.WithAutoCompleteHeaders() {
+	if utils.IsNotEmpty(r.Data()) && r.WithAutoCompleteHeaders() {
 		if !r.Headers().HasAny(header_names.ContentType) {
 			// If there is no Content-Type, then we add one
 			r.AddHeader(header_names.ContentType, header_values.ApplicationXWwwFormUrlencoded)
 		}
-		data, err = encodeDataParameters(r.headers, r.data)
+		data, err = encodeDataParameters(r.headers, r.Data())
 		if err != nil {
-			log.Info().Msgf("ftw/http: cannot encode data to: %q", r.data)
+			log.Info().Msgf("ftw/http: cannot encode data to: %q", r.Data())
 			return nil, err
 		}
-		err = r.SetData(data)
-		if err != nil {
-			log.Info().Msgf("ftw/http: cannot set data to: %q", r.data)
-			return nil, err
-		}
+		r.SetData(data)
 	}
 
 	// Multipart form data needs to end in \r\n, per RFC (and modsecurity make a scene if not)
 	if r.headers.HasAnyValueContaining(header_names.ContentType, "multipart/form-data;") {
-		log.Debug().Msgf("ftw/http: with LF only - %d bytes:\n%x\n", len(r.data), r.data)
+		log.Debug().Msgf("ftw/http: with LF only - %d bytes:\n%x\n", len(r.Data()), r.Data())
 		data = bytes.ReplaceAll(r.data, []byte("\n"), []byte(HeaderDelimiter))
 		log.Debug().Msgf("ftw/http: with CRLF - %d bytes:\n%x\n", len(data), data)
-		r.data = data
+		r.SetData(data)
 	}
 
 	if r.WithAutoCompleteHeaders() {
@@ -158,8 +153,8 @@ func BuildRequest(r *Request) ([]byte, error) {
 		return nil, err
 	}
 	// Now the body, if anything
-	if utils.IsNotEmpty(r.data) {
-		_, err = b.Write(r.data)
+	if utils.IsNotEmpty(r.Data()) {
+		_, err = b.Write(r.Data())
 		if err != nil {
 			log.Debug().Msgf("ftw/http: error writing to buffer: %s", err.Error())
 			return nil, err
