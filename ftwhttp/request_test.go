@@ -127,7 +127,6 @@ func (s *requestTestSuite) TestAddStandardHeadersWhenDeleteMethod() {
 	contentLengthHeaders := req.headers.GetAll(header_names.ContentLength)
 	s.Len(contentLengthHeaders, 1)
 	s.Equal("4", contentLengthHeaders[0].Value)
-
 }
 
 func (s *requestTestSuite) TestMultipartFormDataRequest() {
@@ -260,30 +259,8 @@ func (s *requestTestSuite) TestRequestAutoCompleteHeaders() {
 func (s *requestTestSuite) TestRequestData() {
 	req := generateBaseRequestForTesting()
 
-	err := req.SetData([]byte("This is the data now"))
-
-	s.Require().NoError(err)
+	req.SetData([]byte("This is the data now"))
 	s.Equal([]byte("This is the data now"), req.Data(), "failed to set data")
-}
-
-func (s *requestTestSuite) TestRequestURLParse() {
-	req := generateBaseRequestForTesting()
-
-	h := req.Headers()
-	h.Add(header_names.ContentType, header_values.ApplicationXWwwFormUrlencoded)
-	// Test adding semicolons to test parse
-	err := req.SetData([]byte("test=This&test=nothing"))
-	s.Require().NoError(err)
-}
-
-func (s *requestTestSuite) TestRequestURLParseFail() {
-	req := generateBaseRequestForTesting()
-
-	h := req.Headers()
-	h.Add(header_names.ContentType, header_values.ApplicationXWwwFormUrlencoded)
-	// Test adding semicolons to test parse
-	err := req.SetData([]byte("test=This&that=but with;;;;;; data now"))
-	s.Require().NoError(err)
 }
 
 func (s *requestTestSuite) TestRequestEncodesPostData() {
@@ -326,8 +303,7 @@ func (s *requestTestSuite) TestRequestEncodesPostData() {
 
 			h := req.Headers()
 			h.Add(header_names.ContentType, header_values.ApplicationXWwwFormUrlencoded)
-			err := req.SetData([]byte(tt.original))
-			s.Require().NoError(err)
+			req.SetData([]byte(tt.original))
 			result, err := encodeDataParameters(h, req.Data())
 			s.Require().NoError(err, "Failed to encode %s", req.Data())
 

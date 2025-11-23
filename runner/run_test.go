@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"regexp"
+	"strconv"
 	"testing"
 	"text/template"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/ftwhttp"
 	"github.com/coreruleset/go-ftw/ftwhttp/header_names"
+	"github.com/coreruleset/go-ftw/ftwhttp/header_values"
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/test"
 	"github.com/coreruleset/go-ftw/utils"
@@ -372,7 +374,7 @@ func (s *runTestSuite) TestIgnoredTestsRun() {
 	s.Equal(4, len(res.Stats.Ignored), "Oops, unexpected number of ignored tests")
 }
 
-func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
+func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders_WithoutData() {
 	boolean := true
 	method := "POST"
 	input := test.NewInput(&schema.Input{
@@ -399,9 +401,54 @@ func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders() {
 	_, err = client.Do(*request)
 	s.Require().NoError(err)
 
+	contentTypeHeaders := request.Headers().GetAll(header_names.ContentType)
+	s.Len(contentTypeHeaders, 0)
+
 	contentLengthHeaders := request.Headers().GetAll(header_names.ContentLength)
 	s.Len(contentLengthHeaders, 1)
 	s.Equal("0", contentLengthHeaders[0].Value, "Autocompletion should add 'Content-Length' header to POST requests")
+
+	connectionHeaders := request.Headers().GetAll(header_names.Connection)
+	s.Len(connectionHeaders, 1)
+	s.Equal("close", connectionHeaders[0].Value, "Autocompletion should add 'Connection: close' header")
+}
+
+func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders_WithData() {
+	boolean := true
+	method := "POST"
+	data := "something"
+	input := test.NewInput(&schema.Input{
+		AutocompleteHeaders: &boolean,
+		Method:              &method,
+		OrderedHeaders:      []schema.HeaderTuple{},
+		DestAddr:            &s.dest.DestAddr,
+		Port:                &s.dest.Port,
+		Protocol:            &s.dest.Protocol,
+		Data:                &data,
+	})
+	request, err := getRequestFromTest(input)
+	s.Require().NoError(err)
+
+	client, err := ftwhttp.NewClientWithConfig(ftwhttp.NewClientConfig())
+	s.Require().NoError(err)
+
+	dest := &ftwhttp.Destination{
+		DestAddr: input.GetDestAddr(),
+		Port:     input.GetPort(),
+		Protocol: input.GetProtocol(),
+	}
+	err = client.NewConnection(*dest)
+	s.Require().NoError(err)
+	_, err = client.Do(*request)
+	s.Require().NoError(err)
+
+	contentTypeHeaders := request.Headers().GetAll(header_names.ContentType)
+	s.Len(contentTypeHeaders, 1)
+	s.Equal(header_values.ApplicationXWwwFormUrlencoded, contentTypeHeaders[0].Value, "Autocompletion should add 'Content-Type' header to POST requests")
+
+	contentLengthHeaders := request.Headers().GetAll(header_names.ContentLength)
+	s.Len(contentLengthHeaders, 1)
+	s.Equal(strconv.Itoa(len(data)), contentLengthHeaders[0].Value, "Autocompletion should add 'Content-Length' header to POST requests")
 
 	connectionHeaders := request.Headers().GetAll(header_names.Connection)
 	s.Len(connectionHeaders, 1)
