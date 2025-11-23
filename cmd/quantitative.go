@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
-	"github.com/coreruleset/go-ftw/experimental/corpus"
+	"github.com/coreruleset/go-ftw/internal/corpus"
 	"github.com/coreruleset/go-ftw/internal/quantitative"
 	"github.com/coreruleset/go-ftw/output"
 )

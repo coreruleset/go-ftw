@@ -6,7 +6,7 @@ package leipzig
 import (
 	"path/filepath"
 
-	"github.com/coreruleset/go-ftw/experimental/corpus"
+	"github.com/coreruleset/go-ftw/internal/corpus"
 )
 
 // File implements the corpus.File interface.

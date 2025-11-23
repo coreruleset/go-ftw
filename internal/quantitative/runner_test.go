@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/experimental/corpus"
+	"github.com/coreruleset/go-ftw/internal/corpus"
 	"github.com/coreruleset/go-ftw/output"
 )
 
