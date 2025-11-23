@@ -11,10 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/coreruleset/go-ftw/internal/corpus"
 	"github.com/hashicorp/go-getter/v2"
 	"github.com/rs/zerolog/log"
-
-	"github.com/coreruleset/go-ftw/experimental/corpus"
 )
 
 // LeipzigCorpus represents a corpus of text data

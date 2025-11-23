@@ -2,7 +2,8 @@ package quantitative
 
 import (
 	"fmt"
-	"github.com/coreruleset/go-ftw/experimental/corpus"
+
+	"github.com/coreruleset/go-ftw/internal/corpus"
 	"github.com/coreruleset/go-ftw/internal/quantitative/leipzig"
 )
 

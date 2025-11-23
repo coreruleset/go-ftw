@@ -422,10 +422,7 @@ Now you can do that by passing the `--wait-for-host` flag. The value of this opt
 - `--wait-for-no-redirect`               Do not follow HTTP 3xx redirects.
 - `--wait-for-timeout`                   Sets the timeout for all wait operations, 0 is unlimited. (default 10s)
 
-## (EXPERIMENTAL) Quantitative testing
-
-In the latest version of `go-ftw`, we have added a new feature that allows you to run quantitative tests.
-This feature is still experimental and may change in the future.
+## Quantitative testing
 
 ### What is the idea behind quantitative tests?
 
@@ -494,7 +491,6 @@ Global Flags:
       --overrides string   specify file with platform specific overrides
       --trace              trace output: really, really verbose
 ```
-
 
 
 ### Example of running quantitative tests
