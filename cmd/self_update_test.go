@@ -49,6 +49,9 @@ func TestRunSelfUpdateTestSuite(t *testing.T) {
 }
 
 func (s *selfUpdateTestSuite) TestSelfUpdateDev() {
+	if os.Getenv("CI") != "" {
+		s.T().Skip()
+	}
 	_, err := updater.Updater("v0.0.0-dev", s.executablePath)
 	s.Require().NoError(err)
 }

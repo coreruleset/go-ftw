@@ -10,6 +10,8 @@ import (
 	"github.com/coreruleset/go-ftw/internal/updater"
 )
 
+var logger = log.With().Str("component", "cmd.self_update").Logger()
+
 // NewSelfUpdateCommand represents the self-update command
 func NewSelfUpdateCommand(version string) *cobra.Command {
 	return &cobra.Command{
@@ -18,18 +20,23 @@ func NewSelfUpdateCommand(version string) *cobra.Command {
 		Long: "Checks GitHub releases for the latest version of this command. If a new version is available, " +
 			"it will fetch it and replace this binary.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if version == "dev" {
-				log.Info().Msg("You are running a development version, skipping self-update")
-				return nil
+			effectiveVersion := "v0.0.0-dev"
+			currentCmd := cmd
+			for currentCmd.HasParent() {
+				currentCmd = currentCmd.Parent()
+				if currentCmd.Version != "" {
+					effectiveVersion = currentCmd.Version
+					break
+				}
 			}
-			newVersion, err := updater.Updater(version, "")
+			newVersion, err := updater.Updater(effectiveVersion, "")
 			if err != nil {
 				return err
 			}
 			if newVersion != "" {
-				log.Info().Msgf("Updated to version %s", newVersion)
+				logger.Info().Msgf("Updated to version %s", newVersion)
 			} else {
-				log.Info().Msg("No updates available")
+				logger.Info().Msg("No updates available")
 			}
 			return nil
 		},
