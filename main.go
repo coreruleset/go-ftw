@@ -23,6 +23,8 @@ const (
 	ExecutableName = "go-ftw"
 )
 
+// These variables will be set by goreleaser through
+// `-ldflags="-X '<variable path>=value'"`.
 // nolint: gochecknoglobals
 var (
 	version = "dev"

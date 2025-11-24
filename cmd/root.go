@@ -53,7 +53,7 @@ func Execute(version string) error {
 	rootCmd.AddCommand(NewRunCommand())
 	rootCmd.AddCommand(NewQuantitativeCmd())
 	rootCmd.AddCommand(NewSelfUpdateCommand(version))
-	rootCmd.AddCommand(NewVersionCommand(version))
+	// Setting Version creates a `--version` flag
 	rootCmd.Version = version
 
 	return rootCmd.ExecuteContext(context.Background())
