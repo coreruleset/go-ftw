@@ -72,12 +72,19 @@ func (s *runnerTestSuite) TeardownTest() {
 
 func (s *runnerTestSuite) TestCorpusFactory() {
 	var err error
-	s.c, err = CorpusFactory(corpus.Leipzig)
+	s.c, err = CorpusFactory(corpus.Leipzig, "")
 	s.Require().NoError(err)
 	s.Require().NotNil(s.c)
 	s.Require().Equal(s.c.URL(), "https://downloads.wortschatz-leipzig.de/corpora")
 
-	s.c, err = CorpusFactory(corpus.NoType)
+	userDefinedCacheDir := s.T().TempDir()
+	s.c, err = CorpusFactory(corpus.Leipzig, userDefinedCacheDir)
+	s.Require().NoError(err)
+	s.Require().NotNil(s.c)
+	s.Require().Equal(s.c.URL(), "https://downloads.wortschatz-leipzig.de/corpora")
+	s.Require().Equal(s.c.LocalPath(), userDefinedCacheDir)
+
+	s.c, err = CorpusFactory(corpus.NoType, "")
 	s.Require().Error(err)
 }
 

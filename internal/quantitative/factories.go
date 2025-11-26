@@ -8,10 +8,10 @@ import (
 )
 
 // CorpusFactory creates a new corpus
-func CorpusFactory(t corpus.Type) (corpus.Corpus, error) {
+func CorpusFactory(t corpus.Type, localPath string) (corpus.Corpus, error) {
 	switch t {
 	case corpus.Leipzig:
-		return leipzig.NewLeipzigCorpus(), nil
+		return leipzig.NewLeipzigCorpus(localPath), nil
 	default:
 		return nil, fmt.Errorf("unsupported corpus type: %s", t)
 	}
