@@ -28,7 +28,7 @@ type Params struct {
 	Number int
 	// Directory is the directory where the CRS rules are stored
 	Directory string
-	// CorpusPath is the path to the local corpus
+	// CorpusPath is the path to store the local corpora
 	CorpusPath string
 	// ParanoiaLevel is the paranoia level in where to run the quantitative tests
 	ParanoiaLevel int

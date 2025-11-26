@@ -55,7 +55,7 @@ func NewQuantitativeCmd() *cobra.Command {
 	runCmd.Flags().StringP(corpusSizeFlag, "s", "100K", "Corpus size to use for the quantitative tests. Most corpora will have sizes like \"100K\", \"1M\", etc.")
 	runCmd.Flags().StringP(corpusYearFlag, "y", "2023", "Corpus year to use for the quantitative tests. Most corpus will have a year like \"2023\", \"2022\", etc.")
 	runCmd.Flags().StringP(corpusSourceFlag, "S", "news", "Corpus source to use for the quantitative tests. Most corpus will have a source like \"news\", \"web\", \"wikipedia\", etc.")
-	runCmd.Flags().String(corpusLocalPathFlag, "", "Path to the local corpus. Defaults to .ftw folder under user's home directory.")
+	runCmd.Flags().String(corpusLocalPathFlag, "", "Path to store the local corpora. Defaults to .ftw folder under user's home directory.")
 	runCmd.Flags().StringP(crsPathFlag, "C", ".", "Path to top folder of local CRS installation.")
 	runCmd.Flags().StringP(corpusFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
 	runCmd.Flags().StringP(corpusOutputFlag, "o", "normal", "Output type for quantitative tests.")

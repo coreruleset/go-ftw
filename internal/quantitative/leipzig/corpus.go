@@ -39,8 +39,8 @@ type LeipzigCorpus struct {
 	corpusFilename string
 	// filename is the file name of the corpus
 	filename string
-	// localPath is the local path to the corpus
-	localPath string
+	// corpusLocalPath is the local path to the corpus
+	corpusLocalPath string
 	// size is the size of the corpus
 	size string
 	// source is the source of the corpus
@@ -61,16 +61,16 @@ func (c *LeipzigCorpus) regenerateFileNames() {
 }
 
 // NewLeipzigCorpus returns a new Leipzig corpus
-func NewLeipzigCorpus(localCorpusPath string) corpus.Corpus {
+func NewLeipzigCorpus(corpusLocalPath string) corpus.Corpus {
 	leipzig := &LeipzigCorpus{
-		url_:           defaultCorpusSite,
-		corpusFilename: "",
-		filename:       "",
-		localPath:      localCorpusPath,
-		lang:           defaultCorpusLanguage,
-		source:         defaultCorpusSource,
-		year:           defaultCorpusYear,
-		size:           defaultCorpusSize,
+		url_:            defaultCorpusSite,
+		corpusFilename:  "",
+		filename:        "",
+		corpusLocalPath: corpusLocalPath,
+		lang:            defaultCorpusLanguage,
+		source:          defaultCorpusSource,
+		year:            defaultCorpusYear,
+		size:            defaultCorpusSize,
 	}
 
 	leipzig.regenerateFileNames()
@@ -108,7 +108,7 @@ func (c *LeipzigCorpus) URL() string {
 }
 
 func (c *LeipzigCorpus) LocalPath() string {
-	return c.localPath
+	return c.corpusLocalPath
 }
 
 // WithURL sets the URL of the corpus
@@ -165,7 +165,7 @@ func (c *LeipzigCorpus) GetIterator(cache corpus.File) corpus.Iterator {
 func (c *LeipzigCorpus) FetchCorpusFile() corpus.File {
 	url := fmt.Sprintf("%s/%s", c.url_, c.corpusFilename)
 
-	cacheDir := c.localPath
+	cacheDir := c.corpusLocalPath
 	if cacheDir == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {

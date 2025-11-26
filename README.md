@@ -469,20 +469,22 @@ Usage:
   ftw quantitative [flags]
 
 Flags:
-  -c, --corpus string          Corpus to use for the quantitative tests (default "leipzig")
-  -L, --corpus-lang string     Corpus language to use for the quantitative tests (default "eng")
-  -n, --corpus-line int        Number is the payload line from the corpus to exclusively send
-  -s, --corpus-size string     Corpus size to use for the quantitative tests. Most corpora will have sizes like "100K", "1M", etc. (default "100K")
-  -S, --corpus-source string   Corpus source to use for the quantitative tests. Most corpus will have a source like "news", "web", "wikipedia", etc. (default "news")
-  -y, --corpus-year string     Corpus year to use for the quantitative tests. Most corpus will have a year like "2023", "2022", etc. (default "2023")
-  -C, --crs-path string        Path to top folder of local CRS installation (default ".")
-  -f, --file string            Output file path for quantitative tests. Prints to standard output by default.
-  -h, --help                   help for quantitative
-  -l, --lines int              Number of lines of input to process before stopping
-  -o, --output string          Output type for quantitative tests. "normal" is the default. (default "normal")
-  -P, --paranoia-level int     Paranoia level used to run the quantitative tests (default 1)
-  -p, --payload string         Payload is a string you want to test using quantitative tests. Will not use the corpus.
-  -r, --rule int               Rule ID of interest: only show false positives for specified rule ID
+  -c, --corpus string              Corpus to use for the quantitative tests. (default "leipzig")
+  -L, --corpus-lang string         Corpus language to use for the quantitative tests. (default "eng")
+  -n, --corpus-line int            Number is the payload line from the corpus to exclusively send.
+      --corpus-local-path string   Path to store the local corpora. Defaults to .ftw folder under user's home directory.
+  -s, --corpus-size string         Corpus size to use for the quantitative tests. Most corpora will have sizes like "100K", "1M", etc. (default "100K")
+  -S, --corpus-source string       Corpus source to use for the quantitative tests. Most corpus will have a source like "news", "web", "wikipedia", etc. (default "news")
+  -y, --corpus-year string         Corpus year to use for the quantitative tests. Most corpus will have a year like "2023", "2022", etc. (default "2023")
+  -C, --crs-path string            Path to top folder of local CRS installation. (default ".")
+  -f, --file string                Output file path for quantitative tests. Prints to standard output by default.
+  -h, --help                       help for quantitative
+  -l, --lines int                  Number of lines of input to process before stopping.
+      --max-concurrency int        maximum number of goroutines. Defaults to 10, or 1 if log level is debug/trace. (default 10)
+  -o, --output string              Output type for quantitative tests. (default "normal")
+  -P, --paranoia-level int         Paranoia level used to run the quantitative tests. (default 1)
+  -p, --payload string             Payload is a string you want to test using quantitative tests. Will not use the corpus.
+  -r, --rule int                   Rule ID of interest: only show false positives for specified rule ID.
 
 Global Flags:
       --cloud              cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)
