@@ -28,8 +28,8 @@ type Params struct {
 	Number int
 	// Directory is the directory where the CRS rules are stored
 	Directory string
-	// CorpusPath is the path to store the local corpora
-	CorpusPath string
+	// CorpusLocalPath is the path to store the local corpora
+	CorpusLocalPath string
 	// ParanoiaLevel is the paranoia level in where to run the quantitative tests
 	ParanoiaLevel int
 	// CorpusSize is the corpus size to use for the quantitative tests
@@ -53,7 +53,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	log.Trace().Msgf("Rule: %d", params.Rule)
 	log.Trace().Msgf("Payload: %s", params.Payload)
 	log.Trace().Msgf("Directory: %s", params.Directory)
-	log.Trace().Msgf("CorpusPath: %s", params.CorpusPath)
+	log.Trace().Msgf("CorpusLocalPath: %s", params.CorpusLocalPath)
 	log.Trace().Msgf("Paranoia level: %d", params.ParanoiaLevel)
 
 	startTime := time.Now()
@@ -92,7 +92,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	log.Trace().Msgf("Corpus source: %s", params.CorpusSource)
 
 	// create a new corpusRunner
-	corpusRunner, err := CorpusFactory(params.Corpus, params.CorpusPath)
+	corpusRunner, err := CorpusFactory(params.Corpus, params.CorpusLocalPath)
 	if err != nil {
 		return err
 	}
