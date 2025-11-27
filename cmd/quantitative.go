@@ -161,19 +161,19 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	}
 
 	params := quantitative.Params{
-		Corpus:         corpusType,
-		CorpusSize:     corpusSize,
-		CorpusYear:     corpusYear,
-		CorpusLang:     corpusLang,
-		CorpusSource:   corpusSource,
-		Directory:      directory,
-		CorpusPath:     corpusLocalPath,
-		Lines:          lines,
-		ParanoiaLevel:  paranoiaLevel,
-		Number:         number,
-		Payload:        payload,
-		Rule:           rule,
-		MaxConcurrency: maxConcurrency,
+		Corpus:          corpusType,
+		CorpusSize:      corpusSize,
+		CorpusYear:      corpusYear,
+		CorpusLang:      corpusLang,
+		CorpusSource:    corpusSource,
+		Directory:       directory,
+		CorpusLocalPath: corpusLocalPath,
+		Lines:           lines,
+		ParanoiaLevel:   paranoiaLevel,
+		Number:          number,
+		Payload:         payload,
+		Rule:            rule,
+		MaxConcurrency:  maxConcurrency,
 	}
 
 	return quantitative.RunQuantitativeTests(params, out)
