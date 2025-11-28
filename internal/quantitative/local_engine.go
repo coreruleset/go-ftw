@@ -60,7 +60,7 @@ SecAction \
 
 // RuleMatch contains information about a matched rule
 type RuleMatch struct {
-	// ParanoiaLevel is the paranoia level of the rule (1-4)
+	// ParanoiaLevel of the rule
 	ParanoiaLevel int
 	// MatchData contains the matched data for the rule
 	MatchData string

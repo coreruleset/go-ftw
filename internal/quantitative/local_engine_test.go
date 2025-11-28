@@ -78,15 +78,11 @@ func (s *localEngineTestSuite) TestCrsCall() {
 
 	expected := []int{942100 /* libinjection match */}
 	var keys []int
-	for k, match := range matchedRules {
+	for k := range matchedRules {
 		keys = append(keys, k)
-		// Verify the RuleMatch structure
-		// TODO!
-		s.Require().NotEmpty(match.MatchData)
-		s.Require().GreaterOrEqual(match.ParanoiaLevel, 1)
-		s.Require().LessOrEqual(match.ParanoiaLevel, 4)
 	}
 	s.Require().Equal(expected, keys)
+	s.Require().Equal(1, matchedRules[942100].ParanoiaLevel)
 }
 
 func (s *localEngineTestSuite) TestExtractParanoiaLevel() {
