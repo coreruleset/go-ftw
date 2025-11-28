@@ -78,8 +78,54 @@ func (s *localEngineTestSuite) TestCrsCall() {
 
 	expected := []int{942100 /* libinjection match */}
 	var keys []int
-	for k := range matchedRules {
+	for k, match := range matchedRules {
 		keys = append(keys, k)
+		// Verify the RuleMatch structure
+		// TODO!
+		s.Require().NotEmpty(match.MatchData)
+		s.Require().GreaterOrEqual(match.ParanoiaLevel, 1)
+		s.Require().LessOrEqual(match.ParanoiaLevel, 4)
 	}
 	s.Require().Equal(expected, keys)
+}
+
+func (s *localEngineTestSuite) TestExtractParanoiaLevel() {
+	tests := []struct {
+		name       string
+		rawRule    string
+		expectedPL int
+	}{
+		{
+			name: "PL1",
+			rawRule: `SecRule REQUEST_METHOD "!@within %{tx.allowed_methods}" "id:1, phase:1,\
+					tag:'paranoia-level/1', deny, severity:'CRITICAL'"`,
+			expectedPL: 1,
+		},
+		{
+			name:       "PL2",
+			rawRule:    `SecRule ARGS "@rx <script" "id:941200, tag:'paranoia-level/2', tag:'another-tag'"`,
+			expectedPL: 2,
+		},
+		{
+			name:       "PL3",
+			rawRule:    `SecRule ARGS "@rx dangerous" "id:941300, tag:'paranoia-level/3'"`,
+			expectedPL: 3,
+		},
+		{
+			name:       "PL4",
+			rawRule:    `SecRule ARGS "@rx verystrict" "id:941400, tag:'paranoia-level/4'"`,
+			expectedPL: 4,
+		},
+		{
+			name:       "no paranoia level tag",
+			rawRule:    `SecRule ARGS "@rx test" "id:999999, tag:'OWASP_CRS'"`,
+			expectedPL: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.Require().Equal(tt.expectedPL, extractParanoiaLevel(tt.rawRule))
+		})
+	}
 }

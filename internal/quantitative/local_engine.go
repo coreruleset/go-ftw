@@ -55,14 +55,23 @@ SecAction \
     ver:'OWASP_CRS/4.7.0-dev',\
     setvar:tx.blocking_paranoia_level={{ .ParanoiaLevel }}"
 `
+	crsPLTagText = "paranoia-level/"
 )
+
+// RuleMatch contains information about a matched rule
+type RuleMatch struct {
+	// ParanoiaLevel is the paranoia level of the rule (1-4)
+	ParanoiaLevel int
+	// MatchData contains the matched data for the rule
+	MatchData string
+}
 
 // LocalEngine is the interface for the local engine
 type LocalEngine interface {
 	// Create creates a new engine to test payloads
 	Create(prefix string, paranoia int) LocalEngine
 	// CrsCall benchmarks the CRS WAF using a GET request with the payload
-	CrsCall(payload string) map[int]string
+	CrsCall(payload string) map[int]RuleMatch
 }
 
 // localEngine is the engine to test payloads
@@ -80,8 +89,8 @@ func (e *localEngine) Create(prefix string, paranoia int) LocalEngine {
 
 // CrsCall benchmarks the CRS WAF with a GET request
 // payload: the string to be passed as a query parameter
-// returns the status of the HTTP response and a map of the matched rules with their IDs and the data that matched.
-func (e *localEngine) CrsCall(payload string) map[int]string {
+// returns the status of the HTTP response and a map of the matched rules with their IDs, paranoia levels, and the data that matched.
+func (e *localEngine) CrsCall(payload string) map[int]RuleMatch {
 	if e.waf == nil {
 		log.Fatal().Msg("local engine not initialized")
 	}
@@ -154,15 +163,16 @@ func crsWAF(prefix string, paranoiaLevel int) coraza.WAF {
 	return waf
 }
 
-// getMatchedRules returns the IDs of the rules that matched
-func getMatchedRules(tx types.Transaction) map[int]string {
-	var matchedRules = make(map[int]string)
+// getMatchedRules returns the IDs of the rules that matched along with their paranoia levels
+func getMatchedRules(tx types.Transaction) map[int]RuleMatch {
+	var matchedRules = make(map[int]RuleMatch)
 
 	for _, rule := range tx.MatchedRules() {
 		id := rule.Rule().ID()
 		if needToDiscardAdminRule(id) {
 			continue
 		}
+
 		var logData strings.Builder
 		for i, matchData := range rule.MatchedDatas() {
 			logData.WriteString(" #")
@@ -172,9 +182,39 @@ func getMatchedRules(tx types.Transaction) map[int]string {
 			logData.WriteString(":")
 			logData.WriteString(matchData.Value())
 		}
-		matchedRules[id] = logData.String()
+
+		// Extract paranoia level from tags
+		paranoiaLevel := extractParanoiaLevel(rule.Rule().Raw())
+
+		matchedRules[id] = RuleMatch{
+			ParanoiaLevel: paranoiaLevel,
+			MatchData:     logData.String(),
+		}
 	}
 	return matchedRules
+}
+
+// extractParanoiaLevel extracts the paranoia level from the rule's raw text.
+// It looks for PL tags (such as 'paranoia-level/1').
+// Zero is returned when no paranoia level tag is found.
+func extractParanoiaLevel(rawRule string) int {
+	// Look for the paranoia-level tag pattern
+	if idx := strings.Index(rawRule, crsPLTagText); idx != -1 {
+		// Extract the number after "paranoia-level/"
+		start := idx + len(crsPLTagText)
+		if start < len(rawRule) {
+			end := start
+			for end < len(rawRule) && rawRule[end] >= '0' && rawRule[end] <= '9' {
+				end++
+			}
+			if levelStr := rawRule[start:end]; levelStr != "" {
+				if level, err := strconv.Atoi(levelStr); err == nil {
+					return level
+				}
+			}
+		}
+	}
+	return 0
 }
 
 // needToDiscardAdminRule checks if the rule is an admin rule
