@@ -113,6 +113,11 @@ func (s *localEngineTestSuite) TestExtractParanoiaLevel() {
 			expectedPL: 4,
 		},
 		{
+			name:       "multi-digits PL",
+			rawRule:    `SecRule ARGS "@rx hello" "id:911, tag:'paranoia-level/999'"`,
+			expectedPL: 999,
+		},
+		{
 			name:       "no paranoia level tag",
 			rawRule:    `SecRule ARGS "@rx test" "id:999999, tag:'OWASP_CRS'"`,
 			expectedPL: 0,

@@ -55,7 +55,7 @@ SecAction \
     ver:'OWASP_CRS/4.7.0-dev',\
     setvar:tx.blocking_paranoia_level={{ .ParanoiaLevel }}"
 `
-	crsPLTagText = "paranoia-level/"
+	crsParanoiaLevelTagPrefix = "paranoia-level/"
 )
 
 // RuleMatch contains information about a matched rule
@@ -199,9 +199,9 @@ func getMatchedRules(tx types.Transaction) map[int]RuleMatch {
 // Zero is returned when no paranoia level tag is found.
 func extractParanoiaLevel(rawRule string) int {
 	// Look for the paranoia-level tag pattern
-	if idx := strings.Index(rawRule, crsPLTagText); idx != -1 {
+	if idx := strings.Index(rawRule, crsParanoiaLevelTagPrefix); idx != -1 {
 		// Extract the number after "paranoia-level/"
-		start := idx + len(crsPLTagText)
+		start := idx + len(crsParanoiaLevelTagPrefix)
 		if start < len(rawRule) {
 			end := start
 			for end < len(rawRule) && rawRule[end] >= '0' && rawRule[end] <= '9' {
