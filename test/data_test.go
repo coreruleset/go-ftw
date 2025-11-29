@@ -10,7 +10,7 @@ import (
 	"github.com/coreruleset/go-ftw/ftwhttp/header_values"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
-	"go.yaml.in/yaml/v4"
+	yamlv4 "go.yaml.in/yaml/v4"
 )
 
 var repeatTestSprig = `foo=%3d++++++++++++++++++++++++++++++++++`
@@ -43,7 +43,7 @@ uri: "/"
 `
 
 	input := &schema.Input{}
-	err := yaml.Unmarshal([]byte(yamlString), &input)
+	err := yamlv4.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
 	s.True(*input.AutocompleteHeaders)
 }
@@ -64,7 +64,7 @@ autocomplete_headers: false
 uri: "/"
 `
 	input := &schema.Input{}
-	err := yaml.Unmarshal([]byte(yamlString), &input)
+	err := yamlv4.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
 	s.Empty(*input.Version)
 	s.False(*input.AutocompleteHeaders)
@@ -87,7 +87,7 @@ uri: "/"
 `
 	input := &schema.Input{}
 	var data []byte
-	err := yaml.Unmarshal([]byte(yamlString), &input)
+	err := yamlv4.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
 
 	internalInput := NewInput(input)
@@ -114,7 +114,7 @@ uri: "/"
 `
 	input := &schema.Input{}
 	var data []byte
-	err := yaml.Unmarshal([]byte(yamlString), &input)
+	err := yamlv4.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
 
 	internalData := NewInput(input)
@@ -141,7 +141,7 @@ uri: "/"
 `
 	input := &schema.Input{}
 	var data []byte
-	err := yaml.Unmarshal([]byte(yamlString), &input)
+	err := yamlv4.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
 
 	internalData := NewInput(input)
@@ -165,7 +165,7 @@ uri: "/"
 `
 	input := &schema.Input{}
 	var data []byte
-	err := yaml.Unmarshal([]byte(yamlString), &input)
+	err := yamlv4.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
 
 	internalData := NewInput(input)
@@ -189,7 +189,7 @@ uri: "/"
 `
 	input := &schema.Input{}
 	var data []byte
-	err := yaml.Unmarshal([]byte(yamlString), &input)
+	err := yamlv4.Unmarshal([]byte(yamlString), &input)
 	s.Require().NoError(err)
 
 	internalData := NewInput(input)

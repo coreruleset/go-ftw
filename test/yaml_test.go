@@ -9,7 +9,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
-	"go.yaml.in/yaml/v4"
+	yamlv4 "go.yaml.in/yaml/v4"
 )
 
 type yamlTestSuite struct {
@@ -53,7 +53,7 @@ tests:
 	yamlString := fmt.Sprintf(yamlTemplate, key, value)
 	test := &FTWTest{}
 
-	err := yaml.Unmarshal([]byte(yamlString), test)
+	err := yamlv4.Unmarshal([]byte(yamlString), test)
 	s.Require().NoError(err)
 
 	//nolint:staticcheck
@@ -83,7 +83,7 @@ tests:
 `
 	test := &FTWTest{}
 
-	err := yaml.Unmarshal([]byte(yamlString), test)
+	err := yamlv4.Unmarshal([]byte(yamlString), test)
 	s.Require().NoError(err)
 
 	//nolint:staticcheck
