@@ -35,10 +35,11 @@ func (s *statsTestSuite) TestNewQuantitativeStats() {
 		{
 			name: "Test 1",
 			want: &QuantitativeRunStats{
-				count_:                0,
-				falsePositives:        0,
-				falsePositivesPerRule: make(map[int]int),
-				totalTime:             0,
+				count_:                         0,
+				falsePositives:                 0,
+				falsePositivesPerRule:          make(map[int]RuleStats),
+				falsePositivesPerParanoiaLevel: make(map[int]int),
+				totalTime:                      0,
 			},
 		},
 	}
@@ -55,7 +56,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 		count_                int
 		totalTime             time.Duration
 		falsePositives        int
-		falsePositivesPerRule map[int]int
+		falsePositivesPerRule map[int]RuleStats
 	}
 	tests := []struct {
 		name    string
@@ -69,9 +70,9 @@ func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 				count_:                1,
 				totalTime:             time.Second,
 				falsePositives:        1,
-				falsePositivesPerRule: map[int]int{920010: 1},
+				falsePositivesPerRule: map[int]RuleStats{920010: {ParanoiaLevel: 1, FalsePositives: 1}},
 			},
-			want:    []byte(`{"count":1,"falsePositives":1,"falsePositivesPerRule":{"920010":1},"skipped":0,"totalTimeSeconds":1}`),
+			want:    []byte(`{"count":1,"falsePositives":1,"falsePositivesPerParanoiaLevel":null,"falsePositivesPerRule":{"920010":{"paranoiaLevel":1,"falsePositives":1}},"skipped":0,"totalTimeSeconds":1}`),
 			wantErr: false,
 		},
 		{
@@ -80,9 +81,9 @@ func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 				count_:                2,
 				totalTime:             time.Second * 2,
 				falsePositives:        2,
-				falsePositivesPerRule: map[int]int{933100: 2},
+				falsePositivesPerRule: map[int]RuleStats{933100: {ParanoiaLevel: 1, FalsePositives: 2}},
 			},
-			want:    []byte(`{"count":2,"falsePositives":2,"falsePositivesPerRule":{"933100":2},"skipped":0,"totalTimeSeconds":2}`),
+			want:    []byte(`{"count":2,"falsePositives":2,"falsePositivesPerParanoiaLevel":null,"falsePositivesPerRule":{"933100":{"paranoiaLevel":1,"falsePositives":2}},"skipped":0,"totalTimeSeconds":2}`),
 			wantErr: false,
 		},
 	}
@@ -107,13 +108,13 @@ func (s *statsTestSuite) TestQuantitativeRunStats_functions() {
 	q.incrementRun()
 	s.Require().Equal(q.Count(), 1)
 
-	q.addFalsePositive(920100)
+	q.addFalsePositive(920100, 1)
 	s.Require().Equal(q.FalsePositives(), 1)
 
 	q.incrementRun()
 	s.Require().Equal(q.Count(), 2)
 
-	q.addFalsePositive(920200)
+	q.addFalsePositive(920200, 2)
 	s.Require().Equal(q.FalsePositives(), 2)
 
 	duration := time.Duration(5000)
@@ -121,7 +122,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_functions() {
 	s.Require().Equal(q.TotalTime(), duration)
 }
 
-func (s *statsTestSuite) TestQuantitativeRunStats_printSummary() {
+func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_Plain() {
 	var b bytes.Buffer
 	out := output.NewOutput("plain", &b)
 	q := NewQuantitativeStats()
@@ -129,27 +130,53 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary() {
 	q.incrementRun()
 	s.Require().Equal(q.Count(), 1)
 
-	q.addFalsePositive(920100)
+	q.addFalsePositive(920100, 1)
 	s.Require().Equal(q.FalsePositives(), 1)
 	s.Require().Equal(q.Skipped(), 0)
 
 	q.printSummary(out)
-	s.Require().Equal("Run 1 payloads (0 skipped) in 0s\nTotal False positive ratio: 1/1 = 1.0000\nFalse positives per rule id:\n  920100: 1 false positives. FP Ratio: 1/1 = 1.0000\n", b.String())
+	s.Require().Equal("Run 1 payloads (0 skipped) in 0s\nTotal False positive ratio: 1/1 = 1.0000\nFalse positives per paranoia level:\n  PL1: 1 false positives. FP Ratio: 1/1 = 1.0000\nFalse positives per rule id:\n  920100 (PL1): 1 false positives. FP Ratio: 1/1 = 1.0000\n", b.String())
 }
 
-// FIXME: can we drop this thest? It has no success / fail condition
+func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_JSON() {
+	var b bytes.Buffer
+	out := output.NewOutput("json", &b)
+	q := NewQuantitativeStats()
+
+	q.incrementRun()
+	s.Require().Equal(q.Count(), 1)
+
+	q.addFalsePositive(920100, 1)
+	s.Require().Equal(q.FalsePositives(), 1)
+	s.Require().Equal(q.Skipped(), 0)
+
+	q.printSummary(out)
+	s.Require().Equal(`{"count":1,"falsePositives":1,"falsePositivesPerParanoiaLevel":{"1":1},"falsePositivesPerRule":{"920100":{"paranoiaLevel":1,"falsePositives":1}},"skipped":0,"totalTimeSeconds":0}`, b.String())
+}
+
 func (s *statsTestSuite) TestAddFalsePositiveRace() {
 	stats := &QuantitativeRunStats{
-		falsePositivesPerRule: make(map[int]int),
+		falsePositivesPerRule:          make(map[int]RuleStats),
+		falsePositivesPerParanoiaLevel: make(map[int]int),
+		mu:                             sync.Mutex{},
 	}
 
 	var wg sync.WaitGroup
-	for i := 0; i < 100; i++ {
+	numGoroutines := 100
+	for i := range numGoroutines {
 		wg.Add(1)
-		go func(rule int) {
+		go func(ruleID int) {
 			defer wg.Done()
-			stats.addFalsePositive(rule)
+			stats.addFalsePositive(ruleID, 1)
 		}(i % 10) // Few rules are getting hit to make the concurrency issue more likely
 	}
 	wg.Wait()
+
+	// Verify total counts
+	s.Require().Equal(numGoroutines, stats.FalsePositives(), "Total false positives should equal number of goroutines")
+	totalPerRule := 0
+	for _, ruleStats := range stats.falsePositivesPerRule {
+		totalPerRule += ruleStats.FalsePositives
+	}
+	s.Require().Equal(numGoroutines, totalPerRule, "Sum of per-rule counts should equal number of goroutines")
 }
