@@ -23,7 +23,7 @@ require (
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 	github.com/yargevad/filepathx v1.0.0
-	golang.org/x/exp 87e1e737ad39
+	golang.org/x/exp v0.0.0-20251125195548-87e1e737ad39
 	golang.org/x/net v0.46.0
 	golang.org/x/time v0.14.0
 	wait4x.dev/v3 v3.6.0
@@ -83,7 +83,7 @@ require (
 	github.com/xanzy/go-gitlab v0.115.0 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1
