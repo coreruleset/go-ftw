@@ -10,7 +10,7 @@ import (
 	"github.com/coreruleset/go-ftw/ftwhttp/header_values"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 var repeatTestSprig = `foo=%3d++++++++++++++++++++++++++++++++++`
