@@ -4,7 +4,7 @@
 package test
 
 import (
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // GetTestFromYaml will get the tests to be processed from a YAML string.
