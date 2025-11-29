@@ -6,7 +6,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/coreruleset/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/v2/utils"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
 )

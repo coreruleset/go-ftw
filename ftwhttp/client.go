@@ -14,7 +14,7 @@ import (
 
 	"fmt"
 
-	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/v2/config"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/net/publicsuffix"
 	"golang.org/x/time/rate"

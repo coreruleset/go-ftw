@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/coreruleset/go-ftw/internal/corpus"
+	"github.com/coreruleset/go-ftw/v2/internal/corpus"
 	"github.com/hashicorp/go-getter/v2"
 	"github.com/rs/zerolog/log"
 )

@@ -1,4 +1,4 @@
-module github.com/coreruleset/go-ftw
+module github.com/coreruleset/go-ftw/v2
 
 go 1.24.6
 

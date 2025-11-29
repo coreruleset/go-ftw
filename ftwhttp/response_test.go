@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	header_names "github.com/coreruleset/go-ftw/ftwhttp/header_names"
+	header_names "github.com/coreruleset/go-ftw/v2/ftwhttp/header_names"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )

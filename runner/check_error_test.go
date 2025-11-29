@@ -10,8 +10,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/utils"
 )
 
 var expectedOKTests = []struct {

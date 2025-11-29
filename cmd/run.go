@@ -17,10 +17,10 @@ import (
 	"wait4x.dev/v3/checker/http"
 	"wait4x.dev/v3/waiter"
 
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/output"
-	"github.com/coreruleset/go-ftw/runner"
-	"github.com/coreruleset/go-ftw/test"
+	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/output"
+	"github.com/coreruleset/go-ftw/v2/runner"
+	"github.com/coreruleset/go-ftw/v2/test"
 )
 
 const (

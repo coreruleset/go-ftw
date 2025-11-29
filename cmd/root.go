@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
-	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/v2/config"
 )
 
 const (

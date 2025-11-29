@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/test"
+	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/test"
 )
 
 type inputOverrideTestSuite struct {

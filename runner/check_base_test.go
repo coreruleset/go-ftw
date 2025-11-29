@@ -10,10 +10,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/test"
-	"github.com/coreruleset/go-ftw/utils"
-	"github.com/coreruleset/go-ftw/waflog"
+	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/test"
+	"github.com/coreruleset/go-ftw/v2/utils"
+	"github.com/coreruleset/go-ftw/v2/waflog"
 )
 
 var configMap = map[string]string{

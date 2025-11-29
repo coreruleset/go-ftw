@@ -12,12 +12,12 @@ import (
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/rs/zerolog/log"
 
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/ftwhttp"
-	"github.com/coreruleset/go-ftw/output"
-	"github.com/coreruleset/go-ftw/test"
-	"github.com/coreruleset/go-ftw/utils"
-	"github.com/coreruleset/go-ftw/waflog"
+	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/ftwhttp"
+	"github.com/coreruleset/go-ftw/v2/output"
+	"github.com/coreruleset/go-ftw/v2/test"
+	"github.com/coreruleset/go-ftw/v2/utils"
+	"github.com/coreruleset/go-ftw/v2/waflog"
 )
 
 // Run runs your tests with the specified Config.

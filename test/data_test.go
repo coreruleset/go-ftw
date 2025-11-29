@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
-	"github.com/coreruleset/go-ftw/ftwhttp/header_values"
+	"github.com/coreruleset/go-ftw/v2/ftwhttp/header_values"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 	"go.yaml.in/yaml/v4"

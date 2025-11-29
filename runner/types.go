@@ -8,10 +8,10 @@ import (
 	"time"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/ftwhttp"
-	"github.com/coreruleset/go-ftw/output"
-	"github.com/coreruleset/go-ftw/waflog"
+	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/ftwhttp"
+	"github.com/coreruleset/go-ftw/v2/output"
+	"github.com/coreruleset/go-ftw/v2/waflog"
 )
 
 // TestRunContext carries information about the current test run.

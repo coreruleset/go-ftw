@@ -7,7 +7,7 @@ import (
 	"time"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
-	"github.com/coreruleset/go-ftw/output"
+	"github.com/coreruleset/go-ftw/v2/output"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	koanfv2 "github.com/knadh/koanf/v2"

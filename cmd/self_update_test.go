@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/coreruleset/go-ftw/internal/updater"
+	"github.com/coreruleset/go-ftw/v2/internal/updater"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )

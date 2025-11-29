@@ -6,7 +6,7 @@ package test
 import (
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 
-	"github.com/coreruleset/go-ftw/ftwhttp"
+	"github.com/coreruleset/go-ftw/v2/ftwhttp"
 )
 
 type Input struct {

@@ -6,8 +6,8 @@ package ftwhttp
 import (
 	"testing"
 
-	header_names "github.com/coreruleset/go-ftw/ftwhttp/header_names"
-	header_values "github.com/coreruleset/go-ftw/ftwhttp/header_values"
+	header_names "github.com/coreruleset/go-ftw/v2/ftwhttp/header_names"
+	header_values "github.com/coreruleset/go-ftw/v2/ftwhttp/header_values"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
