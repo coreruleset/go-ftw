@@ -82,4 +82,51 @@ func (s *localEngineTestSuite) TestCrsCall() {
 		keys = append(keys, k)
 	}
 	s.Require().Equal(expected, keys)
+	s.Require().Equal(1, matchedRules[942100].ParanoiaLevel)
+}
+
+func (s *localEngineTestSuite) TestExtractParanoiaLevel() {
+	tests := []struct {
+		name       string
+		rawRule    string
+		expectedPL int
+	}{
+		{
+			name: "PL1",
+			rawRule: `SecRule REQUEST_METHOD "!@within %{tx.allowed_methods}" "id:1, phase:1,\
+					tag:'paranoia-level/1', deny, severity:'CRITICAL'"`,
+			expectedPL: 1,
+		},
+		{
+			name:       "PL2",
+			rawRule:    `SecRule ARGS "@rx <script" "id:941200, tag:'paranoia-level/2', tag:'another-tag'"`,
+			expectedPL: 2,
+		},
+		{
+			name:       "PL3",
+			rawRule:    `SecRule ARGS "@rx dangerous" "id:941300, tag:'paranoia-level/3'"`,
+			expectedPL: 3,
+		},
+		{
+			name:       "PL4",
+			rawRule:    `SecRule ARGS "@rx verystrict" "id:941400, tag:'paranoia-level/4'"`,
+			expectedPL: 4,
+		},
+		{
+			name:       "multi-digits PL",
+			rawRule:    `SecRule ARGS "@rx hello" "id:911, tag:'paranoia-level/999'"`,
+			expectedPL: 999,
+		},
+		{
+			name:       "no paranoia level tag",
+			rawRule:    `SecRule ARGS "@rx test" "id:999999, tag:'OWASP_CRS'"`,
+			expectedPL: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			s.Require().Equal(tt.expectedPL, extractParanoiaLevel(tt.rawRule))
+		})
+	}
 }
