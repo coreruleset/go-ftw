@@ -45,13 +45,13 @@ func (s *selfUpdateTestSuite) TearDownTest() {
 
 // Do not run test suite until there is a new release with the "version" command
 func TestRunSelfUpdateTestSuite(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
 	suite.Run(t, new(selfUpdateTestSuite))
 }
 
 func (s *selfUpdateTestSuite) TestSelfUpdateDev() {
-	if os.Getenv("CI") != "" {
-		s.T().Skip()
-	}
 	_, err := updater.Updater("v0.0.0-dev", s.executablePath)
 	s.Require().NoError(err)
 }
