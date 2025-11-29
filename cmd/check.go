@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/coreruleset/go-ftw/test"
+	"github.com/coreruleset/go-ftw/v2/test"
 )
 
 // NewCheckCmd represents the check command

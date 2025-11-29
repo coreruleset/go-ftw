@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/maps"
 
-	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/v2/config"
 )
 
 // ApplyInputOverride will check if config had global overrides and write that into the test.

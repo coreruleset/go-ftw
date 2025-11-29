@@ -6,7 +6,7 @@ package leipzig
 import (
 	"bufio"
 
-	"github.com/coreruleset/go-ftw/internal/corpus"
+	"github.com/coreruleset/go-ftw/v2/internal/corpus"
 )
 
 // Implements the Iterator interface.

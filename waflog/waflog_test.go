@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/v2/config"
 )
 
 type waflogTestSuite struct {

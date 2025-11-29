@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/output"
+	"github.com/coreruleset/go-ftw/v2/output"
 )
 
 type statsTestSuite struct {

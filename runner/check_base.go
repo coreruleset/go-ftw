@@ -6,9 +6,9 @@ package runner
 import (
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/test"
-	"github.com/coreruleset/go-ftw/waflog"
+	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/test"
+	"github.com/coreruleset/go-ftw/v2/waflog"
 )
 
 // FTWCheck is the base struct for checking test results

@@ -9,7 +9,7 @@ import (
 
 	"slices"
 
-	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/v2/config"
 )
 
 // FTWLogLines represents the filename to search for logs in a certain timespan
