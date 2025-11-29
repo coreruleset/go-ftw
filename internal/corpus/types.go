@@ -63,6 +63,9 @@ type Corpus interface {
 	// URL returns the URL of the corpus
 	URL() string
 
+	// LocalPath returns the local path where the corpus is stored
+	LocalPath() string
+
 	// WithURL sets the URL of the corpus
 	WithURL(url string) Corpus
 

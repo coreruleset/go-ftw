@@ -16,20 +16,24 @@ import (
 )
 
 const (
-	corpusFlag         = "corpus"
-	corpusLangFlag     = "corpus-lang"
-	corpusLineFlag     = "corpus-line"
-	corpusSizeFlag     = "corpus-size"
-	corpusSourceFlag   = "corpus-source"
-	corpusYearFlag     = "corpus-year"
-	crsPathFlag        = "crs-path"
-	corpusFileFlag     = "file"
-	linesFlag          = "lines"
-	maxConcurrencyFlag = "max-concurrency"
-	corpusOutputFlag   = "output"
-	paranoiaLevelFlag  = "paranoia-level"
-	payloadFlag        = "payload"
-	ruleFlag           = "rule"
+	corpusFlag          = "corpus"
+	corpusLangFlag      = "corpus-lang"
+	corpusLineFlag      = "corpus-line"
+	corpusSizeFlag      = "corpus-size"
+	corpusSourceFlag    = "corpus-source"
+	corpusYearFlag      = "corpus-year"
+	corpusLocalPathFlag = "corpus-local-path"
+	crsPathFlag         = "crs-path"
+	corpusFileFlag      = "file"
+	linesFlag           = "lines"
+	maxConcurrencyFlag  = "max-concurrency"
+	corpusOutputFlag    = "output"
+	paranoiaLevelFlag   = "paranoia-level"
+	payloadFlag         = "payload"
+	ruleFlag            = "rule"
+
+	minCrsParanoiaLevel = 1
+	maxCrsParanoiaLevel = 4
 )
 
 // NewQuantitativeCmd
@@ -54,9 +58,10 @@ func NewQuantitativeCmd() *cobra.Command {
 	runCmd.Flags().StringP(corpusSizeFlag, "s", "100K", "Corpus size to use for the quantitative tests. Most corpora will have sizes like \"100K\", \"1M\", etc.")
 	runCmd.Flags().StringP(corpusYearFlag, "y", "2023", "Corpus year to use for the quantitative tests. Most corpus will have a year like \"2023\", \"2022\", etc.")
 	runCmd.Flags().StringP(corpusSourceFlag, "S", "news", "Corpus source to use for the quantitative tests. Most corpus will have a source like \"news\", \"web\", \"wikipedia\", etc.")
+	runCmd.Flags().String(corpusLocalPathFlag, "", "Path to store the local corpora. Defaults to .ftw folder under user's home directory.")
 	runCmd.Flags().StringP(crsPathFlag, "C", ".", "Path to top folder of local CRS installation.")
 	runCmd.Flags().StringP(corpusFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
-	runCmd.Flags().StringP(corpusOutputFlag, "o", "normal", "Output type for quantitative tests. \"normal\" is the default.")
+	runCmd.Flags().StringP(corpusOutputFlag, "o", "normal", "Output type for quantitative tests.")
 
 	return runCmd
 }
@@ -64,33 +69,82 @@ func NewQuantitativeCmd() *cobra.Command {
 func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	corpusTypeAsString, _ := cmd.Flags().GetString(corpusFlag)
-	corpusSize, _ := cmd.Flags().GetString(corpusSizeFlag)
-	corpusLang, _ := cmd.Flags().GetString(corpusLangFlag)
-	corpusYear, _ := cmd.Flags().GetString(corpusYearFlag)
-	corpusSource, _ := cmd.Flags().GetString(corpusSourceFlag)
-	directory, _ := cmd.Flags().GetString(crsPathFlag)
-	lines, _ := cmd.Flags().GetInt(linesFlag)
-	outputFilename, _ := cmd.Flags().GetString(corpusFileFlag)
-	paranoiaLevel, _ := cmd.Flags().GetInt(paranoiaLevelFlag)
-	payload, _ := cmd.Flags().GetString(payloadFlag)
-	number, _ := cmd.Flags().GetInt(corpusLineFlag)
-	rule, _ := cmd.Flags().GetInt(ruleFlag)
-	wantedOutput, _ := cmd.Flags().GetString(corpusOutputFlag)
-	maxConcurrency, _ := cmd.Flags().GetInt(maxConcurrencyFlag)
+	corpusTypeAsString, err := cmd.Flags().GetString(corpusFlag)
+	if err != nil {
+		return err
+	}
+	corpusSize, err := cmd.Flags().GetString(corpusSizeFlag)
+	if err != nil {
+		return err
+	}
+	corpusLang, err := cmd.Flags().GetString(corpusLangFlag)
+	if err != nil {
+		return err
+	}
+	corpusYear, err := cmd.Flags().GetString(corpusYearFlag)
+	if err != nil {
+		return err
+	}
+	corpusSource, err := cmd.Flags().GetString(corpusSourceFlag)
+	if err != nil {
+		return err
+	}
+	directory, err := cmd.Flags().GetString(crsPathFlag)
+	if err != nil {
+		return err
+	}
+	corpusLocalPath, err := cmd.Flags().GetString(corpusLocalPathFlag)
+	if err != nil {
+		return err
+	}
+	lines, err := cmd.Flags().GetInt(linesFlag)
+	if err != nil {
+		return err
+	}
+	outputFilename, err := cmd.Flags().GetString(corpusFileFlag)
+	if err != nil {
+		return err
+	}
+	paranoiaLevel, err := cmd.Flags().GetInt(paranoiaLevelFlag)
+	if err != nil {
+		return err
+	}
+	payload, err := cmd.Flags().GetString(payloadFlag)
+	if err != nil {
+		return err
+	}
+	number, err := cmd.Flags().GetInt(corpusLineFlag)
+	if err != nil {
+		return err
+	}
+	rule, err := cmd.Flags().GetInt(ruleFlag)
+	if err != nil {
+		return err
+	}
+	wantedOutput, err := cmd.Flags().GetString(corpusOutputFlag)
+	if err != nil {
+		return err
+	}
+	maxConcurrency, err := cmd.Flags().GetInt(maxConcurrencyFlag)
+	if err != nil {
+		return err
+	}
 
 	// --max-concurrency defaults to 1 if debug/trace is enabled, but if set explicitly, it should override this
 	if !cmd.Flags().Changed(maxConcurrencyFlag) && zerolog.GlobalLevel() <= zerolog.DebugLevel {
 		maxConcurrency = 1
 	}
 
-	if paranoiaLevel > 1 && rule > 0 {
+	if paranoiaLevel < minCrsParanoiaLevel || paranoiaLevel > maxCrsParanoiaLevel {
+		return fmt.Errorf("paranoia level must be between %d and %d", minCrsParanoiaLevel, maxCrsParanoiaLevel)
+	}
+
+	if paranoiaLevel > minCrsParanoiaLevel && rule > 0 {
 		return fmt.Errorf("paranoia level and rule ID cannot be used together")
 	}
 
 	// use outputFile to write to file
 	var outputFile *os.File
-	var err error
 	if outputFilename == "" {
 		outputFile = os.Stdout
 	} else {
@@ -110,18 +164,19 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	}
 
 	params := quantitative.Params{
-		Corpus:         corpusType,
-		CorpusSize:     corpusSize,
-		CorpusYear:     corpusYear,
-		CorpusLang:     corpusLang,
-		CorpusSource:   corpusSource,
-		Directory:      directory,
-		Lines:          lines,
-		ParanoiaLevel:  paranoiaLevel,
-		Number:         number,
-		Payload:        payload,
-		Rule:           rule,
-		MaxConcurrency: maxConcurrency,
+		Corpus:          corpusType,
+		CorpusSize:      corpusSize,
+		CorpusYear:      corpusYear,
+		CorpusLang:      corpusLang,
+		CorpusSource:    corpusSource,
+		Directory:       directory,
+		CorpusLocalPath: corpusLocalPath,
+		Lines:           lines,
+		ParanoiaLevel:   paranoiaLevel,
+		Number:          number,
+		Payload:         payload,
+		Rule:            rule,
+		MaxConcurrency:  maxConcurrency,
 	}
 
 	return quantitative.RunQuantitativeTests(params, out)

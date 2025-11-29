@@ -25,10 +25,11 @@ func (s *leipzigCorpusTestSuite) SetupSuite() {
 
 func TestLeipzigCorpusTestSuite(t *testing.T) {
 	suite.Run(t, new(leipzigCorpusTestSuite))
+	suite.Run(t, new(leipzigCorpusWithCustomLocalPathTestSuite))
 }
 
 func (s *leipzigCorpusTestSuite) SetupTest() {
-	s.corpus = NewLeipzigCorpus()
+	s.corpus = NewLeipzigCorpus("")
 	s.Require().Equal("https://downloads.wortschatz-leipzig.de/corpora", s.corpus.URL())
 	s.Require().Equal("eng", s.corpus.Language())
 	s.Require().Equal("100K", s.corpus.Size())
@@ -74,4 +75,29 @@ func (s *leipzigCorpusTestSuite) TestNextSentenceFromCorpus() {
 	payload := s.iter.Next()
 	s.Require().Equal(1, payload.LineNumber())
 	s.Require().Equal("$156,834 for The Pathway to Excellence in Practice program through Neighborhood Place of Puna.", payload.Content())
+}
+
+type leipzigCorpusWithCustomLocalPathTestSuite struct {
+	suite.Suite
+	corpus    corpus.Corpus
+	cache     corpus.File
+	localPath string
+}
+
+func (s *leipzigCorpusWithCustomLocalPathTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+}
+
+func (s *leipzigCorpusWithCustomLocalPathTestSuite) SetupTest() {
+	customPath := s.T().TempDir()
+	s.corpus = NewLeipzigCorpus(customPath)
+	s.localPath = customPath
+}
+
+func (s *leipzigCorpusWithCustomLocalPathTestSuite) TestFetchIntoCustomLocalPath() {
+	s.cache = s.corpus.FetchCorpusFile()
+	s.Require().Equal(s.localPath, s.cache.CacheDir())
+	s.Require().Contains(s.cache.FilePath(), s.localPath)
+	s.Require().NotEmpty(s.cache.FilePath())
+	s.Require().FileExists(s.cache.FilePath())
 }

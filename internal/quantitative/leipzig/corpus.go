@@ -35,10 +35,12 @@ type LeipzigCorpus struct {
 	url_ string
 	// lang is the language of the corpus
 	lang string
-	// corpusFile is the original file name that contains the corpus file
-	corpusFile string
+	// corpusFilename is the original file name that contains the corpus file
+	corpusFilename string
 	// filename is the file name of the corpus
 	filename string
+	// corpusLocalPath is the local path to the corpus
+	corpusLocalPath string
 	// size is the size of the corpus
 	size string
 	// source is the source of the corpus
@@ -50,7 +52,7 @@ type LeipzigCorpus struct {
 func (c *LeipzigCorpus) regenerateFileNames() {
 	size := strings.ToUpper(c.size)
 
-	c.corpusFile = fmt.Sprintf("%s_%s_%s_%s.%s",
+	c.corpusFilename = fmt.Sprintf("%s_%s_%s_%s.%s",
 		c.lang, c.source, c.year, size,
 		defaultCorpusExt)
 	c.filename = fmt.Sprintf("%s_%s_%s_%s-%s",
@@ -59,15 +61,16 @@ func (c *LeipzigCorpus) regenerateFileNames() {
 }
 
 // NewLeipzigCorpus returns a new Leipzig corpus
-func NewLeipzigCorpus() corpus.Corpus {
+func NewLeipzigCorpus(corpusLocalPath string) corpus.Corpus {
 	leipzig := &LeipzigCorpus{
-		url_:       defaultCorpusSite,
-		corpusFile: "",
-		filename:   "",
-		lang:       defaultCorpusLanguage,
-		source:     defaultCorpusSource,
-		year:       defaultCorpusYear,
-		size:       defaultCorpusSize,
+		url_:            defaultCorpusSite,
+		corpusFilename:  "",
+		filename:        "",
+		corpusLocalPath: corpusLocalPath,
+		lang:            defaultCorpusLanguage,
+		source:          defaultCorpusSource,
+		year:            defaultCorpusYear,
+		size:            defaultCorpusSize,
 	}
 
 	leipzig.regenerateFileNames()
@@ -102,6 +105,10 @@ func (c *LeipzigCorpus) WithYear(year string) corpus.Corpus {
 // URL returns the URL of the corpus
 func (c *LeipzigCorpus) URL() string {
 	return c.url_
+}
+
+func (c *LeipzigCorpus) LocalPath() string {
+	return c.corpusLocalPath
 }
 
 // WithURL sets the URL of the corpus
@@ -156,14 +163,17 @@ func (c *LeipzigCorpus) GetIterator(cache corpus.File) corpus.Iterator {
 // FetchCorpusFile gets the file from the remote url.
 // We assume that the file is compressed somehow, and we want to get a file from the container.
 func (c *LeipzigCorpus) FetchCorpusFile() corpus.File {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Could not get home directory")
+	url := fmt.Sprintf("%s/%s", c.url_, c.corpusFilename)
+
+	cacheDir := c.corpusLocalPath
+	if cacheDir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Could not get home directory")
+		}
+		cacheDir = filepath.Join(home, ".ftw")
+		log.Debug().Msgf("Using default corpus cache directory: %s", cacheDir)
 	}
-
-	url := fmt.Sprintf("%s/%s", c.url_, c.corpusFile)
-
-	cacheDir := filepath.Join(home, ".ftw")
 
 	log.Debug().Msgf("Preparing download of corpus file from %s", url)
 	dest := filepath.Join(cacheDir, "extracted")
@@ -194,7 +204,7 @@ func (c *LeipzigCorpus) FetchCorpusFile() corpus.File {
 	}
 
 	log.Info().Msgf("Downloading corpus file from %s", url)
-	_, err = client.Get(context.Background(), request)
+	_, err := client.Get(context.Background(), request)
 	if err != nil {
 		log.Fatal().Msgf("download failed: %v", err)
 	}
