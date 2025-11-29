@@ -53,7 +53,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	log.Trace().Msgf("Rule: %d", params.Rule)
 	log.Trace().Msgf("Payload: %s", params.Payload)
 	log.Trace().Msgf("Directory: %s", params.Directory)
-	log.Trace().Msgf("CorpusLocalPath: %s", params.CorpusLocalPath)
+	log.Trace().Msgf("Local path to corpus file: %s", params.CorpusLocalPath)
 	log.Trace().Msgf("Paranoia level: %d", params.ParanoiaLevel)
 
 	startTime := time.Now()
