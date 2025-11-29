@@ -32,8 +32,8 @@ const (
 	payloadFlag         = "payload"
 	ruleFlag            = "rule"
 
-	minCRSParanoiaLevel = 1
-	maxCRSParanoiaLevel = 4
+	minCrsParanoiaLevel = 1
+	maxCrsParanoiaLevel = 4
 )
 
 // NewQuantitativeCmd
@@ -135,11 +135,11 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 		maxConcurrency = 1
 	}
 
-	if paranoiaLevel < minCRSParanoiaLevel || paranoiaLevel > maxCRSParanoiaLevel {
-		return fmt.Errorf("paranoia level must be between %d and %d", minCRSParanoiaLevel, maxCRSParanoiaLevel)
+	if paranoiaLevel < minCrsParanoiaLevel || paranoiaLevel > maxCrsParanoiaLevel {
+		return fmt.Errorf("paranoia level must be between %d and %d", minCrsParanoiaLevel, maxCrsParanoiaLevel)
 	}
 
-	if paranoiaLevel > minCRSParanoiaLevel && rule > 0 {
+	if paranoiaLevel > minCrsParanoiaLevel && rule > 0 {
 		return fmt.Errorf("paranoia level and rule ID cannot be used together")
 	}
 
