@@ -78,7 +78,7 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 	slices.SortFunc(ruleIDs, func(i, j int) int {
 		// First sort by paranoia level and then by rule ID
 		plSort := s.falsePositivesPerRule[i].ParanoiaLevel - s.falsePositivesPerRule[j].ParanoiaLevel
-		if plSort > 0 {
+		if plSort != 0 {
 			return plSort
 		}
 		return i - j
