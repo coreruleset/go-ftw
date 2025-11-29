@@ -4,13 +4,13 @@
 package test
 
 import (
-	"go.yaml.in/yaml/v4"
+	yamlv4 "go.yaml.in/yaml/v4"
 )
 
 // GetTestFromYaml will get the tests to be processed from a YAML string.
 func GetTestFromYaml(testYaml []byte, fileName string) (ftwTest *FTWTest, err error) {
 	ftwTest = &FTWTest{}
-	err = yaml.Unmarshal(testYaml, ftwTest)
+	err = yamlv4.Unmarshal(testYaml, ftwTest)
 	if err != nil {
 		return nil, err
 	}

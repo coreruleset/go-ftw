@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/providers/env/v2"
+	koanfenvv2 "github.com/knadh/koanf/providers/env/v2"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/rawbytes"
 	koanfv2 "github.com/knadh/koanf/v2"
@@ -72,7 +72,7 @@ func NewConfigFromFile(cfgFile string) (*FTWConfiguration, error) {
 // NewConfigFromEnv reads configuration information from environment variables that start with `FTW_`
 func NewConfigFromEnv() (*FTWConfiguration, error) {
 	k := getKoanfInstance()
-	options := env.Opt{
+	options := koanfenvv2.Opt{
 		Prefix: "FTW_",
 		TransformFunc: func(key string, value string) (string, any) {
 			cleanKey := strings.ReplaceAll(strings.ToLower(
@@ -80,7 +80,7 @@ func NewConfigFromEnv() (*FTWConfiguration, error) {
 			return cleanKey, value
 		},
 	}
-	err := k.Load(env.Provider(".", options), nil)
+	err := k.Load(koanfenvv2.Provider(".", options), nil)
 
 	if err != nil {
 		return nil, err
