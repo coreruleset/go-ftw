@@ -25,10 +25,10 @@ const (
 	corpusYearFlag      = "corpus-year"
 	corpusLocalPathFlag = "corpus-local-path"
 	crsPathFlag         = "crs-path"
-	corpusFileFlag      = "file"
+	outputFileFlag      = "file"
 	linesFlag           = "lines"
 	maxConcurrencyFlag  = "max-concurrency"
-	corpusOutputFlag    = "output"
+	outputTypeFlag      = "output"
 	paranoiaLevelFlag   = "paranoia-level"
 	payloadFlag         = "payload"
 	ruleFlag            = "rule"
@@ -37,8 +37,7 @@ const (
 	maxCrsParanoiaLevel = 4
 )
 
-// NewQuantitativeCmd
-// Returns a new cobra command for running quantitative tests
+// New returns a new cobra command for running quantitative tests
 func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:     "quantitative",
@@ -61,8 +60,8 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd.Flags().StringP(corpusSourceFlag, "S", "news", "Corpus source to use for the quantitative tests. Most corpus will have a source like \"news\", \"web\", \"wikipedia\", etc.")
 	runCmd.Flags().String(corpusLocalPathFlag, "", "Path to store the local corpora. Defaults to .ftw folder under user's home directory.")
 	runCmd.Flags().StringP(crsPathFlag, "C", ".", "Path to top folder of local CRS installation.")
-	runCmd.Flags().StringP(corpusFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
-	runCmd.Flags().StringP(corpusOutputFlag, "o", "normal", "Output type for quantitative tests.")
+	runCmd.Flags().StringP(outputFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
+	runCmd.Flags().StringP(outputTypeFlag, "o", "normal", "Output type for quantitative tests.")
 
 	return runCmd
 }
@@ -99,11 +98,20 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+	if corpusLocalPath != "" {
+		info, err := os.Stat(corpusLocalPath)
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return fmt.Errorf("file doesn't exist %s", corpusLocalPath)
+		}
+	}
 	lines, err := cmd.Flags().GetInt(linesFlag)
 	if err != nil {
 		return err
 	}
-	outputFilename, err := cmd.Flags().GetString(corpusFileFlag)
+	outputFilename, err := cmd.Flags().GetString(outputFileFlag)
 	if err != nil {
 		return err
 	}
@@ -123,7 +131,7 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	wantedOutput, err := cmd.Flags().GetString(corpusOutputFlag)
+	wantedOutput, err := cmd.Flags().GetString(outputTypeFlag)
 	if err != nil {
 		return err
 	}

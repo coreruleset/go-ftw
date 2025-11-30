@@ -55,7 +55,7 @@ const (
 	reportTriggeredRulesFlag     = "report-triggered-rules"
 )
 
-// NewRunCmd represents the run command
+// New represents the run command
 func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:   "run",

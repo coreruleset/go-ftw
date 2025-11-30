@@ -13,7 +13,7 @@ import (
 
 var logger = log.With().Str("component", "cmd.self_update").Logger()
 
-// NewSelfUpdateCommand represents the self-update command
+// New represents the self-update command
 func New(cmdContext *internal.CommandContext) *cobra.Command {
 	return &cobra.Command{
 		Use:   "self-update",
