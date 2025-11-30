@@ -18,6 +18,8 @@ type RawCorpus struct {
 	year     string
 	source   string
 	language string
+	// file is the open file used by the iterator
+	file *os.File
 }
 
 // LocalPath implements corpus.Corpus.
@@ -62,20 +64,33 @@ func (c *RawCorpus) FetchCorpusFile() corpus.File {
 	return NewFile().WithFileName(c.filePath)
 }
 
-// GetIterator returns an iterator for the raw corpus
+// GetIterator returns an iterator for the corpus.
+// Call CloseIterator to close the underlying file when done.
 func (c *RawCorpus) GetIterator(cache corpus.File) corpus.Iterator {
 	filePath := cache.FilePath()
 	if filePath == "" {
 		log.Fatal().Msg("Raw corpus file path is empty")
 	}
 
-	file, err := os.Open(filePath)
+	var err error
+	c.file, err = os.Open(filePath)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not open the file %s", filePath)
 	}
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(c.file)
 	return NewIterator(scanner)
+}
+
+// CloseIterator closes the underlying file the iterator is using.
+func (c *RawCorpus) CloseIterator() error {
+	if c.file == nil {
+		return nil
+	}
+
+	err := c.file.Close()
+	c.file = nil
+	return err
 }
 
 // Size returns the size of the corpus

@@ -96,6 +96,7 @@ func (s *rawCorpusTestSuite) TestGetIterator() {
 	file := s.corpus.FetchCorpusFile()
 	iter := s.corpus.GetIterator(file)
 	s.Require().NotNil(iter)
+	defer s.corpus.CloseIterator()
 
 	// Test that we can iterate through the payloads
 	s.Require().True(iter.HasNext())

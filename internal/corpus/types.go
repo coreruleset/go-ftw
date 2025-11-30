@@ -76,8 +76,12 @@ type Corpus interface {
 	// FetchCorpusFile fetches the corpus file from the remote URL and returns a CorpusFile for interaction with the file.
 	FetchCorpusFile() File
 
-	// GetIterator returns an iterator for the corpus
+	// GetIterator returns an iterator for the corpus.
+	// Call CloseIterator to close the underlying file when done.
 	GetIterator(c File) Iterator
+
+	// CloseIterator closes the underlying file the iterator is using.
+	CloseIterator() error
 
 	// Size returns the size of the corpus
 	Size() string

@@ -47,6 +47,8 @@ type LeipzigCorpus struct {
 	source string
 	// year is the year of the corpus
 	year string
+	// file is the open file used by the iterator
+	file *os.File
 }
 
 func (c *LeipzigCorpus) regenerateFileNames() {
@@ -142,22 +144,35 @@ func (c *LeipzigCorpus) WithLanguage(lang string) corpus.Corpus {
 	return c
 }
 
-// GetIterator returns an iterator for the corpus
+// GetIterator returns an iterator for the corpus.
+// Call CloseIterator to close the underlying file when done.
 func (c *LeipzigCorpus) GetIterator(cache corpus.File) corpus.Iterator {
 	// open cache file
 	cached := cache.FilePath()
 	if cached == "" {
 		log.Fatal().Msg("Cache file path is empty")
 	}
-	file, err := os.Open(cached)
+	var err error
+	c.file, err = os.Open(cached)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not open the file %s", cached)
 	}
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(c.file)
 	it := &LeipzigIterator{
 		scanner: scanner,
 	}
 	return it
+}
+
+// CloseIterator closes the underlying file the iterator is using.
+func (c *LeipzigCorpus) CloseIterator() error {
+	if c.file == nil {
+		return nil
+	}
+
+	err := c.file.Close()
+	c.file = nil
+	return err
 }
 
 // FetchCorpusFile gets the file from the remote url.

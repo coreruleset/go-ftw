@@ -143,6 +143,9 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 		}(runner, payload, params.Rule, stats)
 	}
 	wg.Wait()
+	if err := corpusRunner.CloseIterator(); err != nil {
+		return err
+	}
 
 	stats.SetTotalTime(time.Since(startTime))
 	stats.printSummary(out)
