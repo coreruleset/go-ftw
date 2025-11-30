@@ -17,6 +17,7 @@ import (
 	"wait4x.dev/v3/checker/http"
 	"wait4x.dev/v3/waiter"
 
+	"github.com/coreruleset/go-ftw/cmd/internal"
 	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/output"
 	"github.com/coreruleset/go-ftw/runner"
@@ -55,12 +56,12 @@ const (
 )
 
 // NewRunCmd represents the run command
-func NewRunCommand() *cobra.Command {
+func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:   "run",
 		Short: "Run Tests",
 		Long:  `Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.`,
-		RunE:  runE,
+		RunE:  runE(cmdContext),
 	}
 
 	runCmd.Flags().StringP(excludeFlag, "e", "", "exclude tests matching this Go regular expression (e.g. to exclude all tests beginning with \"91\", use \"^91.*\"). \nIf you want more permanent exclusion, check the 'exclude' option in the config file.")
@@ -95,38 +96,40 @@ func NewRunCommand() *cobra.Command {
 	return runCmd
 }
 
-func runE(cmd *cobra.Command, _ []string) error {
-	cmd.SilenceUsage = true
-	runnerConfig, err := buildRunnerConfig(cmd)
-	if err != nil {
-		return err
-	}
-	out, err := buildOutput(cmd)
-	if err != nil {
-		return err
-	}
+func runE(cmdContext *internal.CommandContext) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, _ []string) error {
+		cmd.SilenceUsage = true
+		runnerConfig, err := buildRunnerConfig(cmd, cmdContext)
+		if err != nil {
+			return err
+		}
+		out, err := buildOutput(cmd)
+		if err != nil {
+			return err
+		}
 
-	tests, err := loadTests(cmd)
-	if err != nil {
-		return err
+		tests, err := loadTests(cmd)
+		if err != nil {
+			return err
+		}
+		_ = out.Println("%s", out.Message("** Starting tests!"))
+
+		currentRun, err := runner.Run(runnerConfig, tests, out)
+
+		if err != nil {
+			return err
+		}
+
+		if currentRun.Stats.TotalFailed() > 0 {
+			return fmt.Errorf("failed %d tests", currentRun.Stats.TotalFailed())
+		}
+
+		return nil
 	}
-	_ = out.Println("%s", out.Message("** Starting tests!"))
-
-	currentRun, err := runner.Run(runnerConfig, tests, out)
-
-	if err != nil {
-		return err
-	}
-
-	if currentRun.Stats.TotalFailed() > 0 {
-		return fmt.Errorf("failed %d tests", currentRun.Stats.TotalFailed())
-	}
-
-	return nil
 }
 
 //gocyclo:ignore
-func buildRunnerConfig(cmd *cobra.Command) (*config.RunnerConfig, error) {
+func buildRunnerConfig(cmd *cobra.Command, cmdContext *internal.CommandContext) (*config.RunnerConfig, error) {
 	exclude, err := cmd.Flags().GetString(excludeFlag)
 	if err != nil {
 		return nil, err
@@ -194,7 +197,7 @@ func buildRunnerConfig(cmd *cobra.Command) (*config.RunnerConfig, error) {
 		return nil, fmt.Errorf("inlusion *and* exclusion specified. You need to choose either --%s (%s) or --%s (%s)", includeFlag, include, excludeFlag, exclude)
 	}
 
-	runnerConfig := config.NewRunnerConfiguration(cfg)
+	runnerConfig := config.NewRunnerConfiguration(cmdContext.Configuration)
 	runnerConfig.ShowTime, err = cmd.Flags().GetBool(timeFlag)
 	if err != nil {
 		return nil, err
@@ -229,7 +232,7 @@ func buildRunnerConfig(cmd *cobra.Command) (*config.RunnerConfig, error) {
 	}
 	runnerConfig.SkipTlsVerification = skipTlsVerification
 
-	if cloud {
+	if cmdContext.CloudMode {
 		runnerConfig.RunMode = config.CloudRunMode
 	}
 	if logFilePath != "" {
@@ -283,7 +286,7 @@ func buildRunnerConfig(cmd *cobra.Command) (*config.RunnerConfig, error) {
 		}
 	}
 
-	err = runnerConfig.LoadPlatformOverrides(overridesFile)
+	err = runnerConfig.LoadPlatformOverrides(cmdContext.OverridesFileName)
 	if err != nil {
 		log.Fatal().Msg("failed to load platform overrides")
 	}

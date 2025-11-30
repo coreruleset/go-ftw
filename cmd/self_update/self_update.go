@@ -7,13 +7,14 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
+	"github.com/coreruleset/go-ftw/cmd/internal"
 	"github.com/coreruleset/go-ftw/internal/updater"
 )
 
 var logger = log.With().Str("component", "cmd.self_update").Logger()
 
 // NewSelfUpdateCommand represents the self-update command
-func NewSelfUpdateCommand(version string) *cobra.Command {
+func New(cmdContext *internal.CommandContext) *cobra.Command {
 	return &cobra.Command{
 		Use:   "self-update",
 		Short: "Performs self-update",

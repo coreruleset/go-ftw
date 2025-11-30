@@ -7,9 +7,8 @@ import (
 	"bufio"
 	"os"
 
+	"github.com/coreruleset/go-ftw/internal/corpus"
 	"github.com/rs/zerolog/log"
-
-	"github.com/coreruleset/go-ftw/experimental/corpus"
 )
 
 // RawCorpus represents a corpus from a raw text file with one payload per line.
@@ -21,10 +20,15 @@ type RawCorpus struct {
 	language string
 }
 
+// LocalPath implements corpus.Corpus.
+func (c *RawCorpus) LocalPath() string {
+	return c.filePath
+}
+
 // NewRawCorpus returns a new raw corpus instance
-func NewRawCorpus() corpus.Corpus {
+func NewRawCorpus(filePath string) corpus.Corpus {
 	return &RawCorpus{
-		filePath: "",
+		filePath: filePath,
 		size:     "unknown",
 		year:     "unknown",
 		source:   "file",
@@ -34,7 +38,7 @@ func NewRawCorpus() corpus.Corpus {
 
 // URL returns the file path (used as URL for raw corpus)
 func (c *RawCorpus) URL() string {
-	return c.filePath
+	return ""
 }
 
 // WithURL sets the file path for the raw corpus

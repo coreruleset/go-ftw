@@ -6,6 +6,9 @@ package cmd
 import (
 	"testing"
 
+	"github.com/coreruleset/go-ftw/cmd/internal"
+	run "github.com/coreruleset/go-ftw/cmd/run"
+	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/utils"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
@@ -22,7 +25,6 @@ func TestRootTestSuite(t *testing.T) {
 
 func (s *rootCmdTestSuite) SetupTest() {
 	s.rootCmd = NewRootCommand()
-	s.rootCmd.AddCommand(NewRunCommand())
 }
 func (s *rootCmdTestSuite) TestRootCommand() {
 	rootCmd := NewRootCommand()
@@ -38,24 +40,27 @@ func (s *rootCmdTestSuite) TestFlags() {
 	s.Require().NoError(err)
 	s.rootCmd.SetArgs([]string{
 		"run",
-		"--" + configFlag, configFile,
-		"--" + debugFlag,
-		"--" + overridesFlag, overridesFile,
-		"--" + traceFlag,
+		"--" + configFlagName, configFile,
+		"--" + debugFlagName,
+		"--" + overridesFlagName, overridesFile,
+		"--" + traceFlagName,
 	})
+	cmdContext := internal.NewCommandContext()
+	cmdContext.Configuration = config.NewDefaultConfig()
+	s.rootCmd.AddCommand(run.New(cmdContext))
 	cmd, _ := s.rootCmd.ExecuteC()
 
-	config, err := cmd.Flags().GetString(configFlag)
+	config, err := cmd.Flags().GetString(configFlagName)
 	s.NoError(err)
-	debug, err := cmd.Flags().GetBool(debugFlag)
+	debug, err := cmd.Flags().GetBool(debugFlagName)
 	s.NoError(err)
-	overrides, err := cmd.Flags().GetString(overridesFlag)
+	overrides, err := cmd.Flags().GetString(overridesFlagName)
 	s.NoError(err)
-	trace, err := cmd.Flags().GetBool(traceFlag)
+	trace, err := cmd.Flags().GetBool(traceFlagName)
 	s.NoError(err)
 
 	s.Equal(configFile, config)
-	s.Equal(true, debug)
+	s.True(debug)
 	s.Equal(overridesFile, overrides)
-	s.Equal(true, trace)
+	s.True(trace)
 }

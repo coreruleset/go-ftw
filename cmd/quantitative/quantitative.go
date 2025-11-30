@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
+	"github.com/coreruleset/go-ftw/cmd/internal"
 	"github.com/coreruleset/go-ftw/internal/corpus"
 	"github.com/coreruleset/go-ftw/internal/quantitative"
 	"github.com/coreruleset/go-ftw/output"
@@ -22,7 +23,6 @@ const (
 	corpusSizeFlag      = "corpus-size"
 	corpusSourceFlag    = "corpus-source"
 	corpusYearFlag      = "corpus-year"
-	corpusInputFlag     = "corpus-input"
 	corpusLocalPathFlag = "corpus-local-path"
 	crsPathFlag         = "crs-path"
 	corpusFileFlag      = "file"
@@ -39,7 +39,7 @@ const (
 
 // NewQuantitativeCmd
 // Returns a new cobra command for running quantitative tests
-func NewQuantitativeCmd() *cobra.Command {
+func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:     "quantitative",
 		Aliases: []string{"q"},
@@ -59,7 +59,6 @@ func NewQuantitativeCmd() *cobra.Command {
 	runCmd.Flags().StringP(corpusSizeFlag, "s", "100K", "Corpus size to use for the quantitative tests. Most corpora will have sizes like \"100K\", \"1M\", etc.")
 	runCmd.Flags().StringP(corpusYearFlag, "y", "2023", "Corpus year to use for the quantitative tests. Most corpus will have a year like \"2023\", \"2022\", etc.")
 	runCmd.Flags().StringP(corpusSourceFlag, "S", "news", "Corpus source to use for the quantitative tests. Most corpus will have a source like \"news\", \"web\", \"wikipedia\", etc.")
-	runCmd.Flags().StringP(corpusInputFlag, "i", "", "Input file path for raw corpus. Required when using --corpus raw.")
 	runCmd.Flags().String(corpusLocalPathFlag, "", "Path to store the local corpora. Defaults to .ftw folder under user's home directory.")
 	runCmd.Flags().StringP(crsPathFlag, "C", ".", "Path to top folder of local CRS installation.")
 	runCmd.Flags().StringP(corpusFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
@@ -68,6 +67,7 @@ func NewQuantitativeCmd() *cobra.Command {
 	return runCmd
 }
 
+//gocyclo:ignore
 func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
@@ -88,7 +88,6 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 	corpusSource, err := cmd.Flags().GetString(corpusSourceFlag)
-	corpusInput, _ := cmd.Flags().GetString(corpusInputFlag)
 	if err != nil {
 		return err
 	}
@@ -146,11 +145,6 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("paranoia level and rule ID cannot be used together")
 	}
 
-	// Validate corpus input for raw corpus
-	if corpusTypeAsString == "raw" && corpusInput == "" {
-		return fmt.Errorf("--corpus-input is required when using --corpus raw")
-	}
-
 	// use outputFile to write to file
 	var outputFile *os.File
 	if outputFilename == "" {
@@ -163,7 +157,7 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	}
 	out := output.NewOutput(wantedOutput, outputFile)
 
-	var corpusType corpus.Type
+	corpusType := corpus.NoType
 	if corpusTypeAsString != "" {
 		err = corpusType.Set(corpusTypeAsString)
 		if err != nil {
@@ -177,7 +171,6 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 		CorpusYear:      corpusYear,
 		CorpusLang:      corpusLang,
 		CorpusSource:    corpusSource,
-		CorpusInput:     corpusInput,
 		Directory:       directory,
 		CorpusLocalPath: corpusLocalPath,
 		Lines:           lines,

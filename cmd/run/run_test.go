@@ -19,6 +19,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/coreruleset/go-ftw/cmd/internal"
+	"github.com/coreruleset/go-ftw/config"
 	"github.com/coreruleset/go-ftw/utils"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
@@ -51,7 +53,8 @@ tests:
 type runCmdTestSuite struct {
 	suite.Suite
 	tempDir        string
-	rootCmd        *cobra.Command
+	cmd            *cobra.Command
+	cmdContext     *internal.CommandContext
 	testHTTPServer *httptest.Server
 }
 
@@ -91,21 +94,21 @@ func (s *runCmdTestSuite) SetupTest() {
 	err = testFileContents.Close()
 	s.Require().NoError(err)
 
-	s.rootCmd = NewRootCommand()
-	s.rootCmd.AddCommand(NewRunCommand())
+	s.cmdContext = internal.NewCommandContext()
+	s.cmd = New(s.cmdContext)
 }
 
 func (s *runCmdTestSuite) TearDownTest() {
 	s.testHTTPServer.Close()
 }
 
-func TestRunChoreTestSuite(t *testing.T) {
+func TestRunRunCmdTestSuite(t *testing.T) {
 	suite.Run(t, new(runCmdTestSuite))
 }
 
 func (s *runCmdTestSuite) TestHTTPCommandInvalidAddress() {
-	s.rootCmd.SetArgs([]string{"run", "-d", s.tempDir, "--" + waitForHostFlag, "http://local host"})
-	cmd, err := s.rootCmd.ExecuteContextC(context.Background())
+	s.cmd.SetArgs([]string{"-d", s.tempDir, "--" + waitForHostFlag, "http://local host"})
+	cmd, err := s.cmd.ExecuteContextC(context.Background())
 
 	s.Equal("run", cmd.Name())
 	s.Error(err)
@@ -113,33 +116,40 @@ func (s *runCmdTestSuite) TestHTTPCommandInvalidAddress() {
 }
 
 func (s *runCmdTestSuite) TestHTTPConnectionSuccess() {
-	s.rootCmd.SetArgs([]string{"run", "--" + cloudFlag, "-d", s.tempDir, "--" + waitForHostFlag, s.testHTTPServer.URL})
-	_, err := s.rootCmd.ExecuteContextC(context.Background())
+	s.cmdContext.CloudMode = true
+	s.cmd.SetArgs([]string{
+		"-d", s.tempDir,
+		"--" + waitForHostFlag, s.testHTTPServer.URL})
+	_, err := s.cmd.ExecuteContextC(context.Background())
 
 	s.Require().NoError(err)
 }
 
 func (s *runCmdTestSuite) TestHTTPConnectionFail() {
-	s.rootCmd.SetArgs([]string{"run", "--" + cloudFlag, "-d", s.tempDir, "--" + waitForTimeoutFlag, "2s", "--" + waitForHostFlag, "http://not-exists-doomain.tld"})
-	_, err := s.rootCmd.ExecuteContextC(context.Background())
+	s.cmdContext.CloudMode = true
+	s.cmd.SetArgs([]string{
+		"-d", s.tempDir,
+		"--" + waitForTimeoutFlag, "2s",
+		"--" + waitForHostFlag, "http://not-exists-doomain.tld"})
+	_, err := s.cmd.ExecuteContextC(context.Background())
 
 	s.Equal(context.DeadlineExceeded, err)
 }
 
 func (s *runCmdTestSuite) TestHTTPRequestHeaderSuccess() {
-	s.rootCmd.SetArgs([]string{
-		"run", "--" + cloudFlag, "-d", s.tempDir,
+	s.cmdContext.CloudMode = true
+	s.cmd.SetArgs([]string{
+		"-d", s.tempDir,
 		"--" + waitForHostFlag, s.testHTTPServer.URL,
 		"--" + waitForExpectBodyRegexFlag, `.*User-Agent=\[Go-http-client/1\.1\].*`,
 	})
-	_, err := s.rootCmd.ExecuteContextC(context.Background())
+	_, err := s.cmd.ExecuteContextC(context.Background())
 
 	s.Require().NoError(err)
 }
 
 func (s *runCmdTestSuite) TestFlags() {
-	s.rootCmd.SetArgs([]string{
-		"run",
+	s.cmd.SetArgs([]string{
 		"--" + excludeFlag, "123456",
 		"--" + includeFlag, "789012",
 		"--" + includeTagsFlag, "^a-tag.*$",
@@ -168,7 +178,7 @@ func (s *runCmdTestSuite) TestFlags() {
 		"--" + rateLimitFlag, "12s",
 		"--" + failFastFlag,
 	})
-	cmd, _ := s.rootCmd.ExecuteC()
+	cmd, _ := s.cmd.ExecuteC()
 
 	exclude, err := cmd.Flags().GetString(excludeFlag)
 	s.NoError(err)
@@ -260,15 +270,16 @@ include: '^9.*'
 `
 	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config-*.yaml")
 	s.Require().NoError(err)
+	cfg, err := config.NewConfigFromFile(configFile)
+	s.Require().NoError(err)
 
-	s.rootCmd.SetArgs([]string{
-		"run",
-		"--config", configFile,
+	s.cmdContext.Configuration = cfg
+	s.cmd.SetArgs([]string{
 		"-d", s.tempDir,
 	})
-	cmd, _ := s.rootCmd.ExecuteC()
+	cmd, _ := s.cmd.ExecuteC()
 
-	runnerConfig, err := buildRunnerConfig(cmd)
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
 	s.Require().NoError(err)
 
 	s.NotNil(runnerConfig.Include)
@@ -281,16 +292,17 @@ include: '^9.*'
 `
 	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
 	s.Require().NoError(err)
+	cfg, err := config.NewConfigFromFile(configFile)
+	s.Require().NoError(err)
 
-	s.rootCmd.SetArgs([]string{
-		"run",
-		"--config", configFile,
+	s.cmdContext.Configuration = cfg
+	s.cmd.SetArgs([]string{
 		"-d", s.tempDir,
 		"--include", "^1.*",
 	})
-	cmd, _ := s.rootCmd.ExecuteC()
+	cmd, _ := s.cmd.ExecuteC()
 
-	runnerConfig, err := buildRunnerConfig(cmd)
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
 	s.Require().NoError(err)
 
 	s.NotNil(runnerConfig.Include)
@@ -303,15 +315,16 @@ exclude: '^9.*'
 `
 	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
 	s.Require().NoError(err)
+	cfg, err := config.NewConfigFromFile(configFile)
+	s.Require().NoError(err)
 
-	s.rootCmd.SetArgs([]string{
-		"run",
-		"--config", configFile,
+	s.cmdContext.Configuration = cfg
+	s.cmd.SetArgs([]string{
 		"-d", s.tempDir,
 	})
-	cmd, _ := s.rootCmd.ExecuteC()
+	cmd, _ := s.cmd.ExecuteC()
 
-	runnerConfig, err := buildRunnerConfig(cmd)
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
 	s.Require().NoError(err)
 
 	s.NotNil(runnerConfig.Exclude)
@@ -324,16 +337,17 @@ exclude: '^9.*'
 `
 	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
 	s.Require().NoError(err)
+	cfg, err := config.NewConfigFromFile(configFile)
+	s.Require().NoError(err)
 
-	s.rootCmd.SetArgs([]string{
-		"run",
-		"--config", configFile,
+	s.cmdContext.Configuration = cfg
+	s.cmd.SetArgs([]string{
 		"-d", s.tempDir,
 		"--exclude", "^1.*",
 	})
-	cmd, _ := s.rootCmd.ExecuteC()
+	cmd, _ := s.cmd.ExecuteC()
 
-	runnerConfig, err := buildRunnerConfig(cmd)
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
 	s.Require().NoError(err)
 
 	s.NotNil(runnerConfig.Exclude)
@@ -346,15 +360,16 @@ include_tags: '^springfield.*'
 `
 	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
 	s.Require().NoError(err)
+	cfg, err := config.NewConfigFromFile(configFile)
+	s.Require().NoError(err)
 
-	s.rootCmd.SetArgs([]string{
-		"run",
-		"--config", configFile,
+	s.cmdContext.Configuration = cfg
+	s.cmd.SetArgs([]string{
 		"-d", s.tempDir,
 	})
-	cmd, _ := s.rootCmd.ExecuteC()
+	cmd, _ := s.cmd.ExecuteC()
 
-	runnerConfig, err := buildRunnerConfig(cmd)
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
 	s.Require().NoError(err)
 
 	s.NotNil(runnerConfig.IncludeTags)
@@ -367,16 +382,17 @@ include_tags: '^springfield.*'
 `
 	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
 	s.Require().NoError(err)
+	cfg, err := config.NewConfigFromFile(configFile)
+	s.Require().NoError(err)
 
-	s.rootCmd.SetArgs([]string{
-		"run",
-		"--config", configFile,
+	s.cmdContext.Configuration = cfg
+	s.cmd.SetArgs([]string{
 		"-d", s.tempDir,
 		"--include-tags", "^powerplant.*",
 	})
-	cmd, _ := s.rootCmd.ExecuteC()
+	cmd, _ := s.cmd.ExecuteC()
 
-	runnerConfig, err := buildRunnerConfig(cmd)
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
 	s.Require().NoError(err)
 
 	s.NotNil(runnerConfig.IncludeTags)
@@ -408,12 +424,11 @@ func (s *runCmdTestSuite) TestFilenameGlobFlag() {
 	s.Require().NoError(base.Close())
 	s.Require().NoError(os.Remove(base.Name()))
 
-	s.rootCmd.SetArgs([]string{
-		"run",
+	s.cmd.SetArgs([]string{
 		"-d", s.tempDir,
 		"-g", "*.yyy*l",
 	})
-	cmd, _ := s.rootCmd.ExecuteC()
+	cmd, _ := s.cmd.ExecuteC()
 	tests, err := loadTests(cmd)
 	s.Require().NoError(err)
 	s.Len(tests, 3)

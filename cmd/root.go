@@ -10,24 +10,28 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
+	check "github.com/coreruleset/go-ftw/cmd/check"
+	internal "github.com/coreruleset/go-ftw/cmd/internal"
+	quantitative "github.com/coreruleset/go-ftw/cmd/quantitative"
+	run "github.com/coreruleset/go-ftw/cmd/run"
+	selfUpdate "github.com/coreruleset/go-ftw/cmd/self_update"
 	"github.com/coreruleset/go-ftw/config"
 )
 
 const (
-	cloudFlag     = "cloud"
-	configFlag    = "config"
-	debugFlag     = "debug"
-	overridesFlag = "overrides"
-	traceFlag     = "trace"
+	cloudFlagName     = "cloud"
+	configFlagName    = "config"
+	debugFlagName     = "debug"
+	overridesFlagName = "overrides"
+	traceFlagName     = "trace"
 )
 
 var (
-	cfg           = config.NewDefaultConfig()
-	cfgFile       string
-	overridesFile string
-	debug         bool
-	trace         bool
-	cloud         bool
+	configurationFileNameFlag *internal.ConfigurationFileNameFlag
+	overridesFileNameFlag     *internal.OverridesFileNameFlag
+	debugFlag                 *internal.DebugFlag
+	traceFlag                 *internal.TraceFlag
+	cloudFlag                 *internal.CloudFlag
 )
 
 // NewRootCommand represents the base command when called without any subcommands
@@ -36,11 +40,9 @@ func NewRootCommand() *cobra.Command {
 		Use:   "go-ftw",
 		Short: "Framework for Testing WAFs - Go Version",
 	}
-	rootCmd.PersistentFlags().StringVar(&cfgFile, configFlag, "", "specify config file (default is $PWD/.ftw.yaml)")
-	rootCmd.PersistentFlags().StringVar(&overridesFile, overridesFlag, "", "specify file with platform specific overrides")
-	rootCmd.PersistentFlags().BoolVarP(&debug, debugFlag, "", false, "debug output")
-	rootCmd.PersistentFlags().BoolVarP(&trace, traceFlag, "", false, "trace output: really, really verbose")
-	rootCmd.PersistentFlags().BoolVarP(&cloud, cloudFlag, "", false, "cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)")
+
+	cmdContext := internal.NewCommandContext()
+	buildFlags(rootCmd, cmdContext)
 
 	return rootCmd
 }
@@ -49,30 +51,29 @@ func NewRootCommand() *cobra.Command {
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute(version string) error {
 	rootCmd := NewRootCommand()
-	rootCmd.AddCommand(NewCheckCommand())
-	rootCmd.AddCommand(NewRunCommand())
-	rootCmd.AddCommand(NewQuantitativeCmd())
-	rootCmd.AddCommand(NewSelfUpdateCommand(version))
+	cmdContext := internal.NewCommandContext()
+	rootCmd.AddCommand(
+		check.New(cmdContext),
+		run.New(cmdContext),
+		quantitative.New(cmdContext),
+		selfUpdate.New(cmdContext))
 	// Setting Version creates a `--version` flag
 	rootCmd.Version = version
+	initConfig(cmdContext)
 
 	return rootCmd.ExecuteContext(context.Background())
 }
 
-func init() {
-	cobra.OnInitialize(initConfig)
-}
-
-func initConfig() {
+func initConfig(cmdContext *internal.CommandContext) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	if debug {
+	if cmdContext.Debug {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
-	if trace {
+	if cmdContext.Trace {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	}
 	var err error
-	cfg, err = config.NewConfigFromFile(cfgFile)
+	cfg, err := config.NewConfigFromFile(cmdContext.ConfigurationFileName)
 	if err != nil {
 		cfgenv, errEnv := config.NewConfigFromEnv()
 		if errEnv != nil {
@@ -80,7 +81,21 @@ func initConfig() {
 		}
 		cfg = cfgenv
 	}
-	if cloud {
+	cmdContext.Configuration = cfg
+	if cmdContext.CloudMode {
 		cfg.RunMode = config.CloudRunMode
 	}
+}
+
+func buildFlags(cmd *cobra.Command, cmdContext *internal.CommandContext) {
+	configurationFileNameFlag = &internal.ConfigurationFileNameFlag{Context: cmdContext}
+	overridesFileNameFlag = &internal.OverridesFileNameFlag{Context: cmdContext}
+	debugFlag = &internal.DebugFlag{Context: cmdContext}
+	traceFlag = &internal.TraceFlag{Context: cmdContext}
+	cloudFlag = &internal.CloudFlag{Context: cmdContext}
+	cmd.PersistentFlags().VarP(configurationFileNameFlag, configFlagName, "", "specify config file (default is $PWD/.ftw.yaml)")
+	cmd.PersistentFlags().VarP(overridesFileNameFlag, overridesFlagName, "", "specify file with platform specific overrides")
+	cmd.PersistentFlags().VarPF(debugFlag, debugFlagName, "", "debug output").NoOptDefVal = "true"
+	cmd.PersistentFlags().VarPF(traceFlag, traceFlagName, "", "trace output: really, really verbose").NoOptDefVal = "true"
+	cmd.PersistentFlags().VarPF(cloudFlag, cloudFlagName, "", "cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)").NoOptDefVal = "true"
 }

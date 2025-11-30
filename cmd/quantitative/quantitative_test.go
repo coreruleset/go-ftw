@@ -10,6 +10,7 @@ import (
 	"path"
 	"testing"
 
+	"github.com/coreruleset/go-ftw/cmd/internal"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
 )
@@ -20,7 +21,7 @@ var emptyRulesFile = `# Empty Rules filename`
 type quantitativeCmdTestSuite struct {
 	suite.Suite
 	tempDir string
-	rootCmd *cobra.Command
+	cmd     *cobra.Command
 }
 
 func TestQuantitativeTestSuite(t *testing.T) {
@@ -28,7 +29,7 @@ func TestQuantitativeTestSuite(t *testing.T) {
 }
 
 func (s *quantitativeCmdTestSuite) SetupTest() {
-	s.rootCmd = NewRootCommand()
+	s.cmd = New(internal.NewCommandContext())
 	s.tempDir = s.T().TempDir()
 
 	err := os.MkdirAll(path.Join(s.tempDir, "rules"), fs.ModePerm)
@@ -45,7 +46,6 @@ func (s *quantitativeCmdTestSuite) SetupTest() {
 	n, err = fakeRulesFile.WriteString(emptyRulesFile)
 	s.Require().NoError(err)
 	s.Equal(len(emptyRulesFile), n)
-	s.rootCmd.AddCommand(NewQuantitativeCmd())
 }
 
 func (s *quantitativeCmdTestSuite) TearDownTest() {
@@ -54,8 +54,8 @@ func (s *quantitativeCmdTestSuite) TearDownTest() {
 }
 
 func (s *quantitativeCmdTestSuite) TestQuantitativeCommand() {
-	s.rootCmd.SetArgs([]string{"quantitative", "-C", s.tempDir})
-	cmd, err := s.rootCmd.ExecuteContextC(context.Background())
+	s.cmd.SetArgs([]string{"quantitative", "-C", s.tempDir})
+	cmd, err := s.cmd.ExecuteContextC(context.Background())
 	s.Require().NoError(err, "quantitative command should not return error")
 	s.Equal("quantitative", cmd.Name(), "quantitative command should have the name 'quantitative'")
 	s.Require().NoError(err)

@@ -6,7 +6,7 @@ package raw
 import (
 	"bufio"
 
-	"github.com/coreruleset/go-ftw/experimental/corpus"
+	"github.com/coreruleset/go-ftw/internal/corpus"
 )
 
 // RawIterator implements the Iterator interface for raw corpus files.

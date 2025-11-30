@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/experimental/corpus"
+	"github.com/coreruleset/go-ftw/internal/corpus"
 )
 
 type rawCorpusTestSuite struct {
@@ -30,37 +30,29 @@ func TestRawCorpusTestSuite(t *testing.T) {
 }
 
 func (s *rawCorpusTestSuite) SetupTest() {
-	s.corpus = NewRawCorpus()
-
 	// Create a temporary directory
-	var err error
-	s.tempDir, err = os.MkdirTemp("", "raw_corpus_test")
-	s.Require().NoError(err)
+	s.tempDir = s.T().TempDir()
 
 	// Create a test file with sample payloads
 	s.tempFile = filepath.Join(s.tempDir, "test_corpus.txt")
+	s.corpus = NewRawCorpus(s.tempFile)
 	testContent := `This is the first payload
 <script>alert('xss')</script>
 ../../../etc/passwd
 SELECT * FROM users WHERE id = '1' OR '1'='1'
 Normal sentence with no malicious content`
 
-	err = os.WriteFile(s.tempFile, []byte(testContent), 0644)
+	err := os.WriteFile(s.tempFile, []byte(testContent), 0644)
 	s.Require().NoError(err)
 
 	// Set the file path in the corpus
 	s.corpus = s.corpus.WithURL(s.tempFile)
 }
 
-func (s *rawCorpusTestSuite) TearDownTest() {
-	if s.tempDir != "" {
-		os.RemoveAll(s.tempDir)
-	}
-}
-
 func (s *rawCorpusTestSuite) TestNewRawCorpus() {
-	c := NewRawCorpus()
+	c := NewRawCorpus("/path/to/file")
 	s.Require().Equal("", c.URL())
+	s.Require().Equal(c.LocalPath(), "/path/to/file")
 	s.Require().Equal("unknown", c.Language())
 	s.Require().Equal("unknown", c.Size())
 	s.Require().Equal("file", c.Source())
@@ -90,7 +82,7 @@ func (s *rawCorpusTestSuite) TestWithLanguage() {
 func (s *rawCorpusTestSuite) TestWithURL() {
 	testPath := "/path/to/test/file.txt"
 	s.corpus = s.corpus.WithURL(testPath)
-	s.Require().Equal(testPath, s.corpus.URL())
+	s.Require().Empty(s.corpus.URL())
 }
 
 func (s *rawCorpusTestSuite) TestFetchCorpusFile() {

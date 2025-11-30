@@ -14,7 +14,7 @@ func CorpusFactory(t corpus.Type, corpusLocalPath string) (corpus.Corpus, error)
 	case corpus.Leipzig:
 		return leipzig.NewLeipzigCorpus(corpusLocalPath), nil
 	case corpus.Raw:
-		return raw.NewRawCorpus(), nil
+		return raw.NewRawCorpus(corpusLocalPath), nil
 	default:
 		return nil, fmt.Errorf("unsupported corpus type: %s", t)
 	}
