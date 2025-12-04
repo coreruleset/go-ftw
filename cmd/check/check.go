@@ -9,11 +9,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
+	"github.com/coreruleset/go-ftw/cmd/internal"
 	"github.com/coreruleset/go-ftw/test"
 )
 
 // NewCheckCmd represents the check command
-func NewCheckCommand() *cobra.Command {
+func New(cmdContext *internal.CommandContext) *cobra.Command {
 	checkCmd := &cobra.Command{
 		Use:   "check",
 		Short: "Checks ftw test files for syntax errors.",

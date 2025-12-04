@@ -9,6 +9,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/coreruleset/go-ftw/cmd/internal"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
 )
@@ -39,12 +40,13 @@ tests:
 type checkCmdTestSuite struct {
 	suite.Suite
 	tempDir string
-	rootCmd *cobra.Command
+	cmd     *cobra.Command
 }
 
 func (s *checkCmdTestSuite) SetupTest() {
 	s.tempDir = s.T().TempDir()
 
+	s.cmd = New(internal.NewCommandContext())
 	err := os.MkdirAll(s.tempDir, fs.ModePerm)
 	s.Require().NoError(err)
 	testFileContents, err := os.CreateTemp(s.tempDir, "mock-test-*.yaml")
@@ -55,8 +57,6 @@ func (s *checkCmdTestSuite) SetupTest() {
 	s.Require().NoError(err)
 	s.Equal(len(checkFileContents), n)
 
-	s.rootCmd = NewRootCommand()
-	s.rootCmd.AddCommand(NewCheckCommand())
 }
 
 func (s *checkCmdTestSuite) TearDownTest() {
@@ -69,8 +69,8 @@ func TestCheckChoreTestSuite(t *testing.T) {
 }
 
 func (s *checkCmdTestSuite) TestCheckCommand() {
-	s.rootCmd.SetArgs([]string{"check", "-d", s.tempDir})
-	cmd, err := s.rootCmd.ExecuteContextC(context.Background())
+	s.cmd.SetArgs([]string{"check", "-d", s.tempDir})
+	cmd, err := s.cmd.ExecuteContextC(context.Background())
 	s.Require().NoError(err, "check command should not return an error")
 	s.Equal("check", cmd.Name(), "check command should have the name 'check'")
 }

@@ -66,6 +66,8 @@ func (s *leipzigCorpusTestSuite) TestGetIterator() {
 	s.corpus = s.corpus.WithSize("10K")
 	s.cache = s.corpus.FetchCorpusFile()
 	s.iter = s.corpus.GetIterator(s.cache)
+	err := s.corpus.CloseIterator()
+	s.Require().NoError(err)
 }
 
 func (s *leipzigCorpusTestSuite) TestNextSentenceFromCorpus() {
