@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/v2/utils"
 )
 
 var testData = map[string]string{

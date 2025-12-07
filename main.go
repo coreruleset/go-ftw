@@ -16,7 +16,7 @@ import (
 
 	_ "time/tzdata"
 
-	"github.com/coreruleset/go-ftw/cmd"
+	"github.com/coreruleset/go-ftw/v2/cmd"
 )
 
 const (

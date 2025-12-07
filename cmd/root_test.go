@@ -6,10 +6,10 @@ package cmd
 import (
 	"testing"
 
-	"github.com/coreruleset/go-ftw/cmd/internal"
-	run "github.com/coreruleset/go-ftw/cmd/run"
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/utils"
+	"github.com/coreruleset/go-ftw/v2/cmd/internal"
+	run "github.com/coreruleset/go-ftw/v2/cmd/run"
+	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/utils"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
 )

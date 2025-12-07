@@ -10,10 +10,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
-	"github.com/coreruleset/go-ftw/cmd/internal"
-	"github.com/coreruleset/go-ftw/internal/corpus"
-	"github.com/coreruleset/go-ftw/internal/quantitative"
-	"github.com/coreruleset/go-ftw/output"
+	"github.com/coreruleset/go-ftw/v2/cmd/internal"
+	"github.com/coreruleset/go-ftw/v2/internal/corpus"
+	"github.com/coreruleset/go-ftw/v2/internal/quantitative"
+	"github.com/coreruleset/go-ftw/v2/output"
 )
 
 const (

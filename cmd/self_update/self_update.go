@@ -7,8 +7,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/coreruleset/go-ftw/cmd/internal"
-	"github.com/coreruleset/go-ftw/internal/updater"
+	"github.com/coreruleset/go-ftw/v2/cmd/internal"
+	"github.com/coreruleset/go-ftw/v2/internal/updater"
 )
 
 var logger = log.With().Str("component", "cmd.self_update").Logger()

@@ -21,14 +21,14 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/config"
-	"github.com/coreruleset/go-ftw/ftwhttp"
-	"github.com/coreruleset/go-ftw/ftwhttp/header_names"
-	"github.com/coreruleset/go-ftw/ftwhttp/header_values"
-	"github.com/coreruleset/go-ftw/output"
-	"github.com/coreruleset/go-ftw/test"
-	"github.com/coreruleset/go-ftw/utils"
-	"github.com/coreruleset/go-ftw/waflog"
+	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/ftwhttp"
+	"github.com/coreruleset/go-ftw/v2/ftwhttp/header_names"
+	"github.com/coreruleset/go-ftw/v2/ftwhttp/header_values"
+	"github.com/coreruleset/go-ftw/v2/output"
+	"github.com/coreruleset/go-ftw/v2/test"
+	"github.com/coreruleset/go-ftw/v2/utils"
+	"github.com/coreruleset/go-ftw/v2/waflog"
 )
 
 var testConfigMap = map[string]string{

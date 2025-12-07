@@ -12,7 +12,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/coreruleset/go-ftw/output"
+	"github.com/coreruleset/go-ftw/v2/output"
 )
 
 // RuleStats holds the statistics for a specific rule

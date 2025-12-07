@@ -11,7 +11,7 @@ import (
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/rs/zerolog/log"
 
-	"github.com/coreruleset/go-ftw/output"
+	"github.com/coreruleset/go-ftw/v2/output"
 )
 
 // TestResult type are the values that the result of a test can have

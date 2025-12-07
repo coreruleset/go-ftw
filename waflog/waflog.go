@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/coreruleset/go-ftw/config"
+	"github.com/coreruleset/go-ftw/v2/config"
 )
 
 // NewFTWLogLines is the base struct for reading the log file

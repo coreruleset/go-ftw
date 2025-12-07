@@ -4,7 +4,7 @@
 package raw
 
 import (
-	"github.com/coreruleset/go-ftw/internal/corpus"
+	"github.com/coreruleset/go-ftw/v2/internal/corpus"
 )
 
 // File implements the corpus.File interface for raw corpus files.

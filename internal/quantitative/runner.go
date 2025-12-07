@@ -9,8 +9,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/coreruleset/go-ftw/internal/corpus"
-	"github.com/coreruleset/go-ftw/output"
+	"github.com/coreruleset/go-ftw/v2/internal/corpus"
+	"github.com/coreruleset/go-ftw/v2/output"
 )
 
 // Params holds the parameters for the quantitative tests

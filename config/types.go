@@ -34,7 +34,7 @@ type FTWConfiguration struct {
 	TestOverride FTWTestOverride `koanf:"testoverride"`
 	// LogMarkerHeaderName is the name of the header that will be used by the test framework to mark positions in the log file
 	LogMarkerHeaderName string `koanf:"logmarkerheadername"`
-	// RunMode stores the mode used to interpret test results. See https://github.com/coreruleset/go-ftw#%EF%B8%8F-cloud-mode.
+	// RunMode stores the mode used to interpret test results. See https://github.com/coreruleset/go-ftw/v2#%EF%B8%8F-cloud-mode.
 	RunMode RunMode `koanf:"mode"`
 	// MaxMarkerRetries is the maximum number of times the search for log markers will be repeated; each time an additional request is sent to the web server, eventually forcing the log to be flushed
 	MaxMarkerRetries uint `koanf:"maxmarkerretries"`
