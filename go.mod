@@ -2,7 +2,7 @@ module github.com/coreruleset/go-ftw
 
 go 1.24.6
 
-toolchain go1.25.4
+toolchain go1.25.5
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
@@ -20,7 +20,7 @@ require (
 	github.com/knadh/koanf/v2 v2.3.0
 	github.com/kyokomi/emoji/v2 v2.2.13
 	github.com/rs/zerolog v1.34.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/yargevad/filepathx v1.0.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.3
