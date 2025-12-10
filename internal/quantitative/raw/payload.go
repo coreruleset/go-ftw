@@ -4,7 +4,7 @@
 package raw
 
 import (
-	"github.com/coreruleset/go-ftw/internal/corpus"
+	"github.com/coreruleset/go-ftw/v2/internal/corpus"
 )
 
 // Payload implements the corpus.Payload interface for raw corpus files.

@@ -10,7 +10,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/coreruleset/go-ftw/cmd/internal"
+	"github.com/coreruleset/go-ftw/v2/cmd/internal"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
 )

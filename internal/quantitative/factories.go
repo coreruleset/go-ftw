@@ -3,9 +3,9 @@ package quantitative
 import (
 	"fmt"
 
-	"github.com/coreruleset/go-ftw/internal/corpus"
-	"github.com/coreruleset/go-ftw/internal/quantitative/leipzig"
-	"github.com/coreruleset/go-ftw/internal/quantitative/raw"
+	"github.com/coreruleset/go-ftw/v2/internal/corpus"
+	"github.com/coreruleset/go-ftw/v2/internal/quantitative/leipzig"
+	"github.com/coreruleset/go-ftw/v2/internal/quantitative/raw"
 )
 
 // CorpusFactory creates a new corpus

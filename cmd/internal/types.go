@@ -1,6 +1,6 @@
 package internal
 
-import "github.com/coreruleset/go-ftw/config"
+import "github.com/coreruleset/go-ftw/v2/config"
 
 type CommandContext struct {
 	Configuration         *config.FTWConfiguration

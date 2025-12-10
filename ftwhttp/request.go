@@ -13,9 +13,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	header_names "github.com/coreruleset/go-ftw/ftwhttp/header_names"
-	header_values "github.com/coreruleset/go-ftw/ftwhttp/header_values"
-	"github.com/coreruleset/go-ftw/utils"
+	header_names "github.com/coreruleset/go-ftw/v2/ftwhttp/header_names"
+	header_values "github.com/coreruleset/go-ftw/v2/ftwhttp/header_values"
+	"github.com/coreruleset/go-ftw/v2/utils"
 )
 
 var methodsWithBodyRegex = regexp.MustCompile(`^POST|PUT|PATCH|DELETE$`)

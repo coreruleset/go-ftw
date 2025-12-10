@@ -10,12 +10,12 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
-	check "github.com/coreruleset/go-ftw/cmd/check"
-	internal "github.com/coreruleset/go-ftw/cmd/internal"
-	quantitative "github.com/coreruleset/go-ftw/cmd/quantitative"
-	run "github.com/coreruleset/go-ftw/cmd/run"
-	selfUpdate "github.com/coreruleset/go-ftw/cmd/self_update"
-	"github.com/coreruleset/go-ftw/config"
+	check "github.com/coreruleset/go-ftw/v2/cmd/check"
+	internal "github.com/coreruleset/go-ftw/v2/cmd/internal"
+	quantitative "github.com/coreruleset/go-ftw/v2/cmd/quantitative"
+	run "github.com/coreruleset/go-ftw/v2/cmd/run"
+	selfUpdate "github.com/coreruleset/go-ftw/v2/cmd/self_update"
+	"github.com/coreruleset/go-ftw/v2/config"
 )
 
 const (
