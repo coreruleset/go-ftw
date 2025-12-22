@@ -29,7 +29,9 @@ var stdLogIdRegex = regexp.MustCompile(`\[(?:id |\\?"id\\?":)\\?"(\d+)\\?"\]`)
 
 // - {"id":4}
 // - {..., "id":4,..}
-var jsonLogIdRegex = regexp.MustCompile(`(?:\{|,)\s*"id":\s*(\d+)`)
+// - {"ruleId":"4"}
+// - {..., "ruleId":"4",...}
+var jsonLogIdRegex = regexp.MustCompile(`(?:\{|,)\s*(?:"(?:id|ruleId)":\s*"?(\d+)"?)`)
 
 // TriggeredRules returns the IDs of all the rules found in the log for the current test
 func (ll *FTWLogLines) TriggeredRules() []uint {
