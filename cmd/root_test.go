@@ -32,7 +32,7 @@ func (s *rootCmdTestSuite) SetupTest() {
 func (s *rootCmdTestSuite) TestRootCommand() {
 	rootCmd := NewRootCommand(internal.NewCommandContext())
 	rootCmd.SetArgs([]string{"help"})
-	err := Execute("v1.0.0")
+	err := rootCmd.Execute()
 	s.Require().NoError(err)
 }
 
