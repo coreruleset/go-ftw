@@ -42,6 +42,8 @@ func (s *rootCmdTestSuite) TestFlags() {
 	overridesFile, err := utils.CreateTempFile(s.T().TempDir(), "overrides")
 	s.Require().NoError(err)
 
+	s.cmdContext.Configuration = config.NewDefaultConfig()
+	s.rootCmd.AddCommand(run.New(s.cmdContext))
 	s.rootCmd.SetArgs([]string{
 		"run",
 		"--" + configFlagName, configFile,
@@ -50,14 +52,26 @@ func (s *rootCmdTestSuite) TestFlags() {
 		"--" + traceFlagName,
 		"--" + cloudFlagName,
 	})
-	s.rootCmd.AddCommand(run.New(s.cmdContext))
-	s.cmdContext.Configuration = config.NewDefaultConfig()
 
 	// Reset log level to info before test
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
-	_, err = s.rootCmd.ExecuteC()
-	s.Require().NoError(err)
+	cmd, _ := s.rootCmd.ExecuteC()
+
+	config, err := cmd.Flags().GetString(configFlagName)
+	s.NoError(err)
+	debug, err := cmd.Flags().GetBool(debugFlagName)
+	s.NoError(err)
+	overrides, err := cmd.Flags().GetString(overridesFlagName)
+	s.NoError(err)
+	trace, err := cmd.Flags().GetBool(traceFlagName)
+	s.NoError(err)
+
+	s.Equal(configFile, config)
+	s.True(debug)
+	s.Equal(overridesFile, overrides)
+	s.True(trace)
+
 	// Validate that flags populate command context
 	s.Equal(configFile, s.cmdContext.ConfigurationFileName)
 	s.Equal(overridesFile, s.cmdContext.OverridesFileName)
