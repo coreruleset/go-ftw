@@ -80,6 +80,117 @@ logfile: ../logs/error.log
 
 By default, _go-ftw_ looks for a file in `$PWD` / local folder with the name `.ftw.yaml`. If this can not be found, it will look in the user's HOME folder. You can pass the `--config <config file name>` to point it to a different file.
 
+### Test File Format
+
+FTW tests are written in YAML format following a standardized schema. The complete schema documentation is maintained in the [ftw-tests-schema](https://github.com/coreruleset/ftw-tests-schema) repository.
+
+#### Basic Test Structure
+
+A test file contains:
+- **meta**: Metadata about the test file (author, description, tags)
+- **rule_id**: (Optional) The rule ID being tested
+- **tests**: An array of test cases
+
+Each test case includes:
+- **test_id**: Unique identifier for the test
+- **test_title**: (Optional) Human-readable title
+- **description**: (Optional) Description of what the test does
+- **tags**: (Optional) Array of tags for filtering tests
+- **stages**: Array of test stages (request/response pairs)
+
+#### Test Stages
+
+Each stage consists of:
+- **input**: The HTTP request to send
+- **output**: The expected response and log behavior
+
+##### Input Fields
+
+The input section supports these fields:
+
+- **dest_addr**: Destination address (IP or hostname)
+- **port**: Port number
+- **protocol**: Protocol (http/https)
+- **uri**: Request URI
+- **version**: HTTP version (e.g., "HTTP/1.1")
+- **method**: HTTP method (GET, POST, etc.)
+- **headers**: Map of HTTP headers
+- **data**: Request body data
+- **encoded_request**: Base64 encoded full HTTP request (overrides other settings)
+- **save_cookie**: Save cookies from response for subsequent requests
+- **autocomplete_headers**: Auto-add common headers (Connection, Content-Length, etc.)
+- **stop_magic**: Disable automatic header completion
+
+##### Output Fields
+
+The output section supports these validation fields:
+
+- **status**: Expected HTTP status code
+- **response_contains**: String that should appear in response body
+- **log_contains**: String that should appear in WAF logs
+- **no_log_contains**: String that should NOT appear in WAF logs
+- **expect_ids**: Array of rule IDs expected to trigger
+- **no_expect_ids**: Array of rule IDs that should NOT trigger
+- **expect_error**: Boolean, whether an error is expected
+- **retry_once**: Retry the test once if it fails
+
+#### Example Test
+
+```yaml
+---
+meta:
+  author: "OWASP CRS"
+  description: "Test for SQL Injection Detection"
+  enabled: true
+  name: "942100.yaml"
+tests:
+  - test_id: 942100-1
+    description: "SQL Injection via UNION SELECT"
+    stages:
+      - input:
+          dest_addr: "localhost"
+          port: 80
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Host: "localhost"
+          uri: "/index.html?id=1' UNION SELECT NULL--"
+          method: "GET"
+        output:
+          status: 403
+          log_contains: "id \"942100\""
+  - test_id: 942100-2
+    description: "Benign request should pass"
+    stages:
+      - input:
+          dest_addr: "localhost"
+          port: 80
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Host: "localhost"
+          uri: "/index.html?id=123"
+          method: "GET"
+        output:
+          status: 200
+          no_log_contains: "942100"
+```
+
+#### Using Templates
+
+Go-FTW supports Go templates and [Sprig functions](https://masterminds.github.io/sprig/) in test data:
+
+```yaml
+# Generate repeated characters
+data: 'foo=%3d{{ "+" | repeat 34 }}'
+
+# Read from environment
+data: 'username={{ env "USERNAME" }}'
+
+# Use random data
+data: 'token={{ randAlphaNum 32 }}'
+```
+
+For complete schema documentation including all available fields and options, see the [FTW Tests Schema Documentation](https://github.com/coreruleset/ftw-tests-schema).
+
 ### WAF Server
 
 I normally perform my testing using the [Core Rule Set](https://github.com/coreruleset/coreruleset/).
