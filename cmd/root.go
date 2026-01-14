@@ -35,13 +35,15 @@ var (
 )
 
 // NewRootCommand represents the base command when called without any subcommands
-func NewRootCommand() *cobra.Command {
+func NewRootCommand(cmdContext *internal.CommandContext) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "go-ftw",
 		Short: "Framework for Testing WAFs - Go Version",
+		// initConfig has to be executed after Cobra parses command-line arguments
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			initConfig(cmdContext)
+		},
 	}
-
-	cmdContext := internal.NewCommandContext()
 	buildFlags(rootCmd, cmdContext)
 
 	return rootCmd
@@ -50,8 +52,8 @@ func NewRootCommand() *cobra.Command {
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute(version string) error {
-	rootCmd := NewRootCommand()
 	cmdContext := internal.NewCommandContext()
+	rootCmd := NewRootCommand(cmdContext)
 	rootCmd.AddCommand(
 		check.New(cmdContext),
 		run.New(cmdContext),
@@ -59,7 +61,6 @@ func Execute(version string) error {
 		selfUpdate.New(cmdContext))
 	// Setting Version creates a `--version` flag
 	rootCmd.Version = version
-	initConfig(cmdContext)
 
 	return rootCmd.ExecuteContext(context.Background())
 }
