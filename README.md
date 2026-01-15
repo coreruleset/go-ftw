@@ -87,14 +87,14 @@ FTW tests are written in YAML format following a standardized schema. The comple
 #### Basic Test Structure
 
 A test file contains:
-- **meta**: Metadata about the test file (author, description, tags)
+- **meta**: Metadata about the test file (author, description, enabled, name, tags)
 - **rule_id**: (Optional) The rule ID being tested
 - **tests**: An array of test cases
 
 Each test case includes:
-- **test_id**: Sequence number of the test for the rule specified by `test_id`
-- **test_title**: (Optional) Human-readable title
-- **description**: (Optional) Description of what the test does
+- **test_id**: (Optional) Sequence number of the test for the rule specified by `rule_id`. When not set, the ID will be inferred from the position.
+- **test_title**: (Optional) Human-readable title used for inclusion/exclusion of test runs
+- **desc**: (Optional) Description of what the test does
 - **tags**: (Optional) Array of tags for filtering tests
 - **stages**: Array of test stages (request/response pairs)
 
@@ -112,13 +112,17 @@ The input section supports these fields:
 - **port**: Port number
 - **protocol**: Protocol (http/https)
 - **uri**: Request URI
+- **follow_redirect**: If true, follows redirect from previous stage (ignores port, protocol, address, URI)
 - **version**: HTTP version (e.g., "HTTP/1.1")
 - **method**: HTTP method (GET, POST, etc.)
 - **headers**: Map of HTTP headers
-- **data**: Request body data
-- **encoded_request**: Base64 encoded full HTTP request (overrides other settings)
+- **data**: Request body data as plain string
+- **encoded_data**: Request body data as base64 encoded string (allows complex payloads with invisible characters)
+- **encoded_request**: Base64 encoded full HTTP request (overrides all other settings)
 - **save_cookie**: Save cookies from response for subsequent requests
-- **autocomplete_headers**: Auto-add common headers (Connection, Content-Length, etc.)
+- **autocomplete_headers**: Auto-add common headers (Connection, Content-Length, Content-Type). Defaults to true.
+- **stop_magic**: (Deprecated) No longer used
+- **raw_request**: (Deprecated) Use `encoded_request` instead
 
 ##### Output Fields
 
@@ -128,10 +132,14 @@ The output section supports these validation fields:
 - **response_contains**: String that should appear in response body
 - **log_contains**: String that should appear in WAF logs
 - **no_log_contains**: String that should NOT appear in WAF logs
-- **expect_ids**: Array of rule IDs expected to trigger
-- **no_expect_ids**: Array of rule IDs that should NOT trigger
-- **expect_error**: Boolean, whether an error is expected
-- **retry_once**: Retry the test once if it fails
+- **log**: Object containing log validation fields:
+  - **expect_ids**: Array of rule IDs expected to trigger
+  - **no_expect_ids**: Array of rule IDs that should NOT trigger
+  - **match_regex**: Regular expression expected to match log content
+  - **no_match_regex**: Regular expression that should NOT match log content
+- **expect_error**: Boolean, whether an error is expected (no response from WAF)
+- **retry_once**: Retry the test once if it fails (useful for phase 5 race conditions)
+- **isolated**: Boolean, test should trigger only the single rule specified in expect_ids (default: false)
 
 #### Example Test
 
@@ -142,10 +150,10 @@ meta:
   description: "Test for SQL Injection Detection"
   enabled: true
   name: "942100.yaml"
-ruleId: 942100
+rule_id: 942100
 tests:
   - test_id: 1
-    description: "SQL Injection via UNION SELECT"
+    desc: "SQL Injection via UNION SELECT"
     stages:
       - input:
           dest_addr: "localhost"
@@ -160,7 +168,7 @@ tests:
           log:
             expect_ids: [942100]
   - test_id: 2
-    description: "Benign request should pass"
+    desc: "Benign request should pass"
     stages:
       - input:
           dest_addr: "localhost"
