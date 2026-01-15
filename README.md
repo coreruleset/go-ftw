@@ -92,7 +92,7 @@ A test file contains:
 - **tests**: An array of test cases
 
 Each test case includes:
-- **test_id**: Unique identifier for the test
+- **test_id**: Sequence number of the test for the rule specified by `test_id`
 - **test_title**: (Optional) Human-readable title
 - **description**: (Optional) Description of what the test does
 - **tags**: (Optional) Array of tags for filtering tests
@@ -143,8 +143,9 @@ meta:
   description: "Test for SQL Injection Detection"
   enabled: true
   name: "942100.yaml"
+ruleId: 942100
 tests:
-  - test_id: 942100-1
+  - test_id: 1
     description: "SQL Injection via UNION SELECT"
     stages:
       - input:
@@ -157,8 +158,9 @@ tests:
           method: "GET"
         output:
           status: 403
-          log_contains: "id \"942100\""
-  - test_id: 942100-2
+          log:
+            expect_ids: [942100]
+  - test_id: 2
     description: "Benign request should pass"
     stages:
       - input:
@@ -171,7 +173,8 @@ tests:
           method: "GET"
         output:
           status: 200
-          no_log_contains: "942100"
+          log:
+            no_expect_ids: [942100]
 ```
 
 #### Using Templates
