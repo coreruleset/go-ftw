@@ -119,7 +119,6 @@ The input section supports these fields:
 - **encoded_request**: Base64 encoded full HTTP request (overrides other settings)
 - **save_cookie**: Save cookies from response for subsequent requests
 - **autocomplete_headers**: Auto-add common headers (Connection, Content-Length, etc.)
-- **stop_magic**: Disable automatic header completion
 
 ##### Output Fields
 
