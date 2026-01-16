@@ -88,7 +88,7 @@ FTW tests are written in YAML format following a standardized schema. The comple
 
 A test file contains:
 - **meta**: Metadata about the test file (author, description, enabled, name, tags)
-- **rule_id**: (Optional) The rule ID being tested
+- **rule_id**: The rule ID being tested
 - **tests**: An array of test cases
 
 Each test case includes:
