@@ -1,6 +1,6 @@
 module github.com/coreruleset/go-ftw/v2
 
-go 1.24.6
+go 1.24.11
 
 toolchain go1.25.5
 
@@ -8,14 +8,14 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/corazawaf/coraza/v3 v3.3.3
 	github.com/coreruleset/ftw-tests-schema/v2 v2.3.0
-	github.com/creativeprojects/go-selfupdate v1.5.1
+	github.com/creativeprojects/go-selfupdate v1.5.2
 	github.com/go-logr/zerologr v1.2.3
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-getter/v2 v2.2.3
 	github.com/icza/backscanner v0.0.0-20241124160932-dff01ac50250
 	github.com/knadh/koanf/parsers/yaml v1.1.0
 	github.com/knadh/koanf/providers/env/v2 v2.0.0
-	github.com/knadh/koanf/providers/file v1.2.0
+	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/providers/rawbytes v1.0.0
 	github.com/knadh/koanf/v2 v2.3.0
 	github.com/kyokomi/emoji/v2 v2.2.13
@@ -24,8 +24,8 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/yargevad/filepathx v1.0.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.3
-	golang.org/x/exp v0.0.0-20251125195548-87e1e737ad39
-	golang.org/x/net v0.47.0
+	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
+	golang.org/x/net v0.49.0
 	golang.org/x/time v0.14.0
 	wait4x.dev/v3 v3.6.0
 )
@@ -36,12 +36,12 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0 // indirect
 	github.com/magefile/mage v1.15.1-0.20241126214340-bdc92f694516 // indirect
 	github.com/valllabh/ocsf-schema-golang v1.0.3 // indirect
-	go.yaml.in/yaml/v3 v3.0.3 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
 
 require (
-	code.gitea.io/sdk/gitea v0.22.0 // indirect
+	code.gitea.io/sdk/gitea v0.22.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
@@ -56,12 +56,12 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/google/go-github/v30 v30.1.0 // indirect
+	github.com/google/go-github/v74 v74.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/hashicorp/go-safetemp v1.0.0 // indirect
-	github.com/hashicorp/go-version v1.7.0 // indirect
+	github.com/hashicorp/go-version v1.8.0 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -81,12 +81,12 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
-	github.com/xanzy/go-gitlab v0.115.0 // indirect
-	golang.org/x/crypto v0.44.0 // indirect
-	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	gitlab.com/gitlab-org/api/client-go v1.9.1 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
+	golang.org/x/oauth2 v0.34.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/binaryregexp v0.2.0 // indirect
 )
