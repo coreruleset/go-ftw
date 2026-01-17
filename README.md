@@ -80,6 +80,126 @@ logfile: ../logs/error.log
 
 By default, _go-ftw_ looks for a file in `$PWD` / local folder with the name `.ftw.yaml`. If this can not be found, it will look in the user's HOME folder. You can pass the `--config <config file name>` to point it to a different file.
 
+### Test File Format
+
+FTW tests are written in YAML format following a standardized schema. The complete schema documentation is maintained in the [ftw-tests-schema](https://github.com/coreruleset/ftw-tests-schema) repository.
+
+#### Basic Test Structure
+
+A test file contains:
+- **meta**: Metadata about the test file (author, description, name, tags)
+- **rule_id**: The rule ID being tested
+- **tests**: An array of test cases
+
+Each test case includes:
+- **test_id**: (Optional) Sequence number of the test for the rule specified by `rule_id`. When not set, the ID will be inferred from the position.
+- **test_title**: (Optional) Human-readable title used for inclusion/exclusion of test runs
+- **desc**: (Optional) Description of what the test does
+- **tags**: (Optional) Array of tags for filtering tests
+- **stages**: Array of test stages (request/response pairs)
+
+#### Test Stages
+
+Each stage consists of:
+- **input**: The HTTP request to send
+- **output**: The expected response and log behavior
+
+##### Input Fields
+
+The input section supports these fields:
+
+- **dest_addr**: Destination address (IP or hostname)
+- **port**: Port number
+- **protocol**: Protocol (http/https)
+- **uri**: Request URI
+- **follow_redirect**: If true, follows redirect from previous stage (ignores port, protocol, address, URI)
+- **version**: HTTP version (e.g., "HTTP/1.1")
+- **method**: HTTP method (GET, POST, etc.)
+- **headers**: Map of HTTP headers
+- **data**: Request body data as plain string
+- **encoded_data**: Request body data as base64 encoded string (allows complex payloads with invisible characters)
+- **encoded_request**: Base64 encoded full HTTP request (overrides all other settings)
+- **save_cookie**: Save cookies from response for subsequent requests
+- **autocomplete_headers**: Auto-add common headers (Connection, Content-Length, Content-Type). Defaults to true.
+- **stop_magic**: (Deprecated) No longer used
+- **raw_request**: (Deprecated) Use `encoded_request` instead
+
+##### Output Fields
+
+The output section supports these validation fields:
+
+- **status**: Expected HTTP status code
+- **response_contains**: String that should appear in response body
+- **log_contains**: String that should appear in WAF logs
+- **no_log_contains**: String that should NOT appear in WAF logs
+- **log**: Object containing log validation fields:
+  - **expect_ids**: Array of rule IDs expected to trigger
+  - **no_expect_ids**: Array of rule IDs that should NOT trigger
+  - **match_regex**: Regular expression expected to match log content
+  - **no_match_regex**: Regular expression that should NOT match log content
+- **expect_error**: Boolean, whether an error is expected (no response from WAF)
+- **retry_once**: Retry the test once if it fails (useful for phase 5 race conditions)
+- **isolated**: Boolean, test should trigger only the single rule specified in `expect_ids` (default: false)
+
+#### Example Test
+
+```yaml
+---
+meta:
+  author: "OWASP CRS"
+  description: "Test for SQL Injection Detection"
+  name: "942100.yaml"
+rule_id: 942100
+tests:
+  - test_id: 1
+    desc: "SQL Injection via UNION SELECT"
+    stages:
+      - input:
+          dest_addr: "localhost"
+          port: 80
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Host: "localhost"
+          uri: "/index.html?id=1' UNION SELECT NULL--"
+          method: "GET"
+        output:
+          status: 403
+          log:
+            expect_ids: [942100]
+  - test_id: 2
+    desc: "Benign request should pass"
+    stages:
+      - input:
+          dest_addr: "localhost"
+          port: 80
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Host: "localhost"
+          uri: "/index.html?id=123"
+          method: "GET"
+        output:
+          status: 200
+          log:
+            no_expect_ids: [942100]
+```
+
+#### Using Templates
+
+Go-FTW supports Go templates and [Sprig functions](https://masterminds.github.io/sprig/) in test data:
+
+```yaml
+# Generate repeated characters
+data: 'foo=%3d{{ "+" | repeat 34 }}'
+
+# Read from environment
+data: 'username={{ env "USERNAME" }}'
+
+# Use random data
+data: 'token={{ randAlphaNum 32 }}'
+```
+
+For complete schema documentation including all available fields and options, see the [FTW Tests Schema Documentation](https://github.com/coreruleset/ftw-tests-schema).
+
 ### WAF Server
 
 I normally perform my testing using the [Core Rule Set](https://github.com/coreruleset/coreruleset/).
