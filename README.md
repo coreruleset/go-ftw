@@ -87,7 +87,7 @@ FTW tests are written in YAML format following a standardized schema. The comple
 #### Basic Test Structure
 
 A test file contains:
-- **meta**: Metadata about the test file (author, description, enabled, name, tags)
+- **meta**: Metadata about the test file (author, description, name, tags)
 - **rule_id**: The rule ID being tested
 - **tests**: An array of test cases
 
@@ -139,7 +139,7 @@ The output section supports these validation fields:
   - **no_match_regex**: Regular expression that should NOT match log content
 - **expect_error**: Boolean, whether an error is expected (no response from WAF)
 - **retry_once**: Retry the test once if it fails (useful for phase 5 race conditions)
-- **isolated**: Boolean, test should trigger only the single rule specified in expect_ids (default: false)
+- **isolated**: Boolean, test should trigger only the single rule specified in `expect_ids` (default: false)
 
 #### Example Test
 
@@ -150,6 +150,7 @@ meta:
   description: "Test for SQL Injection Detection"
   enabled: true
   name: "942100.yaml"
+ruleId: 942100
 rule_id: 942100
 tests:
   - test_id: 1
