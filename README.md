@@ -149,7 +149,6 @@ meta:
   author: "OWASP CRS"
   description: "Test for SQL Injection Detection"
   name: "942100.yaml"
-ruleId: 942100
 rule_id: 942100
 tests:
   - test_id: 1
