@@ -148,7 +148,6 @@ The output section supports these validation fields:
 meta:
   author: "OWASP CRS"
   description: "Test for SQL Injection Detection"
-  enabled: true
   name: "942100.yaml"
 ruleId: 942100
 rule_id: 942100
