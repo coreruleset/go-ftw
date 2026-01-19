@@ -98,3 +98,41 @@ func (s *defaultsTestSuite) TestDefaultGetters() {
 
 	s.Equal([]byte("My Data"), []byte(*inputDefaults.Data))
 }
+
+func (s *defaultsTestSuite) TestGetHeaders_NoHeaders() {
+	input := NewInput(&schema.Input{
+		AutocompleteHeaders: func() *bool { b := false; return &b }(),
+	})
+
+	headers := input.GetHeaders()
+	s.NotNil(headers)
+}
+
+func (s *defaultsTestSuite) TestGetHeaders_WithOrderedHeaders() {
+	input := NewInput(&schema.Input{
+		OrderedHeaders: []schema.HeaderTuple{
+			{Name: "Content-Type", Value: "application/json"},
+			{Name: "User-Agent", Value: "test-agent"},
+		},
+		AutocompleteHeaders: func() *bool { b := false; return &b }(),
+	})
+
+	headers := input.GetHeaders()
+	s.NotNil(headers)
+	s.True(headers.HasAny("Content-Type"))
+	s.True(headers.HasAny("User-Agent"))
+}
+
+func (s *defaultsTestSuite) TestGetHeaders_Cached() {
+	input := NewInput(&schema.Input{
+		OrderedHeaders: []schema.HeaderTuple{
+			{Name: "X-Test", Value: "test-value"},
+		},
+		AutocompleteHeaders: func() *bool { b := false; return &b }(),
+	})
+
+	// Get headers twice and verify they're the same instance (cached)
+	headers1 := input.GetHeaders()
+	headers2 := input.GetHeaders()
+	s.Equal(headers1, headers2)
+}

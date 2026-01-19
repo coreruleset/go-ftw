@@ -6,8 +6,12 @@ package test
 import (
 	"testing"
 
+	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
+	overridesSchema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/coreruleset/go-ftw/v2/config"
 )
 
 type typesTestSuite struct {
@@ -558,4 +562,296 @@ func (s *typesTestSuite) TestPostLoadHeaders_HeadersAndOrderedHeaders() {
 	s.Equal("ordered agent", input.OrderedHeaders[0].Value)
 	s.Equal("Accept", input.OrderedHeaders[1].Name)
 	s.Equal("ordered/agent", input.OrderedHeaders[1].Value)
+}
+
+func (s *typesTestSuite) TestApplySimpleOverrides() {
+	port := 8080
+	protocol := "https"
+	uri := "/test"
+	version := "HTTP/2.0"
+	method := "POST"
+	data := "test data"
+	saveCookie := true
+	encodedRequest := "test123"
+	virtualHostMode := true
+
+	overrides := &config.Overrides{
+		Port:            &port,
+		Protocol:        &protocol,
+		URI:             &uri,
+		Version:         &version,
+		Method:          &method,
+		Data:            &data,
+		SaveCookie:      &saveCookie,
+		EncodedRequest:  &encodedRequest,
+		VirtualHostMode: &virtualHostMode,
+	}
+
+	input := NewInput(&schema.Input{})
+	applySimpleOverrides(overrides, input)
+
+	s.Equal(8080, *input.Port)
+	s.Equal("https", *input.Protocol)
+	s.Equal("/test", *input.URI)
+	s.Equal("HTTP/2.0", *input.Version)
+	s.Equal("POST", *input.Method)
+	s.Equal("test data", *input.Data)
+	s.Equal(true, *input.SaveCookie)
+	s.Equal("test123", input.EncodedRequest)
+	s.Equal(true, input.VirtualHostMode)
+}
+
+func (s *typesTestSuite) TestApplyDestAddrOverride() {
+	destAddr := "192.168.1.1"
+	overrideHost := true
+	overrides := &config.Overrides{
+		DestAddr:                &destAddr,
+		OverrideEmptyHostHeader: &overrideHost,
+	}
+
+	input := NewInput(&schema.Input{})
+	applyDestAddrOverride(overrides, input)
+
+	s.Equal("192.168.1.1", *input.DestAddr)
+	headers := input.GetHeaders()
+	s.True(headers.HasAny("Host"))
+}
+
+func (s *typesTestSuite) TestApplyDestAddrOverride_NoOverrideHost() {
+	destAddr := "192.168.1.1"
+	overrideHost := false
+	overrides := &config.Overrides{
+		DestAddr:                &destAddr,
+		OverrideEmptyHostHeader: &overrideHost,
+	}
+
+	input := NewInput(&schema.Input{})
+	applyDestAddrOverride(overrides, input)
+
+	s.Equal("192.168.1.1", *input.DestAddr)
+	headers := input.GetHeaders()
+	s.False(headers.HasAny("Host"))
+}
+
+func (s *typesTestSuite) TestApplyDestAddrOverride_ExistingHost() {
+	destAddr := "192.168.1.1"
+	overrideHost := true
+	overrides := &config.Overrides{
+		DestAddr:                &destAddr,
+		OverrideEmptyHostHeader: &overrideHost,
+	}
+
+	input := NewInput(&schema.Input{
+		OrderedHeaders: []schema.HeaderTuple{
+			{Name: "Host", Value: "existing-host"},
+		},
+	})
+	applyDestAddrOverride(overrides, input)
+
+	s.Equal("192.168.1.1", *input.DestAddr)
+	headers := input.GetHeaders()
+	s.True(headers.HasAny("Host"))
+	// Should not override existing host
+	allHosts := headers.GetAll("Host")
+	s.Equal("existing-host", allHosts[0].Value)
+}
+
+func (s *typesTestSuite) TestApplyHeadersOverride() {
+	overrides := &config.Overrides{
+		Headers: map[string]string{
+			"X-Custom-Header": "custom-value",
+			"Authorization":   "Bearer token123",
+		},
+	}
+
+	input := NewInput(&schema.Input{})
+	applyHeadersOverride(overrides, input)
+
+	headers := input.GetHeaders()
+	s.True(headers.HasAny("X-Custom-Header"))
+	s.True(headers.HasAny("Authorization"))
+}
+
+func (s *typesTestSuite) TestApplyHeadersOverride_Nil() {
+	overrides := &config.Overrides{
+		Headers: nil,
+	}
+
+	input := NewInput(&schema.Input{})
+	applyHeadersOverride(overrides, input)
+
+	// Should not panic
+	headers := input.GetHeaders()
+	s.NotNil(headers)
+}
+
+func (s *typesTestSuite) TestApplyInputOverrides() {
+	port := 9090
+	destAddr := "example.com"
+	conf := &config.RunnerConfig{
+		TestOverride: config.FTWTestOverride{
+			Overrides: config.Overrides{
+				Port:     &port,
+				DestAddr: &destAddr,
+				Headers: map[string]string{
+					"X-Test": "value",
+				},
+			},
+		},
+	}
+
+	input := NewInput(&schema.Input{})
+	ApplyInputOverrides(conf, input)
+
+	s.Equal(9090, *input.Port)
+	s.Equal("example.com", *input.DestAddr)
+	headers := input.GetHeaders()
+	s.True(headers.HasAny("X-Test"))
+}
+
+// TestApplyPlatformOverrides_NoOverride tests that no override is applied when map is empty
+func (s *typesTestSuite) TestApplyPlatformOverrides_NoOverride() {
+	// Parse a test from YAML to get a proper test structure
+	test, err := GetTestFromYaml([]byte(logContainsSetsMatchRegex), "")
+	s.NoError(err, "Parsing YAML shouldn't fail")
+
+	conf := &config.RunnerConfig{
+		PlatformOverrides: config.PlatformOverrides{
+			OverridesMap: map[uint][]*overridesSchema.TestOverride{},
+		},
+	}
+
+	// Apply platform overrides - should not panic since map is empty
+	ApplyPlatformOverrides(conf, &test.Tests[0])
+	s.NotNil(test)
+}
+
+// TestApplyPlatformOverrides_WithMatchingOverride tests applying overrides to specific stages
+func (s *typesTestSuite) TestApplyPlatformOverrides_WithMatchingOverride() {
+	// Parse a test from YAML to get a proper test structure
+	test, err := GetTestFromYaml([]byte(logContainsSetsMatchRegex), "")
+	s.NoError(err, "Parsing YAML shouldn't fail")
+
+	// Create an override that matches the rule ID
+	conf := &config.RunnerConfig{
+		PlatformOverrides: config.PlatformOverrides{
+			OverridesMap: map[uint][]*overridesSchema.TestOverride{
+				123456: { // Matching rule ID from logContainsSetsMatchRegex
+					{
+						TestIds:  []uint{1}, // Matching test ID
+						StageIds: []uint{0}, // Specific stage
+						Output: schema.Output{
+							ResponseContains: "forbidden",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Apply platform overrides - this should call basicApplyPlatformOverrides
+	ApplyPlatformOverrides(conf, &test.Tests[0])
+
+	// Verify the override was applied
+	s.Equal("forbidden", test.Tests[0].Stages[0].Output.ResponseContains)
+}
+
+// TestApplyPlatformOverrides_AllStagesOverride tests applying overrides to all stages
+func (s *typesTestSuite) TestApplyPlatformOverrides_AllStagesOverride() {
+	// Use a YAML with multiple stages
+	multiStageYaml := `---
+meta:
+  author: "tester"
+  description: "Multi-stage test"
+rule_id: 123456
+tests:
+  - test_id: 1
+    stages:
+      - input:
+          dest_addr: "localhost"
+        output:
+          status: 200
+      - input:
+          dest_addr: "localhost"
+        output:
+          status: 200
+`
+	test, err := GetTestFromYaml([]byte(multiStageYaml), "")
+	s.NoError(err, "Parsing YAML shouldn't fail")
+
+	// Create an override with empty StageIds (applies to all stages)
+	conf := &config.RunnerConfig{
+		PlatformOverrides: config.PlatformOverrides{
+			OverridesMap: map[uint][]*overridesSchema.TestOverride{
+				123456: {
+					{
+						TestIds:  []uint{1},
+						StageIds: []uint{}, // Empty - applies to all stages
+						Output: schema.Output{
+							ResponseContains: "allstages",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Apply platform overrides
+	ApplyPlatformOverrides(conf, &test.Tests[0])
+
+	// Both stages should have the override applied
+	s.Equal("allstages", test.Tests[0].Stages[0].Output.ResponseContains)
+	s.Equal("allstages", test.Tests[0].Stages[1].Output.ResponseContains)
+}
+
+func (s *typesTestSuite) TestPostLoadRuleId_WithRuleId() {
+	ftwTest := &FTWTest{
+		FTWTest: schema.FTWTest{
+			RuleId: 123456,
+		},
+		FileName: "test-123456.yaml",
+	}
+
+	err := postLoadRuleId(ftwTest)
+	s.NoError(err)
+	s.Equal(uint(123456), ftwTest.RuleId)
+}
+
+func (s *typesTestSuite) TestPostLoadRuleId_FromFilename() {
+	ftwTest := &FTWTest{
+		FTWTest: schema.FTWTest{
+			RuleId: 0,
+		},
+		FileName: "test-789012.yaml",
+	}
+
+	err := postLoadRuleId(ftwTest)
+	s.NoError(err)
+	s.Equal(uint(789012), ftwTest.RuleId)
+}
+
+func (s *typesTestSuite) TestPostLoadRuleId_NoFilename() {
+	ftwTest := &FTWTest{
+		FTWTest: schema.FTWTest{
+			RuleId: 0,
+		},
+		FileName: "",
+	}
+
+	err := postLoadRuleId(ftwTest)
+	s.Error(err)
+	s.Contains(err.Error(), "rule_id field is required")
+}
+
+func (s *typesTestSuite) TestPostLoadRuleId_NoRuleIdInFilename() {
+	ftwTest := &FTWTest{
+		FTWTest: schema.FTWTest{
+			RuleId: 0,
+		},
+		FileName: "test-no-number.yaml",
+	}
+
+	err := postLoadRuleId(ftwTest)
+	s.Error(err)
+	s.Contains(err.Error(), "failed to fall back on filename")
 }
