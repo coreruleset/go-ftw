@@ -53,6 +53,7 @@ const (
 	waitForNoRedirectFlag        = "wait-for-no-redirect"
 	waitForTimeoutFlag           = "wait-for-timeout"
 	reportTriggeredRulesFlag     = "report-triggered-rules"
+	summaryFlag                  = "summary"
 )
 
 // New represents the run command
@@ -92,6 +93,7 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd.Flags().DurationP(rateLimitFlag, "r", 0, "Limit the request rate to the server to 1 request per specified duration. 0 is the default, and disables rate limiting.")
 	runCmd.Flags().Bool(failFastFlag, false, "Fail on first failed test")
 	runCmd.Flags().Bool(reportTriggeredRulesFlag, false, "Report triggered rules for each test")
+	runCmd.Flags().Bool(summaryFlag, false, "Write test summary to GITHUB_STEP_SUMMARY when using GitHub output mode")
 
 	return runCmd
 }
@@ -227,6 +229,10 @@ func buildRunnerConfig(cmd *cobra.Command, cmdContext *internal.CommandContext) 
 		return nil, err
 	}
 	runnerConfig.FailFast, err = cmd.Flags().GetBool(failFastFlag)
+	if err != nil {
+		return nil, err
+	}
+	runnerConfig.WriteSummary, err = cmd.Flags().GetBool(summaryFlag)
 	if err != nil {
 		return nil, err
 	}

@@ -5,12 +5,16 @@ package runner
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 	"slices"
+	"strings"
 	"time"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/rs/zerolog/log"
 
+	"github.com/coreruleset/go-ftw/v2/config"
 	"github.com/coreruleset/go-ftw/v2/output"
 )
 
@@ -101,7 +105,7 @@ func (stats *RunStats) addStageResultToStats(testCase *schema.Test, stageTime ti
 	stats.TotalTime += stageTime
 }
 
-func (stats *RunStats) printSummary(out *output.Output) {
+func (stats *RunStats) printSummary(out *output.Output, runnerConfig *config.RunnerConfig) {
 	if stats.Run > 0 {
 		if out.IsJson() {
 			b, _ := json.Marshal(stats)
@@ -124,7 +128,94 @@ func (stats *RunStats) printSummary(out *output.Output) {
 				}
 			}
 		}
+
+		// Write summary to GITHUB_STEP_SUMMARY if requested and in GitHub output mode
+		if runnerConfig != nil && runnerConfig.WriteSummary && out.OutputType == output.GitHub {
+			stats.writeGitHubSummary()
+		}
 	} else {
 		out.Println(out.Message("¯\\_(ツ)_/¯ No tests were run"))
 	}
+}
+
+func (stats *RunStats) writeGitHubSummary() {
+	summaryFile := os.Getenv("GITHUB_STEP_SUMMARY")
+	if summaryFile == "" {
+		log.Warn().Msg("GITHUB_STEP_SUMMARY environment variable is not set, skipping summary")
+		return
+	}
+
+	// Build markdown summary
+	var summary strings.Builder
+	summary.WriteString("## FTW Test Results\n\n")
+
+	// Status badge
+	if stats.TotalFailed() == 0 {
+		summary.WriteString("✅ **All tests passed!**\n\n")
+	} else {
+		summary.WriteString("❌ **Some tests failed**\n\n")
+	}
+
+	// Overall statistics table
+	summary.WriteString("### Summary\n\n")
+	summary.WriteString("| Metric | Count |\n")
+	summary.WriteString("|--------|-------|\n")
+	summary.WriteString(fmt.Sprintf("| Total Tests Run | %d |\n", stats.Run))
+	summary.WriteString(fmt.Sprintf("| ✅ Passed | %d |\n", len(stats.Success)))
+	summary.WriteString(fmt.Sprintf("| ❌ Failed | %d |\n", stats.TotalFailed()))
+	summary.WriteString(fmt.Sprintf("| ⏭️ Skipped | %d |\n", len(stats.Skipped)))
+	if len(stats.Ignored) > 0 {
+		summary.WriteString(fmt.Sprintf("| ℹ️ Ignored | %d |\n", len(stats.Ignored)))
+	}
+	if len(stats.ForcedPass) > 0 {
+		summary.WriteString(fmt.Sprintf("| 🔧 Forced Pass | %d |\n", len(stats.ForcedPass)))
+	}
+	if len(stats.ForcedFail) > 0 {
+		summary.WriteString(fmt.Sprintf("| 🔧 Forced Fail | %d |\n", len(stats.ForcedFail)))
+	}
+	summary.WriteString(fmt.Sprintf("| ⏱️ Total Time | %s |\n\n", stats.TotalTime))
+
+	// Failed tests details in table format
+	if len(stats.Failed) > 0 {
+		summary.WriteString("### ❌ Failed Tests\n\n")
+		summary.WriteString("| Test ID | Duration |\n")
+		summary.WriteString("|---------|----------|\n")
+		for _, test := range stats.Failed {
+			duration := "N/A"
+			if d, ok := stats.RunTime[test]; ok {
+				duration = d.String()
+			}
+			summary.WriteString(fmt.Sprintf("| `%s` | %s |\n", test, duration))
+		}
+		summary.WriteString("\n")
+	}
+
+	if len(stats.ForcedFail) > 0 {
+		summary.WriteString("### 🔧 Forced Fail Tests\n\n")
+		summary.WriteString("| Test ID | Duration |\n")
+		summary.WriteString("|---------|----------|\n")
+		for _, test := range stats.ForcedFail {
+			duration := "N/A"
+			if d, ok := stats.RunTime[test]; ok {
+				duration = d.String()
+			}
+			summary.WriteString(fmt.Sprintf("| `%s` | %s |\n", test, duration))
+		}
+		summary.WriteString("\n")
+	}
+
+	// Write to file (append mode)
+	f, err := os.OpenFile(summaryFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to open GITHUB_STEP_SUMMARY file")
+		return
+	}
+	defer f.Close()
+
+	if _, err := f.WriteString(summary.String()); err != nil {
+		log.Error().Err(err).Msg("Failed to write to GITHUB_STEP_SUMMARY file")
+		return
+	}
+
+	log.Debug().Msgf("Wrote summary to %s", summaryFile)
 }

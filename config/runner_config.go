@@ -46,6 +46,8 @@ type RunnerConfig struct {
 	// SkipTlsVerification skips certificate validation. Useful for connecting
 	// to domains with a self-signed certificate.
 	SkipTlsVerification bool
+	// WriteSummary determines whether to write a summary to GITHUB_STEP_SUMMARY when using GitHub output mode.
+	WriteSummary bool
 }
 
 type PlatformOverrides struct {
