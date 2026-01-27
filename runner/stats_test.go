@@ -144,7 +144,7 @@ func (s *statsTestSuite) TestWriteGitHubSummary_NoIgnoredOrForced() {
 	// Should not contain ignored or forced rows
 	s.NotContains(contentStr, "| ℹ️ Ignored")
 	s.NotContains(contentStr, "| 🔧 Forced Pass")
-	s.NotContains(contentStr, "| 🔧 Forced Fail Tests")
+	s.NotContains(contentStr, "| 🔧 Forced Fail |")
 }
 
 func (s *statsTestSuite) TestWriteGitHubSummary_NoEnvVar() {
