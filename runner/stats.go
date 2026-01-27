@@ -210,7 +210,11 @@ func (stats *RunStats) writeGitHubSummary() {
 		log.Error().Err(err).Msg("Failed to open GITHUB_STEP_SUMMARY file")
 		return
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Error().Err(err).Msg("Failed to close GITHUB_STEP_SUMMARY file")
+		}
+	}()
 
 	if _, err := f.WriteString(summary.String()); err != nil {
 		log.Error().Err(err).Msg("Failed to write to GITHUB_STEP_SUMMARY file")
