@@ -32,6 +32,9 @@ type TestRunContext struct {
 	LogLines              *waflog.FTWLogLines
 	CurrentStageDuration  time.Duration
 	currentStageStartTime time.Time
+	// LastStageResponse stores the response from the previous stage,
+	// used for follow_redirect functionality
+	LastStageResponse *ftwhttp.Response
 }
 
 func (t *TestRunContext) StartTest() {
