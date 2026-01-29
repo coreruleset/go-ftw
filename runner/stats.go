@@ -43,7 +43,7 @@ type RunStats struct {
 	// RunTime maps the time taken to run each test.
 	RunTime map[string]time.Duration `json:"runtime"`
 	// TotalTime is the duration over all runs, the sum of all individual run times.
-	TotalTime time.Duration
+	TotalTime time.Duration `json:"total-time"`
 	// TriggeredRules maps triggered rules to stages of tests
 	TriggeredRules map[string][][]uint `json:"triggered-rules"`
 }
