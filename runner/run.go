@@ -79,6 +79,9 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 			continue
 		}
 		runContext.StartTest()
+		// Clear previous response when starting a new test
+		// (follow_redirect should only work within the same test case)
+		runContext.LastStageResponse = nil
 
 		test.ApplyPlatformOverrides(runContext.RunnerConfig, &testCase)
 		// this is just for printing once the next test
@@ -138,6 +141,15 @@ func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 	// Check sanity first
 	if err := checkTestSanity(&stage); err != nil {
 		return err
+	}
+
+	// Handle follow_redirect if enabled
+	if stage.Input.FollowRedirect != nil && *stage.Input.FollowRedirect {
+		redirectLocation, err := extractRedirectLocation(runContext.LastStageResponse, testInput)
+		if err != nil {
+			return fmt.Errorf("follow_redirect enabled but failed to extract redirect location: %w", err)
+		}
+		applyRedirectToInput(testInput, redirectLocation)
 	}
 
 	// Do not even run test if result is overridden. Directly set and display the overridden result.
@@ -208,6 +220,9 @@ func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 		return err
 	}
 	runContext.EndStage(&testCase, testResult, triggeredRules)
+
+	// Store the response for potential use by follow_redirect in next stage
+	runContext.LastStageResponse = response
 
 	// show the result unless quiet was passed in the command line
 	displayResult(&testCase, runContext, testResult, roundTripTime)
