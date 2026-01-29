@@ -319,3 +319,36 @@ func (s *redirectTestSuite) TestExtractRedirectLocation_Various3xxCodes() {
 		s.Equal("/redirect", result.URI)
 	}
 }
+
+func (s *redirectTestSuite) TestExtractRedirectLocation_NonRedirect3xxCodes() {
+	protocol := "http"
+	destAddr := "example.com"
+	port := 80
+	uri := "/original"
+
+	baseInput := test.NewInput(&schema.Input{
+		Protocol: &protocol,
+		DestAddr: &destAddr,
+		Port:     &port,
+		URI:      &uri,
+	})
+
+	// Test non-redirect 3xx codes that should be rejected
+	nonRedirectCodes := []int{304, 305, 306}
+
+	for _, code := range nonRedirectCodes {
+		response := &ftwhttp.Response{
+			Parsed: http.Response{
+				StatusCode: code,
+				Header: http.Header{
+					"Location": []string{"/somewhere"},
+				},
+			},
+		}
+
+		result, err := extractRedirectLocation(response, baseInput)
+		s.Error(err, "Should reject status code %d", code)
+		s.Nil(result, "Result should be nil for status code %d", code)
+		s.Contains(err.Error(), "not a redirect", "Error message should indicate it's not a redirect for code %d", code)
+	}
+}

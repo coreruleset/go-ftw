@@ -114,12 +114,10 @@ func applyRedirectToInput(input *test.Input, redirect *RedirectLocation) {
 	headers := input.GetHeaders()
 
 	hostHeader := redirect.Host
-	if redirect.Port != 0 {
-		isDefaultPort := (redirect.Protocol == "https" && redirect.Port == 443) ||
-			(redirect.Protocol == "http" && redirect.Port == 80)
-		if !isDefaultPort {
-			hostHeader = fmt.Sprintf("%s:%d", redirect.Host, redirect.Port)
-		}
+	isDefaultPort := (redirect.Protocol == "https" && redirect.Port == 443) ||
+		(redirect.Protocol == "http" && redirect.Port == 80)
+	if !isDefaultPort {
+		hostHeader = fmt.Sprintf("%s:%d", redirect.Host, redirect.Port)
 	}
 
 	headers.Set("Host", hostHeader)

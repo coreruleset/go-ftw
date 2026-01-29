@@ -361,7 +361,7 @@ func (s *runTestSuite) TestFollowRedirect() {
 		}
 
 		if r.RequestURI == "/redirect-me" {
-			// Stage 1: Return redirect to /redirected
+			// Stage 1: Return relative redirect to /redirected
 			w.Header().Set("Location", "/redirected")
 			w.WriteHeader(http.StatusFound)
 			_, _ = w.Write([]byte("Redirecting..."))
@@ -387,16 +387,24 @@ func (s *runTestSuite) TestFollowRedirect() {
 	// Verify that both URIs were requested (excluding marker requests)
 	mu.Lock()
 	actualRequests := []string{}
-	for _, uri := range requestedURIs {
+	actualHosts := []string{}
+	for i, uri := range requestedURIs {
 		if uri != "/status/200" { // Skip marker requests
 			actualRequests = append(actualRequests, uri)
+			actualHosts = append(actualHosts, requestedHosts[i])
 		}
 	}
 	mu.Unlock()
-	
+
 	s.Require().Len(actualRequests, 2, "Should have made 2 non-marker requests")
 	s.Equal("/redirect-me", actualRequests[0], "First request should be to /redirect-me")
 	s.Equal("/redirected", actualRequests[1], "Second request should be to /redirected (redirect target)")
+
+	// Verify Host headers
+	s.Require().Len(actualHosts, 2, "Should have captured 2 Host headers")
+	// First request uses Host from test yaml (just IP, no port)
+	// Second request (after redirect) should include port for non-default port
+	s.Contains(actualHosts[1], ":", "Host header should include port after redirect for non-default port")
 }
 
 func (s *runTestSuite) TestBrokenOverrideRun() {
