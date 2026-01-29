@@ -129,13 +129,27 @@ func (stats *RunStats) printSummary(out *output.Output, runnerConfig *config.Run
 			}
 		}
 
-		// Write summary to GITHUB_STEP_SUMMARY if requested and in GitHub output mode
-		if runnerConfig != nil && runnerConfig.WriteSummary && out.OutputType == output.GitHub {
+		// Write summary to GITHUB_STEP_SUMMARY when in GitHub output mode
+		if out.OutputType == output.GitHub {
 			stats.writeGitHubSummary()
 		}
 	} else {
 		out.Println(out.Message("¯\\_(ツ)_/¯ No tests were run"))
 	}
+}
+
+// writeTestTable writes a markdown table with test IDs and durations
+func (stats *RunStats) writeTestTable(summary *strings.Builder, tests []string) {
+	summary.WriteString("| Test ID | Duration |\n")
+	summary.WriteString("|---------|----------|\n")
+	for _, test := range tests {
+		duration := "N/A"
+		if d, ok := stats.RunTime[test]; ok {
+			duration = d.String()
+		}
+		summary.WriteString(fmt.Sprintf("| `%s` | %s |\n", test, duration))
+	}
+	summary.WriteString("\n")
 }
 
 func (stats *RunStats) writeGitHubSummary() {
@@ -178,30 +192,12 @@ func (stats *RunStats) writeGitHubSummary() {
 	// Failed tests details in table format
 	if len(stats.Failed) > 0 {
 		summary.WriteString("### ❌ Failed Tests\n\n")
-		summary.WriteString("| Test ID | Duration |\n")
-		summary.WriteString("|---------|----------|\n")
-		for _, test := range stats.Failed {
-			duration := "N/A"
-			if d, ok := stats.RunTime[test]; ok {
-				duration = d.String()
-			}
-			summary.WriteString(fmt.Sprintf("| `%s` | %s |\n", test, duration))
-		}
-		summary.WriteString("\n")
+		stats.writeTestTable(&summary, stats.Failed)
 	}
 
 	if len(stats.ForcedFail) > 0 {
 		summary.WriteString("### 🔧 Forced Fail Tests\n\n")
-		summary.WriteString("| Test ID | Duration |\n")
-		summary.WriteString("|---------|----------|\n")
-		for _, test := range stats.ForcedFail {
-			duration := "N/A"
-			if d, ok := stats.RunTime[test]; ok {
-				duration = d.String()
-			}
-			summary.WriteString(fmt.Sprintf("| `%s` | %s |\n", test, duration))
-		}
-		summary.WriteString("\n")
+		stats.writeTestTable(&summary, stats.ForcedFail)
 	}
 
 	// Write to file (append mode)

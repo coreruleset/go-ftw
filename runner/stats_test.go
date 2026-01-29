@@ -29,9 +29,7 @@ func (s *statsTestSuite) SetupSuite() {
 }
 
 func (s *statsTestSuite) SetupTest() {
-	var err error
-	s.tempDir, err = os.MkdirTemp("", "ftw-stats-test-*")
-	s.Require().NoError(err)
+	s.tempDir = s.T().TempDir()
 
 	// Set up GITHUB_STEP_SUMMARY for most tests
 	s.summaryFile = filepath.Join(s.tempDir, "summary.md")
@@ -40,9 +38,6 @@ func (s *statsTestSuite) SetupTest() {
 
 func (s *statsTestSuite) TearDownTest() {
 	os.Unsetenv("GITHUB_STEP_SUMMARY")
-	if s.tempDir != "" {
-		os.RemoveAll(s.tempDir)
-	}
 }
 
 func TestStatsTestSuite(t *testing.T) {
@@ -190,7 +185,6 @@ func (s *statsTestSuite) TestPrintSummary_WithGitHubOutput() {
 
 	cfg := config.NewDefaultConfig()
 	runnerConfig := config.NewRunnerConfiguration(cfg)
-	runnerConfig.WriteSummary = true
 
 	stats := &RunStats{
 		Run:       3,
@@ -200,9 +194,9 @@ func (s *statsTestSuite) TestPrintSummary_WithGitHubOutput() {
 
 	stats.printSummary(out, runnerConfig)
 
-	// Verify summary file was created
+	// Verify summary file was created (always created with GitHub output)
 	_, err := os.Stat(s.summaryFile)
-	s.Require().NoError(err, "Summary file should be created")
+	s.Require().NoError(err, "Summary file should be created with GitHub output")
 
 	// Verify content
 	content, err := os.ReadFile(s.summaryFile)
@@ -216,7 +210,6 @@ func (s *statsTestSuite) TestPrintSummary_WithoutGitHubOutput() {
 
 	cfg := config.NewDefaultConfig()
 	runnerConfig := config.NewRunnerConfiguration(cfg)
-	runnerConfig.WriteSummary = true
 
 	stats := &RunStats{
 		Run:       3,
@@ -226,30 +219,9 @@ func (s *statsTestSuite) TestPrintSummary_WithoutGitHubOutput() {
 
 	stats.printSummary(out, runnerConfig)
 
-	// Verify summary file was NOT created (WriteSummary only works with GitHub output)
+	// Verify summary file was NOT created (only works with GitHub output)
 	_, err := os.Stat(s.summaryFile)
 	s.True(os.IsNotExist(err), "Summary file should not be created with non-GitHub output")
-}
-
-func (s *statsTestSuite) TestPrintSummary_WriteSummaryDisabled() {
-	var buf bytes.Buffer
-	out := output.NewOutput("github", &buf)
-
-	cfg := config.NewDefaultConfig()
-	runnerConfig := config.NewRunnerConfiguration(cfg)
-	runnerConfig.WriteSummary = false
-
-	stats := &RunStats{
-		Run:       3,
-		Success:   []string{"test-1", "test-2", "test-3"},
-		TotalTime: 1 * time.Second,
-	}
-
-	stats.printSummary(out, runnerConfig)
-
-	// Verify summary file was NOT created (WriteSummary is disabled)
-	_, err := os.Stat(s.summaryFile)
-	s.True(os.IsNotExist(err), "Summary file should not be created when WriteSummary is false")
 }
 
 func (s *statsTestSuite) TestPrintSummary_NilConfig() {
@@ -265,9 +237,9 @@ func (s *statsTestSuite) TestPrintSummary_NilConfig() {
 	// Call with nil config - should not crash
 	stats.printSummary(out, nil)
 
-	// Verify summary file was NOT created
+	// Verify summary file was created (GitHub output always creates summary)
 	_, err := os.Stat(s.summaryFile)
-	s.True(os.IsNotExist(err), "Summary file should not be created with nil config")
+	s.NoError(err, "Summary file should be created with GitHub output even when config is nil")
 }
 
 func (s *statsTestSuite) TestPrintSummary_JSON() {
