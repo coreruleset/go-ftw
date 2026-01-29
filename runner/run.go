@@ -76,9 +76,10 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 			continue
 		}
 		runContext.StartTest()
-		// Clear previous response when starting a new test
+		// Clear previous response and input when starting a new test
 		// (follow_redirect should only work within the same test case)
 		runContext.LastStageResponse = nil
+		runContext.LastStageInput = nil
 
 		test.ApplyPlatformOverrides(runContext.RunnerConfig, &testCase)
 		// this is just for printing once the next test
@@ -140,20 +141,20 @@ func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 		return err
 	}
 
-	// Handle follow_redirect if enabled
-	if stage.Input.FollowRedirect != nil && *stage.Input.FollowRedirect {
-		redirectLocation, err := extractRedirectLocation(runContext.LastStageResponse, testInput)
-		if err != nil {
-			return fmt.Errorf("follow_redirect enabled but failed to extract redirect location: %w", err)
-		}
-		applyRedirectToInput(testInput, redirectLocation)
-	}
-
 	// Do not even run test if result is overridden. Directly set and display the overridden result.
 	if overridden := overriddenTestResult(ftwCheck, &testCase); overridden != Failed {
 		runContext.Result = overridden
 		displayResult(&testCase, runContext, overridden, time.Duration(0))
 		return nil
+	}
+
+	// Handle follow_redirect if enabled
+	if stage.Input.FollowRedirect != nil && *stage.Input.FollowRedirect {
+		redirectLocation, err := extractRedirectLocation(runContext.LastStageResponse, runContext.LastStageInput)
+		if err != nil {
+			return fmt.Errorf("follow_redirect enabled but failed to extract redirect location: %w", err)
+		}
+		applyRedirectToInput(testInput, redirectLocation)
 	}
 
 	// Destination is needed for a request
@@ -214,8 +215,9 @@ func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 
 	runContext.EndStage(&testCase, testResult, ftwCheck.GetTriggeredRules())
 
-	// Store the response for potential use by follow_redirect in next stage
+	// Store the response and input for potential use by follow_redirect in next stage
 	runContext.LastStageResponse = response
+	runContext.LastStageInput = testInput
 
 	// show the result unless quiet was passed in the command line
 	displayResult(&testCase, runContext, testResult, roundTripTime)

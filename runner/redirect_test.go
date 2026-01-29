@@ -10,11 +10,16 @@ import (
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/coreruleset/go-ftw/v2/ftwhttp"
 	"github.com/coreruleset/go-ftw/v2/test"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
 type redirectTestSuite struct {
 	suite.Suite
+}
+
+func (s *redirectTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestRedirectTestSuite(t *testing.T) {
@@ -276,11 +281,11 @@ func (s *redirectTestSuite) TestApplyRedirectToInput() {
 	s.Equal(8443, input.GetPort())
 	s.Equal("/newpath", input.GetURI())
 
-	// Check Host header was updated
+	// Check Host header was updated (should include port for non-default ports)
 	headers := input.GetHeaders()
 	hostHeaders := headers.GetAll("Host")
 	s.Len(hostHeaders, 1)
-	s.Equal("newdomain.com", hostHeaders[0].Value)
+	s.Equal("newdomain.com:8443", hostHeaders[0].Value)
 }
 
 func (s *redirectTestSuite) TestExtractRedirectLocation_Various3xxCodes() {
@@ -312,5 +317,38 @@ func (s *redirectTestSuite) TestExtractRedirectLocation_Various3xxCodes() {
 		s.NoError(err, "Failed for status code %d", code)
 		s.NotNil(result, "Result is nil for status code %d", code)
 		s.Equal("/redirect", result.URI)
+	}
+}
+
+func (s *redirectTestSuite) TestExtractRedirectLocation_NonRedirect3xxCodes() {
+	protocol := "http"
+	destAddr := "example.com"
+	port := 80
+	uri := "/original"
+
+	baseInput := test.NewInput(&schema.Input{
+		Protocol: &protocol,
+		DestAddr: &destAddr,
+		Port:     &port,
+		URI:      &uri,
+	})
+
+	// Test non-redirect 3xx codes that should be rejected
+	nonRedirectCodes := []int{304, 305, 306}
+
+	for _, code := range nonRedirectCodes {
+		response := &ftwhttp.Response{
+			Parsed: http.Response{
+				StatusCode: code,
+				Header: http.Header{
+					"Location": []string{"/somewhere"},
+				},
+			},
+		}
+
+		result, err := extractRedirectLocation(response, baseInput)
+		s.Error(err, "Should reject status code %d", code)
+		s.Nil(result, "Result should be nil for status code %d", code)
+		s.Contains(err.Error(), "not a redirect", "Error message should indicate it's not a redirect for code %d", code)
 	}
 }
