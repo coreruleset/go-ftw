@@ -14,7 +14,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/coreruleset/go-ftw/v2/config"
 	"github.com/coreruleset/go-ftw/v2/output"
 )
 
@@ -183,16 +182,13 @@ func (s *statsTestSuite) TestPrintSummary_WithGitHubOutput() {
 	var buf bytes.Buffer
 	out := output.NewOutput("github", &buf)
 
-	cfg := config.NewDefaultConfig()
-	runnerConfig := config.NewRunnerConfiguration(cfg)
-
 	stats := &RunStats{
 		Run:       3,
 		Success:   []string{"test-1", "test-2", "test-3"},
 		TotalTime: 1 * time.Second,
 	}
 
-	stats.printSummary(out, runnerConfig)
+	stats.printSummary(out)
 
 	// Verify summary file was created (always created with GitHub output)
 	_, err := os.Stat(s.summaryFile)
@@ -208,23 +204,20 @@ func (s *statsTestSuite) TestPrintSummary_WithoutGitHubOutput() {
 	var buf bytes.Buffer
 	out := output.NewOutput("normal", &buf)
 
-	cfg := config.NewDefaultConfig()
-	runnerConfig := config.NewRunnerConfiguration(cfg)
-
 	stats := &RunStats{
 		Run:       3,
 		Success:   []string{"test-1", "test-2", "test-3"},
 		TotalTime: 1 * time.Second,
 	}
 
-	stats.printSummary(out, runnerConfig)
+	stats.printSummary(out)
 
 	// Verify summary file was NOT created (only works with GitHub output)
 	_, err := os.Stat(s.summaryFile)
 	s.True(os.IsNotExist(err), "Summary file should not be created with non-GitHub output")
 }
 
-func (s *statsTestSuite) TestPrintSummary_NilConfig() {
+func (s *statsTestSuite) TestPrintSummary_GitHubOutputCreatesSummary() {
 	var buf bytes.Buffer
 	out := output.NewOutput("github", &buf)
 
@@ -234,20 +227,16 @@ func (s *statsTestSuite) TestPrintSummary_NilConfig() {
 		TotalTime: 1 * time.Second,
 	}
 
-	// Call with nil config - should not crash
-	stats.printSummary(out, nil)
+	stats.printSummary(out)
 
 	// Verify summary file was created (GitHub output always creates summary)
 	_, err := os.Stat(s.summaryFile)
-	s.NoError(err, "Summary file should be created with GitHub output even when config is nil")
+	s.NoError(err, "Summary file should be created with GitHub output")
 }
 
 func (s *statsTestSuite) TestPrintSummary_JSON() {
 	var buf bytes.Buffer
 	out := output.NewOutput("json", &buf)
-
-	cfg := config.NewDefaultConfig()
-	runnerConfig := config.NewRunnerConfiguration(cfg)
 
 	stats := &RunStats{
 		Run:       3,
@@ -255,7 +244,7 @@ func (s *statsTestSuite) TestPrintSummary_JSON() {
 		TotalTime: 1 * time.Second,
 	}
 
-	stats.printSummary(out, runnerConfig)
+	stats.printSummary(out)
 
 	// Verify JSON output
 	output := buf.String()
@@ -267,14 +256,11 @@ func (s *statsTestSuite) TestPrintSummary_NoTests() {
 	var buf bytes.Buffer
 	out := output.NewOutput("normal", &buf)
 
-	cfg := config.NewDefaultConfig()
-	runnerConfig := config.NewRunnerConfiguration(cfg)
-
 	stats := &RunStats{
 		Run: 0,
 	}
 
-	stats.printSummary(out, runnerConfig)
+	stats.printSummary(out)
 
 	// Verify the "no tests" message
 	output := buf.String()

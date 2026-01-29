@@ -56,7 +56,7 @@ func Run(runnerConfig *config.RunnerConfig, tests []*test.FTWTest, out *output.O
 		}
 	}
 
-	runContext.Stats.printSummary(out, runnerConfig)
+	runContext.Stats.printSummary(out)
 
 	defer cleanLogs(logLines)
 

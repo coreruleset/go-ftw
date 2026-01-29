@@ -14,7 +14,6 @@ import (
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/rs/zerolog/log"
 
-	"github.com/coreruleset/go-ftw/v2/config"
 	"github.com/coreruleset/go-ftw/v2/output"
 )
 
@@ -105,7 +104,7 @@ func (stats *RunStats) addStageResultToStats(testCase *schema.Test, stageTime ti
 	stats.TotalTime += stageTime
 }
 
-func (stats *RunStats) printSummary(out *output.Output, runnerConfig *config.RunnerConfig) {
+func (stats *RunStats) printSummary(out *output.Output) {
 	if stats.Run > 0 {
 		if out.IsJson() {
 			b, _ := json.Marshal(stats)
@@ -147,7 +146,7 @@ func (stats *RunStats) writeTestTable(summary *strings.Builder, tests []string) 
 		if d, ok := stats.RunTime[test]; ok {
 			duration = d.String()
 		}
-		summary.WriteString(fmt.Sprintf("| `%s` | %s |\n", test, duration))
+		fmt.Fprintf(summary, "| `%s` | %s |\n", test, duration)
 	}
 	summary.WriteString("\n")
 }
