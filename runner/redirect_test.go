@@ -10,11 +10,16 @@ import (
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
 	"github.com/coreruleset/go-ftw/v2/ftwhttp"
 	"github.com/coreruleset/go-ftw/v2/test"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
 type redirectTestSuite struct {
 	suite.Suite
+}
+
+func (s *redirectTestSuite) SetupSuite() {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 func TestRedirectTestSuite(t *testing.T) {
@@ -276,11 +281,11 @@ func (s *redirectTestSuite) TestApplyRedirectToInput() {
 	s.Equal(8443, input.GetPort())
 	s.Equal("/newpath", input.GetURI())
 
-	// Check Host header was updated
+	// Check Host header was updated (should include port for non-default ports)
 	headers := input.GetHeaders()
 	hostHeaders := headers.GetAll("Host")
 	s.Len(hostHeaders, 1)
-	s.Equal("newdomain.com", hostHeaders[0].Value)
+	s.Equal("newdomain.com:8443", hostHeaders[0].Value)
 }
 
 func (s *redirectTestSuite) TestExtractRedirectLocation_Various3xxCodes() {
