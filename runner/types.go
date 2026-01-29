@@ -11,6 +11,7 @@ import (
 	"github.com/coreruleset/go-ftw/v2/config"
 	"github.com/coreruleset/go-ftw/v2/ftwhttp"
 	"github.com/coreruleset/go-ftw/v2/output"
+	"github.com/coreruleset/go-ftw/v2/test"
 	"github.com/coreruleset/go-ftw/v2/waflog"
 )
 
@@ -35,6 +36,9 @@ type TestRunContext struct {
 	// LastStageResponse stores the response from the previous stage,
 	// used for follow_redirect functionality
 	LastStageResponse *ftwhttp.Response
+	// LastStageInput stores the input from the previous stage,
+	// used as base for resolving relative redirects
+	LastStageInput *test.Input
 }
 
 func (t *TestRunContext) StartTest() {
