@@ -444,6 +444,7 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 		`other stuff {"blah": "bort,"id": 3}, something else {"id":5},`, "\n",
 		`other stuff {"id": 6}, something else ["id":7],`, "\n",
 		`other stuff something else [id \"8\"]`, "\n",
+		`other stuff {"blah": "bort","ruleId":"9"}, something else {"ruleId": "10"},`, "\n",
 		"\n", endMarkerLine)
 	filename, err := utils.CreateTempFileWithContent("", logLines, "test-errorlog-")
 
@@ -460,13 +461,15 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 	ll.WithEndMarker([]byte(endMarkerLine))
 
 	foundRuleIds := ll.TriggeredRules()
-	s.Len(foundRuleIds, 6)
+	s.Len(foundRuleIds, 8)
 	s.Contains(foundRuleIds, uint(1))
 	s.Contains(foundRuleIds, uint(2))
 	s.Contains(foundRuleIds, uint(3))
 	s.Contains(foundRuleIds, uint(5))
 	s.Contains(foundRuleIds, uint(6))
 	s.Contains(foundRuleIds, uint(8))
+	s.Contains(foundRuleIds, uint(9))
+	s.Contains(foundRuleIds, uint(10))
 }
 
 func (s *readTestSuite) TestFalsePositiveIds() {

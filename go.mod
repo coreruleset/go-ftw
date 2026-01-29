@@ -2,7 +2,7 @@ module github.com/coreruleset/go-ftw/v2
 
 go 1.24.11
 
-toolchain go1.25.5
+toolchain go1.25.6
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
@@ -17,13 +17,13 @@ require (
 	github.com/knadh/koanf/providers/env/v2 v2.0.0
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/providers/rawbytes v1.0.0
-	github.com/knadh/koanf/v2 v2.3.0
+	github.com/knadh/koanf/v2 v2.3.2
 	github.com/kyokomi/emoji/v2 v2.2.13
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/yargevad/filepathx v1.0.0
-	go.yaml.in/yaml/v4 v4.0.0-rc.3
+	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96
 	golang.org/x/net v0.49.0
 	golang.org/x/time v0.14.0
