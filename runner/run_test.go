@@ -12,6 +12,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"sync"
 	"testing"
 	"text/template"
 
@@ -337,6 +338,65 @@ func (s *runTestSuite) TestOverrideRun() {
 	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
+}
+
+func (s *runTestSuite) TestFollowRedirect() {
+	// Track which URIs were requested to validate redirect behavior
+	var requestedURIs []string
+	var requestedHosts []string
+	var mu sync.Mutex
+
+	// Custom handler that returns a redirect on first request
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		requestedURIs = append(requestedURIs, r.RequestURI)
+		requestedHosts = append(requestedHosts, r.Host)
+		mu.Unlock()
+
+		// Don't track marker requests
+		if r.Header.Get(s.cfg.LogMarkerHeaderName) != "" {
+			s.writeMarkerOrMessageToTestServerLog(logText, r)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		if r.RequestURI == "/redirect-me" {
+			// Stage 1: Return redirect to /redirected
+			w.Header().Set("Location", "/redirected")
+			w.WriteHeader(http.StatusFound)
+			_, _ = w.Write([]byte("Redirecting..."))
+		} else if r.RequestURI == "/redirected" {
+			// Stage 2: Return success
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("Success after redirect"))
+		} else {
+			// Unexpected URI
+			w.WriteHeader(http.StatusNotFound)
+		}
+
+		s.writeMarkerOrMessageToTestServerLog(logText, r)
+	}
+
+	s.ts.Config.Handler = http.HandlerFunc(handler)
+
+	s.runnerConfig.Output = output.Quiet
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().NoError(err)
+	s.Equal(0, res.Stats.TotalFailed(), "Follow redirect test should pass")
+
+	// Verify that both URIs were requested (excluding marker requests)
+	mu.Lock()
+	actualRequests := []string{}
+	for _, uri := range requestedURIs {
+		if uri != "/status/200" { // Skip marker requests
+			actualRequests = append(actualRequests, uri)
+		}
+	}
+	mu.Unlock()
+	
+	s.Require().Len(actualRequests, 2, "Should have made 2 non-marker requests")
+	s.Equal("/redirect-me", actualRequests[0], "First request should be to /redirect-me")
+	s.Equal("/redirected", actualRequests[1], "Second request should be to /redirected (redirect target)")
 }
 
 func (s *runTestSuite) TestBrokenOverrideRun() {
