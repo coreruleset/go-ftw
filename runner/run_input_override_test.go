@@ -13,7 +13,7 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/stretchr/testify/suite"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
