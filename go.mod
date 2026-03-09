@@ -26,7 +26,7 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 	golang.org/x/net v0.50.0
-	golang.org/x/time v0.14.0
+	golang.org/x/time v0.15.0
 	wait4x.dev/v3 v3.6.0
 )
 
