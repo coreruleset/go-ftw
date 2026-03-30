@@ -6,7 +6,7 @@ toolchain go1.26.1
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/corazawaf/coraza/v3 v3.4.0
+	github.com/corazawaf/coraza/v3 v3.5.0
 	github.com/coreruleset/ftw-tests-schema/v2 v2.3.0
 	github.com/creativeprojects/go-selfupdate v1.5.2
 	github.com/go-logr/zerologr v1.2.3
@@ -19,7 +19,7 @@ require (
 	github.com/knadh/koanf/providers/rawbytes v1.0.0
 	github.com/knadh/koanf/v2 v2.3.4
 	github.com/kyokomi/emoji/v2 v2.2.13
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/yargevad/filepathx v1.0.0
