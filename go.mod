@@ -6,7 +6,7 @@ toolchain go1.26.1
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/corazawaf/coraza/v3 v3.5.0
+	github.com/corazawaf/coraza/v3 v3.6.0
 	github.com/coreruleset/ftw-tests-schema/v2 v2.3.0
 	github.com/creativeprojects/go-selfupdate v1.5.2
 	github.com/go-logr/zerologr v1.2.3
