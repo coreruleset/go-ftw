@@ -28,6 +28,8 @@ github.com/corazawaf/coraza/v3 v3.5.0 h1:zGYW3cKhDa05Ztdt7+SGp7OkmR9AgxOFfLbDPwi
 github.com/corazawaf/coraza/v3 v3.5.0/go.mod h1:q7gszZCSufoHIy9jV2NCgk+glYwZpP2mIKgbu2dZkvE=
 github.com/corazawaf/coraza/v3 v3.6.0 h1:rfsGl6eRBzzUAyADFcpuO7qXLt0DZtYWhfTIuhcyAjQ=
 github.com/corazawaf/coraza/v3 v3.6.0/go.mod h1:q7gszZCSufoHIy9jV2NCgk+glYwZpP2mIKgbu2dZkvE=
+github.com/corazawaf/coraza/v3 v3.7.0 h1:LIQqu1r+l6e/U/gyiZeykWaNNBY1TzRLz+aaI+QYEEM=
+github.com/corazawaf/coraza/v3 v3.7.0/go.mod h1:dOSt5evqC7EstouEv6ghhui01+oVUwp9X1vybWwqTlo=
 github.com/corazawaf/libinjection-go v0.2.2 h1:Chzodvb6+NXh6wew5/yhD0Ggioif9ACrQGR4qjTCs1g=
 github.com/corazawaf/libinjection-go v0.2.2/go.mod h1:OP4TM7xdJ2skyXqNX1AN1wN5nNZEmJNuWbNPOItn7aw=
 github.com/corazawaf/libinjection-go v0.3.2 h1:9rrKt0lpg4WvUXt+lwS06GywfqRXXsa/7JcOw5cQLwI=
@@ -138,6 +140,8 @@ github.com/magefile/mage v1.15.1-0.20241126214340-bdc92f694516 h1:aAO0L0ulox6m/C
 github.com/magefile/mage v1.15.1-0.20241126214340-bdc92f694516/go.mod h1:z5UZb/iS3GoOSn0JgWuiw7dxlurVYTu+/jHXqQg881A=
 github.com/magefile/mage v1.15.1-0.20250615140142-78acbaf2e3ae h1:yyMUG1VUd6IjV5jonMKpLXgwm9AzkfRsYisdCXc5OVI=
 github.com/magefile/mage v1.15.1-0.20250615140142-78acbaf2e3ae/go.mod h1:z5UZb/iS3GoOSn0JgWuiw7dxlurVYTu+/jHXqQg881A=
+github.com/magefile/mage v1.17.0 h1:dS4tkq997Ism03akafC8509iqDjeE7TNTexI25Y7sXM=
+github.com/magefile/mage v1.17.0/go.mod h1:Yj51kqllmsgFpvvSzgrZPK9WtluG3kUhFaBUVLo4feA=
 github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
 github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
 github.com/mattn/go-colorable v0.1.14/go.mod h1:6LmQG8QLFO4G5z1gPvYEzlUgJ2wF+stgPZH1UqBm1s8=
