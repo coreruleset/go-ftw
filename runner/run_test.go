@@ -365,6 +365,28 @@ func (s *runTestSuite) TestFailedTestsRun() {
 	s.Equal(1, res.Stats.TotalFailed())
 }
 
+func (s *runTestSuite) TestShowFailuresOnly() {
+	s.runnerConfig.ShowOnlyFailed = true
+
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().NoError(err)
+	s.Equal(1, res.Stats.TotalFailed(), "Expected exactly one failing test")
+
+	// The WAF error log should be empty after the run (truncated after each stage)
+	logFileInfo, err := os.Stat(s.logFilePath)
+	s.Require().NoError(err)
+	s.Equal(int64(0), logFileInfo.Size(), "WAF error log should be empty after run with ShowOnlyFailed")
+
+	// The failed-tests.log should exist next to the error log file and contain content
+	failedLogPath := failedTestsLogFilePath(s.logFilePath)
+	s.Require().NotEmpty(failedLogPath, "failed-tests.log path should not be empty")
+	failedLogInfo, err := os.Stat(failedLogPath)
+	s.Require().NoError(err, "failed-tests.log should have been created for failing tests")
+	s.Greater(failedLogInfo.Size(), int64(0), "failed-tests.log should contain log entries for failing tests")
+	// Clean up the failed-tests.log file
+	s.Require().NoError(os.Remove(failedLogPath))
+}
+
 func (s *runTestSuite) TestIgnoredTestsRun() {
 	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
@@ -740,4 +762,11 @@ func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 
 	err = RunStage(s.context, _check, schema.Test{}, stage)
 	s.Error(err, "failed to read request from test specification: illegal base64 data at input byte 4")
+}
+
+func (s *runTestSuite) TestFailedTestsLogFilePath() {
+	s.Equal("", failedTestsLogFilePath(""))
+	s.Equal("/tmp/failed-tests.log", failedTestsLogFilePath("/tmp/error.log"))
+	s.Equal("/var/log/apache2/failed-tests.log", failedTestsLogFilePath("/var/log/apache2/error.log"))
+	s.Equal("failed-tests.log", failedTestsLogFilePath("error.log"))
 }

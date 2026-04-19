@@ -7,6 +7,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
@@ -204,6 +206,18 @@ func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 
 	// show the result unless quiet was passed in the command line
 	displayResult(&testCase, runContext, testResult, roundTripTime)
+
+	// When showing only failures, save failed-test log entries and truncate the WAF log after each stage.
+	if notRunningInCloudMode(ftwCheck) && runContext.ShowOnlyFailed {
+		if testResult == Failed {
+			if err := appendToFailedTestsLog(runContext.RunnerConfig.LogFilePath, runContext.LogLines); err != nil {
+				log.Error().Err(err).Msg("Failed to append to failed tests log")
+			}
+		}
+		if err := runContext.LogLines.TruncateLogFile(); err != nil {
+			log.Error().Err(err).Msg("Failed to truncate log file")
+		}
+	}
 
 	return nil
 }
@@ -426,4 +440,46 @@ func cleanLogs(logLines *waflog.FTWLogLines) {
 	if err := logLines.Cleanup(); err != nil {
 		log.Error().Err(err).Msg("Failed to cleanup log file")
 	}
+}
+
+// failedTestsLogFilePath returns the path for the failed-tests log file derived from the WAF log file path.
+// Returns an empty string if the WAF log file path is empty.
+func failedTestsLogFilePath(logFilePath string) string {
+	if logFilePath == "" {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(logFilePath), "failed-tests.log")
+}
+
+// appendToFailedTestsLog writes the marked log lines for a failed test stage to the failed-tests log file.
+func appendToFailedTestsLog(logFilePath string, logLines *waflog.FTWLogLines) error {
+	destPath := failedTestsLogFilePath(logFilePath)
+	if destPath == "" {
+		return nil
+	}
+
+	lines := logLines.GetMarkedLines()
+	if len(lines) == 0 {
+		return nil
+	}
+
+	f, err := os.OpenFile(destPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open failed tests log file %q: %w", destPath, err)
+	}
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Error().Err(closeErr).Msg("Failed to close failed tests log file")
+		}
+	}()
+
+	for _, line := range lines {
+		if _, err := f.Write(line); err != nil {
+			return fmt.Errorf("failed to write to failed tests log file: %w", err)
+		}
+		if _, err := f.Write([]byte("\n")); err != nil {
+			return fmt.Errorf("failed to write newline to failed tests log file: %w", err)
+		}
+	}
+	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/utils"
 )
 
 type waflogTestSuite struct {
@@ -77,4 +78,48 @@ func (s *waflogTestSuite) TestLogLinesReset() {
 	s.Nil(ll.endMarker)
 	s.Empty(ll.triggeredRules)
 	s.Empty(ll.markedLines)
+}
+
+func (s *waflogTestSuite) TestTruncateLogFile() {
+	content := "line1\nline2\nline3\n"
+	filename, err := utils.CreateTempFileWithContent("", content, "test-truncate-*.log")
+	s.Require().NoError(err)
+	defer os.Remove(filename)
+
+	cfg := config.NewDefaultConfig()
+	cfg.LogFile = filename
+	runnerConfig := config.NewRunnerConfiguration(cfg)
+
+	ll, err := NewFTWLogLines(runnerConfig)
+	s.Require().NoError(err)
+	defer ll.Cleanup()
+
+	// Verify file has content before truncation
+	fi, err := os.Stat(filename)
+	s.Require().NoError(err)
+	s.Greater(fi.Size(), int64(0), "file should have content before truncation")
+
+	// Truncate the file
+	err = ll.TruncateLogFile()
+	s.Require().NoError(err)
+
+	// Verify file is empty after truncation
+	fi, err = os.Stat(filename)
+	s.Require().NoError(err)
+	s.Equal(int64(0), fi.Size(), "file should be empty after truncation")
+}
+
+func (s *waflogTestSuite) TestGetMarkedLinesWithoutMarkers() {
+	ll := &FTWLogLines{}
+	// Neither start nor end marker is set: GetMarkedLines should return nil safely
+	lines := ll.GetMarkedLines()
+	s.Nil(lines, "GetMarkedLines should return nil when markers are not set")
+}
+
+func (s *waflogTestSuite) TestGetMarkedLinesWithOnlyStartMarker() {
+	ll := &FTWLogLines{}
+	ll.WithStartMarker([]byte("start"))
+	// End marker not set: GetMarkedLines should return nil safely
+	lines := ll.GetMarkedLines()
+	s.Nil(lines, "GetMarkedLines should return nil when end marker is not set")
 }
