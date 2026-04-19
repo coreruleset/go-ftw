@@ -82,7 +82,8 @@ func (ll *FTWLogLines) openLogFile() error {
 		if ll.logFilePath != "" && ll.logFile == nil {
 			var err error
 			// Open with read+write permissions so the file can be truncated after each test
-			// when running with --show-failures-only.
+			// when running with --show-failures-only. os.O_CREATE is intentionally omitted:
+			// the WAF log file must already exist before go-ftw starts.
 			ll.logFile, err = os.OpenFile(ll.logFilePath, os.O_RDWR, 0600)
 			return err
 		}

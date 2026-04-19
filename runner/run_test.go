@@ -368,6 +368,12 @@ func (s *runTestSuite) TestFailedTestsRun() {
 func (s *runTestSuite) TestShowFailuresOnly() {
 	s.runnerConfig.ShowOnlyFailed = true
 
+	// The failed-tests.log should end up next to the WAF error log
+	failedLogPath := failedTestsLogFilePath(s.logFilePath)
+	s.Require().NotEmpty(failedLogPath, "failed-tests.log path should not be empty")
+	// Clean up the failed-tests.log file on exit, if it was created
+	defer os.Remove(failedLogPath)
+
 	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.Equal(1, res.Stats.TotalFailed(), "Expected exactly one failing test")
@@ -377,14 +383,10 @@ func (s *runTestSuite) TestShowFailuresOnly() {
 	s.Require().NoError(err)
 	s.Equal(int64(0), logFileInfo.Size(), "WAF error log should be empty after run with ShowOnlyFailed")
 
-	// The failed-tests.log should exist next to the error log file and contain content
-	failedLogPath := failedTestsLogFilePath(s.logFilePath)
-	s.Require().NotEmpty(failedLogPath, "failed-tests.log path should not be empty")
+	// The failed-tests.log should exist and contain content
 	failedLogInfo, err := os.Stat(failedLogPath)
 	s.Require().NoError(err, "failed-tests.log should have been created for failing tests")
 	s.Greater(failedLogInfo.Size(), int64(0), "failed-tests.log should contain log entries for failing tests")
-	// Clean up the failed-tests.log file
-	s.Require().NoError(os.Remove(failedLogPath))
 }
 
 func (s *runTestSuite) TestIgnoredTestsRun() {
