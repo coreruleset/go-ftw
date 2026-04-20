@@ -46,6 +46,7 @@ type RunnerConfig struct {
 	// SkipTlsVerification skips certificate validation. Useful for connecting
 	// to domains with a self-signed certificate.
 	SkipTlsVerification bool
+	CustomLogIdRegex    string
 }
 
 type PlatformOverrides struct {
@@ -62,6 +63,7 @@ func NewRunnerConfiguration(cfg *FTWConfiguration) *RunnerConfig {
 		MaxMarkerRetries:    cfg.MaxMarkerRetries,
 		RunMode:             cfg.RunMode,
 		SkipTlsVerification: cfg.SkipTlsVerification,
+		CustomLogIdRegex:    cfg.CustomLogIdRegex,
 	}
 
 	if cfg.IncludeTests != nil {

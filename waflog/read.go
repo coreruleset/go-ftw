@@ -44,9 +44,13 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 
 	for _, line := range lines {
 		log.Trace().Msgf("ftw/waflog: Looking for any rule in '%s'", line)
-		regex := stdLogIdRegex
+		// Only execute custom regex if defined, otherwise fallback to the default std + json regexes
+		regex := ll.customLogIdRegex
+		if regex == nil {
+			regex = stdLogIdRegex
+		}
 		match := regex.FindAllSubmatch(line, -1)
-		if match == nil {
+		if match == nil && ll.customLogIdRegex == nil {
 			regex = jsonLogIdRegex
 			match = regex.FindAllSubmatch(line, -1)
 		}

@@ -77,4 +77,5 @@ func (s *waflogTestSuite) TestLogLinesReset() {
 	s.Nil(ll.endMarker)
 	s.Empty(ll.triggeredRules)
 	s.Empty(ll.markedLines)
+	s.Nil(ll.customLogIdRegex)
 }

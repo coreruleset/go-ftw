@@ -48,6 +48,8 @@ type FTWConfiguration struct {
 	IncludeTags *FTWRegexp `koanf:"include_tags"`
 	// to domains with a self-signed certificate.
 	SkipTlsVerification bool `koanf:"skip_tls_verification"`
+	// CustomLogIdRegex is a regular expression used to look for rule IDs when reading the WAF logs
+	CustomLogIdRegex string `koanf:"custom_log_id_regex"`
 }
 
 // FTWTestOverride holds four lists:
