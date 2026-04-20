@@ -31,7 +31,7 @@ const (
 	// - ["id":"999999"]
 	// - [\"id\":\"999999\"] (escaped quotes)
 	DefaultStdLogIdRegex string = `\[(?:id |\\?"id\\?":)\\?"(\d+)\\?"\]`
-	// DefaultStdLogIdRegex is the same as DefaultStdLogIdRegex but used for parsing JSON logs
+	// DefaultJsonLogIdRegex is the default regex used to look for rule IDs when reading JSON WAF logs
 	// Example "ids" that will be caught by this regex:
 	// - {"id":4}
 	// - {..., "id":4,..}
