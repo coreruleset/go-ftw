@@ -15,12 +15,20 @@ import (
 
 // NewFTWLogLines is the base struct for reading the log file
 func NewFTWLogLines(cfg *config.RunnerConfig) (*FTWLogLines, error) {
+	stdLogIdRegex, err := regexp.Compile(cfg.StdLogIdRegex)
+	if err != nil {
+		return nil, fmt.Errorf("could not compile stdLogIdRegex: %s", err)
+	}
+	jsonLogIdRegex, err := regexp.Compile(cfg.JsonLogIdRegex)
+	if err != nil {
+		return nil, fmt.Errorf("could not compile jsonLogIdRegex: %s", err)
+	}
 	ll := &FTWLogLines{
 		logFilePath:         cfg.LogFilePath,
 		runMode:             cfg.RunMode,
 		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
-		stdLogIdRegex:       regexp.MustCompile(cfg.StdLogIdRegex),
-		jsonLogIdRegex:      regexp.MustCompile(cfg.JsonLogIdRegex),
+		stdLogIdRegex:       stdLogIdRegex,
+		jsonLogIdRegex:      jsonLogIdRegex,
 	}
 
 	if err := ll.openLogFile(); err != nil {
@@ -45,8 +53,13 @@ func (ll *FTWLogLines) WithEndMarker(marker []byte) {
 	ll.endMarker = bytes.ToLower(marker)
 }
 
-func (ll *FTWLogLines) WithStdLogIdRegex(regex string) {
-	ll.stdLogIdRegex = regexp.MustCompile(regex)
+func (ll *FTWLogLines) WithStdLogIdRegex(regex string) error {
+	compiledRegex, err := regexp.Compile(regex)
+	if err != nil {
+		return err
+	}
+	ll.stdLogIdRegex = compiledRegex
+	return nil
 }
 
 // Cleanup closes the log file
