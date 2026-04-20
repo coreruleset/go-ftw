@@ -63,9 +63,9 @@ type FTWConfiguration struct {
 	// to domains with a self-signed certificate.
 	SkipTlsVerification bool `koanf:"skip_tls_verification"`
 	// StdLogIdRegex is the regex used to look for rule IDs when reading the WAF logs
-	StdLogIdRegex string `koanf:"StdLogIdRegex"`
+	StdLogIdRegex string `koanf:"stdlogidregex"`
 	// JsonLogIdRegex is the same as StdLogIdRegex but used for parsing JSON logs
-	JsonLogIdRegex string `koanf:"JsonLogIdRegex"`
+	JsonLogIdRegex string `koanf:"jsonlogidregex"`
 }
 
 // FTWTestOverride holds four lists:
