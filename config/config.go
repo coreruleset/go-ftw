@@ -22,6 +22,8 @@ func NewDefaultConfig() *FTWConfiguration {
 		RunMode:             DefaultRunMode,
 		MaxMarkerRetries:    DefaultMaxMarkerRetries,
 		MaxMarkerLogLines:   DefaultMaxMarkerLogLines,
+		StdLogIdRegex:       DefaultStdLogIdRegex,
+		JsonLogIdRegex:      DefaultJsonLogIdRegex,
 	}
 }
 

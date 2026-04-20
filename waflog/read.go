@@ -20,19 +20,6 @@ const maxRuleIdsEstimate = 15
 
 var ruleIdsSet = make(map[uint]struct{}, maxRuleIdsEstimate)
 
-// These regexes provide flexibility in parsing how the rule ID is logged.
-//   - [id "999999"]
-//   - [id \"999999\"] (escaped quotes)
-//   - ["id":"999999"]
-//   - [\"id\":\"999999\"] (escaped quotes)
-var stdLogIdRegex = regexp.MustCompile(`\[(?:id |\\?"id\\?":)\\?"(\d+)\\?"\]`)
-
-// - {"id":4}
-// - {..., "id":4,..}
-// - {"ruleId":"4"}
-// - {..., "ruleId":"4",...}
-var jsonLogIdRegex = regexp.MustCompile(`(?:\{|,)\s*"(?:id|ruleId)":\s*"?(\d+)"?`)
-
 // TriggeredRules returns the IDs of all the rules found in the log for the current test
 func (ll *FTWLogLines) TriggeredRules() []uint {
 	if ll.triggeredRulesInitialized {
@@ -44,11 +31,9 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 
 	for _, line := range lines {
 		log.Trace().Msgf("ftw/waflog: Looking for any rule in '%s'", line)
-		regex := stdLogIdRegex
-		match := regex.FindAllSubmatch(line, -1)
+		match := ll.stdLogIdRegex.FindAllSubmatch(line, -1)
 		if match == nil {
-			regex = jsonLogIdRegex
-			match = regex.FindAllSubmatch(line, -1)
+			match = ll.jsonLogIdRegex.FindAllSubmatch(line, -1)
 		}
 		for _, nextMatch := range match {
 			submatchBytes := nextMatch[1]

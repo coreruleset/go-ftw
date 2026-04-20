@@ -6,7 +6,7 @@ package waflog
 
 import (
 	"os"
-
+	"regexp"
 	"slices"
 
 	"github.com/coreruleset/go-ftw/v2/config"
@@ -24,6 +24,8 @@ type FTWLogLines struct {
 	markedLinesInitialized    bool
 	triggeredRulesInitialized bool
 	runMode                   config.RunMode
+	stdLogIdRegex             *regexp.Regexp
+	jsonLogIdRegex            *regexp.Regexp
 }
 
 func (ll *FTWLogLines) StartMarker() []byte {
@@ -41,4 +43,6 @@ func (ll *FTWLogLines) reset() {
 	ll.markedLines = slices.Delete(ll.markedLines, 0, len(ll.markedLines))
 	ll.markedLinesInitialized = false
 	ll.triggeredRulesInitialized = false
+	ll.stdLogIdRegex = regexp.MustCompile(config.DefaultStdLogIdRegex)
+	ll.jsonLogIdRegex = regexp.MustCompile(config.DefaultJsonLogIdRegex)
 }

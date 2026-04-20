@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/coreruleset/go-ftw/v2/config"
 )
@@ -18,6 +19,8 @@ func NewFTWLogLines(cfg *config.RunnerConfig) (*FTWLogLines, error) {
 		logFilePath:         cfg.LogFilePath,
 		runMode:             cfg.RunMode,
 		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
+		stdLogIdRegex:       regexp.MustCompile(cfg.StdLogIdRegex),
+		jsonLogIdRegex:      regexp.MustCompile(cfg.JsonLogIdRegex),
 	}
 
 	if err := ll.openLogFile(); err != nil {
@@ -40,6 +43,10 @@ func (ll *FTWLogLines) WithStartMarker(marker []byte) {
 // WithEndMarker sets the end marker for the log file
 func (ll *FTWLogLines) WithEndMarker(marker []byte) {
 	ll.endMarker = bytes.ToLower(marker)
+}
+
+func (ll *FTWLogLines) WithStdLogIdRegex(regex string) {
+	ll.stdLogIdRegex = regexp.MustCompile(regex)
 }
 
 // Cleanup closes the log file
