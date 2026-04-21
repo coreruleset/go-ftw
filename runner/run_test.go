@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"testing"
@@ -768,7 +769,7 @@ func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 
 func (s *runTestSuite) TestFailedTestsLogFilePath() {
 	s.Equal("", failedTestsLogFilePath(""))
-	s.Equal("/tmp/failed-tests.log", failedTestsLogFilePath("/tmp/error.log"))
-	s.Equal("/var/log/apache2/failed-tests.log", failedTestsLogFilePath("/var/log/apache2/error.log"))
+	s.Equal(filepath.Join("/tmp", "failed-tests.log"), failedTestsLogFilePath(filepath.Join("/tmp", "error.log")))
+	s.Equal(filepath.Join("/var", "log", "apache2", "failed-tests.log"), failedTestsLogFilePath(filepath.Join("/var", "log", "apache2", "error.log")))
 	s.Equal("failed-tests.log", failedTestsLogFilePath("error.log"))
 }
