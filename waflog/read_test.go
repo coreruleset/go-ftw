@@ -528,7 +528,7 @@ func (s *readTestSuite) TestFTWLogLines_CustomLogIdRegex() {
 	s.Require().NoError(err)
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
-    err = ll.WithStdLogIdRegex(`\[id="(\d+)"\]`)
+	err = ll.WithStdLogIdRegex(`\[id="(\d+)"\]`)
 	s.Require().NoError(err)
 
 	foundRuleIds := ll.TriggeredRules()
