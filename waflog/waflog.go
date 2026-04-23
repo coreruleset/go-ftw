@@ -17,11 +17,11 @@ import (
 func NewFTWLogLines(cfg *config.RunnerConfig) (*FTWLogLines, error) {
 	stdLogIdRegex, err := regexp.Compile(cfg.StdLogIdRegex)
 	if err != nil {
-		return nil, fmt.Errorf("could not compile stdLogIdRegex: %s", err)
+		return nil, fmt.Errorf("could not compile stdLogIdRegex: %w", err)
 	}
 	jsonLogIdRegex, err := regexp.Compile(cfg.JsonLogIdRegex)
 	if err != nil {
-		return nil, fmt.Errorf("could not compile jsonLogIdRegex: %s", err)
+		return nil, fmt.Errorf("could not compile jsonLogIdRegex: %w", err)
 	}
 	ll := &FTWLogLines{
 		logFilePath:         cfg.LogFilePath,
