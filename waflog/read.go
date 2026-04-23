@@ -36,6 +36,10 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 			match = ll.jsonLogIdRegex.FindAllSubmatch(line, -1)
 		}
 		for _, nextMatch := range match {
+			if len(nextMatch) < 2 {
+				log.Error().Caller().Msg("Failed to extract rule ID: regex match does not contain a capturing group")
+				continue
+			}
 			submatchBytes := nextMatch[1]
 			if len(submatchBytes) == 0 {
 				continue
