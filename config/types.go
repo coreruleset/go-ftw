@@ -24,6 +24,20 @@ const (
 	DefaultMaxMarkerRetries uint = 20
 	// DefaultMaxMarkerLogLines is the default lines we are going read back in a logfile to find the markers
 	DefaultMaxMarkerLogLines uint = 500
+	// DefaultStdLogIdRegex is the default regex used to look for rule IDs when reading the WAF logs
+	// Example "ids" that will be caught by this regex:
+	// - [id "999999"]
+	// - [id \"999999\"] (escaped quotes)
+	// - ["id":"999999"]
+	// - [\"id\":\"999999\"] (escaped quotes)
+	DefaultStdLogIdRegex string = `\[(?:id |\\?"id\\?":)\\?"(\d+)\\?"\]`
+	// DefaultJsonLogIdRegex is the default regex used to look for rule IDs when reading JSON WAF logs
+	// Example "ids" that will be caught by this regex:
+	// - {"id":4}
+	// - {..., "id":4,..}
+	// - {"ruleId":"4"}
+	// - {..., "ruleId":"4",...}
+	DefaultJsonLogIdRegex string = `(?:\{|,)\s*"(?:id|ruleId)":\s*"?(\d+)"?`
 )
 
 // FTWConfiguration FTW global Configuration
@@ -48,6 +62,10 @@ type FTWConfiguration struct {
 	IncludeTags *FTWRegexp `koanf:"include_tags"`
 	// to domains with a self-signed certificate.
 	SkipTlsVerification bool `koanf:"skip_tls_verification"`
+	// StdLogIdRegex is the regex used to look for rule IDs when reading the WAF logs
+	StdLogIdRegex string `koanf:"stdlogidregex"`
+	// JsonLogIdRegex is the same as StdLogIdRegex but used for parsing JSON logs
+	JsonLogIdRegex string `koanf:"jsonlogidregex"`
 }
 
 // FTWTestOverride holds four lists:

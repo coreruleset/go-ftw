@@ -8,16 +8,27 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/coreruleset/go-ftw/v2/config"
 )
 
 // NewFTWLogLines is the base struct for reading the log file
 func NewFTWLogLines(cfg *config.RunnerConfig) (*FTWLogLines, error) {
+	stdLogIdRegex, err := regexp.Compile(cfg.StdLogIdRegex)
+	if err != nil {
+		return nil, fmt.Errorf("could not compile stdLogIdRegex: %w", err)
+	}
+	jsonLogIdRegex, err := regexp.Compile(cfg.JsonLogIdRegex)
+	if err != nil {
+		return nil, fmt.Errorf("could not compile jsonLogIdRegex: %w", err)
+	}
 	ll := &FTWLogLines{
 		logFilePath:         cfg.LogFilePath,
 		runMode:             cfg.RunMode,
 		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
+		stdLogIdRegex:       stdLogIdRegex,
+		jsonLogIdRegex:      jsonLogIdRegex,
 	}
 
 	if err := ll.openLogFile(); err != nil {
@@ -40,6 +51,15 @@ func (ll *FTWLogLines) WithStartMarker(marker []byte) {
 // WithEndMarker sets the end marker for the log file
 func (ll *FTWLogLines) WithEndMarker(marker []byte) {
 	ll.endMarker = bytes.ToLower(marker)
+}
+
+func (ll *FTWLogLines) WithStdLogIdRegex(regex string) error {
+	compiledRegex, err := regexp.Compile(regex)
+	if err != nil {
+		return err
+	}
+	ll.stdLogIdRegex = compiledRegex
+	return nil
 }
 
 // Cleanup closes the log file
