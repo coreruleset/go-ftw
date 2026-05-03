@@ -37,16 +37,17 @@ func Run(runnerConfig *config.RunnerConfig, tests []*test.FTWTest, out *output.O
 	}
 
 	runContext := &TestRunContext{
-		RunnerConfig:   runnerConfig,
-		Include:        runnerConfig.Include,
-		Exclude:        runnerConfig.Exclude,
-		IncludeTags:    runnerConfig.IncludeTags,
-		ShowTime:       runnerConfig.ShowTime,
-		Output:         out,
-		ShowOnlyFailed: runnerConfig.ShowOnlyFailed,
-		Stats:          NewRunStats(),
-		Client:         client,
-		LogLines:       logLines,
+		RunnerConfig:    runnerConfig,
+		Include:         runnerConfig.Include,
+		Exclude:         runnerConfig.Exclude,
+		IncludeTags:     runnerConfig.IncludeTags,
+		ShowTime:        runnerConfig.ShowTime,
+		Output:          out,
+		ShowOnlyFailed:  runnerConfig.ShowOnlyFailed,
+		LogFailuresOnly: runnerConfig.LogFailuresOnly,
+		Stats:           NewRunStats(),
+		Client:          client,
+		LogLines:        logLines,
 	}
 
 	for _, tc := range tests {
@@ -207,8 +208,8 @@ func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 	// show the result unless quiet was passed in the command line
 	displayResult(&testCase, runContext, testResult, roundTripTime)
 
-	// When showing only failures, save failed-test log entries and truncate the WAF log after each stage.
-	if notRunningInCloudMode(ftwCheck) && runContext.ShowOnlyFailed {
+	// When --log-failures-only is active, save failed-test log entries and truncate the WAF log after each stage.
+	if notRunningInCloudMode(ftwCheck) && runContext.LogFailuresOnly {
 		if testResult == Failed {
 			if err := appendToFailedTestsLog(runContext.RunnerConfig.LogFilePath, runContext.LogLines); err != nil {
 				log.Error().Err(err).Msg("Failed to append to failed tests log")

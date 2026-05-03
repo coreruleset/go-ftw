@@ -366,8 +366,8 @@ func (s *runTestSuite) TestFailedTestsRun() {
 	s.Equal(1, res.Stats.TotalFailed())
 }
 
-func (s *runTestSuite) TestShowFailuresOnly() {
-	s.runnerConfig.ShowOnlyFailed = true
+func (s *runTestSuite) TestLogFailuresOnly() {
+	s.runnerConfig.LogFailuresOnly = true
 
 	// The failed-tests.log should end up next to the WAF error log
 	failedLogPath := failedTestsLogFilePath(s.logFilePath)
@@ -382,7 +382,7 @@ func (s *runTestSuite) TestShowFailuresOnly() {
 	// The WAF error log should be empty after the run (truncated after each stage)
 	logFileInfo, err := os.Stat(s.logFilePath)
 	s.Require().NoError(err)
-	s.Equal(int64(0), logFileInfo.Size(), "WAF error log should be empty after run with ShowOnlyFailed")
+	s.Equal(int64(0), logFileInfo.Size(), "WAF error log should be empty after run with LogFailuresOnly")
 
 	// The failed-tests.log should exist and contain content
 	failedLogInfo, err := os.Stat(failedLogPath)

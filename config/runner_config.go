@@ -26,6 +26,8 @@ type RunnerConfig struct {
 	ShowTime bool
 	// ShowOnlyFailed will only output information related to failed tests
 	ShowOnlyFailed bool
+	// LogFailuresOnly saves failed test WAF log entries to a separate file and truncates the WAF log after each stage
+	LogFailuresOnly bool
 	// Output determines the type of output the user wants.
 	Output output.Type
 	// ConnectTimeout is the timeout for connecting to endpoints during test execution.

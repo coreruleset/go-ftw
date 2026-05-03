@@ -40,6 +40,7 @@ const (
 	readTimeoutFlag              = "read-timeout"
 	rateLimitFlag                = "rate-limit"
 	showFailuresOnlyFlag         = "show-failures-only"
+	logFailuresOnlyFlag          = "log-failures-only"
 	skipTlsVerificationFlag      = "skip-tls-verification"
 	timeFlag                     = "time"
 	waitDelayFlag                = "wait-delay"
@@ -74,6 +75,7 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd.Flags().StringP(logFileFlag, "l", "", "path to log file to watch for WAF events")
 	runCmd.Flags().BoolP(timeFlag, "t", false, "show time spent per test")
 	runCmd.Flags().BoolP(showFailuresOnlyFlag, "", false, "shows only the results of failed tests")
+	runCmd.Flags().BoolP(logFailuresOnlyFlag, "", false, "saves WAF log entries for failed tests to a separate file and truncates the WAF log after each stage")
 	runCmd.Flags().Duration(connectTimeoutFlag, 3*time.Second, "timeout for connecting to endpoints during test execution")
 	runCmd.Flags().Duration(readTimeoutFlag, 10*time.Second, "timeout for receiving responses during test execution")
 	runCmd.Flags().Uint(maxMarkerRetriesFlag, 20, "maximum number of times the search for log markers will be repeated.\nEach time an additional request is sent to the web server, eventually forcing the log to be flushed")
@@ -203,6 +205,10 @@ func buildRunnerConfig(cmd *cobra.Command, cmdContext *internal.CommandContext) 
 		return nil, err
 	}
 	runnerConfig.ShowOnlyFailed, err = cmd.Flags().GetBool(showFailuresOnlyFlag)
+	if err != nil {
+		return nil, err
+	}
+	runnerConfig.LogFailuresOnly, err = cmd.Flags().GetBool(logFailuresOnlyFlag)
 	if err != nil {
 		return nil, err
 	}
