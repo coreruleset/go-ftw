@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"testing"
@@ -363,6 +364,30 @@ func (s *runTestSuite) TestFailedTestsRun() {
 	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.Equal(1, res.Stats.TotalFailed())
+}
+
+func (s *runTestSuite) TestLogFailuresOnly() {
+	s.runnerConfig.LogFailuresOnly = true
+
+	// The failed-tests.log should end up next to the WAF error log
+	failedLogPath := failedTestsLogFilePath(s.logFilePath)
+	s.Require().NotEmpty(failedLogPath, "failed-tests.log path should not be empty")
+	// Clean up the failed-tests.log file on exit, if it was created
+	defer os.Remove(failedLogPath)
+
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().NoError(err)
+	s.Equal(1, res.Stats.TotalFailed(), "Expected exactly one failing test")
+
+	// The WAF error log should be empty after the run (truncated after each stage)
+	logFileInfo, err := os.Stat(s.logFilePath)
+	s.Require().NoError(err)
+	s.Equal(int64(0), logFileInfo.Size(), "WAF error log should be empty after run with LogFailuresOnly")
+
+	// The failed-tests.log should exist and contain content
+	failedLogInfo, err := os.Stat(failedLogPath)
+	s.Require().NoError(err, "failed-tests.log should have been created for failing tests")
+	s.Greater(failedLogInfo.Size(), int64(0), "failed-tests.log should contain log entries for failing tests")
 }
 
 func (s *runTestSuite) TestIgnoredTestsRun() {
@@ -740,4 +765,11 @@ func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 
 	err = RunStage(s.context, _check, schema.Test{}, stage)
 	s.Error(err, "failed to read request from test specification: illegal base64 data at input byte 4")
+}
+
+func (s *runTestSuite) TestFailedTestsLogFilePath() {
+	s.Equal("", failedTestsLogFilePath(""))
+	s.Equal(filepath.Join("/tmp", "failed-tests.log"), failedTestsLogFilePath(filepath.Join("/tmp", "error.log")))
+	s.Equal(filepath.Join("/var", "log", "apache2", "failed-tests.log"), failedTestsLogFilePath(filepath.Join("/var", "log", "apache2", "error.log")))
+	s.Equal("failed-tests.log", failedTestsLogFilePath("error.log"))
 }

@@ -24,6 +24,7 @@ type TestRunContext struct {
 	IncludeTags           *regexp.Regexp
 	ShowTime              bool
 	ShowOnlyFailed        bool
+	LogFailuresOnly       bool
 	Output                *output.Output
 	Stats                 *RunStats
 	Result                TestResult
