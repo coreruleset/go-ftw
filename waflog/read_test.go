@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -128,11 +129,9 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMultipleMarkersAtEnd() {
 
 	foundLines := ll.getMarkedLines()
 	// logs are scanned backwards, we need to reverse the order of lines for comparison
-	for i, j := 0, len(foundLines)-1; i < j; i, j = i+1, j-1 {
-		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
-	}
-	// 4 lines are expected, 3 are the meaningful log lines (logLinesOnly), and the 4th is the repeat end marker.
-	s.Len(foundLines, 4, "found unexpected number of log lines")
+	slices.Reverse(foundLines)
+	// 3 lines are expected, the repeat end marker must be skipped
+	s.Len(foundLines, 3, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
 		s.Equalf(foundLines[index], []byte(line), "log lines don't match: \n%s\n%s", line, string(foundLines[index]))
