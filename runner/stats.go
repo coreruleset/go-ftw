@@ -173,20 +173,20 @@ func (stats *RunStats) writeGitHubSummary() {
 	summary.WriteString("### Summary\n\n")
 	summary.WriteString("| Metric | Count |\n")
 	summary.WriteString("|--------|-------|\n")
-	summary.WriteString(fmt.Sprintf("| Total Tests Run | %d |\n", stats.Run))
-	summary.WriteString(fmt.Sprintf("| ✅ Passed | %d |\n", len(stats.Success)))
-	summary.WriteString(fmt.Sprintf("| ❌ Failed | %d |\n", stats.TotalFailed()))
-	summary.WriteString(fmt.Sprintf("| ⏭️ Skipped | %d |\n", len(stats.Skipped)))
+	fmt.Fprintf(&summary, "| Total Tests Run | %d |\n", stats.Run)
+	fmt.Fprintf(&summary, "| ✅ Passed | %d |\n", len(stats.Success))
+	fmt.Fprintf(&summary, "| ❌ Failed | %d |\n", stats.TotalFailed())
+	fmt.Fprintf(&summary, "| ⏭️ Skipped | %d |\n", len(stats.Skipped))
 	if len(stats.Ignored) > 0 {
-		summary.WriteString(fmt.Sprintf("| ℹ️ Ignored | %d |\n", len(stats.Ignored)))
+		fmt.Fprintf(&summary, "| ℹ️ Ignored | %d |\n", len(stats.Ignored))
 	}
 	if len(stats.ForcedPass) > 0 {
-		summary.WriteString(fmt.Sprintf("| 🔧 Forced Pass | %d |\n", len(stats.ForcedPass)))
+		fmt.Fprintf(&summary, "| 🔧 Forced Pass | %d |\n", len(stats.ForcedPass))
 	}
 	if len(stats.ForcedFail) > 0 {
-		summary.WriteString(fmt.Sprintf("| 🔧 Forced Fail | %d |\n", len(stats.ForcedFail)))
+		fmt.Fprintf(&summary, "| 🔧 Forced Fail | %d |\n", len(stats.ForcedFail))
 	}
-	summary.WriteString(fmt.Sprintf("| ⏱️ Total Time | %s |\n\n", stats.TotalTime))
+	fmt.Fprintf(&summary, "| ⏱️ Total Time | %s |\n\n", stats.TotalTime)
 
 	// Failed tests details in table format
 	if len(stats.Failed) > 0 {

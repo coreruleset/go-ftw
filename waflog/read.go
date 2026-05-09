@@ -137,6 +137,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 		return ll.markedLines
 	}
 	ll.markedLinesInitialized = true
+	log.Trace().Msg("Collecting marked lines")
 
 	if len(ll.startMarker) == 0 || len(ll.endMarker) == 0 {
 		log.Fatal().Msg("Both start and end marker must be set before the log can be inspected")
@@ -146,7 +147,11 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 		log.Fatal().Msgf("Start and end markers must be different. %q", ll.startMarker)
 	}
 
-	fi, err := ll.logFile.Stat()
+	return ll.basicGetMarkedLines()
+}
+
+func (ll *FTWLogLines) basicGetMarkedLines() [][]byte {
+	fileInfo, err := ll.logFile.Stat()
 	if err != nil {
 		log.Error().Caller().Msg("cannot read file's size")
 		return ll.markedLines
@@ -156,7 +161,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 	backscannerOptions := &backscanner.Options{
 		ChunkSize: 4096,
 	}
-	scanner := backscanner.NewOptions(ll.logFile, int(fi.Size()), backscannerOptions)
+	scanner := backscanner.NewOptions(ll.logFile, int(fileInfo.Size()), backscannerOptions)
 	startFound := false
 	endFound := false
 	// end marker is the *first* marker when reading backwards,
@@ -179,7 +184,17 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 			}
 			continue
 		}
-		if endFound && bytes.Equal(lineLower, ll.startMarker) {
+		if endFound && bytes.Equal(lineLower, ll.endMarker) {
+			// Found a duplicate end marker. This can happen when we force log
+			// flushing through `markAndFlush()`, where we resend the end marker until
+			// we see it in the log.
+
+			// As we pretty much control the log, we don't need to clear any
+			// log lines that could, technically, occur between two consecutive
+			// end markers.
+			log.Trace().Msg("Skipping duplicate end marker")
+			continue
+		} else if endFound && bytes.Equal(lineLower, ll.startMarker) {
 			startFound = true
 			break
 		}
@@ -192,6 +207,7 @@ func (ll *FTWLogLines) getMarkedLines() [][]byte {
 		log.Debug().Msg("start marker not found while collecting marked lines")
 	}
 
+	log.Trace().Msgf("Found %d log lines: %s\n", len(ll.markedLines), bytes.Join(ll.markedLines, []byte{'\n'}))
 	return ll.markedLines
 }
 
