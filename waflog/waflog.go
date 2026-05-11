@@ -87,7 +87,7 @@ func compileAndCheckRegex(regex string) (*regexp.Regexp, error) {
 		return nil, fmt.Errorf("could not parse regular expression: %w", err)
 	}
 	if regexAst.MaxCap() == 0 {
-	  return nil, errors.New("regex does not contain a capture group and cannot be used to find IDs")
+		return nil, errors.New("regex does not contain a capture group and cannot be used to find IDs")
 	}
 
 	compiled, err := regexp.Compile(regex)
