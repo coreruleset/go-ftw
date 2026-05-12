@@ -79,3 +79,85 @@ func (s *waflogTestSuite) TestLogLinesReset() {
 	s.Empty(ll.markedLines)
 	s.Nil(ll.customLogIdRegex)
 }
+
+func (s *waflogTestSuite) TestCompileAndCheckRegex() {
+	tests := []struct {
+		name        string
+		regex       string
+		expectNil   bool
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "empty string returns nil without error",
+			regex:       "",
+			expectNil:   true,
+			expectError: false,
+		},
+		{
+			name:        "valid regex with capture group",
+			regex:       `(\d+)`,
+			expectNil:   false,
+			expectError: false,
+		},
+		{
+			name:        "valid regex with named capture group",
+			regex:       `(?P<id>\d+)`,
+			expectNil:   false,
+			expectError: false,
+		},
+		{
+			name:        "valid regex with multiple capture groups",
+			regex:       `(\d+)-([a-z]+)`,
+			expectNil:   false,
+			expectError: false,
+		},
+		{
+			name:        "invalid regex syntax returns parse error",
+			regex:       `[invalid`,
+			expectNil:   true,
+			expectError: true,
+			errorMsg:    "could not parse regular expression",
+		},
+		{
+			name:        "regex without capture group returns error",
+			regex:       `\d+`,
+			expectNil:   true,
+			expectError: true,
+			errorMsg:    "regex does not contain a capture group and cannot be used to find IDs",
+		},
+		{
+			name:        "regex with only non-capturing group returns error",
+			regex:       `(?:\d+)`,
+			expectNil:   true,
+			expectError: true,
+			errorMsg:    "regex does not contain a capture group and cannot be used to find IDs",
+		},
+		{
+			name:        "complex valid regex with capture group",
+			regex:       `^prefix-([a-zA-Z0-9]+)-suffix$`,
+			expectNil:   false,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			result, err := compileAndCheckRegex(tt.regex)
+
+			if tt.expectError {
+				s.Require().Error(err)
+				s.Contains(err.Error(), tt.errorMsg)
+				s.Nil(result)
+			} else {
+				s.Require().NoError(err)
+			}
+
+			if tt.expectNil {
+				s.Nil(result)
+			} else {
+				s.NotNil(result)
+			}
+		})
+	}
+}
