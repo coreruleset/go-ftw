@@ -5,6 +5,7 @@ package waflog
 
 import (
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -68,6 +69,7 @@ func (s *waflogTestSuite) TestLogLinesReset() {
 		endMarker:           []byte("endmarker"),
 		triggeredRules:      []uint{1, 3, 3},
 		markedLines:         [][]byte{[]byte("line1"), []byte("line2")},
+		customLogIdRegex:    regexp.MustCompile(""),
 	}
 
 	ll.reset()
@@ -77,7 +79,7 @@ func (s *waflogTestSuite) TestLogLinesReset() {
 	s.Nil(ll.endMarker)
 	s.Empty(ll.triggeredRules)
 	s.Empty(ll.markedLines)
-	s.Nil(ll.customLogIdRegex)
+	s.NotNil(ll.customLogIdRegex)
 }
 
 func (s *waflogTestSuite) TestCompileAndCheckRegex() {

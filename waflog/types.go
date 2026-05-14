@@ -42,5 +42,4 @@ func (ll *FTWLogLines) reset() {
 	ll.markedLines = slices.Delete(ll.markedLines, 0, len(ll.markedLines))
 	ll.markedLinesInitialized = false
 	ll.triggeredRulesInitialized = false
-	ll.customLogIdRegex = nil
 }
