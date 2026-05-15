@@ -6,7 +6,7 @@ package waflog
 
 import (
 	"os"
-
+	"regexp"
 	"slices"
 
 	"github.com/coreruleset/go-ftw/v2/config"
@@ -24,6 +24,7 @@ type FTWLogLines struct {
 	markedLinesInitialized    bool
 	triggeredRulesInitialized bool
 	runMode                   config.RunMode
+	customLogIdRegex          *regexp.Regexp
 }
 
 func (ll *FTWLogLines) StartMarker() []byte {

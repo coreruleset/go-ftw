@@ -9,3 +9,6 @@ insert_final_newline = true
 
 [*.yaml]
 indent_size = 2
+
+[*.{go,mod,sum}]
+indent_style = tab

@@ -42,14 +42,13 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 
 	lines := ll.getMarkedLines()
 
+	lineMatcher := ll.matchLine
+	if ll.customLogIdRegex != nil {
+		lineMatcher = ll.matchLineCustom
+	}
 	for _, line := range lines {
 		log.Trace().Msgf("ftw/waflog: Looking for any rule in '%s'", line)
-		regex := stdLogIdRegex
-		match := regex.FindAllSubmatch(line, -1)
-		if match == nil {
-			regex = jsonLogIdRegex
-			match = regex.FindAllSubmatch(line, -1)
-		}
+		match := lineMatcher(line)
 		for _, nextMatch := range match {
 			submatchBytes := nextMatch[1]
 			if len(submatchBytes) == 0 {
@@ -76,6 +75,19 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 		delete(ruleIdsSet, key)
 	}
 	return ll.triggeredRules
+}
+
+func (ll *FTWLogLines) matchLine(line []byte) [][][]byte {
+	match := stdLogIdRegex.FindAllSubmatch(line, -1)
+	if match == nil {
+		match = jsonLogIdRegex.FindAllSubmatch(line, -1)
+	}
+
+	return match
+}
+
+func (ll *FTWLogLines) matchLineCustom(line []byte) [][][]byte {
+	return ll.customLogIdRegex.FindAllSubmatch(line, -1)
 }
 
 // ContainsAllIds returns true if all of the specified rule IDs appear in the log for the current test.
