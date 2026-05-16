@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"slices"
 	"strings"
 	"testing"
 
@@ -127,9 +126,8 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMultipleMarkersAtEnd() {
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
-	foundLines := ll.getMarkedLines()
-	// logs are scanned backwards, we need to reverse the order of lines for comparison
-	slices.Reverse(foundLines)
+	foundLines, err := ll.GetMarkedLines()
+	s.Require().NoError(err)
 	// 3 lines are expected, the repeat end marker must be skipped
 	s.Len(foundLines, 3, "found unexpected number of log lines")
 
@@ -162,13 +160,8 @@ func (s *readTestSuite) TestReadGetMarkedLines() {
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
-	foundLines := ll.getMarkedLines()
-	// logs are scanned backwards
-	// we need to reverse the order of lines for comparison
-	for i, j := 0, len(foundLines)-1; i < j; i, j = i+1, j-1 {
-		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
-	}
-
+	foundLines, err := ll.GetMarkedLines()
+	s.Require().NoError(err)
 	s.Equal(len(foundLines), 3, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
@@ -200,13 +193,8 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithTrailingEmptyLines() {
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
-	foundLines := ll.getMarkedLines()
-	// logs are scanned backwards
-	// we need to reverse the order of lines for comparison
-	for i, j := 0, len(foundLines)-1; i < j; i, j = i+1, j-1 {
-		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
-	}
-
+	foundLines, err := ll.GetMarkedLines()
+	s.Require().NoError(err)
 	s.Len(foundLines, 3, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
@@ -241,13 +229,8 @@ func (s *readTestSuite) TestReadGetMarkedLinesWithPrecedingLines() {
 	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
 	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
 
-	foundLines := ll.getMarkedLines()
-	// logs are scanned backwards
-	// we need to reverse the order of lines for comparison
-	for i, j := 0, len(foundLines)-1; i < j; i, j = i+1, j-1 {
-		foundLines[i], foundLines[j] = foundLines[j], foundLines[i]
-	}
-
+	foundLines, err := ll.GetMarkedLines()
+	s.Require().NoError(err)
 	s.Len(foundLines, 3, "found unexpected number of log lines")
 
 	for index, line := range strings.Split(logLinesOnly, "\n") {
@@ -324,7 +307,8 @@ func (s *readTestSuite) TestFTWLogLines_Contains() {
 			}
 			ll.WithStartMarker(tt.fields.StartMarker)
 			ll.WithEndMarker(tt.fields.EndMarker)
-			got := ll.MatchesRegex(tt.args.match)
+			got, err := ll.MatchesRegex(tt.args.match)
+			s.Require().NoError(err)
 			s.Equalf(tt.want, got, "MatchesRegex() = %v, want %v", got, tt.want)
 		})
 	}
@@ -392,7 +376,8 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 			}
 			ll.WithStartMarker(tt.fields.StartMarker)
 			ll.WithEndMarker(tt.fields.EndMarker)
-			got := ll.MatchesRegex(tt.args.match)
+			got, err := ll.MatchesRegex(tt.args.match)
+			s.Require().NoError(err)
 			s.Equalf(tt.want, got, "Contains() = %v, want %v", got, tt.want)
 		})
 	}
@@ -459,7 +444,8 @@ func (s *readTestSuite) TestFindAllIdsInLogs() {
 	ll.WithStartMarker([]byte(startMarkerLine))
 	ll.WithEndMarker([]byte(endMarkerLine))
 
-	foundRuleIds := ll.TriggeredRules()
+	foundRuleIds, err := ll.TriggeredRules()
+	s.Require().NoError(err)
 	s.Len(foundRuleIds, 8)
 	s.Contains(foundRuleIds, uint(1))
 	s.Contains(foundRuleIds, uint(2))
@@ -499,7 +485,8 @@ func (s *readTestSuite) TestFalsePositiveIds() {
 	ll.WithStartMarker([]byte(startMarkerLine))
 	ll.WithEndMarker([]byte(endMarkerLine))
 
-	foundRuleIds := ll.TriggeredRules()
+	foundRuleIds, err := ll.TriggeredRules()
+	s.Require().NoError(err)
 	s.Len(foundRuleIds, 1)
 	s.Contains(foundRuleIds, uint(942370))
 }
@@ -530,7 +517,8 @@ func (s *readTestSuite) TestFTWLogLines_CustomLogIdRegex() {
 	err = ll.WithCustomLogIdRegex(`\[id="(\d+)"\]`)
 	s.Require().NoError(err)
 
-	foundRuleIds := ll.TriggeredRules()
+	foundRuleIds, err := ll.TriggeredRules()
+	s.Require().NoError(err)
 	s.Len(foundRuleIds, 1)
 	s.Contains(foundRuleIds, uint(920300))
 }

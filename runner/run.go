@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
@@ -35,16 +36,18 @@ func Run(runnerConfig *config.RunnerConfig, tests []*test.FTWTest, out *output.O
 	}
 
 	runContext := &TestRunContext{
-		RunnerConfig:   runnerConfig,
-		Include:        runnerConfig.Include,
-		Exclude:        runnerConfig.Exclude,
-		IncludeTags:    runnerConfig.IncludeTags,
-		ShowTime:       runnerConfig.ShowTime,
-		Output:         out,
-		ShowOnlyFailed: runnerConfig.ShowOnlyFailed,
-		Stats:          NewRunStats(),
-		Client:         client,
-		LogLines:       logLines,
+		RunnerConfig:           runnerConfig,
+		Include:                runnerConfig.Include,
+		Exclude:                runnerConfig.Exclude,
+		IncludeTags:            runnerConfig.IncludeTags,
+		ShowTime:               runnerConfig.ShowTime,
+		Output:                 out,
+		ShowOnlyFailed:         runnerConfig.ShowOnlyFailed,
+		StoreFailureWafLogs:    runnerConfig.StoreFailureLogs,
+		FailureWafLogsFilePath: runnerConfig.FailureWafLogsFilePath,
+		Stats:                  NewRunStats(),
+		Client:                 client,
+		LogLines:               logLines,
 	}
 
 	for _, tc := range tests {
@@ -200,10 +203,22 @@ func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 
 	roundTripTime := runContext.Client.GetRoundTripTime().RoundTripDuration()
 
-	runContext.EndStage(&testCase, testResult, ftwCheck.GetTriggeredRules())
+	triggeredRules, err := ftwCheck.GetTriggeredRules()
+	if err != nil {
+		return err
+	}
+	runContext.EndStage(&testCase, testResult, triggeredRules)
 
 	// show the result unless quiet was passed in the command line
 	displayResult(&testCase, runContext, testResult, roundTripTime)
+
+	if notRunningInCloudMode(ftwCheck) && runContext.StoreFailureWafLogs {
+		if testResult == Failed {
+			if err := appendFailureWafLogs(runContext); err != nil {
+				log.Error().Err(err).Msg("Failed to append to failed tests log")
+			}
+		}
+	}
 
 	return nil
 }
@@ -390,7 +405,12 @@ func checkResult(c *FTWCheck, response *ftwhttp.Response, responseError error) T
 		return Failed
 	}
 	// Lastly, check logs
-	if !c.AssertLogs() {
+	logsCheck, err := c.AssertLogs()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to assert logs")
+		return Failed
+	}
+	if !logsCheck {
 		return Failed
 	}
 
@@ -426,4 +446,35 @@ func cleanLogs(logLines *waflog.FTWLogLines) {
 	if err := logLines.Cleanup(); err != nil {
 		log.Error().Err(err).Msg("Failed to cleanup log file")
 	}
+}
+
+// appendFailureWafLogs writes the marked log lines for a failed test stage to the failed-tests log file.
+func appendFailureWafLogs(runContext *TestRunContext) error {
+	lines, err := runContext.LogLines.GetMarkedLines()
+	if err != nil {
+		return err
+	}
+	if len(lines) == 0 {
+		return nil
+	}
+
+	f, err := os.OpenFile(runContext.FailureWafLogsFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open failure logs file %q: %w", runContext.FailureWafLogsFilePath, err)
+	}
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Error().Err(closeErr).Msg("Failed to close failures logs file")
+		}
+	}()
+
+	for _, line := range lines {
+		if _, err := f.Write(line); err != nil {
+			return fmt.Errorf("failed to write to failure logs file: %w", err)
+		}
+		if _, err := f.Write([]byte("\n")); err != nil {
+			return fmt.Errorf("failed to write newline to failures logs file: %w", err)
+		}
+	}
+	return nil
 }

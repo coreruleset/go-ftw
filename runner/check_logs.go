@@ -7,60 +7,84 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (c *FTWCheck) AssertLogs() bool {
+func (c *FTWCheck) AssertLogs() (bool, error) {
 	if c.CloudMode() {
 		// No logs to check in cloud mode
-		return true
+		return true, nil
 	}
 
-	return c.assertLogContains() && c.assertNoLogContains()
+	contains, err := c.assertLogContains()
+	if err != nil {
+		return false, err
+	}
+	notContains, err := c.assertNoLogContains()
+	if err != nil {
+		return false, err
+	}
+
+	return contains && notContains, nil
 }
 
 // AssertNoLogContains returns true is the string is not found in the logs
-func (c *FTWCheck) assertNoLogContains() bool {
+func (c *FTWCheck) assertNoLogContains() (bool, error) {
 	logExpectations := c.expected.Log
-	result := true
 	if logExpectations.NoMatchRegex != "" {
-		result = !c.log.MatchesRegex(logExpectations.NoMatchRegex)
-		if !result {
+		found, err := c.log.MatchesRegex(logExpectations.NoMatchRegex)
+		if err != nil {
+			return false, err
+		}
+		if found {
 			log.Debug().Msgf("Unexpectedly found match for '%s'", logExpectations.NoMatchRegex)
+			return false, nil
 		}
 	}
-	if result && len(logExpectations.NoExpectIds) > 0 {
-		found, foundRules := c.log.ContainsAnyId(logExpectations.NoExpectIds)
+	if len(logExpectations.NoExpectIds) > 0 {
+		found, foundRules, err := c.log.ContainsAnyId(logExpectations.NoExpectIds)
+		if err != nil {
+			return false, err
+		}
 		if found {
 			log.Debug().Msgf("Unexpectedly found the following IDs in the log: %v", foundRules)
-			result = false
+			return false, nil
 		}
 	}
-	return result
+	return true, nil
 }
 
 // AssertLogContains returns true when the logs contain the string
-func (c *FTWCheck) assertLogContains() bool {
+func (c *FTWCheck) assertLogContains() (bool, error) {
 	logExpectations := c.expected.Log
-	result := true
 	if logExpectations.MatchRegex != "" {
-		result = c.log.MatchesRegex(logExpectations.MatchRegex)
-		if !result {
+		found, err := c.log.MatchesRegex(logExpectations.MatchRegex)
+		if err != nil {
+			return false, err
+		}
+		if !found {
 			log.Debug().Msgf("Failed to find match for match_regex. Expected to find '%s'", logExpectations.MatchRegex)
+			return false, nil
 		}
 	}
-	if result && len(logExpectations.ExpectIds) > 0 {
-		found, missedRules := c.log.ContainsAllIds(logExpectations.ExpectIds)
+	if len(logExpectations.ExpectIds) > 0 {
+		found, missedRules, err := c.log.ContainsAllIds(logExpectations.ExpectIds)
+		if err != nil {
+			return false, err
+		}
 		if !found {
 			log.Debug().Msgf("Failed to find the following IDs in the log: %v", missedRules)
-			result = false
+			return false, nil
 		}
 	}
 
 	if c.expected.Isolated {
-		ruleIds := c.log.TriggeredRules()
-		result = len(ruleIds) == 1
-		if !result {
+		ruleIds, err := c.log.TriggeredRules()
+		if err != nil {
+			return false, err
+		}
+		if len(ruleIds) != 1 {
 			log.Debug().Msgf("Found more than one triggered rule for isolated test: %v", ruleIds)
+			return false, nil
 		}
 	}
 
-	return result
+	return true, nil
 }
