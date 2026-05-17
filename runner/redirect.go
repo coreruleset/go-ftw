@@ -28,6 +28,9 @@ func extractRedirectLocation(response *ftwhttp.Response, baseInput *test.Input) 
 	if response == nil {
 		return nil, fmt.Errorf("no previous response available for redirect")
 	}
+	if baseInput == nil {
+		return nil, fmt.Errorf("no previous input available for redirect resolution")
+	}
 
 	// Check if status code is a redirect
 	statusCode := response.Parsed.StatusCode
@@ -43,7 +46,6 @@ func extractRedirectLocation(response *ftwhttp.Response, baseInput *test.Input) 
 	if location == "" {
 		return nil, fmt.Errorf("previous response is a redirect but has no Location header")
 	}
-
 	log.Debug().Msgf("Following redirect to: %s", location)
 
 	// Parse the location URL
@@ -60,7 +62,7 @@ func extractRedirectLocation(response *ftwhttp.Response, baseInput *test.Input) 
 		Host:   baseInput.GetDestAddr(),
 		Path:   baseInput.GetURI(),
 	}
-	
+
 	// Add port to host if it's not a default port
 	port := baseInput.GetPort()
 	isDefaultPort := (baseURL.Scheme == "https" && port == 443) ||
