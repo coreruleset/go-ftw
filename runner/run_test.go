@@ -346,6 +346,69 @@ func (s *runTestSuite) TestOverrideRun() {
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
+func (s *runTestSuite) TestFollowRedirect() {
+	// Track which URIs were requested to validate redirect behavior
+	var requestedURIs []string
+	var requestedHosts []string
+
+	// Custom handler that returns a redirect on first request
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		requestedURIs = append(requestedURIs, r.RequestURI)
+		requestedHosts = append(requestedHosts, r.Host)
+
+		// Don't track marker requests
+		if r.Header.Get(s.cfg.LogMarkerHeaderName) != "" {
+			s.writeMarkerOrMessageToTestServerLog(runTestLogLines, r)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		switch r.RequestURI {
+		case "/redirect-me":
+			// Stage 1: Return relative redirect to /redirected
+			w.Header().Set("Location", "/redirected")
+			w.WriteHeader(http.StatusFound)
+			_, _ = w.Write([]byte("Redirecting..."))
+		case "/redirected":
+			// Stage 2: Return success
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("Success after redirect"))
+		default:
+			// Unexpected URI
+			w.WriteHeader(http.StatusNotFound)
+		}
+
+		s.writeMarkerOrMessageToTestServerLog(runTestLogLines, r)
+	}
+
+	s.ts.Config.Handler = http.HandlerFunc(handler)
+
+	s.runnerConfig.Output = output.Quiet
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().NoError(err)
+	s.Equal(0, res.Stats.TotalFailed(), "Follow redirect test should pass")
+
+	// Verify that both URIs were requested (excluding marker requests)
+	actualRequests := []string{}
+	actualHosts := []string{}
+	for i, uri := range requestedURIs {
+		if uri != "/status/200" { // Skip marker requests
+			actualRequests = append(actualRequests, uri)
+			actualHosts = append(actualHosts, requestedHosts[i])
+		}
+	}
+
+	s.Require().Len(actualRequests, 2, "Should have made 2 non-marker requests")
+	s.Equal("/redirect-me", actualRequests[0], "First request should be to /redirect-me")
+	s.Equal("/redirected", actualRequests[1], "Second request should be to /redirected (redirect target)")
+
+	// Verify Host headers
+	s.Require().Len(actualHosts, 2, "Should have captured 2 Host headers")
+	// First request uses Host from test yaml (just IP, no port)
+	// Second request (after redirect) should include port for non-default port
+	s.Contains(actualHosts[1], ":", "Host header should include port after redirect for non-default port")
+}
+
 func (s *runTestSuite) TestBrokenOverrideRun() {
 	// the test should succeed, despite the unknown override property
 	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
