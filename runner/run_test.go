@@ -14,7 +14,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"text/template"
 
@@ -351,37 +350,35 @@ func (s *runTestSuite) TestFollowRedirect() {
 	// Track which URIs were requested to validate redirect behavior
 	var requestedURIs []string
 	var requestedHosts []string
-	var mu sync.Mutex
 
 	// Custom handler that returns a redirect on first request
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		mu.Lock()
 		requestedURIs = append(requestedURIs, r.RequestURI)
 		requestedHosts = append(requestedHosts, r.Host)
-		mu.Unlock()
 
 		// Don't track marker requests
 		if r.Header.Get(s.cfg.LogMarkerHeaderName) != "" {
-			s.writeMarkerOrMessageToTestServerLog(logText, r)
+			s.writeMarkerOrMessageToTestServerLog(runTestLogLines, r)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 
-		if r.RequestURI == "/redirect-me" {
+		switch r.RequestURI {
+		case "/redirect-me":
 			// Stage 1: Return relative redirect to /redirected
 			w.Header().Set("Location", "/redirected")
 			w.WriteHeader(http.StatusFound)
 			_, _ = w.Write([]byte("Redirecting..."))
-		} else if r.RequestURI == "/redirected" {
+		case "/redirected":
 			// Stage 2: Return success
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("Success after redirect"))
-		} else {
+		default:
 			// Unexpected URI
 			w.WriteHeader(http.StatusNotFound)
 		}
 
-		s.writeMarkerOrMessageToTestServerLog(logText, r)
+		s.writeMarkerOrMessageToTestServerLog(runTestLogLines, r)
 	}
 
 	s.ts.Config.Handler = http.HandlerFunc(handler)
@@ -392,7 +389,6 @@ func (s *runTestSuite) TestFollowRedirect() {
 	s.Equal(0, res.Stats.TotalFailed(), "Follow redirect test should pass")
 
 	// Verify that both URIs were requested (excluding marker requests)
-	mu.Lock()
 	actualRequests := []string{}
 	actualHosts := []string{}
 	for i, uri := range requestedURIs {
@@ -401,7 +397,6 @@ func (s *runTestSuite) TestFollowRedirect() {
 			actualHosts = append(actualHosts, requestedHosts[i])
 		}
 	}
-	mu.Unlock()
 
 	s.Require().Len(actualRequests, 2, "Should have made 2 non-marker requests")
 	s.Equal("/redirect-me", actualRequests[0], "First request should be to /redirect-me")
