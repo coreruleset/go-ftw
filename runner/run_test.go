@@ -10,8 +10,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"testing"
 	"text/template"
 
@@ -30,6 +32,11 @@ import (
 	"github.com/coreruleset/go-ftw/v2/utils"
 	"github.com/coreruleset/go-ftw/v2/waflog"
 )
+
+var runTestLogLines = `[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
+[Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
+[Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
+[Tue Jan 05 02:21:09.647668 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:inbound_anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/RESPONSE-980-CORRELATION.conf"] [line "87"] [id "980130"] [msg "Inbound Anomaly Score Exceeded (Total Inbound Score: 5 - SQLI=0,XSS=0,RFI=0,LFI=0,RCE=0,PHPI=0,HTTP=0,SESS=0): individual paranoia level scores: 3, 2, 0, 0"] [ver "OWASP_CRS/3.3.0"] [tag "event-correlation"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
 
 var testConfigMap = map[string]string{
 	"BaseConfig": `---
@@ -174,7 +181,7 @@ func (s *runTestSuite) TearDownTest() {
 
 func (s *runTestSuite) BeforeTest(_ string, name string) {
 	// setup test webserver (not a waf)
-	s.newTestServer(logText)
+	s.newTestServer(runTestLogLines)
 
 	var err error
 	var cfg string
@@ -363,6 +370,42 @@ func (s *runTestSuite) TestFailedTestsRun() {
 	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.Equal(1, res.Stats.TotalFailed())
+}
+
+func (s *runTestSuite) TestStoreFailureWafLogs() {
+	s.runnerConfig.StoreFailureLogs = true
+	failedLogFilePath := filepath.Join(filepath.Dir(s.logFilePath), "failure-logs.log")
+	s.runnerConfig.FailureWafLogsFilePath = failedLogFilePath
+
+	testRunContext, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().NoError(err)
+	s.Equal(1, testRunContext.Stats.TotalFailed(), "Expected exactly one failing test")
+
+	// The file with the WAF log entries for the failed tests should exist and contain content
+	_, err = os.Stat(failedLogFilePath)
+	s.Require().NoErrorf(err, "%s should have been created for failing tests", failedLogFilePath)
+
+	contents, err := os.ReadFile(failedLogFilePath)
+	s.Require().NoError(err)
+
+	stringContents := strings.TrimSpace(string(contents))
+	s.NotEmpty(stringContents)
+	s.Equal(stringContents, runTestLogLines)
+	s.NotContains(stringContents, testRunContext.LogLines.StartMarker())
+	s.NotContains(stringContents, testRunContext.LogLines.EndMarker())
+}
+
+func (s *runTestSuite) TestStoreFailureWafLogs_Disabled() {
+	failedLogFilePath := filepath.Join(filepath.Dir(s.logFilePath), "failure-logs.log")
+	s.runnerConfig.FailureWafLogsFilePath = failedLogFilePath
+
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().NoError(err)
+	s.Equal(1, res.Stats.TotalFailed(), "Expected exactly one failing test")
+
+	_, err = os.Stat(failedLogFilePath)
+	s.Require().Errorf(err, "%s should not have been created")
+
 }
 
 func (s *runTestSuite) TestIgnoredTestsRun() {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"time"
 
@@ -40,6 +41,9 @@ const (
 	readTimeoutFlag              = "read-timeout"
 	rateLimitFlag                = "rate-limit"
 	showFailuresOnlyFlag         = "show-failures-only"
+	storeFailureWafLogsFlag      = "store-failure-waf-logs"
+	failureWafLogsFileNameFlag   = "failure-waf-logs-file"
+	failureWafLogsDirFlag        = "failure-waf-logs-dir"
 	skipTlsVerificationFlag      = "skip-tls-verification"
 	timeFlag                     = "time"
 	waitDelayFlag                = "wait-delay"
@@ -54,6 +58,8 @@ const (
 	waitForTimeoutFlag           = "wait-for-timeout"
 	reportTriggeredRulesFlag     = "report-triggered-rules"
 )
+
+const defaultFailureWafLogsName = "go-ftw-failure-waf-logs.log"
 
 // New represents the run command
 func New(cmdContext *internal.CommandContext) *cobra.Command {
@@ -73,7 +79,10 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd.Flags().StringP(fileFlag, "f", "", "output file path for ftw tests. Prints to standard output by default.")
 	runCmd.Flags().StringP(logFileFlag, "l", "", "path to log file to watch for WAF events")
 	runCmd.Flags().BoolP(timeFlag, "t", false, "show time spent per test")
-	runCmd.Flags().BoolP(showFailuresOnlyFlag, "", false, "shows only the results of failed tests")
+	runCmd.Flags().Bool(showFailuresOnlyFlag, false, "shows only the results of failed tests")
+	runCmd.Flags().Bool(storeFailureWafLogsFlag, false, fmt.Sprintf("saves WAF log entries for failed tests to a dedicated file, configureable through %s and %s", failureWafLogsFileNameFlag, failureWafLogsDirFlag))
+	runCmd.Flags().String(failureWafLogsFileNameFlag, defaultFailureWafLogsName, fmt.Sprintf("file name for WAF log entries for failed tests; defaults to '%s'; see %s and %s", defaultFailureWafLogsName, storeFailureWafLogsFlag, failureWafLogsDirFlag))
+	runCmd.Flags().String(failureWafLogsDirFlag, "", fmt.Sprintf("directory path for %s; defaults to the same directory as the WAF log file; see (%s); see %s and %s", failureWafLogsFileNameFlag, logFileFlag, storeFailureWafLogsFlag, failureWafLogsFileNameFlag))
 	runCmd.Flags().Duration(connectTimeoutFlag, 3*time.Second, "timeout for connecting to endpoints during test execution")
 	runCmd.Flags().Duration(readTimeoutFlag, 10*time.Second, "timeout for receiving responses during test execution")
 	runCmd.Flags().Uint(maxMarkerRetriesFlag, 20, "maximum number of times the search for log markers will be repeated.\nEach time an additional request is sent to the web server, eventually forcing the log to be flushed")
@@ -206,6 +215,18 @@ func buildRunnerConfig(cmd *cobra.Command, cmdContext *internal.CommandContext) 
 	if err != nil {
 		return nil, err
 	}
+	runnerConfig.StoreFailureLogs, err = cmd.Flags().GetBool(storeFailureWafLogsFlag)
+	if err != nil {
+		return nil, err
+	}
+	storeFailureWafLogsFileName, err := cmd.Flags().GetString(failureWafLogsFileNameFlag)
+	if err != nil {
+		return nil, err
+	}
+	failureWafLogsDirPath, err := cmd.Flags().GetString(failureWafLogsDirFlag)
+	if err != nil {
+		return nil, err
+	}
 	runnerConfig.ConnectTimeout, err = cmd.Flags().GetDuration(connectTimeoutFlag)
 	if err != nil {
 		return nil, err
@@ -236,8 +257,26 @@ func buildRunnerConfig(cmd *cobra.Command, cmdContext *internal.CommandContext) 
 		runnerConfig.RunMode = config.CloudRunMode
 	}
 	if logFilePath != "" {
+		logFilePath = filepath.Clean(logFilePath)
+		if _, err = os.Stat(filepath.Dir(logFilePath)); err != nil {
+			return nil, err
+		}
 		runnerConfig.LogFilePath = logFilePath
 	}
+	if failureWafLogsDirPath != "" {
+		failureWafLogsDirPath = filepath.Clean(failureWafLogsDirPath)
+		info, err := os.Stat(failureWafLogsDirPath)
+		if err != nil {
+			return nil, err
+		}
+
+		if !info.IsDir() {
+			return nil, fmt.Errorf("argument to %s is not a directory: %s", failureWafLogsDirFlag, filepath.Base(failureWafLogsDirPath))
+		}
+	} else {
+		failureWafLogsDirPath = filepath.Dir(runnerConfig.LogFilePath)
+	}
+	runnerConfig.FailureWafLogsFilePath = filepath.Join(failureWafLogsDirPath, storeFailureWafLogsFileName)
 
 	if include != "" {
 		if runnerConfig.Include, err = regexp.Compile(include); err != nil {
@@ -312,8 +351,14 @@ func buildOutput(cmd *cobra.Command) (*output.Output, error) {
 }
 
 func loadTests(cmd *cobra.Command) ([]*test.FTWTest, error) {
-	dir, _ := cmd.Flags().GetString(dirFlag)
-	filenameGlob, _ := cmd.Flags().GetString(globFlag)
+	dir, err := cmd.Flags().GetString(dirFlag)
+	if err != nil {
+		return nil, err
+	}
+	filenameGlob, err := cmd.Flags().GetString(globFlag)
+	if err != nil {
+		return nil, err
+	}
 	files := fmt.Sprintf("%s/**/%s", dir, filenameGlob)
 	tests, err := test.GetTestsFromFiles(files)
 	if err != nil {

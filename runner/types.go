@@ -18,20 +18,22 @@ import (
 // This includes configuration information as well as statistics
 // and results.
 type TestRunContext struct {
-	RunnerConfig          *config.RunnerConfig
-	Include               *regexp.Regexp
-	Exclude               *regexp.Regexp
-	IncludeTags           *regexp.Regexp
-	ShowTime              bool
-	ShowOnlyFailed        bool
-	Output                *output.Output
-	Stats                 *RunStats
-	Result                TestResult
-	Duration              time.Duration
-	Client                *ftwhttp.Client
-	LogLines              *waflog.FTWLogLines
-	CurrentStageDuration  time.Duration
-	currentStageStartTime time.Time
+	RunnerConfig           *config.RunnerConfig
+	Include                *regexp.Regexp
+	Exclude                *regexp.Regexp
+	IncludeTags            *regexp.Regexp
+	ShowTime               bool
+	ShowOnlyFailed         bool
+	StoreFailureWafLogs    bool
+	FailureWafLogsFilePath string
+	Output                 *output.Output
+	Stats                  *RunStats
+	Result                 TestResult
+	Duration               time.Duration
+	Client                 *ftwhttp.Client
+	LogLines               *waflog.FTWLogLines
+	CurrentStageDuration   time.Duration
+	currentStageStartTime  time.Time
 }
 
 func (t *TestRunContext) StartTest() {

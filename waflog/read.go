@@ -6,6 +6,7 @@ package waflog
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"regexp"
 	"strconv"
@@ -34,14 +35,24 @@ var stdLogIdRegex = regexp.MustCompile(`\[(?:id |\\?"id\\?":)\\?"(\d+)\\?"\]`)
 var jsonLogIdRegex = regexp.MustCompile(`(?:\{|,)\s*"(?:id|ruleId)":\s*"?(\d+)"?`)
 
 // TriggeredRules returns the IDs of all the rules found in the log for the current test
-func (ll *FTWLogLines) TriggeredRules() []uint {
+func (ll *FTWLogLines) TriggeredRules() ([]uint, error) {
 	if ll.triggeredRulesInitialized {
-		return ll.triggeredRules
+		return ll.triggeredRules, nil
 	}
+
+	lines, err := ll.GetMarkedLines()
+	if err != nil {
+		return nil, err
+	}
+	if err := ll.computeTriggeredRules(lines); err != nil {
+		return nil, err
+	}
+
 	ll.triggeredRulesInitialized = true
+	return ll.triggeredRules, nil
+}
 
-	lines := ll.getMarkedLines()
-
+func (ll *FTWLogLines) computeTriggeredRules(lines [][]byte) error {
 	lineMatcher := ll.matchLine
 	if ll.customLogIdRegex != nil {
 		lineMatcher = ll.matchLineCustom
@@ -74,7 +85,8 @@ func (ll *FTWLogLines) TriggeredRules() []uint {
 	for key := range ruleIdsSet {
 		delete(ruleIdsSet, key)
 	}
-	return ll.triggeredRules
+
+	return nil
 }
 
 func (ll *FTWLogLines) matchLine(line []byte) [][][]byte {
@@ -92,8 +104,11 @@ func (ll *FTWLogLines) matchLineCustom(line []byte) [][][]byte {
 
 // ContainsAllIds returns true if all of the specified rule IDs appear in the log for the current test.
 // The IDs of all the IDs that were *not* found will be the second return value.
-func (ll *FTWLogLines) ContainsAllIds(ids []uint) (bool, []uint) {
-	foundRuleIds := ll.TriggeredRules()
+func (ll *FTWLogLines) ContainsAllIds(ids []uint) (bool, []uint, error) {
+	foundRuleIds, err := ll.TriggeredRules()
+	if err != nil {
+		return false, nil, err
+	}
 	missedRules := []uint{}
 	for _, id := range ids {
 		if !slices.Contains(foundRuleIds, id) {
@@ -101,15 +116,18 @@ func (ll *FTWLogLines) ContainsAllIds(ids []uint) (bool, []uint) {
 		}
 	}
 	if len(missedRules) > 0 {
-		return false, missedRules
+		return false, missedRules, nil
 	}
-	return true, missedRules
+	return true, missedRules, nil
 }
 
 // ContainsAnyId returns true if at least one of the specified IDs appears in the log for the current test.
 // The IDs of all the IDs that were found will be the second return value.
-func (ll *FTWLogLines) ContainsAnyId(ids []uint) (bool, []uint) {
-	foundRuleIds := ll.TriggeredRules()
+func (ll *FTWLogLines) ContainsAnyId(ids []uint) (bool, []uint, error) {
+	foundRuleIds, err := ll.TriggeredRules()
+	if err != nil {
+		return false, nil, err
+	}
 	foundAndExpected := []uint{}
 	found := false
 	for _, id := range ids {
@@ -119,13 +137,16 @@ func (ll *FTWLogLines) ContainsAnyId(ids []uint) (bool, []uint) {
 			foundAndExpected = append(foundAndExpected, id)
 		}
 	}
-	return found, foundAndExpected
+	return found, foundAndExpected, nil
 }
 
 // MatchesRegex returns true if the regular expression pattern matches any of the lines in the log
 // for the current test
-func (ll *FTWLogLines) MatchesRegex(pattern string) bool {
-	lines := ll.getMarkedLines()
+func (ll *FTWLogLines) MatchesRegex(pattern string) (bool, error) {
+	lines, err := ll.GetMarkedLines()
+	if err != nil {
+		return false, err
+	}
 	log.Trace().Msgf("ftw/waflog: got %d lines", len(lines))
 
 	result := false
@@ -133,7 +154,7 @@ func (ll *FTWLogLines) MatchesRegex(pattern string) bool {
 		log.Trace().Msgf("ftw/waflog: Matching '%s' in '%s'", pattern, line)
 		found, err := regexp.Match(pattern, line)
 		if err != nil {
-			log.Fatal().Msgf("ftw/waflog: bad regexp %s", err.Error())
+			return false, fmt.Errorf("ftw/waflog: bad regexp %s", err.Error())
 		}
 		if found {
 			log.Trace().Msgf("ftw/waflog: Found '%s' at '%s'", pattern, line)
@@ -141,32 +162,35 @@ func (ll *FTWLogLines) MatchesRegex(pattern string) bool {
 			break
 		}
 	}
-	return result
+	return result, nil
 }
 
-func (ll *FTWLogLines) getMarkedLines() [][]byte {
+func (ll *FTWLogLines) GetMarkedLines() ([][]byte, error) {
 	if ll.markedLinesInitialized {
-		return ll.markedLines
+		return ll.markedLines, nil
 	}
-	ll.markedLinesInitialized = true
 	log.Trace().Msg("Collecting marked lines")
 
 	if len(ll.startMarker) == 0 || len(ll.endMarker) == 0 {
-		log.Fatal().Msg("Both start and end marker must be set before the log can be inspected")
+		return nil, errors.New("both start and end marker must be set before the log can be inspected")
 	}
 
 	if bytes.Equal(ll.startMarker, ll.endMarker) {
-		log.Fatal().Msgf("Start and end markers must be different. %q", ll.startMarker)
+		return nil, fmt.Errorf("start and end markers must be different. %q", ll.startMarker)
 	}
 
-	return ll.basicGetMarkedLines()
+	if err := ll.computeMarkedLines(); err != nil {
+		return nil, err
+	}
+	ll.markedLinesInitialized = true
+	return ll.markedLines, nil
 }
 
-func (ll *FTWLogLines) basicGetMarkedLines() [][]byte {
+func (ll *FTWLogLines) computeMarkedLines() error {
 	fileInfo, err := ll.logFile.Stat()
 	if err != nil {
 		log.Error().Caller().Msg("cannot read file's size")
-		return ll.markedLines
+		return err
 	}
 
 	// Lines in modsec logging can be quite large
@@ -219,8 +243,11 @@ func (ll *FTWLogLines) basicGetMarkedLines() [][]byte {
 		log.Debug().Msg("start marker not found while collecting marked lines")
 	}
 
+	// Reverse the order to restore original log order
+	slices.Reverse(ll.markedLines)
+
 	log.Trace().Msgf("Found %d log lines: %s\n", len(ll.markedLines), bytes.Join(ll.markedLines, []byte{'\n'}))
-	return ll.markedLines
+	return nil
 }
 
 // CheckLogForMarker reads the log file and searches for a marker line.
