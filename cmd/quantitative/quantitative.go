@@ -37,6 +37,8 @@ const (
 	maxCrsParanoiaLevel = 4
 )
 
+var emptyParams = quantitative.Params{}
+
 // New returns a new cobra command for running quantitative tests
 func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd := &cobra.Command{
@@ -51,7 +53,7 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd.Flags().IntP(paranoiaLevelFlag, "P", 1, "Paranoia level used to run the quantitative tests.")
 	runCmd.Flags().IntP(corpusLineFlag, "n", 0, "Number is the payload line from the corpus to exclusively send.")
 	runCmd.Flags().StringP(payloadFlag, "p", "", "Payload is a string you want to test using quantitative tests. Will not use the corpus.")
-	runCmd.Flags().IntP(ruleFlag, "r", 0, "Rule ID of interest: only show false positives for specified rule ID.")
+	runCmd.Flags().IntP(ruleFlag, "r", 0, "Rule ID of interest: only show false positives for specified rule ID. Defaults to paranoia level 4 unless -P is also set.")
 	runCmd.Flags().IntP(maxConcurrencyFlag, "", 10, "maximum number of goroutines. Defaults to 10, or 1 if log level is debug/trace.")
 	runCmd.Flags().StringP(corpusFlag, "c", "leipzig", "Corpus to use for the quantitative tests (leipzig, raw).")
 	runCmd.Flags().StringP(corpusLangFlag, "L", "eng", "Corpus language to use for the quantitative tests.")
@@ -67,68 +69,15 @@ For the "raw" corpus type, this flag specifies the path to the corpus file.`)
 	return runCmd
 }
 
-//gocyclo:ignore
 func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	corpusTypeAsString, err := cmd.Flags().GetString(corpusFlag)
+	params, err := buildParams(cmd)
 	if err != nil {
 		return err
 	}
-	corpusSize, err := cmd.Flags().GetString(corpusSizeFlag)
-	if err != nil {
-		return err
-	}
-	corpusLang, err := cmd.Flags().GetString(corpusLangFlag)
-	if err != nil {
-		return err
-	}
-	corpusYear, err := cmd.Flags().GetString(corpusYearFlag)
-	if err != nil {
-		return err
-	}
-	corpusSource, err := cmd.Flags().GetString(corpusSourceFlag)
-	if err != nil {
-		return err
-	}
-	directory, err := cmd.Flags().GetString(crsPathFlag)
-	if err != nil {
-		return err
-	}
-	corpusLocalPath, err := cmd.Flags().GetString(corpusLocalPathFlag)
-	if err != nil {
-		return err
-	}
-	if corpusLocalPath != "" {
-		info, err := os.Stat(corpusLocalPath)
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return fmt.Errorf("file doesn't exist %s", corpusLocalPath)
-		}
-	}
-	lines, err := cmd.Flags().GetInt(linesFlag)
-	if err != nil {
-		return err
-	}
+
 	outputFilename, err := cmd.Flags().GetString(outputFileFlag)
-	if err != nil {
-		return err
-	}
-	paranoiaLevel, err := cmd.Flags().GetInt(paranoiaLevelFlag)
-	if err != nil {
-		return err
-	}
-	payload, err := cmd.Flags().GetString(payloadFlag)
-	if err != nil {
-		return err
-	}
-	number, err := cmd.Flags().GetInt(corpusLineFlag)
-	if err != nil {
-		return err
-	}
-	rule, err := cmd.Flags().GetInt(ruleFlag)
 	if err != nil {
 		return err
 	}
@@ -136,25 +85,7 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	maxConcurrency, err := cmd.Flags().GetInt(maxConcurrencyFlag)
-	if err != nil {
-		return err
-	}
 
-	// --max-concurrency defaults to 1 if debug/trace is enabled, but if set explicitly, it should override this
-	if !cmd.Flags().Changed(maxConcurrencyFlag) && zerolog.GlobalLevel() <= zerolog.DebugLevel {
-		maxConcurrency = 1
-	}
-
-	if paranoiaLevel < minCrsParanoiaLevel || paranoiaLevel > maxCrsParanoiaLevel {
-		return fmt.Errorf("paranoia level must be between %d and %d", minCrsParanoiaLevel, maxCrsParanoiaLevel)
-	}
-
-	if paranoiaLevel > minCrsParanoiaLevel && rule > 0 {
-		return fmt.Errorf("paranoia level and rule ID cannot be used together")
-	}
-
-	// use outputFile to write to file
 	var outputFile *os.File
 	if outputFilename == "" {
 		outputFile = os.Stdout
@@ -166,15 +97,95 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	}
 	out := output.NewOutput(wantedOutput, outputFile)
 
+	return quantitative.RunQuantitativeTests(params, out)
+}
+
+//gocyclo:ignore
+func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
+	corpusTypeAsString, err := cmd.Flags().GetString(corpusFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	corpusSize, err := cmd.Flags().GetString(corpusSizeFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	corpusLang, err := cmd.Flags().GetString(corpusLangFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	corpusYear, err := cmd.Flags().GetString(corpusYearFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	corpusSource, err := cmd.Flags().GetString(corpusSourceFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	directory, err := cmd.Flags().GetString(crsPathFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	corpusLocalPath, err := cmd.Flags().GetString(corpusLocalPathFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	if corpusLocalPath != "" {
+		info, err := os.Stat(corpusLocalPath)
+		if err != nil {
+			return emptyParams, err
+		}
+		if info.IsDir() {
+			return emptyParams, fmt.Errorf("file doesn't exist %s", corpusLocalPath)
+		}
+	}
+	lines, err := cmd.Flags().GetInt(linesFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	paranoiaLevel, err := cmd.Flags().GetInt(paranoiaLevelFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	payload, err := cmd.Flags().GetString(payloadFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	number, err := cmd.Flags().GetInt(corpusLineFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	rule, err := cmd.Flags().GetInt(ruleFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	maxConcurrency, err := cmd.Flags().GetInt(maxConcurrencyFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+
+	// --max-concurrency defaults to 1 if debug/trace is enabled, but if set explicitly, it should override this
+	if !cmd.Flags().Changed(maxConcurrencyFlag) && zerolog.GlobalLevel() <= zerolog.DebugLevel {
+		maxConcurrency = 1
+	}
+
+	// Default to max paranoia level so that all rules (including the one of interest) are run.
+	if rule > 0 && !cmd.Flags().Changed(paranoiaLevelFlag) {
+		paranoiaLevel = maxCrsParanoiaLevel
+	}
+
+	if paranoiaLevel < minCrsParanoiaLevel || paranoiaLevel > maxCrsParanoiaLevel {
+		return emptyParams, fmt.Errorf("paranoia level must be between %d and %d", minCrsParanoiaLevel, maxCrsParanoiaLevel)
+	}
+
 	corpusType := corpus.NoType
 	if corpusTypeAsString != "" {
-		err = corpusType.Set(corpusTypeAsString)
-		if err != nil {
-			return err
+		if err = corpusType.Set(corpusTypeAsString); err != nil {
+			return emptyParams, err
 		}
 	}
 
-	params := quantitative.Params{
+	return quantitative.Params{
 		Corpus:          corpusType,
 		CorpusSize:      corpusSize,
 		CorpusYear:      corpusYear,
@@ -188,7 +199,5 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 		Payload:         payload,
 		Rule:            rule,
 		MaxConcurrency:  maxConcurrency,
-	}
-
-	return quantitative.RunQuantitativeTests(params, out)
+	}, nil
 }

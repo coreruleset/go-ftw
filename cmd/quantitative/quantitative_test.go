@@ -60,3 +60,42 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommand() {
 	s.Equal("quantitative", cmd.Name(), "quantitative command should have the name 'quantitative'")
 	s.Require().NoError(err)
 }
+
+func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel() {
+	tests := []struct {
+		name              string
+		args              []string
+		wantErr           bool
+		wantParanoiaLevel int
+	}{
+		{
+			name:              "rule without PL defaults to PL4",
+			args:              []string{"-C", s.tempDir, "-r", "942200", "-p", "test payload"},
+			wantParanoiaLevel: maxCrsParanoiaLevel,
+		},
+		{
+			name:              "rule with explicit PL is allowed",
+			args:              []string{"-C", s.tempDir, "-r", "942200", "-P", "2", "-p", "test payload"},
+			wantParanoiaLevel: 2,
+		},
+		{
+			name:    "PL out of range errors",
+			args:    []string{"-C", s.tempDir, "-P", "5", "-p", "test payload"},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			cmd := New(internal.NewCommandContext())
+			s.Require().NoError(cmd.ParseFlags(tc.args))
+			params, err := buildParams(cmd)
+			if tc.wantErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+			s.Equal(tc.wantParanoiaLevel, params.ParanoiaLevel)
+		})
+	}
+}
