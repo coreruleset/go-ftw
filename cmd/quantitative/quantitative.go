@@ -136,7 +136,7 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 			return emptyParams, err
 		}
 		if info.IsDir() {
-			return emptyParams, fmt.Errorf("file doesn't exist %s", corpusLocalPath)
+			return emptyParams, fmt.Errorf("corpus-local-path must be a file, not a directory: %s", corpusLocalPath)
 		}
 	}
 	lines, err := cmd.Flags().GetInt(linesFlag)
