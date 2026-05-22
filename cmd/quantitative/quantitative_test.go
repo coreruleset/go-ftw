@@ -46,6 +46,8 @@ func (s *quantitativeCmdTestSuite) SetupTest() {
 	n, err = fakeRulesFile.WriteString(emptyRulesFile)
 	s.Require().NoError(err)
 	s.Equal(len(emptyRulesFile), n)
+	err = fakeRulesFile.Close()
+	s.Require().NoError(err)
 }
 
 func (s *quantitativeCmdTestSuite) TearDownTest() {
