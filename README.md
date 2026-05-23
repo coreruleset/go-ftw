@@ -611,7 +611,7 @@ Flags:
   -o, --output string              Output type for quantitative tests. (default "normal")
   -P, --paranoia-level int         Paranoia level used to run the quantitative tests. (default 1)
   -p, --payload string             Payload is a string you want to test using quantitative tests. Will not use the corpus.
-  -r, --rule int                   Rule ID of interest: only show false positives for specified rule ID.
+  -r, --rule int                   Rule ID of interest: only show false positives for specified rule ID. Defaults to paranoia level 4 unless -P is also set.
 
 Global Flags:
       --cloud              cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)
