@@ -42,6 +42,7 @@ doesNotExist: ""
 
 type fileTestSuite struct {
 	suite.Suite
+	tempDir  string
 	filename string
 	cfg      *FTWConfiguration
 }
@@ -65,7 +66,11 @@ func (s *fileTestSuite) SetupSuite() {
 
 func (s *fileTestSuite) BeforeTest(_, name string) {
 	var err error
-	s.filename, _ = utils.CreateTempFileWithContent("", testData[name], "test-*.yaml")
+	s.tempDir = s.T().TempDir()
+
+	s.filename, err = utils.CreateTempFileWithContent(s.tempDir, testData[name], "test-*.yaml")
+	s.Require().NoError(err)
+
 	s.cfg, err = NewConfigFromFile(s.filename)
 	s.Require().NoError(err)
 	s.NotNil(s.cfg)
@@ -108,13 +113,9 @@ func (s *baseTestSuite) TestNewDefaultConfig() {
 }
 
 func (s *fileTestSuite) TestNewConfigBadFileConfig() {
-	filename, _ := utils.CreateTempFileWithContent("", testData["jsonConfig"], "test-*.yaml")
-	defer func(name string) {
-		err := os.Remove(name)
-		if err != nil {
-			s.T().Logf("Error removing file %s: %s", name, err.Error())
-		}
-	}(filename)
+	filename, err := utils.CreateTempFileWithContent(s.tempDir, testData["jsonConfig"], "test-*.yaml")
+	s.Require().NoError(err)
+
 	cfg, err := NewConfigFromFile(filename)
 	s.Require().NoError(err)
 	s.NotNil(cfg)

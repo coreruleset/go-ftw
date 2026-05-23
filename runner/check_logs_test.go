@@ -21,6 +21,7 @@ type checkLogsTestSuite struct {
 	logName      string
 	check        *FTWCheck
 	context      *TestRunContext
+	tempDir      string
 }
 
 func TestCheckLogsTestSuite(t *testing.T) {
@@ -32,6 +33,8 @@ func (s *checkLogsTestSuite) SetupSuite() {
 }
 
 func (s *checkLogsTestSuite) SetupTest() {
+	s.tempDir = s.T().TempDir()
+
 	var (
 		uuidString  = "8677f1ed-3936-4999-82e4-39daf32ffff5"
 		markerStart = uuidString + "-s"
@@ -51,11 +54,12 @@ func (s *checkLogsTestSuite) SetupTest() {
 		RunnerConfig: s.runnerConfig,
 	}
 
-	s.logName, err = utils.CreateTempFileWithContent("", logText, "test-*.log")
+	s.logName, err = utils.CreateTempFileWithContent(s.tempDir, logText, "test-*.log")
 	s.Require().NoError(err)
 	s.runnerConfig.LogFilePath = s.logName
 	s.context.LogLines, err = waflog.NewFTWLogLines(s.runnerConfig)
 	s.Require().NoError(err)
+	s.T().Cleanup(func() { _ = s.context.LogLines.Cleanup() })
 
 	s.check, err = NewCheck(s.context)
 	s.Require().NoError(err)

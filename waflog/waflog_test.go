@@ -12,14 +12,20 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/v2/config"
+	"github.com/coreruleset/go-ftw/v2/utils"
 )
 
 type waflogTestSuite struct {
 	suite.Suite
+	tempDir string
 }
 
 func (s *waflogTestSuite) SetupSuite() {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
+}
+
+func (s *waflogTestSuite) SetupTest() {
+	s.tempDir = s.T().TempDir()
 }
 
 func TestWafLogTestSuite(t *testing.T) {
@@ -27,26 +33,38 @@ func TestWafLogTestSuite(t *testing.T) {
 }
 
 func (s *waflogTestSuite) TestNewFTWLogLines() {
+	var err error
 	cfg := config.NewDefaultConfig()
 	s.NotNil(cfg)
 
-	// Don't call NewFTWLogLines to avoid opening the file.
-	ll := &FTWLogLines{}
+	cfg.LogFile, err = utils.CreateTempFile(s.tempDir, "logfile.log")
+	s.Require().NoError(err)
+	runnerConfig := config.NewRunnerConfiguration(cfg)
+
+	ll, err := NewFTWLogLines(runnerConfig)
+	s.Require().NoError(err)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
+
 	ll.WithStartMarker([]byte("#"))
 	ll.WithEndMarker([]byte("#"))
 
 	s.NotNil(ll.StartMarker, "Failed! StartMarker must be set")
 	s.NotNil(ll.EndMarker, "Failed! EndMarker must be set")
-	err := ll.Cleanup()
-	s.Require().NoError(err)
 }
 
 func (s *waflogTestSuite) TestWithStartMarker() {
+	var err error
 	cfg := config.NewDefaultConfig()
 	s.NotNil(cfg)
 
-	// Don't call NewFTWLogLines to avoid opening the file.
-	ll := &FTWLogLines{}
+	cfg.LogFile, err = utils.CreateTempFile(s.tempDir, "logfile.log")
+	s.Require().NoError(err)
+	runnerConfig := config.NewRunnerConfiguration(cfg)
+
+	ll, err := NewFTWLogLines(runnerConfig)
+	s.Require().NoError(err)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
+
 	ll.WithStartMarker([]byte("#"))
 	ll.WithEndMarker([]byte("#"))
 
