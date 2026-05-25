@@ -109,6 +109,7 @@ type runTestSuite struct {
 	ts           *httptest.Server
 	dest         *ftwhttp.Destination
 	context      *TestRunContext
+	tempDir      string
 }
 
 func (s *runTestSuite) SetupSuite() {
@@ -123,7 +124,7 @@ func (s *runTestSuite) newTestServer(logLines string) {
 func (s *runTestSuite) newTestServerWithHandlerGenerator(serverHandler func(logLines string) http.HandlerFunc, logLines string) {
 	var err error
 	var handler http.HandlerFunc
-	s.logFilePath, err = utils.CreateTempFile(s.T().TempDir(), "go-ftw-test-*.log")
+	s.logFilePath, err = utils.CreateTempFile(s.tempDir, "go-ftw-test-*.log")
 	s.Require().NoError(err)
 
 	if serverHandler == nil {
@@ -180,6 +181,8 @@ func (s *runTestSuite) TearDownTest() {
 }
 
 func (s *runTestSuite) BeforeTest(_ string, name string) {
+	s.tempDir = s.T().TempDir()
+
 	// setup test webserver (not a waf)
 	s.newTestServer(runTestLogLines)
 
@@ -233,7 +236,7 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	}
 
 	// create a temporary file to hold the test
-	testFileContents, err := os.CreateTemp(s.T().TempDir(), "mock-test-*.yaml")
+	testFileContents, err := os.CreateTemp(s.tempDir, "mock-test-*.yaml")
 	s.Require().NoError(err, "cannot create temporary file")
 	err = tmpl.Execute(testFileContents, vars)
 	s.Require().NoError(err, "cannot execute template")
@@ -810,6 +813,7 @@ func (s *runTestSuite) TestEncodedRequest() {
 	s.Require().NoError(err)
 	ll, err := waflog.NewFTWLogLines(s.runnerConfig)
 	s.Require().NoError(err)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
 
 	s.context = &TestRunContext{
 		RunnerConfig: s.runnerConfig,
@@ -832,6 +836,7 @@ func (s *runTestSuite) TestEncodedRequest_InvalidEncoding() {
 	s.Require().NoError(err)
 	ll, err := waflog.NewFTWLogLines(s.runnerConfig)
 	s.Require().NoError(err)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
 
 	s.context = &TestRunContext{
 		RunnerConfig: s.runnerConfig,

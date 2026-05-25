@@ -19,6 +19,7 @@ type rootCmdTestSuite struct {
 	suite.Suite
 	rootCmd    *cobra.Command
 	cmdContext *internal.CommandContext
+	tempDir    string
 }
 
 func TestRootTestSuite(t *testing.T) {
@@ -28,6 +29,7 @@ func TestRootTestSuite(t *testing.T) {
 func (s *rootCmdTestSuite) SetupTest() {
 	s.cmdContext = internal.NewCommandContext()
 	s.rootCmd = NewRootCommand(s.cmdContext)
+	s.tempDir = s.T().TempDir()
 }
 func (s *rootCmdTestSuite) TestRootCommand() {
 	rootCmd := NewRootCommand(internal.NewCommandContext())
@@ -37,9 +39,9 @@ func (s *rootCmdTestSuite) TestRootCommand() {
 }
 
 func (s *rootCmdTestSuite) TestFlags() {
-	configFile, err := utils.CreateTempFile(s.T().TempDir(), "config")
+	configFile, err := utils.CreateTempFile(s.tempDir, "config")
 	s.Require().NoError(err)
-	overridesFile, err := utils.CreateTempFile(s.T().TempDir(), "overrides")
+	overridesFile, err := utils.CreateTempFile(s.tempDir, "overrides")
 	s.Require().NoError(err)
 
 	s.cmdContext.Configuration = config.NewDefaultConfig()

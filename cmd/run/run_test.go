@@ -75,7 +75,6 @@ func (s *runCmdTestSuite) setupMockHTTPServer() *httptest.Server {
 }
 
 func (s *runCmdTestSuite) SetupTest() {
-	// This directory will be cleaned up automatically after the test completes
 	s.tempDir = s.T().TempDir()
 
 	s.testHTTPServer = s.setupMockHTTPServer()
@@ -475,7 +474,7 @@ func (s *runCmdTestSuite) TestFailureWafLogsDirFlag_Default() {
 }
 
 func (s *runCmdTestSuite) TestFailureWafLogsDirFlag() {
-	dirPath := filepath.Join(s.T().TempDir(), "thedir")
+	dirPath := filepath.Join(s.tempDir, "thedir")
 	err := os.Mkdir(dirPath, fs.ModePerm)
 	s.Require().NoError(err)
 

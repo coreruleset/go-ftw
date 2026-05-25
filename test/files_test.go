@@ -50,10 +50,15 @@ this is not yaml
 
 type filesTestSuite struct {
 	suite.Suite
+	tempDir string
 }
 
 func (s *filesTestSuite) SetupSuite() {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
+}
+
+func (s *filesTestSuite) SetupTest() {
+	s.tempDir = s.T().TempDir()
 }
 
 func TestFilesTestSuite(t *testing.T) {
@@ -61,8 +66,11 @@ func TestFilesTestSuite(t *testing.T) {
 }
 
 func (s *filesTestSuite) TestGetTestFromYAML() {
-	filename, _ := utils.CreateTempFileWithContent("", yamlTest, "test-yaml-*")
-	tests, _ := GetTestsFromFiles(filename)
+	filename, err := utils.CreateTempFileWithContent(s.tempDir, yamlTest, "test-yaml-*")
+	s.Require().NoError(err)
+
+	tests, err := GetTestsFromFiles(filename)
+	s.Require().NoError(err)
 
 	for _, ft := range tests {
 		s.Equal("tester", ft.Meta.Author)
@@ -77,8 +85,10 @@ func (s *filesTestSuite) TestGetTestFromYAML() {
 }
 
 func (s *filesTestSuite) TestGetFromBadYAML() {
-	filename, _ := utils.CreateTempFileWithContent("", wrongYamlTest, "test-yaml-*")
-	_, err := GetTestsFromFiles(filename)
+	filename, err := utils.CreateTempFileWithContent(s.tempDir, wrongYamlTest, "test-yaml-*")
+	s.Require().NoError(err)
+
+	_, err = GetTestsFromFiles(filename)
 
 	s.Error(err, "reading yaml should fail")
 }
