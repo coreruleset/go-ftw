@@ -40,7 +40,7 @@ Download the latest release archive for your architecture from the [releases pag
 
 ```shell
 # Replace <version> and <arch> with the appropriate values (e.g. 1.0.0 and amd64)
-curl -sSL https://github.com/coreruleset/go-ftw/releases/download/v<version>/ftw_<version>_linux_<arch>.tar.gz | tar -xz ftw
+curl -sSL https://github.com/coreruleset/go-ftw/releases/download/v<version>/ftw_<version>_linux_<arch>.tar.gz | tar -xzf - ftw
 sudo mv ftw /usr/local/bin/
 ```
 
@@ -59,7 +59,7 @@ sudo rpm -i ftw_<version>_linux_<arch>.rpm
 If you have Go installed and configured to run Go binaries from your shell you can also run
 
 ```bash
-go install github.com/coreruleset/go-ftw@latest
+go install github.com/coreruleset/go-ftw/v2@latest
 ```
 
 Make sure your Go bin directory (typically `~/go/bin`) is on your `PATH`.
