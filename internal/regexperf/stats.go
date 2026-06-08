@@ -4,6 +4,7 @@
 package regexperf
 
 import (
+	"cmp"
 	"container/heap"
 	"math"
 	"slices"
@@ -66,9 +67,7 @@ func (s *Stats) Add(subject string, ns int64, matched bool) {
 		s.matchCount++
 	}
 	s.totalNs += ns
-	if ns > s.maxNs {
-		s.maxNs = ns
-	}
+	s.maxNs = max(s.maxNs, ns)
 	s.minsNs = append(s.minsNs, ns)
 	if s.topN > 0 {
 		heap.Push(&s.slowest, Sample{Subject: subject, Ns: ns, Matched: matched})
@@ -128,7 +127,7 @@ func (s *Stats) report() report {
 func (s *Stats) slowestSorted() []Sample {
 	out := slices.Clone([]Sample(s.slowest))
 	slices.SortFunc(out, func(a, b Sample) int {
-		return int(b.Ns - a.Ns)
+		return cmp.Compare(b.Ns, a.Ns)
 	})
 	return out
 }
