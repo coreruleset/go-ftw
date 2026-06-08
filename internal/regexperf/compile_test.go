@@ -62,3 +62,24 @@ func (s *compileTestSuite) TestCompileInvalidRegex() {
 	_, err := Compile(`(unclosed`)
 	s.Require().Error(err)
 }
+
+func (s *compileTestSuite) TestAssembleFileIncludeMissingCrsRoot() {
+	// .ra references an include, but crsRoot has no regex-assembly/ dir.
+	// Must return an error instead of os.Exit-ing the process.
+	raPath := s.writeRA("withinclude.ra", "include some-shared-fragment\nhomer\n")
+
+	_, err := AssembleFile(raPath, s.tempDir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "regex-assembly")
+}
+
+func (s *compileTestSuite) TestPreflightNoIncludeIsOk() {
+	s.Require().NoError(preflightAssembly("homer\nmarge\n", s.tempDir))
+}
+
+func (s *compileTestSuite) TestPreflightIncludeWithValidRoot() {
+	// regex-assembly/ exists -> preflight passes (assembler may still fail later,
+	// but preflight's job is only the crsRoot sanity check).
+	s.Require().NoError(os.MkdirAll(filepath.Join(s.tempDir, "regex-assembly", "include"), 0o755))
+	s.Require().NoError(preflightAssembly("include shared\nfoo\n", s.tempDir))
+}

@@ -9,6 +9,7 @@ package regexperf
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	crscontext "github.com/coreruleset/crs-toolchain/v2/context"
@@ -53,5 +54,25 @@ func Compile(regexStr string) (*regexp.Regexp, error) {
 	return re, nil
 }
 
-// preflightAssembly is implemented in Task 2.
-func preflightAssembly(_ string, _ string) error { return nil }
+// includeDirectivePattern matches `include` and `include-except` directives at
+// the start of a (trimmed) regex-assembly line.
+var includeDirectivePattern = regexp.MustCompile(`(?m)^\s*include(-except)?\s`)
+
+// preflightAssembly guards against the crs-toolchain assembler's use of
+// logger.Fatal() (which calls os.Exit) when an include file cannot be opened.
+// If the .ra content uses any include directive, the coreruleset root must
+// contain a regex-assembly/ directory; otherwise we return an actionable error
+// before the assembler runs.
+func preflightAssembly(content string, crsRoot string) error {
+	if !includeDirectivePattern.MatchString(content) {
+		return nil
+	}
+	assemblyDir := filepath.Join(crsRoot, "regex-assembly")
+	info, err := os.Stat(assemblyDir)
+	if err != nil || !info.IsDir() {
+		return fmt.Errorf(
+			"regex-assembly file uses include directives but %q has no regex-assembly/ directory; pass --crs-path pointing at a coreruleset checkout",
+			crsRoot)
+	}
+	return nil
+}
