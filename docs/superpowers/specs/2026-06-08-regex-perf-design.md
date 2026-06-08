@@ -205,8 +205,23 @@ slowest subjects:
 - `cmd/regex/perf_test.go`: flag validation (mutual exclusion, required), and a `--pattern
   --subject` end-to-end smoke run.
 
-## Open items to confirm during planning
+## Resolved during planning
 
-1. Exact default `configurationFileName` passed to `context.New`.
-2. Precise reuse boundary with `internal/quantitative` corpus factory vs. a thin local builder.
-3. Final long-flag name for report output file (avoiding `-f/--file` collision).
+1. **`configurationFileName` for `context.New`:** `"toolchain.yaml"` (crs-toolchain default). A
+   missing file is non-fatal — the toolchain falls back to an empty configuration.
+2. **Corpus reuse boundary:** `internal/regexperf` calls `leipzig.NewLeipzigCorpus` /
+   `raw.NewRawCorpus` directly via a small local `newCorpus` helper, rather than importing
+   `internal/quantitative` (which would transitively pull in the Coraza engine). No
+   corpus-iteration logic is duplicated.
+3. **Report output flag:** `--out-file` (no shorthand), avoiding collision with `-f/--file`.
+
+## Robustness note (assembler fatal handling)
+
+The crs-toolchain assembler/parser call `logger.Fatal()` (→ `os.Exit(1)`) when an `include` file
+cannot be opened (`regex/parser/parser.go`) or a regex cannot be simplified
+(`regex/operators/assembler.go`). A wrong `--crs-path` against an `include`-using `.ra` would
+otherwise kill the `ftw` process. The implementation adds a **preflight guard**: if the `.ra`
+content uses any `include`/`include-except` directive, it verifies `<crs-path>/regex-assembly`
+exists and returns an actionable error before invoking the assembler. Residual upstream risk (a
+present include directory but a specific missing include file, or genuinely un-simplifiable input)
+is accepted as a known limitation.
