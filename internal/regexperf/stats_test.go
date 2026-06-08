@@ -4,9 +4,13 @@
 package regexperf
 
 import (
+	"bytes"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+
+	"github.com/coreruleset/go-ftw/v2/output"
 )
 
 type statsTestSuite struct {
@@ -63,4 +67,38 @@ func (s *statsTestSuite) TestThroughput() {
 	st.Add("b", 600_000, true)
 	r := st.report()
 	s.InDelta(2000.0, r.ThroughputPerSec, 0.001)
+}
+
+func (s *statsTestSuite) TestPrintSummaryNormal() {
+	st := NewStats("file:foo.ra", 12, 5, 3)
+	st.Add("' UNION SELECT 1", 1200, true)
+	st.Add("hello", 300, false)
+
+	var buf bytes.Buffer
+	out := output.NewOutput("plain", &buf)
+	st.printSummary(out)
+
+	text := buf.String()
+	s.Contains(text, "file:foo.ra")
+	s.Contains(text, "subjects: 2")
+	s.Contains(text, "matched: 1")
+	s.Contains(text, "slowest subjects")
+	s.Contains(text, "UNION SELECT")
+}
+
+func (s *statsTestSuite) TestPrintSummaryJSON() {
+	st := NewStats("pattern", 8, 1, 2)
+	st.Add("a", 100, true)
+	st.Add("b", 200, false)
+
+	var buf bytes.Buffer
+	out := output.NewOutput("json", &buf)
+	st.printSummary(out)
+
+	var r report
+	s.Require().NoError(json.Unmarshal(buf.Bytes(), &r))
+	s.Equal("pattern", r.RegexSource)
+	s.Equal(2, r.SubjectCount)
+	s.Equal(1, r.MatchCount)
+	s.Len(r.Slowest, 2)
 }

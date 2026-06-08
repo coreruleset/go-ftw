@@ -6,8 +6,14 @@ package regexperf
 import (
 	"cmp"
 	"container/heap"
+	"encoding/json"
 	"math"
 	"slices"
+	"time"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/coreruleset/go-ftw/v2/output"
 )
 
 // Sample is the timing result for one subject.
@@ -144,4 +150,56 @@ func percentile(sorted []int64, p float64) int64 {
 	rank := p / 100 * float64(len(sorted)-1)
 	idx := min(max(int(math.Round(rank)), 0), len(sorted)-1)
 	return sorted[idx]
+}
+
+// maxSubjectDisplayLen caps subject length in normal (human) output.
+const maxSubjectDisplayLen = 80
+
+// MarshalJSON renders the computed report.
+func (s *Stats) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.report())
+}
+
+// printSummary writes the report to out in JSON or human-readable form.
+func (s *Stats) printSummary(out *output.Output) {
+	if out.IsJson() {
+		b, err := json.Marshal(s)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to marshal regexperf stats to JSON")
+			return
+		}
+		out.RawPrint(string(b))
+		return
+	}
+
+	r := s.report()
+	_ = out.Println("regex: %s (compiled, %d bytes)", r.RegexSource, r.RegexBytes)
+	_ = out.Println("subjects: %d  matched: %d", r.SubjectCount, r.MatchCount)
+	_ = out.Println("total: %s  mean: %s  median: %s",
+		dur(r.TotalNs), dur(r.MeanNs), dur(r.MedianNs))
+	_ = out.Println("p99: %s  max: %s", dur(r.P99Ns), dur(r.MaxNs))
+	_ = out.Println("throughput: %.0f subj/s", r.ThroughputPerSec)
+
+	if len(r.Slowest) == 0 {
+		return
+	}
+	_ = out.Println("")
+	_ = out.Println("slowest subjects:")
+	for _, sample := range r.Slowest {
+		_ = out.Println("  %s  %q", dur(sample.Ns), truncate(sample.Subject, maxSubjectDisplayLen))
+	}
+}
+
+// dur formats a nanosecond count as a human-readable duration.
+func dur(ns int64) string {
+	return time.Duration(ns).String()
+}
+
+// truncate shortens s to at most n runes, appending an ellipsis when cut.
+func truncate(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n]) + "…"
 }
