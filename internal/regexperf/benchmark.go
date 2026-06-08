@@ -136,16 +136,11 @@ func newCorpus(t corpus.Type, localPath string) (corpus.Corpus, error) {
 func timeMatch(re *regexp.Regexp, subject string, repeat int) (int64, bool) {
 	var minNs int64 = math.MaxInt64
 	var matched bool
-	for i := 0; i < repeat; i++ {
+	for range repeat {
 		start := time.Now()
-		m := re.MatchString(subject)
+		matched = re.MatchString(subject)
 		elapsed := time.Since(start).Nanoseconds()
-		if i == 0 {
-			matched = m
-		}
-		if elapsed < minNs {
-			minNs = elapsed
-		}
+		minNs = min(minNs, elapsed)
 	}
 	return minNs, matched
 }
