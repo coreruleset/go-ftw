@@ -13,6 +13,7 @@ import (
 	check "github.com/coreruleset/go-ftw/v2/cmd/check"
 	internal "github.com/coreruleset/go-ftw/v2/cmd/internal"
 	quantitative "github.com/coreruleset/go-ftw/v2/cmd/quantitative"
+	regex "github.com/coreruleset/go-ftw/v2/cmd/regex"
 	run "github.com/coreruleset/go-ftw/v2/cmd/run"
 	selfUpdate "github.com/coreruleset/go-ftw/v2/cmd/self_update"
 	"github.com/coreruleset/go-ftw/v2/config"
@@ -54,15 +55,22 @@ func NewRootCommand(cmdContext *internal.CommandContext) *cobra.Command {
 func Execute(version string) error {
 	cmdContext := internal.NewCommandContext()
 	rootCmd := NewRootCommand(cmdContext)
-	rootCmd.AddCommand(
-		check.New(cmdContext),
-		run.New(cmdContext),
-		quantitative.New(cmdContext),
-		selfUpdate.New(cmdContext))
+	addSubcommands(rootCmd, cmdContext)
 	// Setting Version creates a `--version` flag
 	rootCmd.Version = version
 
 	return rootCmd.ExecuteContext(context.Background())
+}
+
+// addSubcommands registers all child commands on rootCmd.
+func addSubcommands(rootCmd *cobra.Command, cmdContext *internal.CommandContext) {
+	rootCmd.AddCommand(
+		check.New(cmdContext),
+		run.New(cmdContext),
+		quantitative.New(cmdContext),
+		regex.New(cmdContext),
+		selfUpdate.New(cmdContext),
+	)
 }
 
 func initConfig(cmdContext *internal.CommandContext) {
