@@ -13,7 +13,7 @@ import (
 	check "github.com/coreruleset/go-ftw/v2/cmd/check"
 	internal "github.com/coreruleset/go-ftw/v2/cmd/internal"
 	quantitative "github.com/coreruleset/go-ftw/v2/cmd/quantitative"
-	regex "github.com/coreruleset/go-ftw/v2/cmd/regex"
+	"github.com/coreruleset/go-ftw/v2/cmd/regex"
 	run "github.com/coreruleset/go-ftw/v2/cmd/run"
 	selfUpdate "github.com/coreruleset/go-ftw/v2/cmd/self_update"
 	"github.com/coreruleset/go-ftw/v2/config"

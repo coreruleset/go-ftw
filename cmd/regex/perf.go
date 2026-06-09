@@ -1,7 +1,7 @@
 // Copyright 2026 OWASP CRS Project
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package regex
 
 import (
 	"fmt"
