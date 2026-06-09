@@ -5,11 +5,15 @@ package cmd
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/v2/cmd/internal"
+	"github.com/coreruleset/go-ftw/v2/internal/corpus"
+	"github.com/coreruleset/go-ftw/v2/internal/regexperf"
 )
 
 type perfCmdTestSuite struct {
@@ -48,4 +52,40 @@ func (s *perfCmdTestSuite) TestPatternWithSubjectSmoke() {
 	err := root.Execute()
 	s.Require().NoError(err)
 	s.Contains(buf.String(), "\"subjectCount\":1")
+}
+
+func (s *perfCmdTestSuite) TestValidateRawCorpusPathMissingFile() {
+	err := validateRawCorpusPath(regexperf.Params{
+		Corpus:          corpus.Raw,
+		CorpusLocalPath: filepath.Join(s.T().TempDir(), "nope.txt"),
+	})
+	s.Require().Error(err)
+}
+
+func (s *perfCmdTestSuite) TestValidateRawCorpusPathIsDirectory() {
+	dir := s.T().TempDir()
+	err := validateRawCorpusPath(regexperf.Params{
+		Corpus:          corpus.Raw,
+		CorpusLocalPath: dir,
+	})
+	s.Require().Error(err)
+	s.Contains(err.Error(), "directory")
+}
+
+func (s *perfCmdTestSuite) TestValidateRawCorpusPathEmptyPath() {
+	err := validateRawCorpusPath(regexperf.Params{Corpus: corpus.Raw})
+	s.Require().Error(err)
+}
+
+func (s *perfCmdTestSuite) TestValidateRawCorpusPathOkForFile() {
+	f := filepath.Join(s.T().TempDir(), "subjects.txt")
+	s.Require().NoError(os.WriteFile(f, []byte("a\nb\n"), 0o600))
+	err := validateRawCorpusPath(regexperf.Params{Corpus: corpus.Raw, CorpusLocalPath: f})
+	s.Require().NoError(err)
+}
+
+func (s *perfCmdTestSuite) TestValidateRawCorpusPathSkippedForSubject() {
+	// With a subject set, raw-path validation is skipped entirely.
+	err := validateRawCorpusPath(regexperf.Params{Subject: "x", Corpus: corpus.Raw})
+	s.Require().NoError(err)
 }

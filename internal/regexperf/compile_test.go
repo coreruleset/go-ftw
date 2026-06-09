@@ -77,9 +77,26 @@ func (s *compileTestSuite) TestPreflightNoIncludeIsOk() {
 	s.Require().NoError(preflightAssembly("homer\nmarge\n", s.tempDir))
 }
 
-func (s *compileTestSuite) TestPreflightIncludeWithValidRoot() {
-	// regex-assembly/ exists -> preflight passes (assembler may still fail later,
-	// but preflight's job is only the crsRoot sanity check).
-	s.Require().NoError(os.MkdirAll(filepath.Join(s.tempDir, "regex-assembly", "include"), 0o755))
+func (s *compileTestSuite) TestPreflightPresentFragmentIsOk() {
+	incDir := filepath.Join(s.tempDir, "regex-assembly", "include")
+	s.Require().NoError(os.MkdirAll(incDir, 0o755))
+	s.Require().NoError(os.WriteFile(filepath.Join(incDir, "shared.ra"), []byte("abc\n"), 0o600))
+
 	s.Require().NoError(preflightAssembly("include shared\nfoo\n", s.tempDir))
+}
+
+func (s *compileTestSuite) TestPreflightMissingFragmentWithValidRoot() {
+	s.Require().NoError(os.MkdirAll(filepath.Join(s.tempDir, "regex-assembly", "include"), 0o755))
+
+	err := preflightAssembly("include no-such-fragment\nfoo\n", s.tempDir)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "no-such-fragment")
+}
+
+func (s *compileTestSuite) TestPreflightFragmentInExcludeDirIsOk() {
+	excDir := filepath.Join(s.tempDir, "regex-assembly", "exclude")
+	s.Require().NoError(os.MkdirAll(excDir, 0o755))
+	s.Require().NoError(os.WriteFile(filepath.Join(excDir, "skip.ra"), []byte("abc\n"), 0o600))
+
+	s.Require().NoError(preflightAssembly("include-except skip\nfoo\n", s.tempDir))
 }

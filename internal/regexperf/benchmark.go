@@ -118,8 +118,9 @@ func runCorpus(params Params, re *regexp.Regexp, stats *Stats) error {
 	return corpusRunner.CloseIterator()
 }
 
-// newCorpus builds a corpus runner for the given type (mirrors the quantitative
-// factory without importing it, to avoid pulling in the Coraza engine).
+// newCorpus builds a corpus runner for the given type. It intentionally
+// duplicates quantitative.CorpusFactory (rather than importing it) to avoid
+// pulling the Coraza engine into this package; keep the two in sync.
 func newCorpus(t corpus.Type, localPath string) (corpus.Corpus, error) {
 	switch t {
 	case corpus.Leipzig:

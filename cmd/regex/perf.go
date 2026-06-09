@@ -62,7 +62,6 @@ then measure how it performs against the quantitative corpus or a single subject
 	return perfCmd
 }
 
-//gocyclo:ignore
 func runPerfE(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 

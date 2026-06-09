@@ -54,25 +54,57 @@ func Compile(regexStr string) (*regexp.Regexp, error) {
 	return re, nil
 }
 
-// includeDirectivePattern matches `include` and `include-except` directives at
-// the start of a (trimmed) regex-assembly line.
-var includeDirectivePattern = regexp.MustCompile(`(?m)^\s*include(-except)?\s`)
+// includeDirectivePattern matches `include`/`include-except` directives and
+// captures the (first) referenced fragment name.
+var includeDirectivePattern = regexp.MustCompile(`(?m)^\s*include(?:-except)?\s+(\S+)`)
 
 // preflightAssembly guards against the crs-toolchain assembler's use of
-// logger.Fatal() (which calls os.Exit) when an include file cannot be opened.
-// If the .ra content uses any include directive, the coreruleset root must
-// contain a regex-assembly/ directory; otherwise we return an actionable error
-// before the assembler runs.
+// logger.Fatal() (which calls os.Exit) when an included fragment cannot be
+// opened. For each top-level include directive it verifies the referenced
+// fragment exists under <crsRoot>/regex-assembly/include or .../exclude
+// (mirroring the assembler's own resolution: a missing ".ra" extension is
+// appended, absolute paths are used as-is). It returns an actionable error
+// instead of letting the process exit.
+//
+// Limitation: only top-level includes in this file are validated. A missing
+// include referenced transitively by another fragment will still cause the
+// assembler to abort.
 func preflightAssembly(content string, crsRoot string) error {
-	if !includeDirectivePattern.MatchString(content) {
+	matches := includeDirectivePattern.FindAllStringSubmatch(content, -1)
+	if len(matches) == 0 {
 		return nil
 	}
 	assemblyDir := filepath.Join(crsRoot, "regex-assembly")
-	info, err := os.Stat(assemblyDir)
-	if err != nil || !info.IsDir() {
+	if info, err := os.Stat(assemblyDir); err != nil || !info.IsDir() {
 		return fmt.Errorf(
 			"regex-assembly file uses include directives but %q has no regex-assembly/ directory; pass --crs-path pointing at a coreruleset checkout",
 			crsRoot)
 	}
+	includeDir := filepath.Join(assemblyDir, "include")
+	excludeDir := filepath.Join(assemblyDir, "exclude")
+	for _, match := range matches {
+		name := match[1]
+		if filepath.Ext(name) != ".ra" {
+			name += ".ra"
+		}
+		if filepath.IsAbs(name) {
+			if fileExists(name) {
+				continue
+			}
+			return fmt.Errorf("regex-assembly include %q not found; check the include path", match[1])
+		}
+		if fileExists(filepath.Join(includeDir, name)) || fileExists(filepath.Join(excludeDir, name)) {
+			continue
+		}
+		return fmt.Errorf(
+			"regex-assembly include %q not found under %s or %s; check the include name and --crs-path",
+			match[1], includeDir, excludeDir)
+	}
 	return nil
+}
+
+// fileExists reports whether path exists and is a regular file (not a directory).
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
