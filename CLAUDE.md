@@ -81,7 +81,7 @@ goreleaser release --snapshot --clean
 
 The codebase follows a modular architecture with clear separation of concerns:
 
-```
+```text
 CLI Layer (cmd/)
     ↓ orchestrates
 Runner Layer (runner/)
@@ -97,7 +97,7 @@ Output Formatters (output/)
 
 **1. Command Layer (`cmd/`)**
 - Entry point is `main.go` which calls `cmd.Execute()`
-- Uses Cobra for CLI structure with subcommands: `run`, `check`, `quantitative`, `self_update`
+- Uses Cobra for CLI structure with subcommands: `run`, `check`, `quantitative`, `regex` (with `regex perf`), `self_update`
 - `cmd/internal/types.go` defines `CommandContext` that carries configuration across commands
 - Persistent flags (debug, trace, cloud mode, config file) apply to all subcommands
 
@@ -137,7 +137,7 @@ Output Formatters (output/)
 
 ### Data Flow
 
-```
+```text
 YAML Test File
   ↓ Unmarshal (test package)
 schema.Test with stages

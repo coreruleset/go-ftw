@@ -36,7 +36,7 @@ regex/input combinations — not ReDoS discovery (RE2 cannot exhibit catastrophi
 
 New Cobra subcommand under a new `regex` parent group (leaving room for future regex tooling):
 
-```
+```bash
 ftw regex perf [flags]
 ```
 
@@ -62,15 +62,15 @@ ftw regex perf [flags]
 | `--repeat` | `-R` | `10` | Times each subject is matched; the **minimum** observed time is kept (noise filtering). |
 | `--top` | | `10` | Number of slowest subjects to report. |
 | `--output` | `-o` | `normal` | Output format: `normal` or `json`. |
-| `--file-out` | | stdout | Write report to a file. |
+| `--out-file` | | stdout | Write report to a file. |
 
-Note: `--file-out` is named to avoid colliding with `-f/--file`. Final long-flag name to be
+Note: `--out-file` is named to avoid colliding with `-f/--file`. Final long-flag name to be
 confirmed in the plan (the existing `quantitative` command uses `-f/--file` for output; here
 `-f/--file` is the `.ra` input, so output uses a distinct name).
 
 ### Example invocations
 
-```
+```bash
 ftw regex perf --file rules/942100.ra --corpus leipzig --corpus-size 100K -C /path/to/coreruleset
 ftw regex perf --pattern '(?i)union\s+select' --subject "' UNION SELECT 1,2,3"
 ftw regex perf -p '\d{3}-\d{4}' --corpus raw --corpus-local-path ./subjects.txt -o json
@@ -78,7 +78,7 @@ ftw regex perf -p '\d{3}-\d{4}' --corpus raw --corpus-local-path ./subjects.txt 
 
 ## Architecture
 
-```
+```text
 cmd/regex/regex.go        # parent "regex" cobra group, registered in cmd/root
 cmd/regex/perf.go         # "perf" subcommand: flag parsing, validation, wiring
 cmd/regex/perf_test.go
@@ -131,7 +131,7 @@ non-trivial transitive tree; this is accepted as the cost of correct, canonical 
 
 ## Data flow
 
-```
+```text
 --file path        --pattern str
      |                   |
 read .ra content    (raw pattern)
@@ -162,7 +162,7 @@ computed over the per-subject minima.
 
 `normal` format (matches approved mockup):
 
-```
+```text
 regex: 942100 (compiled, 1.2KB)
 subjects: 100,000  matched: 312
 total: 84ms  mean: 840ns  median: 610ns

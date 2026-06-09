@@ -10,13 +10,13 @@
 
 **Spec:** `docs/superpowers/specs/2026-06-08-regex-perf-design.md`
 
-### Resolved spec open-items (verified against crs-toolchain `main`)
+## Resolved spec open-items (verified against crs-toolchain `main`)
 
 1. **Config filename for `context.New`:** `"toolchain.yaml"` (from `crs-toolchain/cmd/internal/types.go:24`). A missing file is non-fatal — `configuration.New` returns an empty config.
 2. **Corpus reuse boundary:** `internal/regexperf` calls `leipzig.NewLeipzigCorpus` / `raw.NewRawCorpus` directly via a small local `newCorpus` helper. It does **not** import `internal/quantitative` (which would pull in Coraza). No corpus-iteration logic is duplicated — only the 3-line type switch the factory already does.
 3. **Report output flag:** `--out-file` (no shorthand), to avoid colliding with `-f/--file` (the `.ra` input).
 
-### Robustness finding (drives Task 2)
+## Robustness finding (drives Task 2)
 
 The crs-toolchain assembler/parser call `logger.Fatal()` (→ `os.Exit(1)`) on a missing `include` file (`regex/parser/parser.go:271`) and on an un-simplifiable regex (`regex/operators/assembler.go:193`). A bad `--crs-path` against an `include`-using `.ra` would kill the whole `ftw` process. Task 2 adds a preflight guard: if the `.ra` references any `include`/`include-except`, verify `<crs-path>/regex-assembly` exists and return an actionable error **before** calling the assembler. Residual risk (a present include dir but a specific missing include file, or pathological un-simplifiable input) is documented as a known upstream limitation.
 
