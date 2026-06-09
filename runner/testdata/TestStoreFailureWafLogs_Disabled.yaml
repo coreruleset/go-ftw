@@ -1,0 +1,17 @@
+---
+meta:
+  author: "tester"
+  description: "Example Test"
+tests:
+  - test_id: 990
+    description: test that fails
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "none.host"
+        output:
+          status: 413

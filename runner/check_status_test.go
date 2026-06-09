@@ -20,6 +20,7 @@ type checkStatusTestSuite struct {
 	cfg          *config.FTWConfiguration
 	runnerConfig *config.RunnerConfig
 	context      *TestRunContext
+	tempDir      string
 }
 
 func (s *checkStatusTestSuite) SetupSuite() {
@@ -28,8 +29,10 @@ func (s *checkStatusTestSuite) SetupSuite() {
 
 func (s *checkStatusTestSuite) SetupTest() {
 	var err error
+	s.tempDir = s.T().TempDir()
+
 	s.cfg = config.NewDefaultConfig()
-	s.cfg.LogFile, err = utils.CreateTempFileWithContent("", "", "test-*.log")
+	s.cfg.LogFile, err = utils.CreateTempFileWithContent(s.tempDir, "", "test-*.log")
 	s.Require().NoError(err)
 	s.runnerConfig = config.NewRunnerConfiguration(s.cfg)
 	s.context = &TestRunContext{

@@ -8,16 +8,23 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
+	"regexp/syntax"
 
 	"github.com/coreruleset/go-ftw/v2/config"
 )
 
 // NewFTWLogLines is the base struct for reading the log file
 func NewFTWLogLines(cfg *config.RunnerConfig) (*FTWLogLines, error) {
+	customLogIdRegex, err := compileAndCheckRegex(cfg.CustomLogIdRegex)
+	if cfg.CustomLogIdRegex != "" && err != nil {
+		return nil, fmt.Errorf("custom log id regex: %w", err)
+	}
 	ll := &FTWLogLines{
 		logFilePath:         cfg.LogFilePath,
 		runMode:             cfg.RunMode,
 		LogMarkerHeaderName: bytes.ToLower([]byte(cfg.LogMarkerHeaderName)),
+		customLogIdRegex:    customLogIdRegex,
 	}
 
 	if err := ll.openLogFile(); err != nil {
@@ -42,6 +49,15 @@ func (ll *FTWLogLines) WithEndMarker(marker []byte) {
 	ll.endMarker = bytes.ToLower(marker)
 }
 
+func (ll *FTWLogLines) WithCustomLogIdRegex(regex string) error {
+	compiledRegex, err := compileAndCheckRegex(regex)
+	if err != nil {
+		return fmt.Errorf("custom log id regex: %w", err)
+	}
+	ll.customLogIdRegex = compiledRegex
+	return nil
+}
+
 // Cleanup closes the log file
 func (ll *FTWLogLines) Cleanup() error {
 	if ll != nil && ll.logFile != nil {
@@ -60,4 +76,24 @@ func (ll *FTWLogLines) openLogFile() error {
 		}
 	}
 	return nil
+}
+
+func compileAndCheckRegex(regex string) (*regexp.Regexp, error) {
+	if regex == "" {
+		return nil, nil
+	}
+	regexAst, err := syntax.Parse(regex, syntax.Perl)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse regular expression: %w", err)
+	}
+	if regexAst.MaxCap() == 0 {
+		return nil, errors.New("regex does not contain a capture group and cannot be used to find IDs")
+	}
+
+	compiled, err := regexp.Compile(regex)
+	if err != nil {
+		return nil, fmt.Errorf("could not compile regular expression: %w", err)
+	}
+
+	return compiled, nil
 }

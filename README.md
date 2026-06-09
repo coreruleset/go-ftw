@@ -230,11 +230,11 @@ logfile: 'tests/logs/modsec3-nginx/error.log'
 
 This is the help for the `run` command:
 ```bash
-./ftw run --help
+go-ftw run --help
 Run all tests below a certain subdirectory. The command will search all y[a]ml files recursively and pass it to the test engine.
 
 Usage:
-  ftw run [flags]
+  go-ftw run [flags]
 
 Flags:
       --connect-timeout duration               timeout for connecting to endpoints during test execution (default 3s)
@@ -242,20 +242,25 @@ Flags:
   -e, --exclude string                         exclude tests matching this Go regular expression (e.g. to exclude all tests beginning with "91", use "^91.*").
                                                If you want more permanent exclusion, check the 'exclude' option in the config file.
       --fail-fast                              Fail on first failed test
+      --failure-waf-logs-dir string            directory path for failure-waf-logs-file; defaults to the same directory as the WAF log file; see (log-file); see store-failure-waf-logs and failure-waf-logs-file
+      --failure-waf-logs-file string           file name for WAF log entries for failed tests; defaults to 'go-ftw-failure-waf-logs.log'; see store-failure-waf-logs and failure-waf-logs-dir (default "go-ftw-failure-waf-logs.log")
   -f, --file string                            output file path for ftw tests. Prints to standard output by default.
+  -g, --glob string                            override the filename glob pattern for matching test files (default "*.y*ml")
   -h, --help                                   help for run
   -i, --include string                         include only tests matching this Go regular expression (e.g. to include only tests beginning with "91", use "^91.*").
                                                If you want more permanent inclusion, check the 'include' option in the config file.
   -T, --include-tags string                    include tests tagged with labels matching this Go regular expression (e.g. to include all tests being tagged with "cookie", use "^cookie$").
   -l, --log-file string                        path to log file to watch for WAF events
-      --max-marker-log-lines int               maximum number of lines to search for a marker before aborting (default 500)
-      --max-marker-retries int                 maximum number of times the search for log markers will be repeated.
+      --max-marker-log-lines uint              maximum number of lines to search for a marker before aborting (default 500)
+      --max-marker-retries uint                maximum number of times the search for log markers will be repeated.
                                                Each time an additional request is sent to the web server, eventually forcing the log to be flushed (default 20)
   -o, --output string                          output type for ftw tests. "normal" is the default. (default "normal")
   -r, --rate-limit duration                    Limit the request rate to the server to 1 request per specified duration. 0 is the default, and disables rate limiting.
       --read-timeout duration                  timeout for receiving responses during test execution (default 10s)
+      --report-triggered-rules                 Report triggered rules for each test
       --show-failures-only                     shows only the results of failed tests
-      -skip-tls-verification                   Skips TLS certificate checks. Useful for testing domains with self-signed TLS ceritificates.
+      --skip-tls-verification                  Skips TLS certificate checks. Useful for testing domains with self-signed TLS ceritificates.
+      --store-failure-waf-logs                 saves WAF log entries for failed tests to a dedicated file, configureable through failure-waf-logs-file and failure-waf-logs-dir
   -t, --time                                   show time spent per test
       --wait-delay duration                    Time to wait between retries for all wait operations. (default 1s)
       --wait-for-connection-timeout duration   Http connection timeout, The timeout includes connection time, any redirects, and reading the response body. (default 3s)
@@ -274,6 +279,7 @@ Global Flags:
       --debug              debug output
       --overrides string   specify file with platform specific overrides
       --trace              trace output: really, really verbose
+
 ```
 All the wait for flags are implemented using the [wait4x](https://github.com/atkrad/wait4x#http) library.
 See their examples on how to use them. In our flags we added the prefix `--wait-for` but they behave similarly.
@@ -538,6 +544,7 @@ Now you can do that by passing the `--wait-for-host` flag. The value of this opt
 - `--wait-for-expect-body-xpath`         Expect response body XPath pattern.
 - `--wait-for-expect-header`             Expect response header pattern.
 - `--wait-for-expect-status-code`        Expect response code e.g. 200, 204, ... .
+- `--wait-delay`:                        Time to wait between retries for all wait operations. (default 1s)
 - `--wait-for-insecure-skip-tls-verify`  Skips tls certificate checks for the HTTPS request.
 - `--wait-for-no-redirect`               Do not follow HTTP 3xx redirects.
 - `--wait-for-timeout`                   Sets the timeout for all wait operations, 0 is unlimited. (default 10s)
@@ -604,7 +611,7 @@ Flags:
   -o, --output string              Output type for quantitative tests. (default "normal")
   -P, --paranoia-level int         Paranoia level used to run the quantitative tests. (default 1)
   -p, --payload string             Payload is a string you want to test using quantitative tests. Will not use the corpus.
-  -r, --rule int                   Rule ID of interest: only show false positives for specified rule ID.
+  -r, --rule int                   Rule ID of interest: only show false positives for specified rule ID. Defaults to paranoia level 4 unless -P is also set.
 
 Global Flags:
       --cloud              cloud mode: rely only on HTTP status codes for determining test success or failure (will not process any logs)

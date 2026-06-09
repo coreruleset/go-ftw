@@ -1,0 +1,27 @@
+---
+meta:
+  author: "tester"
+  description: "Test follow_redirect functionality"
+tests:
+  - test_id: 1
+    description: "Test redirect following between stages"
+    stages:
+      # Stage 1: Initial request that returns a redirect
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          uri: "/redirect-me"
+          headers:
+            User-Agent: "go-ftw test"
+            Host: "{{ .TestAddr }}"
+        output:
+          expect_error: False
+          status: 302
+      # Stage 2: Follow the redirect from stage 1
+      - input:
+          follow_redirect: true
+          headers:
+            User-Agent: "go-ftw test"
+        output:
+          expect_error: False
+          status: 200

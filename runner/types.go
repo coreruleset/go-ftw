@@ -11,6 +11,7 @@ import (
 	"github.com/coreruleset/go-ftw/v2/config"
 	"github.com/coreruleset/go-ftw/v2/ftwhttp"
 	"github.com/coreruleset/go-ftw/v2/output"
+	"github.com/coreruleset/go-ftw/v2/test"
 	"github.com/coreruleset/go-ftw/v2/waflog"
 )
 
@@ -18,20 +19,28 @@ import (
 // This includes configuration information as well as statistics
 // and results.
 type TestRunContext struct {
-	RunnerConfig          *config.RunnerConfig
-	Include               *regexp.Regexp
-	Exclude               *regexp.Regexp
-	IncludeTags           *regexp.Regexp
-	ShowTime              bool
-	ShowOnlyFailed        bool
-	Output                *output.Output
-	Stats                 *RunStats
-	Result                TestResult
-	Duration              time.Duration
-	Client                *ftwhttp.Client
-	LogLines              *waflog.FTWLogLines
-	CurrentStageDuration  time.Duration
-	currentStageStartTime time.Time
+	RunnerConfig           *config.RunnerConfig
+	Include                *regexp.Regexp
+	Exclude                *regexp.Regexp
+	IncludeTags            *regexp.Regexp
+	ShowTime               bool
+	ShowOnlyFailed         bool
+	StoreFailureWafLogs    bool
+	FailureWafLogsFilePath string
+	Output                 *output.Output
+	Stats                  *RunStats
+	Result                 TestResult
+	Duration               time.Duration
+	Client                 *ftwhttp.Client
+	LogLines               *waflog.FTWLogLines
+	CurrentStageDuration   time.Duration
+	currentStageStartTime  time.Time
+	// LastStageResponse stores the response from the previous stage,
+	// used for follow_redirect functionality
+	LastStageResponse *ftwhttp.Response
+	// LastStageInput stores the input from the previous stage,
+	// used as base for resolving relative redirects
+	LastStageInput *test.Input
 }
 
 func (t *TestRunContext) StartTest() {

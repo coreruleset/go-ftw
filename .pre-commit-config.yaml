@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/tekwizely/pre-commit-golang
-  rev: v1.0.0-rc.1
+  rev: v1.0.0-rc.3
   hooks:
     - id: go-fmt
     - id: go-vet-mod
@@ -15,11 +15,11 @@ repos:
       alias: go-cyclo
       args: [ gocyclo, -over=15]
 - repo: https://github.com/gitleaks/gitleaks
-  rev: v8.18.1
+  rev: v8.30.1
   hooks:
     - id: gitleaks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
+  rev: v6.0.0
   hooks:
     - id: end-of-file-fixer
     - id: trailing-whitespace

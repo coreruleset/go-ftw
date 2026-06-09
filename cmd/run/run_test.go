@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -74,7 +75,6 @@ func (s *runCmdTestSuite) setupMockHTTPServer() *httptest.Server {
 }
 
 func (s *runCmdTestSuite) SetupTest() {
-	// This directory will be cleaned up automatically after the test completes
 	s.tempDir = s.T().TempDir()
 
 	s.testHTTPServer = s.setupMockHTTPServer()
@@ -160,6 +160,9 @@ func (s *runCmdTestSuite) TestFlags() {
 		"--" + logFileFlag, "/path/to/log.log",
 		"--" + timeFlag,
 		"--" + showFailuresOnlyFlag,
+		"--" + storeFailureWafLogsFlag,
+		"--" + failureWafLogsFileNameFlag, "failure-waf-logs.log",
+		"--" + failureWafLogsDirFlag, "/waf/logs/for/failed/tests",
 		"--" + connectTimeoutFlag, "4s",
 		"--" + readTimeoutFlag, "5s",
 		"--" + maxMarkerRetriesFlag, "6",
@@ -199,6 +202,12 @@ func (s *runCmdTestSuite) TestFlags() {
 	_time, err := cmd.Flags().GetBool(timeFlag)
 	s.NoError(err)
 	showFailuresOnly, err := cmd.Flags().GetBool(showFailuresOnlyFlag)
+	s.NoError(err)
+	storeFailureWafLogs, err := cmd.Flags().GetBool(storeFailureWafLogsFlag)
+	s.NoError(err)
+	failureWafLogsFileName, err := cmd.Flags().GetString(failureWafLogsFileNameFlag)
+	s.NoError(err)
+	failureWafLogsDirPath, err := cmd.Flags().GetString(failureWafLogsDirFlag)
 	s.NoError(err)
 	connectTimeout, err := cmd.Flags().GetDuration(connectTimeoutFlag)
 	s.NoError(err)
@@ -243,8 +252,11 @@ func (s *runCmdTestSuite) TestFlags() {
 	s.Equal("github", output)
 	s.Equal("out.out", file)
 	s.Equal("/path/to/log.log", logFile)
-	s.Equal(true, _time)
-	s.Equal(true, showFailuresOnly)
+	s.True(_time)
+	s.True(showFailuresOnly)
+	s.True(storeFailureWafLogs)
+	s.Equal("failure-waf-logs.log", failureWafLogsFileName)
+	s.Equal("/waf/logs/for/failed/tests", failureWafLogsDirPath)
 	s.Equal(4*time.Second, connectTimeout)
 	s.Equal(5*time.Second, readTimeout)
 	s.Equal(uint(6), maxMarkerRetries)
@@ -258,10 +270,10 @@ func (s *runCmdTestSuite) TestFlags() {
 	s.Equal("count(//p)", waitForeExpectBodyXpath)
 	s.Equal("X-Some-Header", waitForExpectHeader)
 	s.Equal(11*time.Second, waitForConnectionTimeout)
-	s.Equal(true, waitForInsecureSkipTlsVerify)
-	s.Equal(true, waitForNoRedirect)
+	s.True(waitForInsecureSkipTlsVerify)
+	s.True(waitForNoRedirect)
 	s.Equal(12*time.Second, rateLimit)
-	s.Equal(true, failFast)
+	s.True(failFast)
 }
 
 func (s *runCmdTestSuite) TestGlobalInclude() {
@@ -440,4 +452,69 @@ func (s *runCmdTestSuite) TestFilenameGlobFlag() {
 	s.Contains(testFileNames, "matching_file.yyyml")
 	s.Contains(testFileNames, "matching_file.yyyxl")
 	s.Contains(testFileNames, "matching_file.yyyl")
+}
+
+func (s *runCmdTestSuite) TestStoreFailureWafLogs_Default() {
+	cmd, _ := s.cmd.ExecuteC()
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
+	s.Require().NoError(err)
+
+	s.False(runnerConfig.StoreFailureLogs)
+}
+
+func (s *runCmdTestSuite) TestFailureWafLogsDirFlag_Default() {
+	file := filepath.Join(s.tempDir, "thefile")
+	s.cmd.SetArgs([]string{"-l", file})
+	cmd, _ := s.cmd.ExecuteC()
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
+	s.Require().NoError(err)
+
+	actualPath := filepath.Dir(runnerConfig.FailureWafLogsFilePath)
+	s.Equal(s.tempDir, actualPath)
+}
+
+func (s *runCmdTestSuite) TestFailureWafLogsDirFlag() {
+	dirPath := filepath.Join(s.tempDir, "thedir")
+	err := os.Mkdir(dirPath, fs.ModePerm)
+	s.Require().NoError(err)
+
+	s.cmd.SetArgs([]string{"-d", s.tempDir, "--failure-waf-logs-dir", dirPath})
+	cmd, _ := s.cmd.ExecuteC()
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
+	s.Require().NoError(err)
+
+	actualPath := filepath.Dir(runnerConfig.FailureWafLogsFilePath)
+	s.Equal(dirPath, actualPath)
+}
+
+func (s *runCmdTestSuite) TestFailureWafLogsDirFlag_DirectoryDoesNotExist() {
+	file := filepath.Join(s.tempDir, "thefile")
+	s.cmd.SetArgs([]string{"-l", file, "--failure-waf-logs-dir", "/does/not/exist"})
+	cmd, _ := s.cmd.ExecuteC()
+	_, err := buildRunnerConfig(cmd, s.cmdContext)
+
+	s.Require().Error(err)
+	s.True(os.IsNotExist(err))
+}
+
+func (s *runCmdTestSuite) TestFailureWafLogsFileNameFlag_Default() {
+	file := filepath.Join(s.tempDir, "thefile")
+	s.cmd.SetArgs([]string{"-l", file})
+	cmd, _ := s.cmd.ExecuteC()
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
+	s.Require().NoError(err)
+
+	actualPath := filepath.Base(runnerConfig.FailureWafLogsFilePath)
+	s.Equal(defaultFailureWafLogsName, actualPath)
+}
+
+func (s *runCmdTestSuite) TestFailureWafLogsFileNameFlag() {
+	file := filepath.Join(s.tempDir, "thefile")
+	s.cmd.SetArgs([]string{"-l", file, "--failure-waf-logs-file", "thefile"})
+	cmd, _ := s.cmd.ExecuteC()
+	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
+	s.Require().NoError(err)
+
+	actualPath := filepath.Base(runnerConfig.FailureWafLogsFilePath)
+	s.Equal("thefile", actualPath)
 }

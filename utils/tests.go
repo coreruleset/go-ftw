@@ -4,51 +4,41 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 )
 
 // CreateTempFileWithContent will create a temporary file with the content passed, and using the nameTemplate.
-// If `tempDir` is the empty string, `os.TempDir()` will be used as the target directory.
-// Returns the name of the created file, and error is not nil if some problem happened
-func CreateTempFileWithContent(tempDir string, content string, nameTemplate string) (string, error) {
-	if tempDir == "" {
-		tempDir = os.TempDir()
+// `dir` must be the path to an existing directory.
+// Returns the name of the created file
+func CreateTempFileWithContent(dir string, content string, nameTemplate string) (string, error) {
+	info, err := os.Stat(dir)
+	if err != nil {
+		return "", err
 	}
-	tmpFile, err := os.CreateTemp(tempDir, nameTemplate)
+	if !info.IsDir() {
+		return "", fmt.Errorf("not a directory: %s", dir)
+	}
+
+	tmpFile, err := os.CreateTemp(dir, nameTemplate)
 	if err != nil {
 		return "", err
 	}
 
-	// Example writing to the file
-	text := []byte(content)
-	if _, err = tmpFile.Write(text); err != nil {
-		return "", err
-	}
+	defer tmpFile.Close()
 
-	// Close the file
-	if err := tmpFile.Close(); err != nil {
-		return "", err
+	if content != "" {
+		if _, err = tmpFile.WriteString(content); err != nil {
+			return "", err
+		}
 	}
 
 	return tmpFile.Name(), nil
 }
 
 // CreateTempFile will create a temporary file using the nameTemplate.
-// If `tempDir` is the empty string, `os.TempDir()` will be used as the target directory.
-// Returns the name of the created file, and error is not nil if some problem happened
-func CreateTempFile(tempDir string, nameTemplate string) (string, error) {
-	if tempDir == "" {
-		tempDir = os.TempDir()
-	}
-	tmpFile, err := os.CreateTemp(tempDir, nameTemplate)
-	if err != nil {
-		return "", err
-	}
-
-	// Close the file
-	if err := tmpFile.Close(); err != nil {
-		return "", err
-	}
-
-	return tmpFile.Name(), nil
+// `dir` must be the path to an existing directory.
+// Returns the name of the created file
+func CreateTempFile(dir string, nameTemplate string) (string, error) {
+	return CreateTempFileWithContent(dir, "", nameTemplate)
 }

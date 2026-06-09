@@ -20,9 +20,9 @@ import (
 
 type runnerTestSuite struct {
 	suite.Suite
-	params Params
-	c      corpus.Corpus
-	dir    string
+	params  Params
+	c       corpus.Corpus
+	tempDir string
 }
 
 func (s *runnerTestSuite) SetupSuite() {
@@ -34,12 +34,12 @@ func TestRunnerTestSuite(t *testing.T) {
 }
 
 func (s *runnerTestSuite) SetupTest() {
-	s.dir = s.T().TempDir()
+	s.tempDir = s.T().TempDir()
 	s.params = Params{
 		Lines:          1000,
 		Fast:           10,
 		Rule:           1000,
-		Directory:      path.Join(s.dir, fmt.Sprintf("coreruleset-%s", crsTestVersion)),
+		Directory:      path.Join(s.tempDir, fmt.Sprintf("coreruleset-%s", crsTestVersion)),
 		ParanoiaLevel:  1,
 		MaxConcurrency: 10,
 		CorpusSize:     "10K",
@@ -50,7 +50,7 @@ func (s *runnerTestSuite) SetupTest() {
 	}
 	request := &getter.Request{
 		Src:     crsUrl,
-		Dst:     s.dir,
+		Dst:     s.tempDir,
 		GetMode: getter.ModeAny,
 	}
 	client := &getter.Client{
@@ -85,7 +85,7 @@ func (s *runnerTestSuite) TestCorpusFactory_Leipzig() {
 
 func (s *runnerTestSuite) TestCorpusFactory_Raw() {
 	var err error
-	filePath := path.Join(s.dir, "corpus.txt")
+	filePath := path.Join(s.tempDir, "corpus.txt")
 	s.c, err = CorpusFactory(corpus.Raw, filePath)
 	s.Require().NoError(err)
 	s.Require().NotNil(s.c)
