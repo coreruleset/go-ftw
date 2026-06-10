@@ -99,6 +99,7 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 		if err != nil {
 			return err
 		}
+		defer func() { _ = outputFile.Close() }()
 	}
 	out := output.NewOutput(wantedOutput, outputFile)
 
