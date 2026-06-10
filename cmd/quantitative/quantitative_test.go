@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"io/fs"
 	"os"
 	"path"
@@ -99,5 +100,98 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel()
 			s.Require().NoError(err)
 			s.Equal(tc.wantParanoiaLevel, params.ParanoiaLevel)
 		})
+	}
+}
+
+func TestBuildParamsComparisonFlags(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	err := os.MkdirAll(path.Join(tempDir, "rules"), fs.ModePerm)
+	if err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	err = os.WriteFile(path.Join(tempDir, "crs-setup.conf.example"), []byte(crsSetupFileContents), 0644)
+	if err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	err = os.WriteFile(path.Join(tempDir, "rules", "Rules1.conf"), []byte(emptyRulesFile), 0644)
+	if err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	cmd := New(internal.NewCommandContext())
+	cmd.SetArgs([]string{
+		"-C", tempDir,
+		"--baseline", "/tmp/baseline.json",
+		"--compare-crs", "/tmp/other-crs",
+		"-p", "test payload",
+	})
+
+	err = cmd.ExecuteContext(context.Background())
+	if err == nil {
+		t.Fatal("expected mutual exclusion error for --baseline and --compare-crs")
+	}
+}
+
+func TestQuantitativeCommandBaselineComparisonJSON(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	for _, root := range []string{tempDir, path.Join(tempDir, "baseline-crs")} {
+		err := os.MkdirAll(path.Join(root, "rules"), fs.ModePerm)
+		if err != nil {
+			t.Fatalf("MkdirAll() error = %v", err)
+		}
+		err = os.WriteFile(path.Join(root, "crs-setup.conf.example"), []byte(crsSetupFileContents), 0644)
+		if err != nil {
+			t.Fatalf("WriteFile() error = %v", err)
+		}
+		err = os.WriteFile(path.Join(root, "rules", "Rules1.conf"), []byte(emptyRulesFile), 0644)
+		if err != nil {
+			t.Fatalf("WriteFile() error = %v", err)
+		}
+	}
+
+	cmd := New(internal.NewCommandContext())
+	args := []string{
+		"-C", tempDir,
+		"--compare-crs", path.Join(tempDir, "baseline-crs"),
+		"-p", "test payload",
+		"-o", "json",
+	}
+
+	outputFile, err := os.CreateTemp(t.TempDir(), "quantitative-*.json")
+	if err != nil {
+		t.Fatalf("CreateTemp() error = %v", err)
+	}
+	defer func() { _ = outputFile.Close() }()
+
+	cmd.SetArgs(append(args, "-f", outputFile.Name()))
+
+	if err := cmd.ExecuteContext(context.Background()); err != nil {
+		t.Fatalf("ExecuteContext() error = %v", err)
+	}
+
+	b, err := os.ReadFile(outputFile.Name())
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+
+	var got struct {
+		Baseline    map[string]any `json:"baseline"`
+		Current     map[string]any `json:"current"`
+		Regressions struct {
+			Detected bool `json:"detected"`
+		} `json:"regressions"`
+	}
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+	if got.Baseline == nil || got.Current == nil {
+		t.Fatal("expected both baseline and current results in comparison output")
+	}
+	if got.Regressions.Detected {
+		t.Fatal("expected no regressions for identical empty CRS trees")
 	}
 }

@@ -5,7 +5,9 @@ package quantitative
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
+	"os"
 	"slices"
 	"sync"
 	"time"
@@ -19,6 +21,39 @@ import (
 type RuleStats struct {
 	ParanoiaLevel  int `json:"paranoiaLevel"`
 	FalsePositives int `json:"falsePositives"`
+}
+
+type quantitativeRunStatsJSON struct {
+	Count                          int               `json:"count"`
+	Skipped                        int               `json:"skipped"`
+	TotalTimeSeconds               float64           `json:"totalTimeSeconds"`
+	FalsePositives                 int               `json:"falsePositives"`
+	FalsePositivesPerRule          map[int]RuleStats `json:"falsePositivesPerRule"`
+	FalsePositivesPerParanoiaLevel map[int]int       `json:"falsePositivesPerParanoiaLevel"`
+}
+
+// RuleDelta holds the comparison for a single rule.
+type RuleDelta struct {
+	ParanoiaLevel          int `json:"paranoiaLevel"`
+	BaselineFalsePositives int `json:"baselineFalsePositives"`
+	CurrentFalsePositives  int `json:"currentFalsePositives"`
+	Delta                  int `json:"delta"`
+}
+
+// RegressionSummary contains the structured diff between a current run and its baseline.
+type RegressionSummary struct {
+	Detected            bool              `json:"detected"`
+	FalsePositivesDelta int               `json:"falsePositivesDelta"`
+	PerRuleDeltas       map[int]RuleDelta `json:"perRuleDeltas"`
+	NewlyFiringRules    map[int]RuleDelta `json:"newlyFiringRules"`
+	StoppedFiringRules  map[int]RuleDelta `json:"stoppedFiringRules"`
+}
+
+// ComparisonResult holds both quantitative runs and their diff.
+type ComparisonResult struct {
+	Baseline    *QuantitativeRunStats `json:"baseline"`
+	Current     *QuantitativeRunStats `json:"current"`
+	Regressions RegressionSummary     `json:"regressions"`
 }
 
 // QuantitativeRunStats accumulates test statistics.
@@ -104,6 +139,129 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 
 }
 
+// Compare returns the structured diff between the current stats and the baseline.
+func (s *QuantitativeRunStats) Compare(baseline *QuantitativeRunStats) ComparisonResult {
+	perRuleDeltas := make(map[int]RuleDelta)
+	newlyFiringRules := make(map[int]RuleDelta)
+	stoppedFiringRules := make(map[int]RuleDelta)
+
+	ruleIDs := make([]int, 0, len(s.falsePositivesPerRule)+len(baseline.falsePositivesPerRule))
+	for ruleID := range s.falsePositivesPerRule {
+		ruleIDs = append(ruleIDs, ruleID)
+	}
+	for ruleID := range baseline.falsePositivesPerRule {
+		ruleIDs = append(ruleIDs, ruleID)
+	}
+
+	slices.Sort(ruleIDs)
+	ruleIDs = slices.Compact(ruleIDs)
+	for _, ruleID := range ruleIDs {
+		currentRuleStats, hasCurrent := s.falsePositivesPerRule[ruleID]
+		baselineRuleStats, hasBaseline := baseline.falsePositivesPerRule[ruleID]
+		if !hasCurrent && !hasBaseline {
+			continue
+		}
+
+		paranoiaLevel := currentRuleStats.ParanoiaLevel
+		if paranoiaLevel == 0 {
+			paranoiaLevel = baselineRuleStats.ParanoiaLevel
+		}
+
+		delta := currentRuleStats.FalsePositives - baselineRuleStats.FalsePositives
+		ruleDelta := RuleDelta{
+			ParanoiaLevel:          paranoiaLevel,
+			BaselineFalsePositives: baselineRuleStats.FalsePositives,
+			CurrentFalsePositives:  currentRuleStats.FalsePositives,
+			Delta:                  delta,
+		}
+		perRuleDeltas[ruleID] = ruleDelta
+
+		switch {
+		case !hasBaseline && hasCurrent:
+			newlyFiringRules[ruleID] = ruleDelta
+		case hasBaseline && !hasCurrent:
+			stoppedFiringRules[ruleID] = ruleDelta
+		}
+	}
+
+	return ComparisonResult{
+		Baseline: baseline,
+		Current:  s,
+		Regressions: RegressionSummary{
+			Detected:            hasRegressions(perRuleDeltas),
+			FalsePositivesDelta: s.falsePositives - baseline.falsePositives,
+			PerRuleDeltas:       perRuleDeltas,
+			NewlyFiringRules:    newlyFiringRules,
+			StoppedFiringRules:  stoppedFiringRules,
+		},
+	}
+}
+
+// HasRegressions reports whether the comparison contains regressions.
+func (r ComparisonResult) HasRegressions() bool {
+	return r.Regressions.Detected
+}
+
+// PrintSummary prints the structured comparison.
+func (r ComparisonResult) PrintSummary(out *output.Output) {
+	if out.IsJson() {
+		b, err := json.Marshal(r)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to marshal comparison to JSON")
+			return
+		}
+		out.RawPrint(string(b))
+		return
+	}
+
+	out.Println("Current quantitative results:")
+	r.Current.printSummary(out)
+	out.Println("")
+	out.Println("Baseline quantitative results:")
+	r.Baseline.printSummary(out)
+	out.Println("")
+	out.Println("Comparison:")
+	out.Println("Total false positive delta: %d", r.Regressions.FalsePositivesDelta)
+	printRuleDeltaSection(out, "Per-rule deltas:", r.Regressions.PerRuleDeltas)
+	printRuleDeltaSection(out, "Newly firing rules:", r.Regressions.NewlyFiringRules)
+	printRuleDeltaSection(out, "Stopped firing rules:", r.Regressions.StoppedFiringRules)
+	if r.Regressions.Detected {
+		out.Println("Regressions detected")
+		return
+	}
+	out.Println("No regressions detected")
+}
+
+// LoadQuantitativeRunStats loads previously emitted quantitative JSON results.
+func LoadQuantitativeRunStats(path string) (*QuantitativeRunStats, error) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var serialized quantitativeRunStatsJSON
+	if err := json.Unmarshal(b, &serialized); err != nil {
+		return nil, fmt.Errorf("failed to decode baseline results %s: %w", path, err)
+	}
+
+	if serialized.FalsePositivesPerRule == nil {
+		serialized.FalsePositivesPerRule = make(map[int]RuleStats)
+	}
+	if serialized.FalsePositivesPerParanoiaLevel == nil {
+		serialized.FalsePositivesPerParanoiaLevel = make(map[int]int)
+	}
+
+	return &QuantitativeRunStats{
+		count_:                         serialized.Count,
+		skipped_:                       serialized.Skipped,
+		totalTime:                      time.Duration(serialized.TotalTimeSeconds * float64(time.Second)),
+		falsePositives:                 serialized.FalsePositives,
+		falsePositivesPerRule:          serialized.FalsePositivesPerRule,
+		falsePositivesPerParanoiaLevel: serialized.FalsePositivesPerParanoiaLevel,
+		mu:                             sync.Mutex{},
+	}, nil
+}
+
 // addFalsePositive increments the false positive count, the false positive count for the rule
 // and the false positive count for the paranoia level.
 func (s *QuantitativeRunStats) addFalsePositive(ruleID int, paranoiaLevel int) {
@@ -159,13 +317,43 @@ func (s *QuantitativeRunStats) SetTotalTime(totalTime time.Duration) {
 
 // MarshalJSON marshals the stats to JSON.
 func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
-	// Custom marshaling logic here
-	return json.Marshal(map[string]interface{}{
-		"count":                          s.count_,
-		"skipped":                        s.skipped_,
-		"totalTimeSeconds":               s.totalTime.Seconds(),
-		"falsePositives":                 s.falsePositives,
-		"falsePositivesPerRule":          s.falsePositivesPerRule,
-		"falsePositivesPerParanoiaLevel": s.falsePositivesPerParanoiaLevel,
+	return json.Marshal(quantitativeRunStatsJSON{
+		Count:                          s.count_,
+		Skipped:                        s.skipped_,
+		TotalTimeSeconds:               s.totalTime.Seconds(),
+		FalsePositives:                 s.falsePositives,
+		FalsePositivesPerRule:          s.falsePositivesPerRule,
+		FalsePositivesPerParanoiaLevel: s.falsePositivesPerParanoiaLevel,
 	})
+}
+
+func hasRegressions(perRuleDeltas map[int]RuleDelta) bool {
+	for _, delta := range perRuleDeltas {
+		if delta.Delta > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func printRuleDeltaSection(out *output.Output, title string, deltas map[int]RuleDelta) {
+	out.Println(title)
+	if len(deltas) == 0 {
+		out.Println("  none")
+		return
+	}
+
+	ruleIDs := slices.Sorted(maps.Keys(deltas))
+	slices.SortFunc(ruleIDs, func(i, j int) int {
+		plSort := deltas[i].ParanoiaLevel - deltas[j].ParanoiaLevel
+		if plSort != 0 {
+			return plSort
+		}
+		return i - j
+	})
+
+	for _, ruleID := range ruleIDs {
+		delta := deltas[ruleID]
+		out.Println("  %d (PL%d): baseline=%d current=%d delta=%+d", ruleID, delta.ParanoiaLevel, delta.BaselineFalsePositives, delta.CurrentFalsePositives, delta.Delta)
+	}
 }

@@ -641,6 +641,8 @@ Flags:
   -s, --corpus-size string         Corpus size to use for the quantitative tests. Most corpora will have sizes like "100K", "1M", etc. (default "100K")
   -S, --corpus-source string       Corpus source to use for the quantitative tests. Most corpus will have a source like "news", "web", "wikipedia", etc. (default "news")
   -y, --corpus-year string         Corpus year to use for the quantitative tests. Most corpus will have a year like "2023", "2022", etc. (default "2023")
+      --baseline string            Path to a prior quantitative JSON result to compare against.
+      --compare-crs string         Path to another CRS tree to run with the same parameters and compare against.
   -C, --crs-path string            Path to top folder of local CRS installation. (default ".")
   -f, --file string                Output file path for quantitative tests. Prints to standard output by default.
   -h, --help                       help for quantitative
@@ -727,6 +729,8 @@ Results can be shown in JSON format also, to be processed by other tools.
 
 {"count":10000,"falsePositives":408,"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"totalTime":15031086083}%
 ```
+
+You can also compare a current run against a prior JSON baseline or against another CRS tree in a single invocation. Comparison output includes `baseline`, `current`, and `regressions` sections, and the command exits non-zero when regressions are detected.
 
 ### Future work for quantitative tests
 
