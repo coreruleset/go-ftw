@@ -18,11 +18,12 @@ import (
 type Type string
 
 const (
-	Normal Type = "normal"
-	Quiet  Type = "quiet"
-	GitHub Type = "github"
-	JSON   Type = "json"
-	Plain  Type = "plain" // when people (or terminals) don't want/support emojis
+	Normal   Type = "normal"
+	Quiet    Type = "quiet"
+	GitHub   Type = "github"
+	JSON     Type = "json"
+	Plain    Type = "plain"    // when people (or terminals) don't want/support emojis
+	Markdown Type = "markdown" // markdown-friendly plain text
 )
 
 type catalog map[string]string
@@ -56,7 +57,7 @@ type Output struct {
 
 // ValidTypes returns an array of the valid output types.
 func ValidTypes() []Type {
-	return []Type{Normal, Quiet, GitHub, JSON, Plain}
+	return []Type{Normal, Quiet, GitHub, JSON, Plain, Markdown}
 }
 
 func (o *Output) Println(format string, a ...interface{}) error {
@@ -75,7 +76,7 @@ func (o *Output) Printf(format string, a ...interface{}) error {
 	case GitHub:
 		s = fmt.Sprintf(format, a...)
 		s = fmt.Sprintf("::notice file={name},line={line},endLine={endLine},title={title}::{%s}", s)
-	case Plain:
+	case Plain, Markdown:
 		s = fmt.Sprintf(format, a...)
 	default:
 		s = emoji.Sprintf(format, a...)
@@ -106,6 +107,9 @@ func NewOutput(o string, w io.Writer) *Output {
 	case "plain":
 		out.cat = createPlainCatalog(normalCatalog)
 		out.OutputType = Plain
+	case "markdown":
+		out.cat = createPlainCatalog(normalCatalog)
+		out.OutputType = Markdown
 	case "normal":
 		break
 	default:
@@ -126,6 +130,10 @@ func (o *Output) Message(key string) string {
 
 func (o *Output) IsJson() bool {
 	return o.OutputType == JSON
+}
+
+func (o *Output) IsMarkdown() bool {
+	return o.OutputType == Markdown
 }
 
 func createPlainCatalog(c catalog) catalog {
