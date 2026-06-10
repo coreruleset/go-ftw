@@ -606,6 +606,8 @@ Flags:
   -C, --crs-path string            Path to top folder of local CRS installation. (default ".")
   -f, --file string                Output file path for quantitative tests. Prints to standard output by default.
   -h, --help                       help for quantitative
+      --ignore-rules ints          Comma-separated list of rule IDs to exclude from aggregate false-positive metrics, e.g. 920272,920273,942432.
+      --ignore-rules-file string   Path to a file containing rule IDs to exclude from aggregate false-positive metrics (one rule ID per line).
   -l, --lines int                  Number of lines of input to process before stopping.
       --max-concurrency int        maximum number of goroutines. Defaults to 10, or 1 if log level is debug/trace. (default 10)
   -o, --output string              Output type for quantitative tests. (default "normal")
@@ -650,6 +652,23 @@ Run 10000 payloads in 15.218343083s
 Total False positive ratio: 2/10000 = 0.0002
 False positives per rule:
   Rule 932270: 2 false positives
+```
+
+Some rules are intentionally aggressive and dominate aggregate metrics. Use `--ignore-rules` to exclude
+known-noisy rule IDs from the aggregate false-positive ratio (they are still listed separately in the output).
+A comma-separated list or a file (one rule ID per line) are both supported.
+```bash
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K --ignore-rules 920272,920273,942432
+Run 10000 payloads (0 skipped) in 18.5s
+Total False positive ratio: 6/10000 = 0.0006 (16093 FPs from 3 ignored rules not counted)
+False positives per paranoia level:
+  PL1: 6 false positives. FP Ratio: 6/10000 = 0.0006
+False positives per rule id:
+  920100 (PL1): 6 false positives. FP Ratio: 6/10000 = 0.0006
+False positives for ignored rules (not counted in aggregate):
+  920272 (PL3): 3489 false positives. FP Ratio: 3489/10000 = 0.3489
+  920273 (PL4): 10000 false positives. FP Ratio: 10000/10000 = 1.0000
+  942432 (PL4): 2604 false positives. FP Ratio: 2604/10000 = 0.2604
 ```
 
 If you add `--debug` to the command, you will see the payloads that cause false positives.
