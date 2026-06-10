@@ -205,6 +205,19 @@ func TestLoadQuantitativeRunStats(t *testing.T) {
 	require.Equal(t, 1500*time.Millisecond, stats.TotalTime())
 }
 
+func TestLoadQuantitativeRunStatsRejectsUnrelatedJSON(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	baselinePath := dir + "/baseline.json"
+	err := os.WriteFile(baselinePath, []byte(`{"unexpected":"value"}`), 0644)
+	require.NoError(t, err)
+
+	_, err = LoadQuantitativeRunStats(baselinePath)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "do not look like quantitative output")
+}
+
 func TestQuantitativeRunStatsCompare(t *testing.T) {
 	t.Parallel()
 
@@ -215,24 +228,27 @@ func TestQuantitativeRunStatsCompare(t *testing.T) {
 		falsePositivesPerRule: map[int]RuleStats{
 			920100: {ParanoiaLevel: 1, FalsePositives: 2},
 			933100: {ParanoiaLevel: 2, FalsePositives: 1},
+			941100: {ParanoiaLevel: 1, FalsePositives: 1},
 		},
-		falsePositivesPerParanoiaLevel: map[int]int{1: 2, 2: 1},
+		falsePositivesPerParanoiaLevel: map[int]int{1: 3, 2: 1},
 	}
 	current := &QuantitativeRunStats{
 		count_:         10,
-		falsePositives: 4,
+		falsePositives: 5,
 		totalTime:      2 * time.Second,
 		falsePositivesPerRule: map[int]RuleStats{
 			920100: {ParanoiaLevel: 1, FalsePositives: 3},
+			941100: {ParanoiaLevel: 1, FalsePositives: 1},
 			942100: {ParanoiaLevel: 1, FalsePositives: 1},
 		},
-		falsePositivesPerParanoiaLevel: map[int]int{1: 4},
+		falsePositivesPerParanoiaLevel: map[int]int{1: 5},
 	}
 
 	comparison := current.Compare(baseline)
 	require.True(t, comparison.HasRegressions())
-	require.Equal(t, 1, comparison.Regressions.FalsePositivesDelta)
+	require.Equal(t, 2, comparison.Regressions.FalsePositivesDelta)
 	require.Equal(t, RuleDelta{ParanoiaLevel: 1, BaselineFalsePositives: 2, CurrentFalsePositives: 3, Delta: 1}, comparison.Regressions.PerRuleDeltas[920100])
+	require.NotContains(t, comparison.Regressions.PerRuleDeltas, 941100)
 	require.Equal(t, RuleDelta{ParanoiaLevel: 1, BaselineFalsePositives: 0, CurrentFalsePositives: 1, Delta: 1}, comparison.Regressions.NewlyFiringRules[942100])
 	require.Equal(t, RuleDelta{ParanoiaLevel: 2, BaselineFalsePositives: 1, CurrentFalsePositives: 0, Delta: -1}, comparison.Regressions.StoppedFiringRules[933100])
 }

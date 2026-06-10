@@ -176,6 +176,24 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 	if err != nil {
 		return emptyParams, err
 	}
+	if baselinePath != "" {
+		info, err := os.Stat(baselinePath)
+		if err != nil {
+			return emptyParams, fmt.Errorf("--%s path does not exist: %w", baselineFlag, err)
+		}
+		if info.IsDir() {
+			return emptyParams, fmt.Errorf("--%s must point to a file: %s", baselineFlag, baselinePath)
+		}
+	}
+	if compareCRSPath != "" {
+		info, err := os.Stat(compareCRSPath)
+		if err != nil {
+			return emptyParams, fmt.Errorf("--%s path does not exist: %w", compareCRSFlag, err)
+		}
+		if !info.IsDir() {
+			return emptyParams, fmt.Errorf("--%s must point to a directory: %s", compareCRSFlag, compareCRSPath)
+		}
+	}
 
 	// --max-concurrency defaults to 1 if debug/trace is enabled, but if set explicitly, it should override this
 	if !cmd.Flags().Changed(maxConcurrencyFlag) && zerolog.GlobalLevel() <= zerolog.DebugLevel {

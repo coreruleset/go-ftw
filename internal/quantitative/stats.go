@@ -109,7 +109,7 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 	ratio := float64(s.falsePositives) / float64(s.count_)
 	out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
 	// Extract and sort the rule IDs
-	ruleIDs := slices.Sorted(maps.Keys(s.falsePositivesPerRule))
+	ruleIDs := slices.Collect(maps.Keys(s.falsePositivesPerRule))
 	slices.SortFunc(ruleIDs, func(i, j int) int {
 		// First sort by paranoia level and then by rule ID
 		plSort := s.falsePositivesPerRule[i].ParanoiaLevel - s.falsePositivesPerRule[j].ParanoiaLevel
@@ -174,7 +174,9 @@ func (s *QuantitativeRunStats) Compare(baseline *QuantitativeRunStats) Compariso
 			CurrentFalsePositives:  currentRuleStats.FalsePositives,
 			Delta:                  delta,
 		}
-		perRuleDeltas[ruleID] = ruleDelta
+		if delta != 0 {
+			perRuleDeltas[ruleID] = ruleDelta
+		}
 
 		switch {
 		case !hasBaseline && hasCurrent:
@@ -237,6 +239,14 @@ func LoadQuantitativeRunStats(path string) (*QuantitativeRunStats, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
+	}
+
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, fmt.Errorf("failed to decode baseline results %s: %w", path, err)
+	}
+	if !containsQuantitativeStatsFields(raw) {
+		return nil, fmt.Errorf("baseline results %s do not look like quantitative output", path)
 	}
 
 	var serialized quantitativeRunStatsJSON
@@ -343,7 +353,7 @@ func printRuleDeltaSection(out *output.Output, title string, deltas map[int]Rule
 		return
 	}
 
-	ruleIDs := slices.Sorted(maps.Keys(deltas))
+	ruleIDs := slices.Collect(maps.Keys(deltas))
 	slices.SortFunc(ruleIDs, func(i, j int) int {
 		plSort := deltas[i].ParanoiaLevel - deltas[j].ParanoiaLevel
 		if plSort != 0 {
@@ -356,4 +366,20 @@ func printRuleDeltaSection(out *output.Output, title string, deltas map[int]Rule
 		delta := deltas[ruleID]
 		out.Println("  %d (PL%d): baseline=%d current=%d delta=%+d", ruleID, delta.ParanoiaLevel, delta.BaselineFalsePositives, delta.CurrentFalsePositives, delta.Delta)
 	}
+}
+
+func containsQuantitativeStatsFields(raw map[string]json.RawMessage) bool {
+	for _, key := range []string{
+		"count",
+		"skipped",
+		"totalTimeSeconds",
+		"falsePositives",
+		"falsePositivesPerRule",
+		"falsePositivesPerParanoiaLevel",
+	} {
+		if _, ok := raw[key]; ok {
+			return true
+		}
+	}
+	return false
 }
