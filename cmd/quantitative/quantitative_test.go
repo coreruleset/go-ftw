@@ -83,24 +83,54 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommand() {
 
 func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel() {
 	tests := []struct {
-		name              string
-		args              []string
-		wantErr           bool
-		wantParanoiaLevel int
+		name               string
+		args               []string
+		wantErr            bool
+		wantParanoiaLevel  int
+		wantParanoiaLevels []int
 	}{
 		{
-			name:              "rule without PL defaults to PL4",
-			args:              []string{"-C", s.tempDir, "-r", "942200", "-p", "test payload"},
-			wantParanoiaLevel: maxCrsParanoiaLevel,
+			name:               "rule without PL defaults to PL4",
+			args:               []string{"-C", s.tempDir, "-r", "942200", "-p", "test payload"},
+			wantParanoiaLevel:  maxCrsParanoiaLevel,
+			wantParanoiaLevels: []int{maxCrsParanoiaLevel},
 		},
 		{
-			name:              "rule with explicit PL is allowed",
-			args:              []string{"-C", s.tempDir, "-r", "942200", "-P", "2", "-p", "test payload"},
-			wantParanoiaLevel: 2,
+			name:               "rule with explicit PL is allowed",
+			args:               []string{"-C", s.tempDir, "-r", "942200", "-P", "2", "-p", "test payload"},
+			wantParanoiaLevel:  2,
+			wantParanoiaLevels: []int{2},
+		},
+		{
+			name:               "multi PLs are normalized and use highest PL to run",
+			args:               []string{"-C", s.tempDir, "--paranoia-levels", "3,1,3,2", "-p", "test payload"},
+			wantParanoiaLevel:  3,
+			wantParanoiaLevels: []int{1, 2, 3},
+		},
+		{
+			name:               "all paranoia levels expands to all CRS levels",
+			args:               []string{"-C", s.tempDir, "--all-paranoia-levels", "-p", "test payload"},
+			wantParanoiaLevel:  maxCrsParanoiaLevel,
+			wantParanoiaLevels: []int{1, 2, 3, 4},
+		},
+		{
+			name:    "single and multi PL flags conflict",
+			args:    []string{"-C", s.tempDir, "-P", "2", "--paranoia-levels", "1,2", "-p", "test payload"},
+			wantErr: true,
+		},
+		{
+			name:    "all and multi PL flags conflict",
+			args:    []string{"-C", s.tempDir, "--all-paranoia-levels", "--paranoia-levels", "1,2", "-p", "test payload"},
+			wantErr: true,
 		},
 		{
 			name:    "PL out of range errors",
 			args:    []string{"-C", s.tempDir, "-P", "5", "-p", "test payload"},
+			wantErr: true,
+		},
+		{
+			name:    "multi PL out of range errors",
+			args:    []string{"-C", s.tempDir, "--paranoia-levels", "1,5", "-p", "test payload"},
 			wantErr: true,
 		},
 	}
@@ -116,6 +146,7 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel()
 			}
 			s.Require().NoError(err)
 			s.Equal(tc.wantParanoiaLevel, params.ParanoiaLevel)
+			s.Equal(tc.wantParanoiaLevels, params.ParanoiaLevels)
 		})
 	}
 }

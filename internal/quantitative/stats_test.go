@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/v2/output"
@@ -155,6 +156,56 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_JSON() {
 
 	q.printSummary(out)
 	s.JSONEq(`{"count":1,"falsePositives":1,"falsePositivesPerParanoiaLevel":{"1":1},"falsePositivesPerRule":{"920100":{"paranoiaLevel":1,"falsePositives":1}},"skipped":0,"totalTimeSeconds":0}`, b.String())
+}
+
+func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MultiParanoiaLevels_Plain() {
+	var b bytes.Buffer
+	out := output.NewOutput("plain", &b)
+	q := NewQuantitativeStats()
+
+	for range 10 {
+		q.incrementRun()
+	}
+	q.SetEvaluatedParanoiaLevels([]int{1, 2, 4})
+
+	q.addFalsePositive(920100, 1)
+	q.addFalsePositive(920200, 2)
+	q.addFalsePositive(920201, 2)
+	q.addFalsePositive(920400, 4)
+
+	q.printSummary(out)
+	s.Require().Equal("Run 10 payloads (0 skipped) in 0s\nTotal False positive ratio at PL4: 4/10 = 0.4000\nFalse positive totals by evaluated paranoia level:\n  PL1: 1 false positives. FP Ratio: 1/10 = 0.1000\n  PL2: 3 false positives. FP Ratio: 3/10 = 0.3000\n  PL4: 4 false positives. FP Ratio: 4/10 = 0.4000\nFalse positives per paranoia level:\n  PL1: 1 false positives. FP Ratio: 1/10 = 0.1000\n  PL2: 2 false positives. FP Ratio: 2/10 = 0.2000\n  PL4: 1 false positives. FP Ratio: 1/10 = 0.1000\nFalse positives per rule id:\n  920100 (PL1): 1 false positives. FP Ratio: 1/10 = 0.1000\n  920200 (PL2): 1 false positives. FP Ratio: 1/10 = 0.1000\n  920201 (PL2): 1 false positives. FP Ratio: 1/10 = 0.1000\n  920400 (PL4): 1 false positives. FP Ratio: 1/10 = 0.1000\n", b.String())
+}
+
+func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MultiParanoiaLevels_JSON() {
+	var b bytes.Buffer
+	out := output.NewOutput("json", &b)
+	q := NewQuantitativeStats()
+
+	for range 3 {
+		q.incrementRun()
+	}
+	q.SetEvaluatedParanoiaLevels([]int{1, 2, 4})
+
+	q.addFalsePositive(920100, 1)
+	q.addFalsePositive(920200, 2)
+	q.addFalsePositive(920400, 4)
+
+	q.printSummary(out)
+	require.JSONEq(s.T(), `{
+		"count": 3,
+		"evaluatedParanoiaLevels": [1, 2, 4],
+		"falsePositiveTotalsPerParanoiaLevel": {"1": 1, "2": 2, "4": 3},
+		"falsePositives": 3,
+		"falsePositivesPerParanoiaLevel": {"1": 1, "2": 1, "4": 1},
+		"falsePositivesPerRule": {
+			"920100": {"paranoiaLevel": 1, "falsePositives": 1},
+			"920200": {"paranoiaLevel": 2, "falsePositives": 1},
+			"920400": {"paranoiaLevel": 4, "falsePositives": 1}
+		},
+		"skipped": 0,
+		"totalTimeSeconds": 0
+	}`, b.String())
 }
 
 func (s *statsTestSuite) TestAddFalsePositiveRace() {
