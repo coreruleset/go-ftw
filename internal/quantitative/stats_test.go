@@ -154,6 +154,66 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_JSON() {
 	s.Require().Equal(`{"count":1,"falsePositives":1,"falsePositivesPerParanoiaLevel":{"1":1},"falsePositivesPerRule":{"920100":{"paranoiaLevel":1,"falsePositives":1}},"skipped":0,"totalTimeSeconds":0}`, b.String())
 }
 
+func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_Markdown() {
+	var b bytes.Buffer
+	out := output.NewOutput("markdown", &b)
+	q := NewQuantitativeStats()
+
+	q.incrementRun()
+	q.incrementRun()
+	q.incrementSkip()
+	q.addFalsePositive(920100, 1)
+	q.addFalsePositive(942100, 2)
+	q.SetTotalTime(time.Second)
+
+	q.printSummary(out)
+	s.Require().Equal(`## Quantitative test results
+
+⚠️ Quantitative testing detected false positives.
+
+| Metric | Value |
+|--------|-------|
+| Payloads run | 2 |
+| Skipped payloads | 1 |
+| False positives | 2 |
+| Duration | 1s |
+| False positive ratio | 2/2 = 1.0000 |
+
+### False positives per rule
+
+| Rule ID | PL | False positives | Ratio |
+|---------|----|-----------------|-------|
+| 920100 | 1 | 1 | 1/2 = 0.5000 |
+| 942100 | 2 | 1 | 1/2 = 0.5000 |
+`, b.String())
+}
+
+func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MarkdownNoFalsePositives() {
+	var b bytes.Buffer
+	out := output.NewOutput("markdown", &b)
+	q := NewQuantitativeStats()
+
+	q.incrementRun()
+
+	q.printSummary(out)
+	s.Require().Equal(`## Quantitative test results
+
+✅ Quantitative testing did not detect false positives.
+
+| Metric | Value |
+|--------|-------|
+| Payloads run | 1 |
+| Skipped payloads | 0 |
+| False positives | 0 |
+| Duration | 0s |
+| False positive ratio | 0/1 = 0.0000 |
+
+### False positives per rule
+
+_No false positives detected._
+`, b.String())
+}
+
 func (s *statsTestSuite) TestAddFalsePositiveRace() {
 	stats := &QuantitativeRunStats{
 		falsePositivesPerRule:          make(map[int]RuleStats),

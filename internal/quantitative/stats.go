@@ -5,8 +5,10 @@ package quantitative
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -63,6 +65,10 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 		out.RawPrint(string(b))
 		return
 	}
+	if out.IsMarkdown() {
+		out.RawPrint(s.markdownSummary())
+		return
+	}
 
 	out.Println("Run %d payloads (%d skipped) in %s", s.count_, s.skipped_, s.totalTime)
 
@@ -102,6 +108,59 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 		out.Println("  %d (PL%d): %d false positives. FP Ratio: %d/%d = %.4f", ruleID, ruleStats.ParanoiaLevel, ruleStats.FalsePositives, ruleStats.FalsePositives, s.count_, perRuleRatio)
 	}
 
+}
+
+func (s *QuantitativeRunStats) markdownSummary() string {
+	var summary strings.Builder
+
+	summary.WriteString("## Quantitative test results\n\n")
+	if s.falsePositives == 0 {
+		summary.WriteString("✅ Quantitative testing did not detect false positives.\n\n")
+	} else {
+		summary.WriteString("⚠️ Quantitative testing detected false positives.\n\n")
+	}
+
+	summary.WriteString("| Metric | Value |\n")
+	summary.WriteString("|--------|-------|\n")
+	fmt.Fprintf(&summary, "| Payloads run | %d |\n", s.count_)
+	fmt.Fprintf(&summary, "| Skipped payloads | %d |\n", s.skipped_)
+	fmt.Fprintf(&summary, "| False positives | %d |\n", s.falsePositives)
+	fmt.Fprintf(&summary, "| Duration | %s |\n", s.totalTime)
+
+	ratio := 0.0
+	if s.count_ > 0 {
+		ratio = float64(s.falsePositives) / float64(s.count_)
+	}
+	fmt.Fprintf(&summary, "| False positive ratio | %d/%d = %.4f |\n", s.falsePositives, s.count_, ratio)
+
+	summary.WriteString("\n### False positives per rule\n\n")
+
+	if len(s.falsePositivesPerRule) == 0 {
+		summary.WriteString("_No false positives detected._\n")
+		return summary.String()
+	}
+
+	ruleIDs := slices.Sorted(maps.Keys(s.falsePositivesPerRule))
+	slices.SortFunc(ruleIDs, func(i, j int) int {
+		plSort := s.falsePositivesPerRule[i].ParanoiaLevel - s.falsePositivesPerRule[j].ParanoiaLevel
+		if plSort != 0 {
+			return plSort
+		}
+		return i - j
+	})
+
+	summary.WriteString("| Rule ID | PL | False positives | Ratio |\n")
+	summary.WriteString("|---------|----|-----------------|-------|\n")
+	for _, ruleID := range ruleIDs {
+		ruleStats := s.falsePositivesPerRule[ruleID]
+		perRuleRatio := 0.0
+		if s.count_ > 0 {
+			perRuleRatio = float64(ruleStats.FalsePositives) / float64(s.count_)
+		}
+		fmt.Fprintf(&summary, "| %d | %d | %d | %d/%d = %.4f |\n", ruleID, ruleStats.ParanoiaLevel, ruleStats.FalsePositives, ruleStats.FalsePositives, s.count_, perRuleRatio)
+	}
+
+	return summary.String()
 }
 
 // addFalsePositive increments the false positive count, the false positive count for the rule
