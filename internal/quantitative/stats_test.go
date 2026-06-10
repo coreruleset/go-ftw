@@ -37,6 +37,7 @@ func (s *statsTestSuite) TestNewQuantitativeStats() {
 			want: &QuantitativeRunStats{
 				count_:                         0,
 				falsePositives:                 0,
+				falsePositiveSentences:         0,
 				falsePositivesPerRule:          make(map[int]RuleStats),
 				falsePositivesPerParanoiaLevel: make(map[int]int),
 				totalTime:                      0,
@@ -72,7 +73,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 				falsePositives:        1,
 				falsePositivesPerRule: map[int]RuleStats{920010: {ParanoiaLevel: 1, FalsePositives: 1}},
 			},
-			want:    []byte(`{"count":1,"falsePositives":1,"falsePositivesPerParanoiaLevel":null,"falsePositivesPerRule":{"920010":{"paranoiaLevel":1,"falsePositives":1}},"skipped":0,"totalTimeSeconds":1}`),
+			want:    []byte(`{"corpusSize":1,"count":1,"falsePositiveSentences":0,"falsePositives":1,"falsePositivesPerParanoiaLevel":null,"falsePositivesPerRule":{"920010":{"paranoiaLevel":1,"falsePositives":1}},"skipped":0,"totalTimeSeconds":1}`),
 			wantErr: false,
 		},
 		{
@@ -83,7 +84,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 				falsePositives:        2,
 				falsePositivesPerRule: map[int]RuleStats{933100: {ParanoiaLevel: 1, FalsePositives: 2}},
 			},
-			want:    []byte(`{"count":2,"falsePositives":2,"falsePositivesPerParanoiaLevel":null,"falsePositivesPerRule":{"933100":{"paranoiaLevel":1,"falsePositives":2}},"skipped":0,"totalTimeSeconds":2}`),
+			want:    []byte(`{"corpusSize":2,"count":2,"falsePositiveSentences":0,"falsePositives":2,"falsePositivesPerParanoiaLevel":null,"falsePositivesPerRule":{"933100":{"paranoiaLevel":1,"falsePositives":2}},"skipped":0,"totalTimeSeconds":2}`),
 			wantErr: false,
 		},
 	}
@@ -109,13 +110,18 @@ func (s *statsTestSuite) TestQuantitativeRunStats_functions() {
 	s.Require().Equal(q.Count(), 1)
 
 	q.addFalsePositive(920100, 1)
+	q.addFalsePositiveSentence()
 	s.Require().Equal(q.FalsePositives(), 1)
+	s.Require().Equal(q.FalsePositiveSentences(), 1)
 
 	q.incrementRun()
 	s.Require().Equal(q.Count(), 2)
 
 	q.addFalsePositive(920200, 2)
-	s.Require().Equal(q.FalsePositives(), 2)
+	q.addFalsePositive(920300, 2)
+	q.addFalsePositiveSentence()
+	s.Require().Equal(q.FalsePositives(), 3)
+	s.Require().Equal(q.FalsePositiveSentences(), 2)
 
 	duration := time.Duration(5000)
 	q.SetTotalTime(duration)
@@ -131,11 +137,13 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_Plain() {
 	s.Require().Equal(q.Count(), 1)
 
 	q.addFalsePositive(920100, 1)
+	q.addFalsePositiveSentence()
 	s.Require().Equal(q.FalsePositives(), 1)
+	s.Require().Equal(q.FalsePositiveSentences(), 1)
 	s.Require().Equal(q.Skipped(), 0)
 
 	q.printSummary(out)
-	s.Require().Equal("Run 1 payloads (0 skipped) in 0s\nTotal False positive ratio: 1/1 = 1.0000\nFalse positives per paranoia level:\n  PL1: 1 false positives. FP Ratio: 1/1 = 1.0000\nFalse positives per rule id:\n  920100 (PL1): 1 false positives. FP Ratio: 1/1 = 1.0000\n", b.String())
+	s.Require().Equal("Run 1 payloads (0 skipped) in 0s\nTotal False positive ratio: 1/1 = 1.0000\nTotal False positive sentences: 1/1 = 1.0000\nFalse positives per paranoia level:\n  PL1: 1 false positives. FP Ratio: 1/1 = 1.0000\nFalse positives per rule id:\n  920100 (PL1): 1 false positives. FP Ratio: 1/1 = 1.0000\n", b.String())
 }
 
 func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_JSON() {
@@ -147,11 +155,13 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_JSON() {
 	s.Require().Equal(q.Count(), 1)
 
 	q.addFalsePositive(920100, 1)
+	q.addFalsePositiveSentence()
 	s.Require().Equal(q.FalsePositives(), 1)
+	s.Require().Equal(q.FalsePositiveSentences(), 1)
 	s.Require().Equal(q.Skipped(), 0)
 
 	q.printSummary(out)
-	s.Require().Equal(`{"count":1,"falsePositives":1,"falsePositivesPerParanoiaLevel":{"1":1},"falsePositivesPerRule":{"920100":{"paranoiaLevel":1,"falsePositives":1}},"skipped":0,"totalTimeSeconds":0}`, b.String())
+	s.Require().Equal(`{"corpusSize":1,"count":1,"falsePositiveSentences":1,"falsePositives":1,"falsePositivesPerParanoiaLevel":{"1":1},"falsePositivesPerRule":{"920100":{"paranoiaLevel":1,"falsePositives":1}},"skipped":0,"totalTimeSeconds":0}`, b.String())
 }
 
 func (s *statsTestSuite) TestAddFalsePositiveRace() {
