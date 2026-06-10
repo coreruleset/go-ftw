@@ -24,10 +24,12 @@ type RuleStats struct {
 }
 
 type quantitativeRunStatsJSON struct {
+	CorpusSize                          int               `json:"corpusSize"`
 	Count                               int               `json:"count"`
 	Skipped                             int               `json:"skipped"`
 	TotalTimeSeconds                    float64           `json:"totalTimeSeconds"`
 	FalsePositives                      int               `json:"falsePositives"`
+	FalsePositiveSentences              int               `json:"falsePositiveSentences"`
 	FalsePositivesPerRule               map[int]RuleStats `json:"falsePositivesPerRule"`
 	FalsePositivesPerParanoiaLevel      map[int]int       `json:"falsePositivesPerParanoiaLevel"`
 	EvaluatedParanoiaLevels             []int             `json:"evaluatedParanoiaLevels,omitempty"`
@@ -78,8 +80,10 @@ type QuantitativeRunStats struct {
 	skipped_ int
 	// totalTime is the duration over all runs, the sum of all individual run times.
 	totalTime time.Duration
-	// falsePositives is the total false positives detected
+	// falsePositives is the total false positives detected (rule-hit count; one sentence can contribute multiple hits)
 	falsePositives int
+	// falsePositiveSentences is the number of distinct corpus sentences that triggered at least one rule
+	falsePositiveSentences int
 	// falsePositivesPerRule is the aggregated false positives per rule (key is rule ID)
 	falsePositivesPerRule map[int]RuleStats
 	// falsePositivesPerParanoiaLevel is the aggregated false positives per paranoia level
@@ -95,6 +99,7 @@ func NewQuantitativeStats() *QuantitativeRunStats {
 	return &QuantitativeRunStats{
 		count_:                         0,
 		falsePositives:                 0,
+		falsePositiveSentences:         0,
 		falsePositivesPerRule:          make(map[int]RuleStats),
 		falsePositivesPerParanoiaLevel: make(map[int]int),
 		totalTime:                      0,
@@ -127,10 +132,12 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 		ratio := s.falsePositiveRatio(s.falsePositives)
 		out.Println("Total False positive ratio at PL%d: %d/%d = %.4f", highestParanoiaLevel, s.falsePositives, s.count_, ratio)
 		s.printEvaluatedParanoiaLevelTotals(out)
-	} else if s.falsePositives != 0 {
+	} else {
 		ratio := s.falsePositiveRatio(s.falsePositives)
 		out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
 	}
+	sentenceRatio := s.falsePositiveRatio(s.falsePositiveSentences)
+	out.Println("Total False positive sentences: %d/%d = %.4f", s.falsePositiveSentences, s.count_, sentenceRatio)
 
 	// Extract and sort the rule IDs
 	ruleIDs := slices.Collect(maps.Keys(s.falsePositivesPerRule))
@@ -279,6 +286,7 @@ func LoadQuantitativeRunStats(path string) (*QuantitativeRunStats, error) {
 		skipped_:                       serialized.Skipped,
 		totalTime:                      time.Duration(serialized.TotalTimeSeconds * float64(time.Second)),
 		falsePositives:                 serialized.FalsePositives,
+		falsePositiveSentences:         serialized.FalsePositiveSentences,
 		falsePositivesPerRule:          serialized.FalsePositivesPerRule,
 		falsePositivesPerParanoiaLevel: serialized.FalsePositivesPerParanoiaLevel,
 		mu:                             sync.Mutex{},
@@ -326,9 +334,21 @@ func (s *QuantitativeRunStats) addFalsePositive(ruleID int, paranoiaLevel int) {
 	}
 }
 
-// FalsePositives returns the total false positives detected
+// addFalsePositiveSentence increments the count of distinct sentences that triggered at least one rule.
+func (s *QuantitativeRunStats) addFalsePositiveSentence() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.falsePositiveSentences++
+}
+
+// FalsePositives returns the total false positives detected (rule-hit count)
 func (s *QuantitativeRunStats) FalsePositives() int {
 	return s.falsePositives
+}
+
+// FalsePositiveSentences returns the number of distinct sentences that triggered at least one rule.
+func (s *QuantitativeRunStats) FalsePositiveSentences() int {
+	return s.falsePositiveSentences
 }
 
 // incrementRun increments the amount of tests executed in this run.
@@ -369,10 +389,12 @@ func (s *QuantitativeRunStats) SetEvaluatedParanoiaLevels(levels ParanoiaLevels)
 // MarshalJSON marshals the stats to JSON.
 func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 	serialized := quantitativeRunStatsJSON{
+		CorpusSize:                     s.count_ + s.skipped_,
 		Count:                          s.count_,
 		Skipped:                        s.skipped_,
 		TotalTimeSeconds:               s.totalTime.Seconds(),
 		FalsePositives:                 s.falsePositives,
+		FalsePositiveSentences:         s.falsePositiveSentences,
 		FalsePositivesPerRule:          s.falsePositivesPerRule,
 		FalsePositivesPerParanoiaLevel: s.falsePositivesPerParanoiaLevel,
 	}
