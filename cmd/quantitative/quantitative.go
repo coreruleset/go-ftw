@@ -4,8 +4,11 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -26,6 +29,8 @@ const (
 	corpusLocalPathFlag = "corpus-local-path"
 	crsPathFlag         = "crs-path"
 	outputFileFlag      = "file"
+	ignoreRulesFlag     = "ignore-rules"
+	ignoreRulesFileFlag = "ignore-rules-file"
 	linesFlag           = "lines"
 	maxConcurrencyFlag  = "max-concurrency"
 	outputTypeFlag      = "output"
@@ -65,6 +70,8 @@ For the "raw" corpus type, this flag specifies the path to the corpus file.`)
 	runCmd.Flags().StringP(crsPathFlag, "C", ".", "Path to top folder of local CRS installation.")
 	runCmd.Flags().StringP(outputFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
 	runCmd.Flags().StringP(outputTypeFlag, "o", "normal", "Output type for quantitative tests.")
+	runCmd.Flags().IntSlice(ignoreRulesFlag, []int{}, "Comma-separated list of rule IDs to exclude from aggregate false-positive metrics, e.g. 920272,920273,942432.")
+	runCmd.Flags().String(ignoreRulesFileFlag, "", "Path to a file containing rule IDs to exclude from aggregate false-positive metrics (one rule ID per line).")
 
 	return runCmd
 }
@@ -185,6 +192,23 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		}
 	}
 
+	ignoreRules, err := cmd.Flags().GetIntSlice(ignoreRulesFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+
+	ignoreRulesFile, err := cmd.Flags().GetString(ignoreRulesFileFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	if ignoreRulesFile != "" {
+		fileRules, err := parseIgnoreRulesFile(ignoreRulesFile)
+		if err != nil {
+			return emptyParams, err
+		}
+		ignoreRules = append(ignoreRules, fileRules...)
+	}
+
 	return quantitative.Params{
 		Corpus:          corpusType,
 		CorpusSize:      corpusSize,
@@ -199,5 +223,34 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		Payload:         payload,
 		Rule:            rule,
 		MaxConcurrency:  maxConcurrency,
+		IgnoreRules:     ignoreRules,
 	}, nil
+}
+
+// parseIgnoreRulesFile reads a file with one rule ID per line and returns a slice of rule IDs.
+// Lines starting with '#' and empty lines are ignored.
+func parseIgnoreRulesFile(filePath string) ([]int, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("opening ignore-rules-file %q: %w", filePath, err)
+	}
+	defer f.Close()
+
+	var rules []int
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		id, err := strconv.Atoi(line)
+		if err != nil {
+			return nil, fmt.Errorf("invalid rule ID %q in ignore-rules-file %q: %w", line, filePath, err)
+		}
+		rules = append(rules, id)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("reading ignore-rules-file %q: %w", filePath, err)
+	}
+	return rules, nil
 }

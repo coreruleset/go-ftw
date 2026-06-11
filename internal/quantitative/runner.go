@@ -44,6 +44,8 @@ type Params struct {
 	CorpusSource string
 	// MaxConcurrency is the maximum number of goroutines spawned
 	MaxConcurrency int
+	// IgnoreRules is a list of rule IDs to exclude from aggregate false-positive metrics
+	IgnoreRules []int
 }
 
 // RunQuantitativeTests runs all quantitative tests
@@ -58,7 +60,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 
 	startTime := time.Now()
 	// create the results
-	stats := NewQuantitativeStats()
+	stats := NewQuantitativeStats(params.IgnoreRules)
 
 	var engine LocalEngine = &localEngine{}
 	runner := engine.Create(params.Directory, params.ParanoiaLevel)
