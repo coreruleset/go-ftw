@@ -19,12 +19,50 @@ Features of Go-FTW include:
 
 ## Install
 
-Go to the [releases](https://github.com/coreruleset/go-ftw/releases) page and get a binary release that matches your OS (scroll down to **Assets**).
+### Homebrew (macOS and Linux)
+
+`go-ftw` can be installed on macOS and Linux via [Homebrew](https://brew.sh) using the [CRS tap](https://github.com/coreruleset/homebrew-tap):
+
+```shell
+brew tap coreruleset/tap
+brew install go-ftw
+```
+
+To upgrade to the latest version:
+
+```shell
+brew upgrade go-ftw
+```
+
+### Linux
+
+Download the latest release archive for your architecture from the [releases page](https://github.com/coreruleset/go-ftw/releases), then extract and install the binary:
+
+```shell
+# Replace <version> and <arch> with the appropriate values (e.g. 1.0.0 and amd64)
+curl -sSL https://github.com/coreruleset/go-ftw/releases/download/v<version>/ftw_<version>_linux_<arch>.tar.gz | tar -xzf - ftw
+sudo mv ftw /usr/local/bin/
+```
+
+Alternatively, `.deb` and `.rpm` packages are available on the [releases page](https://github.com/coreruleset/go-ftw/releases):
+
+```shell
+# Debian/Ubuntu (.deb)
+sudo dpkg -i ftw_<version>_linux_<arch>.deb
+
+# RHEL/Fedora (.rpm)
+sudo rpm -i ftw_<version>_linux_<arch>.rpm
+```
+
+### Install with Go
 
 If you have Go installed and configured to run Go binaries from your shell you can also run
+
 ```bash
-go install github.com/coreruleset/go-ftw@latest
+go install github.com/coreruleset/go-ftw/v2@latest
 ```
+
+Make sure your Go bin directory (typically `~/go/bin`) is on your `PATH`.
 
 ## Example Usage
 
