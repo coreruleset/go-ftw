@@ -117,6 +117,11 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 
 	out.Println("Run %d payloads (%d skipped) in %s", s.count_, s.skipped_, s.totalTime)
 
+	if s.falsePositives == 0 {
+		out.Println("No false positives detected with the passed corpus")
+		return
+	}
+
 	if len(s.evaluatedParanoiaLevels) > 1 {
 		highestParanoiaLevel := s.evaluatedParanoiaLevels[len(s.evaluatedParanoiaLevels)-1]
 		ratio := s.falsePositiveRatio(s.falsePositives)
@@ -127,10 +132,6 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 		out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
 	}
 
-	if s.falsePositives == 0 {
-		out.Println("No false positives detected with the passed corpus")
-		return
-	}
 	// Extract and sort the rule IDs
 	ruleIDs := slices.Collect(maps.Keys(s.falsePositivesPerRule))
 	slices.SortFunc(ruleIDs, func(i, j int) int {
@@ -363,6 +364,7 @@ func (s *QuantitativeRunStats) SetTotalTime(totalTime time.Duration) {
 // SetEvaluatedParanoiaLevels sets the paranoia levels requested for reporting.
 func (s *QuantitativeRunStats) SetEvaluatedParanoiaLevels(levels []int) {
 	s.evaluatedParanoiaLevels = slices.Clone(levels)
+	slices.Sort(s.evaluatedParanoiaLevels)
 }
 
 // MarshalJSON marshals the stats to JSON.
