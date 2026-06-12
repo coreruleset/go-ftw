@@ -343,7 +343,7 @@ func (s *QuantitativeRunStats) markdownSummary() string {
 		return summary.String()
 	}
 
-	ruleIDs := slices.Sorted(maps.Keys(s.falsePositivesPerRule))
+	ruleIDs := slices.Collect(maps.Keys(s.falsePositivesPerRule))
 	slices.SortFunc(ruleIDs, func(i, j int) int {
 		plSort := s.falsePositivesPerRule[i].ParanoiaLevel - s.falsePositivesPerRule[j].ParanoiaLevel
 		if plSort != 0 {

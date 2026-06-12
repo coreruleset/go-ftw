@@ -144,6 +144,7 @@ func (s *quantitativeCmdTestSuite) TestNormalizeQuantitativeOutputType() {
 		{name: "github alias", in: "github", want: "markdown"},
 		{name: "github alias uppercase", in: "GitHub", want: "markdown"},
 		{name: "markdown unchanged", in: "markdown", want: "markdown"},
+		{name: "markdown uppercase", in: "Markdown", want: "markdown"},
 		{name: "json unchanged", in: "json", want: "json"},
 	}
 
