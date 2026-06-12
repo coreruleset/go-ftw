@@ -59,6 +59,7 @@ func (s *statsTestSuite) TestNewQuantitativeStats() {
 func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 	type fields struct {
 		count_                int
+		skipped_              int
 		totalTime             time.Duration
 		falsePositives        int
 		falsePositivesPerRule map[int]RuleStats
@@ -91,11 +92,24 @@ func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 			want:    []byte(`{"corpusSize":2,"count":2,"falsePositiveSentences":0,"falsePositives":2,"falsePositivesPerParanoiaLevel":null,"falsePositivesPerRule":{"933100":{"paranoiaLevel":1,"falsePositives":2}},"skipped":0,"totalTimeSeconds":2}`),
 			wantErr: false,
 		},
+		{
+			name: "Test 3 - corpusSize includes skipped",
+			fields: fields{
+				count_:                8,
+				skipped_:              2,
+				totalTime:             time.Second * 3,
+				falsePositives:        1,
+				falsePositivesPerRule: map[int]RuleStats{941100: {ParanoiaLevel: 2, FalsePositives: 1}},
+			},
+			want:    []byte(`{"corpusSize":10,"count":8,"falsePositiveSentences":0,"falsePositives":1,"falsePositivesPerParanoiaLevel":null,"falsePositivesPerRule":{"941100":{"paranoiaLevel":2,"falsePositives":1}},"skipped":2,"totalTimeSeconds":3}`),
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
 			q := &QuantitativeRunStats{
 				count_:                tt.fields.count_,
+				skipped_:              tt.fields.skipped_,
 				totalTime:             tt.fields.totalTime,
 				falsePositives:        tt.fields.falsePositives,
 				falsePositivesPerRule: tt.fields.falsePositivesPerRule,
@@ -238,12 +252,14 @@ func (s *statsTestSuite) TestAddFalsePositiveRace() {
 		go func(ruleID int) {
 			defer wg.Done()
 			stats.addFalsePositive(ruleID, 1)
+			stats.addFalsePositiveSentence()
 		}(i % 10) // Few rules are getting hit to make the concurrency issue more likely
 	}
 	wg.Wait()
 
 	// Verify total counts
 	s.Require().Equal(numGoroutines, stats.FalsePositives(), "Total false positives should equal number of goroutines")
+	s.Require().Equal(numGoroutines, stats.FalsePositiveSentences(), "Total false positive sentences should equal number of goroutines")
 	totalPerRule := 0
 	for _, ruleStats := range stats.falsePositivesPerRule {
 		totalPerRule += ruleStats.FalsePositives

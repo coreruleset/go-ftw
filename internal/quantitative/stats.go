@@ -348,6 +348,8 @@ func (s *QuantitativeRunStats) FalsePositives() int {
 
 // FalsePositiveSentences returns the number of distinct sentences that triggered at least one rule.
 func (s *QuantitativeRunStats) FalsePositiveSentences() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.falsePositiveSentences
 }
 
