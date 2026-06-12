@@ -102,11 +102,13 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 }
 
 func normalizeQuantitativeOutputType(wantedOutput string) string {
-	switch strings.ToLower(wantedOutput) {
+	normalizedOutput := strings.ToLower(wantedOutput)
+
+	switch normalizedOutput {
 	case "github":
 		return string(output.Markdown)
 	default:
-		return wantedOutput
+		return normalizedOutput
 	}
 }
 

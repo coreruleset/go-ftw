@@ -80,7 +80,7 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 	ratio := float64(s.falsePositives) / float64(s.count_)
 	out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
 	// Extract and sort the rule IDs
-	ruleIDs := slices.Sorted(maps.Keys(s.falsePositivesPerRule))
+	ruleIDs := slices.Collect(maps.Keys(s.falsePositivesPerRule))
 	slices.SortFunc(ruleIDs, func(i, j int) int {
 		// First sort by paranoia level and then by rule ID
 		plSort := s.falsePositivesPerRule[i].ParanoiaLevel - s.falsePositivesPerRule[j].ParanoiaLevel
@@ -140,7 +140,7 @@ func (s *QuantitativeRunStats) markdownSummary() string {
 		return summary.String()
 	}
 
-	ruleIDs := slices.Sorted(maps.Keys(s.falsePositivesPerRule))
+	ruleIDs := slices.Collect(maps.Keys(s.falsePositivesPerRule))
 	slices.SortFunc(ruleIDs, func(i, j int) int {
 		plSort := s.falsePositivesPerRule[i].ParanoiaLevel - s.falsePositivesPerRule[j].ParanoiaLevel
 		if plSort != 0 {

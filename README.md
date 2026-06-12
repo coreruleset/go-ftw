@@ -433,6 +433,8 @@ The list of supported outputs is:
 - "plain"
 - "markdown"
 
+`markdown` is primarily intended for `go-ftw quantitative`; on other commands it behaves like plain text output.
+
 #### Only show failures
 
 If you are only interested to see when tests fail, there is a new flag `--show-failures-only` that does exactly that.
@@ -732,7 +734,9 @@ Results can be shown in JSON format also, to be processed by other tools.
 Or in Markdown format for use in pull request comments.
 ```bash
 ❯ ./go-ftw quantitative -C ../coreruleset -s 10K -o markdown
+```
 
+```markdown
 ## Quantitative test results
 
 ⚠️ Quantitative testing detected false positives.
@@ -749,9 +753,9 @@ Or in Markdown format for use in pull request comments.
 
 | Rule ID | PL | False positives | Ratio |
 |---------|----|-----------------|-------|
-| `920220` | 1 | 198 | 198/10000 = 0.0198 |
-| `920221` | 1 | 198 | 198/10000 = 0.0198 |
-| `932235` | 1 | 4 | 4/10000 = 0.0004 |
+| 920220 | 1 | 198 | 198/10000 = 0.0198 |
+| 920221 | 1 | 198 | 198/10000 = 0.0198 |
+| 932235 | 1 | 4 | 4/10000 = 0.0004 |
 ...
 ```
 
