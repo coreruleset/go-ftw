@@ -188,7 +188,7 @@ func TestLoadQuantitativeRunStats(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	baselinePath := dir + "/baseline.json"
+	baselinePath := filepath.Join(dir, "baseline.json")
 	err := os.WriteFile(baselinePath, []byte(`{"count":10,"skipped":1,"totalTimeSeconds":1.5,"falsePositives":3,"falsePositivesPerRule":{"920100":{"paranoiaLevel":1,"falsePositives":2},"933100":{"paranoiaLevel":2,"falsePositives":1}},"falsePositivesPerParanoiaLevel":{"1":2,"2":1}}`), 0644)
 	require.NoError(t, err)
 
@@ -209,7 +209,7 @@ func TestLoadQuantitativeRunStatsRejectsUnrelatedJSON(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	baselinePath := dir + "/baseline.json"
+	baselinePath := filepath.Join(dir, "baseline.json")
 	err := os.WriteFile(baselinePath, []byte(`{"unexpected":"value"}`), 0644)
 	require.NoError(t, err)
 
