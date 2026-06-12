@@ -221,7 +221,10 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		return emptyParams, fmt.Errorf("%s cannot be used with %s", paranoiaLevelsFlag, allParanoiaLevelsFlag)
 	}
 	if allParanoiaLevels {
-		paranoiaLevels = []int{minCrsParanoiaLevel, minCrsParanoiaLevel + 1, minCrsParanoiaLevel + 2, maxCrsParanoiaLevel}
+		paranoiaLevels = make([]int, 0, maxCrsParanoiaLevel-minCrsParanoiaLevel+1)
+		for level := minCrsParanoiaLevel; level <= maxCrsParanoiaLevel; level++ {
+			paranoiaLevels = append(paranoiaLevels, level)
+		}
 	}
 
 	requestedParanoiaLevels := []int{paranoiaLevel}
