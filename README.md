@@ -431,6 +431,9 @@ The list of supported outputs is:
 - "github"
 - "json"
 - "plain"
+- "markdown"
+
+`markdown` is primarily intended for `go-ftw quantitative`; on other commands it behaves like plain text output.
 
 #### Only show failures
 
@@ -646,7 +649,7 @@ Flags:
   -h, --help                       help for quantitative
   -l, --lines int                  Number of lines of input to process before stopping.
       --max-concurrency int        maximum number of goroutines. Defaults to 10, or 1 if log level is debug/trace. (default 10)
-  -o, --output string              Output type for quantitative tests. (default "normal")
+  -o, --output string              Output type for quantitative tests. Use "markdown" (or "github") for PR-comment-ready Markdown. (default "normal")
   -P, --paranoia-level int         Paranoia level used to run the quantitative tests. (default 1)
   -p, --payload string             Payload is a string you want to test using quantitative tests. Will not use the corpus.
   -r, --rule int                   Rule ID of interest: only show false positives for specified rule ID. Defaults to paranoia level 4 unless -P is also set.
@@ -726,6 +729,34 @@ Results can be shown in JSON format also, to be processed by other tools.
 ❯ ./go-ftw quantitative -C ../coreruleset -s 10K -o json
 
 {"count":10000,"falsePositives":408,"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"totalTime":15031086083}%
+```
+
+Or in Markdown format for use in pull request comments.
+```bash
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K -o markdown
+```
+
+```markdown
+## Quantitative test results
+
+⚠️ Quantitative testing detected false positives.
+
+| Metric | Value |
+|--------|-------|
+| Payloads run | 10000 |
+| Skipped payloads | 0 |
+| False positives | 408 |
+| Duration | 15.031086083s |
+| False positive ratio | 408/10000 = 0.0408 |
+
+### False positives per rule
+
+| Rule ID | PL | False positives | Ratio |
+|---------|----|-----------------|-------|
+| 920220 | 1 | 198 | 198/10000 = 0.0198 |
+| 920221 | 1 | 198 | 198/10000 = 0.0198 |
+| 932235 | 1 | 4 | 4/10000 = 0.0004 |
+...
 ```
 
 ### Future work for quantitative tests

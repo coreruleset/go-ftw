@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -95,9 +96,20 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 			return err
 		}
 	}
-	out := output.NewOutput(wantedOutput, outputFile)
+	out := output.NewOutput(normalizeQuantitativeOutputType(wantedOutput), outputFile)
 
 	return quantitative.RunQuantitativeTests(params, out)
+}
+
+func normalizeQuantitativeOutputType(wantedOutput string) string {
+	normalizedOutput := strings.ToLower(wantedOutput)
+
+	switch normalizedOutput {
+	case "github":
+		return string(output.Markdown)
+	default:
+		return normalizedOutput
+	}
 }
 
 //gocyclo:ignore

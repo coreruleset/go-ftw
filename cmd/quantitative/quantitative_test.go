@@ -101,3 +101,23 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel()
 		})
 	}
 }
+
+func (s *quantitativeCmdTestSuite) TestNormalizeQuantitativeOutputType() {
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "github alias", in: "github", want: "markdown"},
+		{name: "github alias uppercase", in: "GitHub", want: "markdown"},
+		{name: "markdown unchanged", in: "markdown", want: "markdown"},
+		{name: "markdown uppercase", in: "Markdown", want: "markdown"},
+		{name: "json unchanged", in: "json", want: "json"},
+	}
+
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			s.Equal(tc.want, normalizeQuantitativeOutputType(tc.in))
+		})
+	}
+}
