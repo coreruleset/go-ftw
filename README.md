@@ -728,7 +728,7 @@ Results can be shown in JSON format also, to be processed by other tools.
 {"corpusSize":10000,"count":10000,"falsePositiveSentences":209,"falsePositives":408,"falsePositivesPerParanoiaLevel":{"1":408},"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"skipped":0,"totalTimeSeconds":15.031086083}%
 ```
 
-`falsePositives` counts individual rule hits (one sentence can trigger multiple rules), while `falsePositiveSentences` counts the number of distinct corpus sentences that triggered at least one rule. The ratio `falsePositiveSentences / corpusSize` gives an unambiguous 0–100% false positive rate.
+`falsePositives` counts individual rule hits (one sentence can trigger multiple rules), while `falsePositiveSentences` counts the number of distinct corpus sentences that triggered at least one rule. `corpusSize` equals the total number of sentences in the corpus (processed + skipped), so `falsePositiveSentences / corpusSize` gives an unambiguous 0–100% false positive rate.
 
 ### Future work for quantitative tests
 

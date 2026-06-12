@@ -74,9 +74,12 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 		return
 	}
 
-	ratio := float64(s.falsePositives) / float64(s.count_)
+	var ratio, sentenceRatio float64
+	if s.count_ > 0 {
+		ratio = float64(s.falsePositives) / float64(s.count_)
+		sentenceRatio = float64(s.falsePositiveSentences) / float64(s.count_)
+	}
 	out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
-	sentenceRatio := float64(s.falsePositiveSentences) / float64(s.count_)
 	out.Println("Total False positive sentences: %d/%d = %.4f", s.falsePositiveSentences, s.count_, sentenceRatio)
 	// Extract and sort the rule IDs
 	ruleIDs := slices.Sorted(maps.Keys(s.falsePositivesPerRule))
@@ -141,6 +144,8 @@ func (s *QuantitativeRunStats) FalsePositives() int {
 
 // FalsePositiveSentences returns the number of distinct sentences that triggered at least one rule.
 func (s *QuantitativeRunStats) FalsePositiveSentences() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.falsePositiveSentences
 }
 
@@ -178,7 +183,7 @@ func (s *QuantitativeRunStats) SetTotalTime(totalTime time.Duration) {
 func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 	// Custom marshaling logic here
 	return json.Marshal(map[string]interface{}{
-		"corpusSize":                     s.count_,
+		"corpusSize":                     s.count_ + s.skipped_,
 		"count":                          s.count_,
 		"skipped":                        s.skipped_,
 		"totalTimeSeconds":               s.totalTime.Seconds(),
