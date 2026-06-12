@@ -7,12 +7,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/coreruleset/go-ftw/v2/output"
@@ -184,43 +184,37 @@ func (s *statsTestSuite) TestAddFalsePositiveRace() {
 	s.Require().Equal(numGoroutines, totalPerRule, "Sum of per-rule counts should equal number of goroutines")
 }
 
-func TestLoadQuantitativeRunStats(t *testing.T) {
-	t.Parallel()
-
-	dir := t.TempDir()
+func (s *statsTestSuite) TestLoadQuantitativeRunStats() {
+	dir := s.T().TempDir()
 	baselinePath := filepath.Join(dir, "baseline.json")
 	err := os.WriteFile(baselinePath, []byte(`{"count":10,"skipped":1,"totalTimeSeconds":1.5,"falsePositives":3,"falsePositivesPerRule":{"920100":{"paranoiaLevel":1,"falsePositives":2},"933100":{"paranoiaLevel":2,"falsePositives":1}},"falsePositivesPerParanoiaLevel":{"1":2,"2":1}}`), 0644)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
 	stats, err := LoadQuantitativeRunStats(baselinePath)
-	require.NoError(t, err)
-	require.Equal(t, 10, stats.Count())
-	require.Equal(t, 1, stats.Skipped())
-	require.Equal(t, 3, stats.FalsePositives())
-	require.Equal(t, map[int]RuleStats{
+	s.Require().NoError(err)
+	s.Require().Equal(10, stats.Count())
+	s.Require().Equal(1, stats.Skipped())
+	s.Require().Equal(3, stats.FalsePositives())
+	s.Require().Equal(map[int]RuleStats{
 		920100: {ParanoiaLevel: 1, FalsePositives: 2},
 		933100: {ParanoiaLevel: 2, FalsePositives: 1},
 	}, stats.falsePositivesPerRule)
-	require.Equal(t, map[int]int{1: 2, 2: 1}, stats.falsePositivesPerParanoiaLevel)
-	require.Equal(t, 1500*time.Millisecond, stats.TotalTime())
+	s.Require().Equal(map[int]int{1: 2, 2: 1}, stats.falsePositivesPerParanoiaLevel)
+	s.Require().Equal(1500*time.Millisecond, stats.TotalTime())
 }
 
-func TestLoadQuantitativeRunStatsRejectsUnrelatedJSON(t *testing.T) {
-	t.Parallel()
-
-	dir := t.TempDir()
+func (s *statsTestSuite) TestLoadQuantitativeRunStatsRejectsMalformedJSON() {
+	dir := s.T().TempDir()
 	baselinePath := filepath.Join(dir, "baseline.json")
-	err := os.WriteFile(baselinePath, []byte(`{"unexpected":"value"}`), 0644)
-	require.NoError(t, err)
+	err := os.WriteFile(baselinePath, []byte(`{not valid json`), 0644)
+	s.Require().NoError(err)
 
 	_, err = LoadQuantitativeRunStats(baselinePath)
-	require.Error(t, err)
-	require.ErrorContains(t, err, "do not look like quantitative output")
+	s.Require().Error(err)
+	s.Require().ErrorContains(err, "failed to decode baseline results")
 }
 
-func TestQuantitativeRunStatsCompare(t *testing.T) {
-	t.Parallel()
-
+func (s *statsTestSuite) TestQuantitativeRunStatsCompare() {
 	baseline := &QuantitativeRunStats{
 		count_:         10,
 		falsePositives: 3,
@@ -245,17 +239,15 @@ func TestQuantitativeRunStatsCompare(t *testing.T) {
 	}
 
 	comparison := current.Compare(baseline)
-	require.True(t, comparison.HasRegressions())
-	require.Equal(t, 2, comparison.Regressions.FalsePositivesDelta)
-	require.Equal(t, RuleDelta{ParanoiaLevel: 1, BaselineFalsePositives: 2, CurrentFalsePositives: 3, Delta: 1}, comparison.Regressions.PerRuleDeltas[920100])
-	require.NotContains(t, comparison.Regressions.PerRuleDeltas, 941100)
-	require.Equal(t, RuleDelta{ParanoiaLevel: 1, BaselineFalsePositives: 0, CurrentFalsePositives: 1, Delta: 1}, comparison.Regressions.NewlyFiringRules[942100])
-	require.Equal(t, RuleDelta{ParanoiaLevel: 2, BaselineFalsePositives: 1, CurrentFalsePositives: 0, Delta: -1}, comparison.Regressions.StoppedFiringRules[933100])
+	s.Require().True(comparison.HasRegressions())
+	s.Require().Equal(2, comparison.Regressions.FalsePositivesDelta)
+	s.Require().Equal(RuleDelta{BaselineParanoiaLevel: 1, CurrentParanoiaLevel: 1, BaselineFalsePositives: 2, CurrentFalsePositives: 3, Delta: 1}, comparison.Regressions.PerRuleDeltas[920100])
+	s.Require().Equal(RuleDelta{BaselineParanoiaLevel: 1, CurrentParanoiaLevel: 1, BaselineFalsePositives: 1, CurrentFalsePositives: 1, Delta: 0}, comparison.Regressions.PerRuleDeltas[941100])
+	s.Require().Equal(RuleDelta{BaselineParanoiaLevel: 0, CurrentParanoiaLevel: 1, BaselineFalsePositives: 0, CurrentFalsePositives: 1, Delta: 1}, comparison.Regressions.NewlyFiringRules[942100])
+	s.Require().Equal(RuleDelta{BaselineParanoiaLevel: 2, CurrentParanoiaLevel: 0, BaselineFalsePositives: 1, CurrentFalsePositives: 0, Delta: -1}, comparison.Regressions.StoppedFiringRules[933100])
 }
 
-func TestComparisonResultPrintSummaryJSON(t *testing.T) {
-	t.Parallel()
-
+func (s *statsTestSuite) TestComparisonResultPrintSummaryJSON() {
 	comparison := (&QuantitativeRunStats{
 		count_:         1,
 		falsePositives: 1,
@@ -278,7 +270,7 @@ func TestComparisonResultPrintSummaryJSON(t *testing.T) {
 			NewlyFiringRules map[string]RuleDelta `json:"newlyFiringRules"`
 		} `json:"regressions"`
 	}
-	require.NoError(t, json.Unmarshal(b.Bytes(), &got))
-	require.True(t, got.Regressions.Detected)
-	require.Equal(t, RuleDelta{ParanoiaLevel: 1, BaselineFalsePositives: 0, CurrentFalsePositives: 1, Delta: 1}, got.Regressions.NewlyFiringRules["920100"])
+	s.Require().NoError(json.Unmarshal(b.Bytes(), &got))
+	s.Require().True(got.Regressions.Detected)
+	s.Require().Equal(RuleDelta{BaselineParanoiaLevel: 0, CurrentParanoiaLevel: 1, BaselineFalsePositives: 0, CurrentFalsePositives: 1, Delta: 1}, got.Regressions.NewlyFiringRules["920100"])
 }

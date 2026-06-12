@@ -781,7 +781,7 @@ With `-o json` the comparison is emitted as a single object with three sections:
   "regressions": {
     "detected": true,
     "falsePositivesDelta": 2,
-    "perRuleDeltas":      { "932270": { "paranoiaLevel": 1, "baselineFalsePositives": 2, "currentFalsePositives": 4, "delta": 2 } },
+    "perRuleDeltas":      { "932270": { "baselineParanoiaLevel": 1, "currentParanoiaLevel": 1, "baselineFalsePositives": 2, "currentFalsePositives": 4, "delta": 2 } },
     "newlyFiringRules":   {},
     "stoppedFiringRules": {}
   }
@@ -793,7 +793,7 @@ Fields:
 - `baseline` / `current`: the full stats for each run (same shape as a plain `-o json` result).
 - `regressions.detected`: `true` when at least one rule's false positives increased.
 - `regressions.falsePositivesDelta`: total false positives in `current` minus `baseline`.
-- `regressions.perRuleDeltas`: every rule whose count changed, with before/after counts and the signed delta.
+- `regressions.perRuleDeltas`: every rule present in either run, with before/after paranoia levels, before/after counts, and the signed delta.
 - `regressions.newlyFiringRules`: rules that fired in `current` but not in `baseline`.
 - `regressions.stoppedFiringRules`: rules that fired in `baseline` but not in `current`.
 

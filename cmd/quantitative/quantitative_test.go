@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"os"
 	"path"
-	"strings"
 	"testing"
 
 	"github.com/coreruleset/go-ftw/v2/cmd/internal"
@@ -121,34 +120,22 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel()
 	}
 }
 
-func TestBuildParamsComparisonFlags(t *testing.T) {
-	t.Parallel()
+func (s *quantitativeCmdTestSuite) TestBuildParamsComparisonFlags() {
+	fakeBaseline := path.Join(s.T().TempDir(), "baseline.json")
+	fakeOtherCRS := s.T().TempDir()
 
-	tempDir := t.TempDir()
-	writeFakeCRS(t, tempDir)
-	fakeBaseline := path.Join(t.TempDir(), "baseline.json")
-	fakeOtherCRS := t.TempDir()
-
-	cmd := New(internal.NewCommandContext())
-	cmd.SetArgs([]string{
-		"-C", tempDir,
+	s.cmd.SetArgs([]string{
+		"-C", s.tempDir,
 		"--baseline", fakeBaseline,
 		"--compare-crs", fakeOtherCRS,
 		"-p", "test payload",
 	})
 
-	err := cmd.ExecuteContext(context.Background())
-	if err == nil {
-		t.Fatal("expected mutual exclusion error for --baseline and --compare-crs")
-	}
+	err := s.cmd.ExecuteContext(context.Background())
+	s.Require().Error(err, "expected mutual exclusion error for --baseline and --compare-crs")
 }
 
-func TestBuildParamsComparisonPaths(t *testing.T) {
-	t.Parallel()
-
-	tempDir := t.TempDir()
-	writeFakeCRS(t, tempDir)
-
+func (s *quantitativeCmdTestSuite) TestBuildParamsComparisonPaths() {
 	tests := []struct {
 		name    string
 		args    []string
@@ -156,70 +143,52 @@ func TestBuildParamsComparisonPaths(t *testing.T) {
 	}{
 		{
 			name:    "missing baseline file",
-			args:    []string{"-C", tempDir, "--baseline", path.Join(t.TempDir(), "missing.json"), "-p", "test payload"},
+			args:    []string{"-C", s.tempDir, "--baseline", path.Join(s.T().TempDir(), "missing.json"), "-p", "test payload"},
 			wantErr: "--baseline path does not exist",
 		},
 		{
 			name:    "baseline must be file",
-			args:    []string{"-C", tempDir, "--baseline", t.TempDir(), "-p", "test payload"},
+			args:    []string{"-C", s.tempDir, "--baseline", s.T().TempDir(), "-p", "test payload"},
 			wantErr: "--baseline must point to a file",
 		},
 		{
 			name:    "missing compare crs directory",
-			args:    []string{"-C", tempDir, "--compare-crs", path.Join(t.TempDir(), "missing-crs"), "-p", "test payload"},
+			args:    []string{"-C", s.tempDir, "--compare-crs", path.Join(s.T().TempDir(), "missing-crs"), "-p", "test payload"},
 			wantErr: "--compare-crs path does not exist",
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			cmd := New(internal.NewCommandContext())
-			if err := cmd.ParseFlags(tt.args); err != nil {
-				t.Fatalf("ParseFlags() error = %v", err)
-			}
+			s.Require().NoError(cmd.ParseFlags(tt.args))
 			_, err := buildParams(cmd)
-			if err == nil {
-				t.Fatal("expected buildParams() error")
-			}
-			if err.Error() == "" || !strings.Contains(err.Error(), tt.wantErr) {
-				t.Fatalf("buildParams() error = %v, want substring %q", err, tt.wantErr)
-			}
+			s.Require().Error(err)
+			s.Require().Contains(err.Error(), tt.wantErr)
 		})
 	}
 }
 
-func TestQuantitativeCommandBaselineComparisonJSON(t *testing.T) {
-	t.Parallel()
+func (s *quantitativeCmdTestSuite) TestQuantitativeCommandCompareCRSJSON() {
+	compareCRS := path.Join(s.tempDir, "compare-crs")
+	writeFakeCRS(s.T(), compareCRS)
 
-	tempDir := t.TempDir()
-	for _, root := range []string{tempDir, path.Join(tempDir, "baseline-crs")} {
-		writeFakeCRS(t, root)
-	}
-
-	cmd := New(internal.NewCommandContext())
-	args := []string{
-		"-C", tempDir,
-		"--compare-crs", path.Join(tempDir, "baseline-crs"),
-		"-p", "test payload",
-		"-o", "json",
-	}
-
-	outputFile, err := os.CreateTemp(t.TempDir(), "quantitative-*.json")
-	if err != nil {
-		t.Fatalf("CreateTemp() error = %v", err)
-	}
+	outputFile, err := os.CreateTemp(s.T().TempDir(), "quantitative-*.json")
+	s.Require().NoError(err)
 	defer func() { _ = outputFile.Close() }()
 
-	cmd.SetArgs(append(args, "-f", outputFile.Name()))
+	s.cmd.SetArgs([]string{
+		"-C", s.tempDir,
+		"--compare-crs", compareCRS,
+		"-p", "test payload",
+		"-o", "json",
+		"-f", outputFile.Name(),
+	})
 
-	if err := cmd.ExecuteContext(context.Background()); err != nil {
-		t.Fatalf("ExecuteContext() error = %v", err)
-	}
+	s.Require().NoError(s.cmd.ExecuteContext(context.Background()))
 
 	b, err := os.ReadFile(outputFile.Name())
-	if err != nil {
-		t.Fatalf("ReadFile() error = %v", err)
-	}
+	s.Require().NoError(err)
 
 	var got struct {
 		Baseline    map[string]any `json:"baseline"`
@@ -228,62 +197,42 @@ func TestQuantitativeCommandBaselineComparisonJSON(t *testing.T) {
 			Detected bool `json:"detected"`
 		} `json:"regressions"`
 	}
-	if err := json.Unmarshal(b, &got); err != nil {
-		t.Fatalf("Unmarshal() error = %v", err)
-	}
-	if got.Baseline == nil || got.Current == nil {
-		t.Fatal("expected both baseline and current results in comparison output")
-	}
-	if got.Regressions.Detected {
-		t.Fatal("expected no regressions for identical empty CRS trees")
-	}
+	s.Require().NoError(json.Unmarshal(b, &got))
+	s.Require().NotNil(got.Baseline, "expected baseline results in comparison output")
+	s.Require().NotNil(got.Current, "expected current results in comparison output")
+	s.Require().False(got.Regressions.Detected, "expected no regressions for identical empty CRS trees")
 }
 
-func TestQuantitativeCommandSavedBaselineComparisonJSON(t *testing.T) {
-	t.Parallel()
-
-	tempDir := t.TempDir()
-	writeFakeCRS(t, tempDir)
-
-	baselineFile, err := os.CreateTemp(t.TempDir(), "quantitative-baseline-*.json")
-	if err != nil {
-		t.Fatalf("CreateTemp() error = %v", err)
-	}
+func (s *quantitativeCmdTestSuite) TestQuantitativeCommandSavedBaselineComparisonJSON() {
+	baselineFile, err := os.CreateTemp(s.T().TempDir(), "quantitative-baseline-*.json")
+	s.Require().NoError(err)
 	defer func() { _ = baselineFile.Close() }()
 
 	baselineCmd := New(internal.NewCommandContext())
 	baselineCmd.SetArgs([]string{
-		"-C", tempDir,
+		"-C", s.tempDir,
 		"-p", "test payload",
 		"-o", "json",
 		"-f", baselineFile.Name(),
 	})
-	if err := baselineCmd.ExecuteContext(context.Background()); err != nil {
-		t.Fatalf("baseline ExecuteContext() error = %v", err)
-	}
+	s.Require().NoError(baselineCmd.ExecuteContext(context.Background()))
 
-	comparisonFile, err := os.CreateTemp(t.TempDir(), "quantitative-comparison-*.json")
-	if err != nil {
-		t.Fatalf("CreateTemp() error = %v", err)
-	}
+	comparisonFile, err := os.CreateTemp(s.T().TempDir(), "quantitative-comparison-*.json")
+	s.Require().NoError(err)
 	defer func() { _ = comparisonFile.Close() }()
 
 	comparisonCmd := New(internal.NewCommandContext())
 	comparisonCmd.SetArgs([]string{
-		"-C", tempDir,
+		"-C", s.tempDir,
 		"--baseline", baselineFile.Name(),
 		"-p", "test payload",
 		"-o", "json",
 		"-f", comparisonFile.Name(),
 	})
-	if err := comparisonCmd.ExecuteContext(context.Background()); err != nil {
-		t.Fatalf("comparison ExecuteContext() error = %v", err)
-	}
+	s.Require().NoError(comparisonCmd.ExecuteContext(context.Background()))
 
 	b, err := os.ReadFile(comparisonFile.Name())
-	if err != nil {
-		t.Fatalf("ReadFile() error = %v", err)
-	}
+	s.Require().NoError(err)
 
 	var got struct {
 		Baseline    map[string]any `json:"baseline"`
@@ -292,13 +241,8 @@ func TestQuantitativeCommandSavedBaselineComparisonJSON(t *testing.T) {
 			Detected bool `json:"detected"`
 		} `json:"regressions"`
 	}
-	if err := json.Unmarshal(b, &got); err != nil {
-		t.Fatalf("Unmarshal() error = %v", err)
-	}
-	if got.Baseline == nil || got.Current == nil {
-		t.Fatal("expected both baseline and current results in comparison output")
-	}
-	if got.Regressions.Detected {
-		t.Fatal("expected no regressions for identical saved baseline results")
-	}
+	s.Require().NoError(json.Unmarshal(b, &got))
+	s.Require().NotNil(got.Baseline, "expected baseline results in comparison output")
+	s.Require().NotNil(got.Current, "expected current results in comparison output")
+	s.Require().False(got.Regressions.Detected, "expected no regressions for identical saved baseline results")
 }

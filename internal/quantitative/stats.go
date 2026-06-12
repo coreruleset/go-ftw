@@ -32,12 +32,24 @@ type quantitativeRunStatsJSON struct {
 	FalsePositivesPerParanoiaLevel map[int]int       `json:"falsePositivesPerParanoiaLevel"`
 }
 
-// RuleDelta holds the comparison for a single rule.
+// RuleDelta holds the comparison for a single rule. The baseline and current
+// paranoia levels are tracked separately because the same rule can live at a
+// different paranoia level across two CRS versions.
 type RuleDelta struct {
-	ParanoiaLevel          int `json:"paranoiaLevel"`
+	BaselineParanoiaLevel  int `json:"baselineParanoiaLevel"`
+	CurrentParanoiaLevel   int `json:"currentParanoiaLevel"`
 	BaselineFalsePositives int `json:"baselineFalsePositives"`
 	CurrentFalsePositives  int `json:"currentFalsePositives"`
 	Delta                  int `json:"delta"`
+}
+
+// paranoiaLevel returns the paranoia level to use for display and sorting,
+// preferring the current run and falling back to the baseline.
+func (d RuleDelta) paranoiaLevel() int {
+	if d.CurrentParanoiaLevel != 0 {
+		return d.CurrentParanoiaLevel
+	}
+	return d.BaselineParanoiaLevel
 }
 
 // RegressionSummary contains the structured diff between a current run and its baseline.
@@ -158,25 +170,15 @@ func (s *QuantitativeRunStats) Compare(baseline *QuantitativeRunStats) Compariso
 	for _, ruleID := range ruleIDs {
 		currentRuleStats, hasCurrent := s.falsePositivesPerRule[ruleID]
 		baselineRuleStats, hasBaseline := baseline.falsePositivesPerRule[ruleID]
-		if !hasCurrent && !hasBaseline {
-			continue
-		}
 
-		paranoiaLevel := currentRuleStats.ParanoiaLevel
-		if paranoiaLevel == 0 {
-			paranoiaLevel = baselineRuleStats.ParanoiaLevel
-		}
-
-		delta := currentRuleStats.FalsePositives - baselineRuleStats.FalsePositives
 		ruleDelta := RuleDelta{
-			ParanoiaLevel:          paranoiaLevel,
+			BaselineParanoiaLevel:  baselineRuleStats.ParanoiaLevel,
+			CurrentParanoiaLevel:   currentRuleStats.ParanoiaLevel,
 			BaselineFalsePositives: baselineRuleStats.FalsePositives,
 			CurrentFalsePositives:  currentRuleStats.FalsePositives,
-			Delta:                  delta,
+			Delta:                  currentRuleStats.FalsePositives - baselineRuleStats.FalsePositives,
 		}
-		if delta != 0 {
-			perRuleDeltas[ruleID] = ruleDelta
-		}
+		perRuleDeltas[ruleID] = ruleDelta
 
 		switch {
 		case !hasBaseline && hasCurrent:
@@ -207,15 +209,22 @@ func (r ComparisonResult) HasRegressions() bool {
 // PrintSummary prints the structured comparison.
 func (r ComparisonResult) PrintSummary(out *output.Output) {
 	if out.IsJson() {
-		b, err := json.Marshal(r)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to marshal comparison to JSON")
-			return
-		}
-		out.RawPrint(string(b))
+		r.printJSON(out)
 		return
 	}
+	r.printPretty(out)
+}
 
+func (r ComparisonResult) printJSON(out *output.Output) {
+	b, err := json.Marshal(r)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to marshal comparison to JSON")
+		return
+	}
+	out.RawPrint(string(b))
+}
+
+func (r ComparisonResult) printPretty(out *output.Output) {
 	out.Println("Current quantitative results:")
 	r.Current.printSummary(out)
 	out.Println("")
@@ -239,14 +248,6 @@ func LoadQuantitativeRunStats(path string) (*QuantitativeRunStats, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
-	}
-
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(b, &raw); err != nil {
-		return nil, fmt.Errorf("failed to decode baseline results %s: %w", path, err)
-	}
-	if !containsQuantitativeStatsFields(raw) {
-		return nil, fmt.Errorf("baseline results %s do not look like quantitative output", path)
 	}
 
 	var serialized quantitativeRunStatsJSON
@@ -355,7 +356,7 @@ func printRuleDeltaSection(out *output.Output, title string, deltas map[int]Rule
 
 	ruleIDs := slices.Collect(maps.Keys(deltas))
 	slices.SortFunc(ruleIDs, func(i, j int) int {
-		plSort := deltas[i].ParanoiaLevel - deltas[j].ParanoiaLevel
+		plSort := deltas[i].paranoiaLevel() - deltas[j].paranoiaLevel()
 		if plSort != 0 {
 			return plSort
 		}
@@ -364,22 +365,15 @@ func printRuleDeltaSection(out *output.Output, title string, deltas map[int]Rule
 
 	for _, ruleID := range ruleIDs {
 		delta := deltas[ruleID]
-		out.Println("  %d (PL%d): baseline=%d current=%d delta=%+d", ruleID, delta.ParanoiaLevel, delta.BaselineFalsePositives, delta.CurrentFalsePositives, delta.Delta)
+		out.Println("  %d (%s): baseline=%d current=%d delta=%+d", ruleID, delta.paranoiaLevelLabel(), delta.BaselineFalsePositives, delta.CurrentFalsePositives, delta.Delta)
 	}
 }
 
-func containsQuantitativeStatsFields(raw map[string]json.RawMessage) bool {
-	for _, key := range []string{
-		"count",
-		"skipped",
-		"totalTimeSeconds",
-		"falsePositives",
-		"falsePositivesPerRule",
-		"falsePositivesPerParanoiaLevel",
-	} {
-		if _, ok := raw[key]; ok {
-			return true
-		}
+// paranoiaLevelLabel renders the paranoia level for display, showing both
+// levels when the rule moved between paranoia levels across the two runs.
+func (d RuleDelta) paranoiaLevelLabel() string {
+	if d.BaselineParanoiaLevel != 0 && d.CurrentParanoiaLevel != 0 && d.BaselineParanoiaLevel != d.CurrentParanoiaLevel {
+		return fmt.Sprintf("baseline PL%d, current PL%d", d.BaselineParanoiaLevel, d.CurrentParanoiaLevel)
 	}
-	return false
+	return fmt.Sprintf("PL%d", d.paranoiaLevel())
 }
