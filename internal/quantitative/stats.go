@@ -29,8 +29,10 @@ type QuantitativeRunStats struct {
 	skipped_ int
 	// totalTime is the duration over all runs, the sum of all individual run times.
 	totalTime time.Duration
-	// falsePositives is the total false positives detected
+	// falsePositives is the total false positives detected (rule-hit count; one sentence can contribute multiple hits)
 	falsePositives int
+	// falsePositiveSentences is the number of distinct corpus sentences that triggered at least one rule
+	falsePositiveSentences int
 	// falsePositivesPerRule is the aggregated false positives per rule (key is rule ID)
 	falsePositivesPerRule map[int]RuleStats
 	// falsePositivesPerParanoiaLevel is the aggregated false positives per paranoia level
@@ -44,6 +46,7 @@ func NewQuantitativeStats() *QuantitativeRunStats {
 	return &QuantitativeRunStats{
 		count_:                         0,
 		falsePositives:                 0,
+		falsePositiveSentences:         0,
 		falsePositivesPerRule:          make(map[int]RuleStats),
 		falsePositivesPerParanoiaLevel: make(map[int]int),
 		totalTime:                      0,
@@ -71,8 +74,13 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 		return
 	}
 
-	ratio := float64(s.falsePositives) / float64(s.count_)
+	var ratio, sentenceRatio float64
+	if s.count_ > 0 {
+		ratio = float64(s.falsePositives) / float64(s.count_)
+		sentenceRatio = float64(s.falsePositiveSentences) / float64(s.count_)
+	}
 	out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
+	out.Println("Total False positive sentences: %d/%d = %.4f", s.falsePositiveSentences, s.count_, sentenceRatio)
 	// Extract and sort the rule IDs
 	ruleIDs := slices.Sorted(maps.Keys(s.falsePositivesPerRule))
 	slices.SortFunc(ruleIDs, func(i, j int) int {
@@ -122,9 +130,23 @@ func (s *QuantitativeRunStats) addFalsePositive(ruleID int, paranoiaLevel int) {
 	}
 }
 
-// FalsePositives returns the total false positives detected
+// addFalsePositiveSentence increments the count of distinct sentences that triggered at least one rule.
+func (s *QuantitativeRunStats) addFalsePositiveSentence() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.falsePositiveSentences++
+}
+
+// FalsePositives returns the total false positives detected (rule-hit count)
 func (s *QuantitativeRunStats) FalsePositives() int {
 	return s.falsePositives
+}
+
+// FalsePositiveSentences returns the number of distinct sentences that triggered at least one rule.
+func (s *QuantitativeRunStats) FalsePositiveSentences() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.falsePositiveSentences
 }
 
 // incrementRun increments the amount of tests executed in this run.
@@ -161,10 +183,12 @@ func (s *QuantitativeRunStats) SetTotalTime(totalTime time.Duration) {
 func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 	// Custom marshaling logic here
 	return json.Marshal(map[string]interface{}{
+		"corpusSize":                     s.count_ + s.skipped_,
 		"count":                          s.count_,
 		"skipped":                        s.skipped_,
 		"totalTimeSeconds":               s.totalTime.Seconds(),
 		"falsePositives":                 s.falsePositives,
+		"falsePositiveSentences":         s.falsePositiveSentences,
 		"falsePositivesPerRule":          s.falsePositivesPerRule,
 		"falsePositivesPerParanoiaLevel": s.falsePositivesPerParanoiaLevel,
 	})
