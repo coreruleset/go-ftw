@@ -641,6 +641,8 @@ Flags:
   -s, --corpus-size string         Corpus size to use for the quantitative tests. Most corpora will have sizes like "100K", "1M", etc. (default "100K")
   -S, --corpus-source string       Corpus source to use for the quantitative tests. Most corpus will have a source like "news", "web", "wikipedia", etc. (default "news")
   -y, --corpus-year string         Corpus year to use for the quantitative tests. Most corpus will have a year like "2023", "2022", etc. (default "2023")
+      --baseline string            Path to a prior quantitative JSON result to compare against.
+      --compare-crs string         Path to another CRS tree to run with the same parameters and compare against.
   -C, --crs-path string            Path to top folder of local CRS installation. (default ".")
   -f, --file string                Output file path for quantitative tests. Prints to standard output by default.
   -h, --help                       help for quantitative
@@ -727,6 +729,73 @@ Results can be shown in JSON format also, to be processed by other tools.
 
 {"count":10000,"falsePositives":408,"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"totalTime":15031086083}%
 ```
+
+### Comparing runs against a baseline
+
+A current run can be compared against a reference in a single invocation. There are two mutually
+exclusive ways to provide the reference:
+
+- `--baseline <file>`: a JSON result emitted by a prior `quantitative -o json` run.
+- `--compare-crs <dir>`: another CRS tree that is run with the same parameters, then compared.
+
+A rule is treated as a regression when its false positives increase relative to the baseline. The
+command exits with status `1` when any regression is detected, so it can gate a CI/CD pipeline.
+
+```bash
+# Compare the current tree against a saved baseline
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K -o json > baseline.json
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K --baseline baseline.json
+```
+
+With the default `normal` output, the comparison prints the current and baseline summaries followed
+by the diff:
+
+```text
+Current quantitative results:
+Run 10000 payloads (0 skipped) in 15.0s
+Total False positive ratio: 410/10000 = 0.0410
+...
+
+Baseline quantitative results:
+Run 10000 payloads (0 skipped) in 15.0s
+Total False positive ratio: 408/10000 = 0.0408
+...
+
+Comparison:
+Total false positive delta: 2
+Per-rule deltas:
+  932270 (PL1): baseline=2 current=4 delta=+2
+Newly firing rules:
+  none
+Stopped firing rules:
+  none
+Regressions detected
+```
+
+With `-o json` the comparison is emitted as a single object with three sections:
+
+```json
+{
+  "baseline": { "count": 10000, "skipped": 0, "totalTimeSeconds": 15.0, "falsePositives": 408, "falsePositivesPerRule": { "932270": { "paranoiaLevel": 1, "falsePositives": 2 } }, "falsePositivesPerParanoiaLevel": { "1": 408 } },
+  "current":  { "count": 10000, "skipped": 0, "totalTimeSeconds": 15.0, "falsePositives": 410, "falsePositivesPerRule": { "932270": { "paranoiaLevel": 1, "falsePositives": 4 } }, "falsePositivesPerParanoiaLevel": { "1": 410 } },
+  "regressions": {
+    "detected": true,
+    "falsePositivesDelta": 2,
+    "perRuleDeltas":      { "932270": { "baselineParanoiaLevel": 1, "currentParanoiaLevel": 1, "baselineFalsePositives": 2, "currentFalsePositives": 4, "delta": 2 } },
+    "newlyFiringRules":   {},
+    "stoppedFiringRules": {}
+  }
+}
+```
+
+Fields:
+
+- `baseline` / `current`: the full stats for each run (same shape as a plain `-o json` result).
+- `regressions.detected`: `true` when at least one rule's false positives increased.
+- `regressions.falsePositivesDelta`: total false positives in `current` minus `baseline`.
+- `regressions.perRuleDeltas`: every rule present in either run, with before/after paranoia levels, before/after counts, and the signed delta.
+- `regressions.newlyFiringRules`: rules that fired in `current` but not in `baseline`.
+- `regressions.stoppedFiringRules`: rules that fired in `baseline` but not in `current`.
 
 ### Future work for quantitative tests
 

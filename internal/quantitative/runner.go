@@ -4,6 +4,7 @@
 package quantitative
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -44,10 +45,53 @@ type Params struct {
 	CorpusSource string
 	// MaxConcurrency is the maximum number of goroutines spawned
 	MaxConcurrency int
+	// BaselinePath is a prior quantitative JSON result to compare the current run against
+	BaselinePath string
+	// CompareCRSPath is the path to the baseline CRS tree to compare against the current directory
+	CompareCRSPath string
 }
+
+// ErrRegressionsDetected is returned when a quantitative comparison finds regressions.
+var ErrRegressionsDetected = errors.New("quantitative regressions detected")
 
 // RunQuantitativeTests runs all quantitative tests
 func RunQuantitativeTests(params Params, out *output.Output) error {
+	currentStats, err := runQuantitativeTest(params)
+	if err != nil {
+		return err
+	}
+
+	if params.BaselinePath == "" && params.CompareCRSPath == "" {
+		currentStats.printSummary(out)
+		return nil
+	}
+
+	baselineStats, err := baselineStatsForComparison(params)
+	if err != nil {
+		return err
+	}
+
+	comparison := currentStats.Compare(baselineStats)
+	comparison.PrintSummary(out)
+	if comparison.HasRegressions() {
+		return ErrRegressionsDetected
+	}
+	return nil
+}
+
+func baselineStatsForComparison(params Params) (*QuantitativeRunStats, error) {
+	if params.BaselinePath != "" {
+		return LoadQuantitativeRunStats(params.BaselinePath)
+	}
+
+	baselineParams := params
+	baselineParams.Directory = params.CompareCRSPath
+	baselineParams.BaselinePath = ""
+	baselineParams.CompareCRSPath = ""
+	return runQuantitativeTest(baselineParams)
+}
+
+func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 	var lc corpus.File
 	log.Info().Msgf("⏳Running quantitative tests with %d goroutines", params.MaxConcurrency)
 	log.Trace().Msgf("Rule: %d", params.Rule)
@@ -69,7 +113,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 		log.Trace().Msgf("--payload is used, ignoring corpus related parameters. Payload received: %q", params.Payload)
 		p, err := PayloadFactory(params.Corpus)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		p.SetContent(params.Payload)
 		stats.incrementRun()
@@ -77,8 +121,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 		doEngineCall(runner, p, params.Rule, stats)
 
 		stats.SetTotalTime(time.Since(startTime))
-		stats.printSummary(out)
-		return nil
+		return stats, nil
 
 	}
 	// we are using the corpus
@@ -94,7 +137,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	// create a new corpusRunner
 	corpusRunner, err := CorpusFactory(params.Corpus, params.CorpusLocalPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	corpusRunner = corpusRunner.
 		WithSize(params.CorpusSize).
@@ -136,12 +179,11 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	}
 	wg.Wait()
 	if err := corpusRunner.CloseIterator(); err != nil {
-		return err
+		return nil, err
 	}
 
 	stats.SetTotalTime(time.Since(startTime))
-	stats.printSummary(out)
-	return nil
+	return stats, nil
 }
 
 // skipPayload returns true when the payload corresponding to the provided line has to be skipped

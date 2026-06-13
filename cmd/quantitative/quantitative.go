@@ -25,6 +25,8 @@ const (
 	corpusYearFlag      = "corpus-year"
 	corpusLocalPathFlag = "corpus-local-path"
 	crsPathFlag         = "crs-path"
+	baselineFlag        = "baseline"
+	compareCRSFlag      = "compare-crs"
 	outputFileFlag      = "file"
 	linesFlag           = "lines"
 	maxConcurrencyFlag  = "max-concurrency"
@@ -63,8 +65,11 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd.Flags().String(corpusLocalPathFlag, "", `For corpora being downloaded, this flag specifies the storage path. Defaults to .ftw folder under user's home directory.
 For the "raw" corpus type, this flag specifies the path to the corpus file.`)
 	runCmd.Flags().StringP(crsPathFlag, "C", ".", "Path to top folder of local CRS installation.")
+	runCmd.Flags().String(baselineFlag, "", "Path to a prior quantitative JSON result to compare against.")
+	runCmd.Flags().String(compareCRSFlag, "", "Path to another CRS tree to run with the same parameters and compare against.")
 	runCmd.Flags().StringP(outputFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
 	runCmd.Flags().StringP(outputTypeFlag, "o", "normal", "Output type for quantitative tests.")
+	runCmd.MarkFlagsMutuallyExclusive(baselineFlag, compareCRSFlag)
 
 	return runCmd
 }
@@ -94,6 +99,7 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 		if err != nil {
 			return err
 		}
+		defer func() { _ = outputFile.Close() }()
 	}
 	out := output.NewOutput(wantedOutput, outputFile)
 
@@ -163,6 +169,32 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 	if err != nil {
 		return emptyParams, err
 	}
+	baselinePath, err := cmd.Flags().GetString(baselineFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	compareCRSPath, err := cmd.Flags().GetString(compareCRSFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	if baselinePath != "" {
+		info, err := os.Stat(baselinePath)
+		if err != nil {
+			return emptyParams, fmt.Errorf("--%s path does not exist: %w", baselineFlag, err)
+		}
+		if info.IsDir() {
+			return emptyParams, fmt.Errorf("--%s must point to a file: %s", baselineFlag, baselinePath)
+		}
+	}
+	if compareCRSPath != "" {
+		info, err := os.Stat(compareCRSPath)
+		if err != nil {
+			return emptyParams, fmt.Errorf("--%s path does not exist: %w", compareCRSFlag, err)
+		}
+		if !info.IsDir() {
+			return emptyParams, fmt.Errorf("--%s must point to a directory: %s", compareCRSFlag, compareCRSPath)
+		}
+	}
 
 	// --max-concurrency defaults to 1 if debug/trace is enabled, but if set explicitly, it should override this
 	if !cmd.Flags().Changed(maxConcurrencyFlag) && zerolog.GlobalLevel() <= zerolog.DebugLevel {
@@ -199,5 +231,7 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		Payload:         payload,
 		Rule:            rule,
 		MaxConcurrency:  maxConcurrency,
+		BaselinePath:    baselinePath,
+		CompareCRSPath:  compareCRSPath,
 	}, nil
 }
