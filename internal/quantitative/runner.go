@@ -33,6 +33,8 @@ type Params struct {
 	CorpusLocalPath string
 	// ParanoiaLevel is the paranoia level in where to run the quantitative tests
 	ParanoiaLevel int
+	// ParanoiaLevels are the paranoia levels to report from a single run.
+	ParanoiaLevels []int
 	// CorpusSize is the corpus size to use for the quantitative tests
 	CorpusSize string
 	// Corpus is the corpus to use for the quantitative tests
@@ -103,6 +105,11 @@ func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 	startTime := time.Now()
 	// create the results
 	stats := NewQuantitativeStats()
+	if len(params.ParanoiaLevels) == 0 && params.ParanoiaLevel > 0 {
+		stats.SetEvaluatedParanoiaLevels([]int{params.ParanoiaLevel})
+	} else {
+		stats.SetEvaluatedParanoiaLevels(params.ParanoiaLevels)
+	}
 
 	var engine LocalEngine = &localEngine{}
 	runner := engine.Create(params.Directory, params.ParanoiaLevel)

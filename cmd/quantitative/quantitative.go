@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -17,23 +18,25 @@ import (
 )
 
 const (
-	corpusFlag          = "corpus"
-	corpusLangFlag      = "corpus-lang"
-	corpusLineFlag      = "corpus-line"
-	corpusSizeFlag      = "corpus-size"
-	corpusSourceFlag    = "corpus-source"
-	corpusYearFlag      = "corpus-year"
-	corpusLocalPathFlag = "corpus-local-path"
-	crsPathFlag         = "crs-path"
-	baselineFlag        = "baseline"
-	compareCRSFlag      = "compare-crs"
-	outputFileFlag      = "file"
-	linesFlag           = "lines"
-	maxConcurrencyFlag  = "max-concurrency"
-	outputTypeFlag      = "output"
-	paranoiaLevelFlag   = "paranoia-level"
-	payloadFlag         = "payload"
-	ruleFlag            = "rule"
+	allParanoiaLevelsFlag = "all-paranoia-levels"
+	corpusFlag            = "corpus"
+	corpusLangFlag        = "corpus-lang"
+	corpusLineFlag        = "corpus-line"
+	corpusSizeFlag        = "corpus-size"
+	corpusSourceFlag      = "corpus-source"
+	corpusYearFlag        = "corpus-year"
+	corpusLocalPathFlag   = "corpus-local-path"
+	crsPathFlag           = "crs-path"
+	baselineFlag          = "baseline"
+	compareCRSFlag        = "compare-crs"
+	outputFileFlag        = "file"
+	linesFlag             = "lines"
+	maxConcurrencyFlag    = "max-concurrency"
+	outputTypeFlag        = "output"
+	paranoiaLevelFlag     = "paranoia-level"
+	paranoiaLevelsFlag    = "paranoia-levels"
+	payloadFlag           = "payload"
+	ruleFlag              = "rule"
 
 	minCrsParanoiaLevel = 1
 	maxCrsParanoiaLevel = 4
@@ -53,6 +56,8 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 
 	runCmd.Flags().IntP(linesFlag, "l", 0, "Number of lines of input to process before stopping.")
 	runCmd.Flags().IntP(paranoiaLevelFlag, "P", 1, "Paranoia level used to run the quantitative tests.")
+	runCmd.Flags().IntSlice(paranoiaLevelsFlag, nil, "Paranoia levels to evaluate in one run, e.g. 1,2,3,4.")
+	runCmd.Flags().Bool(allParanoiaLevelsFlag, false, "Evaluate all CRS paranoia levels in one run.")
 	runCmd.Flags().IntP(corpusLineFlag, "n", 0, "Number is the payload line from the corpus to exclusively send.")
 	runCmd.Flags().StringP(payloadFlag, "p", "", "Payload is a string you want to test using quantitative tests. Will not use the corpus.")
 	runCmd.Flags().IntP(ruleFlag, "r", 0, "Rule ID of interest: only show false positives for specified rule ID. Defaults to paranoia level 4 unless -P is also set.")
@@ -153,6 +158,14 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 	if err != nil {
 		return emptyParams, err
 	}
+	paranoiaLevels, err := cmd.Flags().GetIntSlice(paranoiaLevelsFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	allParanoiaLevels, err := cmd.Flags().GetBool(allParanoiaLevelsFlag)
+	if err != nil {
+		return emptyParams, err
+	}
 	payload, err := cmd.Flags().GetString(payloadFlag)
 	if err != nil {
 		return emptyParams, err
@@ -201,14 +214,34 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		maxConcurrency = 1
 	}
 
-	// Default to max paranoia level so that all rules (including the one of interest) are run.
-	if rule > 0 && !cmd.Flags().Changed(paranoiaLevelFlag) {
-		paranoiaLevel = maxCrsParanoiaLevel
+	if cmd.Flags().Changed(paranoiaLevelFlag) && (cmd.Flags().Changed(paranoiaLevelsFlag) || allParanoiaLevels) {
+		return emptyParams, fmt.Errorf("%s cannot be used with %s or %s", paranoiaLevelFlag, paranoiaLevelsFlag, allParanoiaLevelsFlag)
+	}
+	if cmd.Flags().Changed(paranoiaLevelsFlag) && allParanoiaLevels {
+		return emptyParams, fmt.Errorf("%s cannot be used with %s", paranoiaLevelsFlag, allParanoiaLevelsFlag)
+	}
+	if allParanoiaLevels {
+		paranoiaLevels = make([]int, 0, maxCrsParanoiaLevel-minCrsParanoiaLevel+1)
+		for level := minCrsParanoiaLevel; level <= maxCrsParanoiaLevel; level++ {
+			paranoiaLevels = append(paranoiaLevels, level)
+		}
 	}
 
-	if paranoiaLevel < minCrsParanoiaLevel || paranoiaLevel > maxCrsParanoiaLevel {
-		return emptyParams, fmt.Errorf("paranoia level must be between %d and %d", minCrsParanoiaLevel, maxCrsParanoiaLevel)
+	requestedParanoiaLevels := []int{paranoiaLevel}
+
+	switch {
+	case len(paranoiaLevels) > 0:
+		requestedParanoiaLevels = paranoiaLevels
+	case rule > 0 && !cmd.Flags().Changed(paranoiaLevelFlag):
+		// Default to max paranoia level so that all rules (including the one of interest) are run.
+		requestedParanoiaLevels = []int{maxCrsParanoiaLevel}
 	}
+
+	normalizedParanoiaLevels, err := normalizeParanoiaLevels(requestedParanoiaLevels)
+	if err != nil {
+		return emptyParams, err
+	}
+	paranoiaLevel = normalizedParanoiaLevels[len(normalizedParanoiaLevels)-1]
 
 	corpusType := corpus.NoType
 	if corpusTypeAsString != "" {
@@ -226,6 +259,7 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		Directory:       directory,
 		CorpusLocalPath: corpusLocalPath,
 		Lines:           lines,
+		ParanoiaLevels:  normalizedParanoiaLevels,
 		ParanoiaLevel:   paranoiaLevel,
 		Number:          number,
 		Payload:         payload,
@@ -234,4 +268,23 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		BaselinePath:    baselinePath,
 		CompareCRSPath:  compareCRSPath,
 	}, nil
+}
+
+func normalizeParanoiaLevels(levels []int) ([]int, error) {
+	normalizedLevels := make(map[int]struct{}, len(levels))
+
+	for _, level := range levels {
+		if level < minCrsParanoiaLevel || level > maxCrsParanoiaLevel {
+			return nil, fmt.Errorf("paranoia level must be between %d and %d", minCrsParanoiaLevel, maxCrsParanoiaLevel)
+		}
+		normalizedLevels[level] = struct{}{}
+	}
+
+	orderedLevels := make([]int, 0, len(normalizedLevels))
+	for level := range normalizedLevels {
+		orderedLevels = append(orderedLevels, level)
+	}
+	slices.Sort(orderedLevels)
+
+	return orderedLevels, nil
 }
