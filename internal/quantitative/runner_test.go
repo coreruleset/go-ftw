@@ -36,17 +36,17 @@ func TestRunnerTestSuite(t *testing.T) {
 func (s *runnerTestSuite) SetupTest() {
 	s.tempDir = s.T().TempDir()
 	s.params = Params{
-		Lines:          1000,
-		Fast:           10,
-		Rule:           1000,
-		Directory:      path.Join(s.tempDir, fmt.Sprintf("coreruleset-%s", crsTestVersion)),
-		ParanoiaLevel:  1,
-		MaxConcurrency: 10,
-		CorpusSize:     "10K",
-		Corpus:         "leipzig",
-		CorpusLang:     "eng",
-		CorpusYear:     "2023",
-		CorpusSource:   "news",
+		Lines:                 1000,
+		Fast:                  10,
+		Rule:                  1000,
+		Directory:             path.Join(s.tempDir, fmt.Sprintf("coreruleset-%s", crsTestVersion)),
+		OrderedParanoiaLevels: []int{1},
+		MaxConcurrency:        10,
+		CorpusSize:            "10K",
+		Corpus:                "leipzig",
+		CorpusLang:            "eng",
+		CorpusYear:            "2023",
+		CorpusSource:          "news",
 	}
 	request := &getter.Request{
 		Src:     crsUrl,

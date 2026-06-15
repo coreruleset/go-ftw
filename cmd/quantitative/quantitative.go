@@ -74,6 +74,8 @@ For the "raw" corpus type, this flag specifies the path to the corpus file.`)
 	runCmd.Flags().String(compareCRSFlag, "", "Path to another CRS tree to run with the same parameters and compare against.")
 	runCmd.Flags().StringP(outputFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
 	runCmd.Flags().StringP(outputTypeFlag, "o", "normal", "Output type for quantitative tests.")
+	_ = runCmd.Flags().MarkDeprecated(paranoiaLevelFlag, fmt.Sprintf("use --%s instead", paranoiaLevelsFlag))
+	runCmd.MarkFlagsMutuallyExclusive(paranoiaLevelFlag, paranoiaLevelsFlag, allParanoiaLevelsFlag)
 	runCmd.MarkFlagsMutuallyExclusive(baselineFlag, compareCRSFlag)
 
 	return runCmd
@@ -214,22 +216,14 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		maxConcurrency = 1
 	}
 
-	if cmd.Flags().Changed(paranoiaLevelFlag) && (cmd.Flags().Changed(paranoiaLevelsFlag) || allParanoiaLevels) {
-		return emptyParams, fmt.Errorf("%s cannot be used with %s or %s", paranoiaLevelFlag, paranoiaLevelsFlag, allParanoiaLevelsFlag)
-	}
-	if cmd.Flags().Changed(paranoiaLevelsFlag) && allParanoiaLevels {
-		return emptyParams, fmt.Errorf("%s cannot be used with %s", paranoiaLevelsFlag, allParanoiaLevelsFlag)
-	}
-	if allParanoiaLevels {
-		paranoiaLevels = make([]int, 0, maxCrsParanoiaLevel-minCrsParanoiaLevel+1)
-		for level := minCrsParanoiaLevel; level <= maxCrsParanoiaLevel; level++ {
-			paranoiaLevels = append(paranoiaLevels, level)
-		}
-	}
-
 	requestedParanoiaLevels := []int{paranoiaLevel}
 
 	switch {
+	case allParanoiaLevels:
+		requestedParanoiaLevels = make([]int, 0, maxCrsParanoiaLevel)
+		for level := minCrsParanoiaLevel; level <= maxCrsParanoiaLevel; level++ {
+			requestedParanoiaLevels = append(requestedParanoiaLevels, level)
+		}
 	case len(paranoiaLevels) > 0:
 		requestedParanoiaLevels = paranoiaLevels
 	case rule > 0 && !cmd.Flags().Changed(paranoiaLevelFlag):
@@ -237,11 +231,10 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		requestedParanoiaLevels = []int{maxCrsParanoiaLevel}
 	}
 
-	normalizedParanoiaLevels, err := normalizeParanoiaLevels(requestedParanoiaLevels)
+	orderedParanoiaLevels, err := normalizeParanoiaLevels(requestedParanoiaLevels)
 	if err != nil {
 		return emptyParams, err
 	}
-	paranoiaLevel = normalizedParanoiaLevels[len(normalizedParanoiaLevels)-1]
 
 	corpusType := corpus.NoType
 	if corpusTypeAsString != "" {
@@ -251,40 +244,32 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 	}
 
 	return quantitative.Params{
-		Corpus:          corpusType,
-		CorpusSize:      corpusSize,
-		CorpusYear:      corpusYear,
-		CorpusLang:      corpusLang,
-		CorpusSource:    corpusSource,
-		Directory:       directory,
-		CorpusLocalPath: corpusLocalPath,
-		Lines:           lines,
-		ParanoiaLevels:  normalizedParanoiaLevels,
-		ParanoiaLevel:   paranoiaLevel,
-		Number:          number,
-		Payload:         payload,
-		Rule:            rule,
-		MaxConcurrency:  maxConcurrency,
-		BaselinePath:    baselinePath,
-		CompareCRSPath:  compareCRSPath,
+		Corpus:                corpusType,
+		CorpusSize:            corpusSize,
+		CorpusYear:            corpusYear,
+		CorpusLang:            corpusLang,
+		CorpusSource:          corpusSource,
+		Directory:             directory,
+		CorpusLocalPath:       corpusLocalPath,
+		Lines:                 lines,
+		OrderedParanoiaLevels: orderedParanoiaLevels,
+		Number:                number,
+		Payload:               payload,
+		Rule:                  rule,
+		MaxConcurrency:        maxConcurrency,
+		BaselinePath:          baselinePath,
+		CompareCRSPath:        compareCRSPath,
 	}, nil
 }
 
 func normalizeParanoiaLevels(levels []int) ([]int, error) {
-	normalizedLevels := make(map[int]struct{}, len(levels))
-
+	normalizedLevels := make([]int, 0, len(levels))
 	for _, level := range levels {
 		if level < minCrsParanoiaLevel || level > maxCrsParanoiaLevel {
-			return nil, fmt.Errorf("paranoia level must be between %d and %d", minCrsParanoiaLevel, maxCrsParanoiaLevel)
+			return nil, fmt.Errorf("paranoia level must be between %d (inclusive) and %d (inclusive)", minCrsParanoiaLevel, maxCrsParanoiaLevel)
 		}
-		normalizedLevels[level] = struct{}{}
+		normalizedLevels = append(normalizedLevels, level)
 	}
-
-	orderedLevels := make([]int, 0, len(normalizedLevels))
-	for level := range normalizedLevels {
-		orderedLevels = append(orderedLevels, level)
-	}
-	slices.Sort(orderedLevels)
-
-	return orderedLevels, nil
+	slices.Sort(normalizedLevels)
+	return slices.Compact(normalizedLevels), nil
 }
