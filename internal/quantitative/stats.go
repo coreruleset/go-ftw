@@ -84,8 +84,8 @@ type QuantitativeRunStats struct {
 	falsePositivesPerRule map[int]RuleStats
 	// falsePositivesPerParanoiaLevel is the aggregated false positives per paranoia level
 	falsePositivesPerParanoiaLevel map[int]int
-	// evaluatedOrderedParanoiaLevels are the paranoia levels requested for reporting cumulative totals.
-	evaluatedOrderedParanoiaLevels []int
+	// evaluatedParanoiaLevels are the paranoia levels requested for reporting cumulative totals.
+	evaluatedParanoiaLevels ParanoiaLevels
 	// mu is the mutex to protect the falsePositivesPerRule and falsePositivesPerParanoiaLevel maps
 	mu sync.Mutex
 }
@@ -122,8 +122,8 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 		return
 	}
 
-	if len(s.evaluatedOrderedParanoiaLevels) > 1 {
-		highestParanoiaLevel := s.evaluatedOrderedParanoiaLevels[len(s.evaluatedOrderedParanoiaLevels)-1]
+	if s.evaluatedParanoiaLevels.Len() > 1 {
+		highestParanoiaLevel := s.evaluatedParanoiaLevels.Highest()
 		ratio := s.falsePositiveRatio(s.falsePositives)
 		out.Println("Total False positive ratio at PL%d: %d/%d = %.4f", highestParanoiaLevel, s.falsePositives, s.count_, ratio)
 		s.printEvaluatedParanoiaLevelTotals(out)
@@ -287,7 +287,7 @@ func LoadQuantitativeRunStats(path string) (*QuantitativeRunStats, error) {
 
 func (s *QuantitativeRunStats) printEvaluatedParanoiaLevelTotals(out *output.Output) {
 	out.Println("False positive totals by evaluated paranoia level:")
-	for _, paranoiaLevel := range s.evaluatedOrderedParanoiaLevels {
+	for _, paranoiaLevel := range s.evaluatedParanoiaLevels.All() {
 		count := s.cumulativeFalsePositives(paranoiaLevel)
 		out.Println("  PL%d: %d false positives. FP Ratio: %d/%d = %.4f", paranoiaLevel, count, count, s.count_, s.falsePositiveRatio(count))
 	}
@@ -361,9 +361,9 @@ func (s *QuantitativeRunStats) SetTotalTime(totalTime time.Duration) {
 	s.totalTime = totalTime
 }
 
-// SetEvaluatedParanoiaLevels sets the ordered paranoia levels requested for reporting.
-func (s *QuantitativeRunStats) SetEvaluatedParanoiaLevels(orderedLevels []int) {
-	s.evaluatedOrderedParanoiaLevels = slices.Clone(orderedLevels)
+// SetEvaluatedParanoiaLevels sets the paranoia levels requested for reporting.
+func (s *QuantitativeRunStats) SetEvaluatedParanoiaLevels(levels ParanoiaLevels) {
+	s.evaluatedParanoiaLevels = levels
 }
 
 // MarshalJSON marshals the stats to JSON.
@@ -376,12 +376,13 @@ func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 		FalsePositivesPerRule:          s.falsePositivesPerRule,
 		FalsePositivesPerParanoiaLevel: s.falsePositivesPerParanoiaLevel,
 	}
-	if len(s.evaluatedOrderedParanoiaLevels) > 1 {
-		totals := make(map[int]int, len(s.evaluatedOrderedParanoiaLevels))
-		for _, paranoiaLevel := range s.evaluatedOrderedParanoiaLevels {
+	if s.evaluatedParanoiaLevels.Len() > 1 {
+		evaluatedLevels := s.evaluatedParanoiaLevels.All()
+		totals := make(map[int]int, len(evaluatedLevels))
+		for _, paranoiaLevel := range evaluatedLevels {
 			totals[paranoiaLevel] = s.cumulativeFalsePositives(paranoiaLevel)
 		}
-		serialized.EvaluatedParanoiaLevels = s.evaluatedOrderedParanoiaLevels
+		serialized.EvaluatedParanoiaLevels = evaluatedLevels
 		serialized.FalsePositiveTotalsPerParanoiaLevel = totals
 	}
 	return json.Marshal(serialized)

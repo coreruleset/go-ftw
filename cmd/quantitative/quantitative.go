@@ -6,7 +6,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"slices"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -38,8 +37,8 @@ const (
 	payloadFlag           = "payload"
 	ruleFlag              = "rule"
 
-	minCrsParanoiaLevel = 1
-	maxCrsParanoiaLevel = 4
+	minCrsParanoiaLevel = quantitative.MinParanoiaLevel
+	maxCrsParanoiaLevel = quantitative.MaxParanoiaLevel
 )
 
 var emptyParams = quantitative.Params{}
@@ -231,7 +230,7 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		requestedParanoiaLevels = []int{maxCrsParanoiaLevel}
 	}
 
-	orderedParanoiaLevels, err := normalizeParanoiaLevels(requestedParanoiaLevels)
+	paranoiaLevelSet, err := quantitative.NewParanoiaLevels(requestedParanoiaLevels...)
 	if err != nil {
 		return emptyParams, err
 	}
@@ -244,32 +243,20 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 	}
 
 	return quantitative.Params{
-		Corpus:                corpusType,
-		CorpusSize:            corpusSize,
-		CorpusYear:            corpusYear,
-		CorpusLang:            corpusLang,
-		CorpusSource:          corpusSource,
-		Directory:             directory,
-		CorpusLocalPath:       corpusLocalPath,
-		Lines:                 lines,
-		OrderedParanoiaLevels: orderedParanoiaLevels,
-		Number:                number,
-		Payload:               payload,
-		Rule:                  rule,
-		MaxConcurrency:        maxConcurrency,
-		BaselinePath:          baselinePath,
-		CompareCRSPath:        compareCRSPath,
+		Corpus:          corpusType,
+		CorpusSize:      corpusSize,
+		CorpusYear:      corpusYear,
+		CorpusLang:      corpusLang,
+		CorpusSource:    corpusSource,
+		Directory:       directory,
+		CorpusLocalPath: corpusLocalPath,
+		Lines:           lines,
+		ParanoiaLevels:  paranoiaLevelSet,
+		Number:          number,
+		Payload:         payload,
+		Rule:            rule,
+		MaxConcurrency:  maxConcurrency,
+		BaselinePath:    baselinePath,
+		CompareCRSPath:  compareCRSPath,
 	}, nil
-}
-
-func normalizeParanoiaLevels(levels []int) ([]int, error) {
-	normalizedLevels := make([]int, 0, len(levels))
-	for _, level := range levels {
-		if level < minCrsParanoiaLevel || level > maxCrsParanoiaLevel {
-			return nil, fmt.Errorf("paranoia level must be between %d (inclusive) and %d (inclusive)", minCrsParanoiaLevel, maxCrsParanoiaLevel)
-		}
-		normalizedLevels = append(normalizedLevels, level)
-	}
-	slices.Sort(normalizedLevels)
-	return slices.Compact(normalizedLevels), nil
 }

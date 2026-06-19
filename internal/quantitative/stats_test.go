@@ -166,7 +166,9 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MultiParanoiaLeve
 	for range 10 {
 		q.incrementRun()
 	}
-	q.SetEvaluatedParanoiaLevels([]int{1, 2, 4})
+	evaluatedLevels, err := NewParanoiaLevels(1, 2, 4)
+	s.Require().NoError(err)
+	q.SetEvaluatedParanoiaLevels(evaluatedLevels)
 
 	q.addFalsePositive(920100, 1)
 	q.addFalsePositive(920200, 2)
@@ -185,7 +187,9 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MultiParanoiaLeve
 	for range 3 {
 		q.incrementRun()
 	}
-	q.SetEvaluatedParanoiaLevels([]int{1, 2, 4})
+	evaluatedLevels, err := NewParanoiaLevels(1, 2, 4)
+	s.Require().NoError(err)
+	q.SetEvaluatedParanoiaLevels(evaluatedLevels)
 
 	q.addFalsePositive(920100, 1)
 	q.addFalsePositive(920200, 2)

@@ -130,7 +130,7 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel()
 				return
 			}
 			s.Require().NoError(err)
-			s.Equal(tc.wantOrderedParanoiaLevels, params.OrderedParanoiaLevels)
+			s.Equal(tc.wantOrderedParanoiaLevels, params.ParanoiaLevels.All())
 		})
 	}
 }

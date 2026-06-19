@@ -31,8 +31,8 @@ type Params struct {
 	Directory string
 	// CorpusLocalPath is the path to store the local corpora
 	CorpusLocalPath string
-	// OrderedParanoiaLevels are the paranoia levels to report from a single run.
-	OrderedParanoiaLevels []int
+	// ParanoiaLevels are the paranoia levels to report from a single run.
+	ParanoiaLevels ParanoiaLevels
 	// CorpusSize is the corpus size to use for the quantitative tests
 	CorpusSize string
 	// Corpus is the corpus to use for the quantitative tests
@@ -98,16 +98,16 @@ func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 	log.Trace().Msgf("Payload: %s", params.Payload)
 	log.Trace().Msgf("Directory: %s", params.Directory)
 	log.Trace().Msgf("Local path to corpus file: %s", params.CorpusLocalPath)
-	log.Trace().Msgf("Paranoia levels: %v", params.OrderedParanoiaLevels)
+	log.Trace().Msgf("Paranoia levels: %v", params.ParanoiaLevels.All())
 
 	startTime := time.Now()
 	// create the results
 	stats := NewQuantitativeStats()
-	stats.SetEvaluatedParanoiaLevels(params.OrderedParanoiaLevels)
+	stats.SetEvaluatedParanoiaLevels(params.ParanoiaLevels)
 
 	// The engine runs at the highest requested paranoia level so that every
 	// rule up to that level is active; lower levels are reported from the matches.
-	highestParanoiaLevel := params.OrderedParanoiaLevels[len(params.OrderedParanoiaLevels)-1]
+	highestParanoiaLevel := params.ParanoiaLevels.Highest()
 	var engine LocalEngine = &localEngine{}
 	runner := engine.Create(params.Directory, highestParanoiaLevel)
 
