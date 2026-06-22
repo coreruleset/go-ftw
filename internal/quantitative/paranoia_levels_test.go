@@ -46,7 +46,7 @@ func (s *paranoiaLevelsTestSuite) TestNewParanoiaLevels_RejectsOutOfRange() {
 func (s *paranoiaLevelsTestSuite) TestParanoiaLevels_EmptyZeroValue() {
 	var levels ParanoiaLevels
 	s.Equal(0, levels.Len())
-	s.Equal(0, levels.Highest())
+	s.Equal(MinParanoiaLevel, levels.Highest())
 	s.Empty(levels.All())
 }
 

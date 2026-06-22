@@ -41,10 +41,11 @@ func (p ParanoiaLevels) Len() int {
 	return len(p.levels)
 }
 
-// Highest returns the largest paranoia level in the set, or 0 if the set is empty.
+// Highest returns the largest paranoia level in the set, or MinParanoiaLevel
+// if the set is empty (there is nothing meaningful to do at paranoia level 0).
 func (p ParanoiaLevels) Highest() int {
 	if len(p.levels) == 0 {
-		return 0
+		return MinParanoiaLevel
 	}
 	return p.levels[len(p.levels)-1]
 }
