@@ -648,8 +648,10 @@ Flags:
   -h, --help                       help for quantitative
   -l, --lines int                  Number of lines of input to process before stopping.
       --max-concurrency int        maximum number of goroutines. Defaults to 10, or 1 if log level is debug/trace. (default 10)
+      --all-paranoia-levels        Evaluate all CRS paranoia levels in one run.
   -o, --output string              Output type for quantitative tests. (default "normal")
   -P, --paranoia-level int         Paranoia level used to run the quantitative tests. (default 1)
+      --paranoia-levels ints       Paranoia levels to evaluate in one run, e.g. 1,2,3,4.
   -p, --payload string             Payload is a string you want to test using quantitative tests. Will not use the corpus.
   -r, --rule int                   Rule ID of interest: only show false positives for specified rule ID. Defaults to paranoia level 4 unless -P is also set.
 
@@ -678,8 +680,12 @@ False positives per rule:
   Rule 932380: 2 false positives
   Rule 933160: 1 false positives
   Rule 942100: 1 false positives
-  Rule 942230: 1 false positives
-  Rule 942360: 1 false positives
+```
+
+To report cumulative totals for multiple paranoia levels in one invocation, use `--paranoia-levels` (or `--all-paranoia-levels`). For example:
+
+```bash
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K --paranoia-levels 1,2,3,4
 ```
 
 This will run with the default leipzig corpus and size of 10K payloads, but only for the rule 920350.

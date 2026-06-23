@@ -83,24 +83,39 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommand() {
 
 func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel() {
 	tests := []struct {
-		name              string
-		args              []string
-		wantErr           bool
-		wantParanoiaLevel int
+		name                      string
+		args                      []string
+		wantErr                   bool
+		wantOrderedParanoiaLevels []int
 	}{
 		{
-			name:              "rule without PL defaults to PL4",
-			args:              []string{"-C", s.tempDir, "-r", "942200", "-p", "test payload"},
-			wantParanoiaLevel: maxCrsParanoiaLevel,
+			name:                      "rule without PL defaults to PL4",
+			args:                      []string{"-C", s.tempDir, "-r", "942200", "-p", "test payload"},
+			wantOrderedParanoiaLevels: []int{maxCrsParanoiaLevel},
 		},
 		{
-			name:              "rule with explicit PL is allowed",
-			args:              []string{"-C", s.tempDir, "-r", "942200", "-P", "2", "-p", "test payload"},
-			wantParanoiaLevel: 2,
+			name:                      "rule with explicit PL is allowed",
+			args:                      []string{"-C", s.tempDir, "-r", "942200", "-P", "2", "-p", "test payload"},
+			wantOrderedParanoiaLevels: []int{2},
+		},
+		{
+			name:                      "multi PLs are normalized and use highest PL to run",
+			args:                      []string{"-C", s.tempDir, "--paranoia-levels", "3,1,3,2", "-p", "test payload"},
+			wantOrderedParanoiaLevels: []int{1, 2, 3},
+		},
+		{
+			name:                      "all paranoia levels expands to all CRS levels",
+			args:                      []string{"-C", s.tempDir, "--all-paranoia-levels", "-p", "test payload"},
+			wantOrderedParanoiaLevels: []int{1, 2, 3, 4},
 		},
 		{
 			name:    "PL out of range errors",
 			args:    []string{"-C", s.tempDir, "-P", "5", "-p", "test payload"},
+			wantErr: true,
+		},
+		{
+			name:    "multi PL out of range errors",
+			args:    []string{"-C", s.tempDir, "--paranoia-levels", "1,5", "-p", "test payload"},
 			wantErr: true,
 		},
 	}
@@ -115,7 +130,32 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel()
 				return
 			}
 			s.Require().NoError(err)
-			s.Equal(tc.wantParanoiaLevel, params.ParanoiaLevel)
+			s.Equal(tc.wantOrderedParanoiaLevels, params.ParanoiaLevels.All())
+		})
+	}
+}
+
+func (s *quantitativeCmdTestSuite) TestQuantitativeCommandParanoiaLevelFlagConflicts() {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "single and multi PL flags conflict",
+			args: []string{"-C", s.tempDir, "-P", "2", "--paranoia-levels", "1,2", "-p", "test payload"},
+		},
+		{
+			name: "all and multi PL flags conflict",
+			args: []string{"-C", s.tempDir, "--all-paranoia-levels", "--paranoia-levels", "1,2", "-p", "test payload"},
+		},
+	}
+
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			cmd := New(internal.NewCommandContext())
+			cmd.SetArgs(tc.args)
+			err := cmd.ExecuteContext(context.Background())
+			s.Require().Error(err, "expected mutually exclusive paranoia level flag error")
 		})
 	}
 }

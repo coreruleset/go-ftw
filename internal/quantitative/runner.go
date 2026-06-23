@@ -31,8 +31,8 @@ type Params struct {
 	Directory string
 	// CorpusLocalPath is the path to store the local corpora
 	CorpusLocalPath string
-	// ParanoiaLevel is the paranoia level in where to run the quantitative tests
-	ParanoiaLevel int
+	// ParanoiaLevels are the paranoia levels to report from a single run.
+	ParanoiaLevels ParanoiaLevels
 	// CorpusSize is the corpus size to use for the quantitative tests
 	CorpusSize string
 	// Corpus is the corpus to use for the quantitative tests
@@ -98,14 +98,18 @@ func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 	log.Trace().Msgf("Payload: %s", params.Payload)
 	log.Trace().Msgf("Directory: %s", params.Directory)
 	log.Trace().Msgf("Local path to corpus file: %s", params.CorpusLocalPath)
-	log.Trace().Msgf("Paranoia level: %d", params.ParanoiaLevel)
+	log.Trace().Msgf("Paranoia levels: %v", params.ParanoiaLevels.All())
 
 	startTime := time.Now()
 	// create the results
 	stats := NewQuantitativeStats()
+	stats.SetEvaluatedParanoiaLevels(params.ParanoiaLevels)
 
+	// The engine runs at the highest requested paranoia level so that every
+	// rule up to that level is active; lower levels are reported from the matches.
+	highestParanoiaLevel := params.ParanoiaLevels.Highest()
 	var engine LocalEngine = &localEngine{}
-	runner := engine.Create(params.Directory, params.ParanoiaLevel)
+	runner := engine.Create(params.Directory, highestParanoiaLevel)
 
 	// Are we using the corpus at all?
 	// TODO: this could be moved to a generic "file" iterator (instead of "corpus"), with a Factory method
