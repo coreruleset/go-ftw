@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"math"
 	"os"
 	"slices"
 	"sync"
@@ -394,7 +395,7 @@ func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 		CorpusSize:                     s.count_ + s.skipped_,
 		Count:                          s.count_,
 		Skipped:                        s.skipped_,
-		TotalTimeSeconds:               s.totalTime.Seconds(),
+		TotalTimeSeconds:               math.Round(s.totalTime.Seconds()*1e4) / 1e4,
 		FalsePositives:                 s.falsePositives,
 		FalsePositiveSentences:         s.falsePositiveSentences,
 		FalsePositivesPerRule:          s.falsePositivesPerRule,
