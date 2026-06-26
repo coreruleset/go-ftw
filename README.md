@@ -736,7 +736,7 @@ Results can be shown in JSON format also, to be processed by other tools.
 ```bash
 ❯ ./go-ftw quantitative -C ../coreruleset -s 10K -o json
 
-{"count":10000,"falsePositives":408,"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"totalTime":15031086083}%
+{"corpusSize":10000,"count":10000,"falsePositiveSentences":209,"falsePositives":408,"falsePositivesPerParanoiaLevel":{"1":408},"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"skipped":0,"totalTimeSeconds":15.0311}%
 ```
 
 Or in Markdown format for use in pull request comments.
