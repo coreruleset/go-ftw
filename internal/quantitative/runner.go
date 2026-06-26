@@ -212,13 +212,20 @@ func doEngineCall(engine LocalEngine, payload corpus.Payload, specificRule int, 
 		// append the line to the false positives
 		log.Trace().Msgf("False positive with string: %s", payload)
 		log.Trace().Msgf("=> rules matched: %+v", matchedRules)
+		// sentenceIsFP is set only if at least one unfiltered rule fired,
+		// ensuring we count this sentence at most once toward the sentence FP total.
+		sentenceIsFP := false
 		for ruleId, match := range matchedRules {
 			// check if we only want to show false positives for a specific rule
 			if wantSpecificRuleResults(specificRule, ruleId) {
 				continue
 			}
 			stats.addFalsePositive(ruleId, match.ParanoiaLevel)
+			sentenceIsFP = true
 			log.Debug().Msgf("**> rule %d (PL%d) with payload %d => %s", ruleId, match.ParanoiaLevel, payload.LineNumber(), match.MatchData)
+		}
+		if sentenceIsFP {
+			stats.addFalsePositiveSentence()
 		}
 	}
 }
