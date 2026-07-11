@@ -434,6 +434,8 @@ The list of supported outputs is:
 - "markdown"
 
 `markdown` is primarily intended for `go-ftw quantitative`; on other commands it behaves like plain text output.
+For `go-ftw quantitative` specifically, `-o github` is treated as an alias for `-o markdown`. For other commands,
+`github` and `plain`/`markdown` remain distinct: `github` prints [workflow command](https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions) annotations instead of plain text.
 
 #### Only show failures
 
@@ -652,7 +654,7 @@ Flags:
   -l, --lines int                  Number of lines of input to process before stopping.
       --max-concurrency int        maximum number of goroutines. Defaults to 10, or 1 if log level is debug/trace. (default 10)
       --all-paranoia-levels        Evaluate all CRS paranoia levels in one run.
-  -o, --output string              Output type for quantitative tests. Use "markdown" (or "github") for PR-comment-ready Markdown. (default "normal")
+  -o, --output string              Output type for quantitative tests. Use "markdown" for PR-comment-ready Markdown ("github" is accepted as an alias). (default "normal")
   -P, --paranoia-level int         Paranoia level used to run the quantitative tests. (default 1)
       --paranoia-levels ints       Paranoia levels to evaluate in one run, e.g. 1,2,3,4.
   -p, --payload string             Payload is a string you want to test using quantitative tests. Will not use the corpus.
