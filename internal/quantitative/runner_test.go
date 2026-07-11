@@ -35,12 +35,14 @@ func TestRunnerTestSuite(t *testing.T) {
 
 func (s *runnerTestSuite) SetupTest() {
 	s.tempDir = s.T().TempDir()
+	paranoiaLevels, err := NewParanoiaLevels(1)
+	s.Require().NoError(err)
 	s.params = Params{
 		Lines:          1000,
 		Fast:           10,
 		Rule:           1000,
 		Directory:      path.Join(s.tempDir, fmt.Sprintf("coreruleset-%s", crsTestVersion)),
-		ParanoiaLevel:  1,
+		ParanoiaLevels: paranoiaLevels,
 		MaxConcurrency: 10,
 		CorpusSize:     "10K",
 		Corpus:         "leipzig",
@@ -59,7 +61,7 @@ func (s *runnerTestSuite) SetupTest() {
 		},
 	}
 
-	_, err := client.Get(context.Background(), request)
+	_, err = client.Get(context.Background(), request)
 	s.Require().NoError(err)
 }
 

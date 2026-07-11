@@ -19,12 +19,50 @@ Features of Go-FTW include:
 
 ## Install
 
-Go to the [releases](https://github.com/coreruleset/go-ftw/releases) page and get a binary release that matches your OS (scroll down to **Assets**).
+### Homebrew (macOS and Linux)
+
+`go-ftw` can be installed on macOS and Linux via [Homebrew](https://brew.sh) using the [CRS tap](https://github.com/coreruleset/homebrew-tap):
+
+```shell
+brew tap coreruleset/tap
+brew install go-ftw
+```
+
+To upgrade to the latest version:
+
+```shell
+brew upgrade go-ftw
+```
+
+### Linux
+
+Download the latest release archive for your architecture from the [releases page](https://github.com/coreruleset/go-ftw/releases), then extract and install the binary:
+
+```shell
+# Replace <version> and <arch> with the appropriate values (e.g. 1.0.0 and amd64)
+curl -sSL https://github.com/coreruleset/go-ftw/releases/download/v<version>/ftw_<version>_linux_<arch>.tar.gz | tar -xzf - ftw
+sudo mv ftw /usr/local/bin/
+```
+
+Alternatively, `.deb` and `.rpm` packages are available on the [releases page](https://github.com/coreruleset/go-ftw/releases):
+
+```shell
+# Debian/Ubuntu (.deb)
+sudo dpkg -i ftw_<version>_linux_<arch>.deb
+
+# RHEL/Fedora (.rpm)
+sudo rpm -i ftw_<version>_linux_<arch>.rpm
+```
+
+### Install with Go
 
 If you have Go installed and configured to run Go binaries from your shell you can also run
+
 ```bash
-go install github.com/coreruleset/go-ftw@latest
+go install github.com/coreruleset/go-ftw/v2@latest
 ```
+
+Make sure your Go bin directory (typically `~/go/bin`) is on your `PATH`.
 
 ## Example Usage
 
@@ -603,6 +641,8 @@ Flags:
   -s, --corpus-size string         Corpus size to use for the quantitative tests. Most corpora will have sizes like "100K", "1M", etc. (default "100K")
   -S, --corpus-source string       Corpus source to use for the quantitative tests. Most corpus will have a source like "news", "web", "wikipedia", etc. (default "news")
   -y, --corpus-year string         Corpus year to use for the quantitative tests. Most corpus will have a year like "2023", "2022", etc. (default "2023")
+      --baseline string            Path to a prior quantitative JSON result to compare against.
+      --compare-crs string         Path to another CRS tree to run with the same parameters and compare against.
   -C, --crs-path string            Path to top folder of local CRS installation. (default ".")
   -f, --file string                Output file path for quantitative tests. Prints to standard output by default.
   -h, --help                       help for quantitative
@@ -610,8 +650,10 @@ Flags:
       --ignore-rules-file string   Path to a file containing rule IDs to exclude from aggregate false-positive metrics (one rule ID per line).
   -l, --lines int                  Number of lines of input to process before stopping.
       --max-concurrency int        maximum number of goroutines. Defaults to 10, or 1 if log level is debug/trace. (default 10)
+      --all-paranoia-levels        Evaluate all CRS paranoia levels in one run.
   -o, --output string              Output type for quantitative tests. (default "normal")
   -P, --paranoia-level int         Paranoia level used to run the quantitative tests. (default 1)
+      --paranoia-levels ints       Paranoia levels to evaluate in one run, e.g. 1,2,3,4.
   -p, --payload string             Payload is a string you want to test using quantitative tests. Will not use the corpus.
   -r, --rule int                   Rule ID of interest: only show false positives for specified rule ID. Defaults to paranoia level 4 unless -P is also set.
 
@@ -640,8 +682,12 @@ False positives per rule:
   Rule 932380: 2 false positives
   Rule 933160: 1 false positives
   Rule 942100: 1 false positives
-  Rule 942230: 1 false positives
-  Rule 942360: 1 false positives
+```
+
+To report cumulative totals for multiple paranoia levels in one invocation, use `--paranoia-levels` (or `--all-paranoia-levels`). For example:
+
+```bash
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K --paranoia-levels 1,2,3,4
 ```
 
 This will run with the default leipzig corpus and size of 10K payloads, but only for the rule 920350.
@@ -706,8 +752,77 @@ Results can be shown in JSON format also, to be processed by other tools.
 ```bash
 ❯ ./go-ftw quantitative -C ../coreruleset -s 10K -o json
 
-{"count":10000,"falsePositives":408,"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"totalTime":15031086083}%
+{"corpusSize":10000,"count":10000,"falsePositiveSentences":209,"falsePositives":408,"falsePositivesPerParanoiaLevel":{"1":408},"falsePositivesPerRule":{"920220":198,"920221":198,"932235":4,"932270":2,"932380":2,"933160":1,"942100":1,"942230":1,"942360":1},"skipped":0,"totalTimeSeconds":15.0311}%
 ```
+
+`falsePositives` counts individual rule hits (one sentence can trigger multiple rules), while `falsePositiveSentences` counts the number of distinct corpus sentences that triggered at least one rule. `corpusSize` equals the total number of sentences in the corpus (processed + skipped), so `falsePositiveSentences / corpusSize` gives an unambiguous 0–100% false positive rate.
+
+### Comparing runs against a baseline
+
+A current run can be compared against a reference in a single invocation. There are two mutually
+exclusive ways to provide the reference:
+
+- `--baseline <file>`: a JSON result emitted by a prior `quantitative -o json` run.
+- `--compare-crs <dir>`: another CRS tree that is run with the same parameters, then compared.
+
+A rule is treated as a regression when its false positives increase relative to the baseline. The
+command exits with status `1` when any regression is detected, so it can gate a CI/CD pipeline.
+
+```bash
+# Compare the current tree against a saved baseline
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K -o json > baseline.json
+❯ ./go-ftw quantitative -C ../coreruleset -s 10K --baseline baseline.json
+```
+
+With the default `normal` output, the comparison prints the current and baseline summaries followed
+by the diff:
+
+```text
+Current quantitative results:
+Run 10000 payloads (0 skipped) in 15.0s
+Total False positive ratio: 410/10000 = 0.0410
+...
+
+Baseline quantitative results:
+Run 10000 payloads (0 skipped) in 15.0s
+Total False positive ratio: 408/10000 = 0.0408
+...
+
+Comparison:
+Total false positive delta: 2
+Per-rule deltas:
+  932270 (PL1): baseline=2 current=4 delta=+2
+Newly firing rules:
+  none
+Stopped firing rules:
+  none
+Regressions detected
+```
+
+With `-o json` the comparison is emitted as a single object with three sections:
+
+```json
+{
+  "baseline": { "count": 10000, "skipped": 0, "totalTimeSeconds": 15.0, "falsePositives": 408, "falsePositivesPerRule": { "932270": { "paranoiaLevel": 1, "falsePositives": 2 } }, "falsePositivesPerParanoiaLevel": { "1": 408 } },
+  "current":  { "count": 10000, "skipped": 0, "totalTimeSeconds": 15.0, "falsePositives": 410, "falsePositivesPerRule": { "932270": { "paranoiaLevel": 1, "falsePositives": 4 } }, "falsePositivesPerParanoiaLevel": { "1": 410 } },
+  "regressions": {
+    "detected": true,
+    "falsePositivesDelta": 2,
+    "perRuleDeltas":      { "932270": { "baselineParanoiaLevel": 1, "currentParanoiaLevel": 1, "baselineFalsePositives": 2, "currentFalsePositives": 4, "delta": 2 } },
+    "newlyFiringRules":   {},
+    "stoppedFiringRules": {}
+  }
+}
+```
+
+Fields:
+
+- `baseline` / `current`: the full stats for each run (same shape as a plain `-o json` result).
+- `regressions.detected`: `true` when at least one rule's false positives increased.
+- `regressions.falsePositivesDelta`: total false positives in `current` minus `baseline`.
+- `regressions.perRuleDeltas`: every rule present in either run, with before/after paranoia levels, before/after counts, and the signed delta.
+- `regressions.newlyFiringRules`: rules that fired in `current` but not in `baseline`.
+- `regressions.stoppedFiringRules`: rules that fired in `baseline` but not in `current`.
 
 ### Future work for quantitative tests
 

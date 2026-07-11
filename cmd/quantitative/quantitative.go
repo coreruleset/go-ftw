@@ -20,26 +20,30 @@ import (
 )
 
 const (
-	corpusFlag          = "corpus"
-	corpusLangFlag      = "corpus-lang"
-	corpusLineFlag      = "corpus-line"
-	corpusSizeFlag      = "corpus-size"
-	corpusSourceFlag    = "corpus-source"
-	corpusYearFlag      = "corpus-year"
-	corpusLocalPathFlag = "corpus-local-path"
-	crsPathFlag         = "crs-path"
-	outputFileFlag      = "file"
-	ignoreRulesFlag     = "ignore-rules"
-	ignoreRulesFileFlag = "ignore-rules-file"
-	linesFlag           = "lines"
-	maxConcurrencyFlag  = "max-concurrency"
-	outputTypeFlag      = "output"
-	paranoiaLevelFlag   = "paranoia-level"
-	payloadFlag         = "payload"
-	ruleFlag            = "rule"
+	allParanoiaLevelsFlag = "all-paranoia-levels"
+	corpusFlag            = "corpus"
+	corpusLangFlag        = "corpus-lang"
+	corpusLineFlag        = "corpus-line"
+	corpusSizeFlag        = "corpus-size"
+	corpusSourceFlag      = "corpus-source"
+	corpusYearFlag        = "corpus-year"
+	corpusLocalPathFlag   = "corpus-local-path"
+	crsPathFlag           = "crs-path"
+	baselineFlag          = "baseline"
+	compareCRSFlag        = "compare-crs"
+	outputFileFlag        = "file"
+	ignoreRulesFlag       = "ignore-rules"
+	ignoreRulesFileFlag   = "ignore-rules-file"
+	linesFlag             = "lines"
+	maxConcurrencyFlag    = "max-concurrency"
+	outputTypeFlag        = "output"
+	paranoiaLevelFlag     = "paranoia-level"
+	paranoiaLevelsFlag    = "paranoia-levels"
+	payloadFlag           = "payload"
+	ruleFlag              = "rule"
 
-	minCrsParanoiaLevel = 1
-	maxCrsParanoiaLevel = 4
+	minCrsParanoiaLevel = quantitative.MinParanoiaLevel
+	maxCrsParanoiaLevel = quantitative.MaxParanoiaLevel
 )
 
 var emptyParams = quantitative.Params{}
@@ -56,6 +60,8 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 
 	runCmd.Flags().IntP(linesFlag, "l", 0, "Number of lines of input to process before stopping.")
 	runCmd.Flags().IntP(paranoiaLevelFlag, "P", 1, "Paranoia level used to run the quantitative tests.")
+	runCmd.Flags().IntSlice(paranoiaLevelsFlag, nil, "Paranoia levels to evaluate in one run, e.g. 1,2,3,4.")
+	runCmd.Flags().Bool(allParanoiaLevelsFlag, false, "Evaluate all CRS paranoia levels in one run.")
 	runCmd.Flags().IntP(corpusLineFlag, "n", 0, "Number is the payload line from the corpus to exclusively send.")
 	runCmd.Flags().StringP(payloadFlag, "p", "", "Payload is a string you want to test using quantitative tests. Will not use the corpus.")
 	runCmd.Flags().IntP(ruleFlag, "r", 0, "Rule ID of interest: only show false positives for specified rule ID. Defaults to paranoia level 4 unless -P is also set.")
@@ -68,10 +74,15 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd.Flags().String(corpusLocalPathFlag, "", `For corpora being downloaded, this flag specifies the storage path. Defaults to .ftw folder under user's home directory.
 For the "raw" corpus type, this flag specifies the path to the corpus file.`)
 	runCmd.Flags().StringP(crsPathFlag, "C", ".", "Path to top folder of local CRS installation.")
+	runCmd.Flags().String(baselineFlag, "", "Path to a prior quantitative JSON result to compare against.")
+	runCmd.Flags().String(compareCRSFlag, "", "Path to another CRS tree to run with the same parameters and compare against.")
 	runCmd.Flags().StringP(outputFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
 	runCmd.Flags().StringP(outputTypeFlag, "o", "normal", "Output type for quantitative tests.")
 	runCmd.Flags().IntSlice(ignoreRulesFlag, []int{}, "Comma-separated list of rule IDs to exclude from aggregate false-positive metrics, e.g. 920272,920273,942432.")
 	runCmd.Flags().String(ignoreRulesFileFlag, "", "Path to a file containing rule IDs to exclude from aggregate false-positive metrics (one rule ID per line).")
+	_ = runCmd.Flags().MarkDeprecated(paranoiaLevelFlag, fmt.Sprintf("use --%s instead", paranoiaLevelsFlag))
+	runCmd.MarkFlagsMutuallyExclusive(paranoiaLevelFlag, paranoiaLevelsFlag, allParanoiaLevelsFlag)
+	runCmd.MarkFlagsMutuallyExclusive(baselineFlag, compareCRSFlag)
 
 	return runCmd
 }
@@ -97,10 +108,11 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 	if outputFilename == "" {
 		outputFile = os.Stdout
 	} else {
-		outputFile, err = os.OpenFile(outputFilename, os.O_RDWR|os.O_CREATE, 0644)
+		outputFile, err = os.OpenFile(outputFilename, os.O_RDWR|os.O_CREATE, 0o644)
 		if err != nil {
 			return err
 		}
+		defer func() { _ = outputFile.Close() }()
 	}
 	out := output.NewOutput(wantedOutput, outputFile)
 
@@ -154,6 +166,14 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 	if err != nil {
 		return emptyParams, err
 	}
+	paranoiaLevels, err := cmd.Flags().GetIntSlice(paranoiaLevelsFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	allParanoiaLevels, err := cmd.Flags().GetBool(allParanoiaLevelsFlag)
+	if err != nil {
+		return emptyParams, err
+	}
 	payload, err := cmd.Flags().GetString(payloadFlag)
 	if err != nil {
 		return emptyParams, err
@@ -170,19 +190,56 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 	if err != nil {
 		return emptyParams, err
 	}
+	baselinePath, err := cmd.Flags().GetString(baselineFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	compareCRSPath, err := cmd.Flags().GetString(compareCRSFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	if baselinePath != "" {
+		info, err := os.Stat(baselinePath)
+		if err != nil {
+			return emptyParams, fmt.Errorf("--%s path does not exist: %w", baselineFlag, err)
+		}
+		if info.IsDir() {
+			return emptyParams, fmt.Errorf("--%s must point to a file: %s", baselineFlag, baselinePath)
+		}
+	}
+	if compareCRSPath != "" {
+		info, err := os.Stat(compareCRSPath)
+		if err != nil {
+			return emptyParams, fmt.Errorf("--%s path does not exist: %w", compareCRSFlag, err)
+		}
+		if !info.IsDir() {
+			return emptyParams, fmt.Errorf("--%s must point to a directory: %s", compareCRSFlag, compareCRSPath)
+		}
+	}
 
 	// --max-concurrency defaults to 1 if debug/trace is enabled, but if set explicitly, it should override this
 	if !cmd.Flags().Changed(maxConcurrencyFlag) && zerolog.GlobalLevel() <= zerolog.DebugLevel {
 		maxConcurrency = 1
 	}
 
-	// Default to max paranoia level so that all rules (including the one of interest) are run.
-	if rule > 0 && !cmd.Flags().Changed(paranoiaLevelFlag) {
-		paranoiaLevel = maxCrsParanoiaLevel
+	requestedParanoiaLevels := []int{paranoiaLevel}
+
+	switch {
+	case allParanoiaLevels:
+		requestedParanoiaLevels = make([]int, 0, maxCrsParanoiaLevel)
+		for level := minCrsParanoiaLevel; level <= maxCrsParanoiaLevel; level++ {
+			requestedParanoiaLevels = append(requestedParanoiaLevels, level)
+		}
+	case len(paranoiaLevels) > 0:
+		requestedParanoiaLevels = paranoiaLevels
+	case rule > 0 && !cmd.Flags().Changed(paranoiaLevelFlag):
+		// Default to max paranoia level so that all rules (including the one of interest) are run.
+		requestedParanoiaLevels = []int{maxCrsParanoiaLevel}
 	}
 
-	if paranoiaLevel < minCrsParanoiaLevel || paranoiaLevel > maxCrsParanoiaLevel {
-		return emptyParams, fmt.Errorf("paranoia level must be between %d and %d", minCrsParanoiaLevel, maxCrsParanoiaLevel)
+	paranoiaLevelSet, err := quantitative.NewParanoiaLevels(requestedParanoiaLevels...)
+	if err != nil {
+		return emptyParams, err
 	}
 
 	corpusType := corpus.NoType
@@ -218,12 +275,14 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		Directory:       directory,
 		CorpusLocalPath: corpusLocalPath,
 		Lines:           lines,
-		ParanoiaLevel:   paranoiaLevel,
+		ParanoiaLevels:  paranoiaLevelSet,
 		Number:          number,
 		Payload:         payload,
 		Rule:            rule,
 		MaxConcurrency:  maxConcurrency,
 		IgnoreRules:     ignoreRules,
+		BaselinePath:    baselinePath,
+		CompareCRSPath:  compareCRSPath,
 	}, nil
 }
 

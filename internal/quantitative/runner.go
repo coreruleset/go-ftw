@@ -4,6 +4,7 @@
 package quantitative
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -30,8 +31,8 @@ type Params struct {
 	Directory string
 	// CorpusLocalPath is the path to store the local corpora
 	CorpusLocalPath string
-	// ParanoiaLevel is the paranoia level in where to run the quantitative tests
-	ParanoiaLevel int
+	// ParanoiaLevels are the paranoia levels to report from a single run.
+	ParanoiaLevels ParanoiaLevels
 	// CorpusSize is the corpus size to use for the quantitative tests
 	CorpusSize string
 	// Corpus is the corpus to use for the quantitative tests
@@ -46,24 +47,71 @@ type Params struct {
 	MaxConcurrency int
 	// IgnoreRules is a list of rule IDs to exclude from aggregate false-positive metrics
 	IgnoreRules []int
+	// BaselinePath is a prior quantitative JSON result to compare the current run against
+	BaselinePath string
+	// CompareCRSPath is the path to the baseline CRS tree to compare against the current directory
+	CompareCRSPath string
 }
+
+// ErrRegressionsDetected is returned when a quantitative comparison finds regressions.
+var ErrRegressionsDetected = errors.New("quantitative regressions detected")
 
 // RunQuantitativeTests runs all quantitative tests
 func RunQuantitativeTests(params Params, out *output.Output) error {
+	currentStats, err := runQuantitativeTest(params)
+	if err != nil {
+		return err
+	}
+
+	if params.BaselinePath == "" && params.CompareCRSPath == "" {
+		currentStats.printSummary(out)
+		return nil
+	}
+
+	baselineStats, err := baselineStatsForComparison(params)
+	if err != nil {
+		return err
+	}
+
+	comparison := currentStats.Compare(baselineStats)
+	comparison.PrintSummary(out)
+	if comparison.HasRegressions() {
+		return ErrRegressionsDetected
+	}
+	return nil
+}
+
+func baselineStatsForComparison(params Params) (*QuantitativeRunStats, error) {
+	if params.BaselinePath != "" {
+		return LoadQuantitativeRunStats(params.BaselinePath)
+	}
+
+	baselineParams := params
+	baselineParams.Directory = params.CompareCRSPath
+	baselineParams.BaselinePath = ""
+	baselineParams.CompareCRSPath = ""
+	return runQuantitativeTest(baselineParams)
+}
+
+func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 	var lc corpus.File
 	log.Info().Msgf("⏳Running quantitative tests with %d goroutines", params.MaxConcurrency)
 	log.Trace().Msgf("Rule: %d", params.Rule)
 	log.Trace().Msgf("Payload: %s", params.Payload)
 	log.Trace().Msgf("Directory: %s", params.Directory)
 	log.Trace().Msgf("Local path to corpus file: %s", params.CorpusLocalPath)
-	log.Trace().Msgf("Paranoia level: %d", params.ParanoiaLevel)
+	log.Trace().Msgf("Paranoia levels: %v", params.ParanoiaLevels.All())
 
 	startTime := time.Now()
 	// create the results
 	stats := NewQuantitativeStats(params.IgnoreRules)
+	stats.SetEvaluatedParanoiaLevels(params.ParanoiaLevels)
 
+	// The engine runs at the highest requested paranoia level so that every
+	// rule up to that level is active; lower levels are reported from the matches.
+	highestParanoiaLevel := params.ParanoiaLevels.Highest()
 	var engine LocalEngine = &localEngine{}
-	runner := engine.Create(params.Directory, params.ParanoiaLevel)
+	runner := engine.Create(params.Directory, highestParanoiaLevel)
 
 	// Are we using the corpus at all?
 	// TODO: this could be moved to a generic "file" iterator (instead of "corpus"), with a Factory method
@@ -71,7 +119,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 		log.Trace().Msgf("--payload is used, ignoring corpus related parameters. Payload received: %q", params.Payload)
 		p, err := PayloadFactory(params.Corpus)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		p.SetContent(params.Payload)
 		stats.incrementRun()
@@ -79,8 +127,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 		doEngineCall(runner, p, params.Rule, stats)
 
 		stats.SetTotalTime(time.Since(startTime))
-		stats.printSummary(out)
-		return nil
+		return stats, nil
 
 	}
 	// we are using the corpus
@@ -96,7 +143,7 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	// create a new corpusRunner
 	corpusRunner, err := CorpusFactory(params.Corpus, params.CorpusLocalPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	corpusRunner = corpusRunner.
 		WithSize(params.CorpusSize).
@@ -138,12 +185,11 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	}
 	wg.Wait()
 	if err := corpusRunner.CloseIterator(); err != nil {
-		return err
+		return nil, err
 	}
 
 	stats.SetTotalTime(time.Since(startTime))
-	stats.printSummary(out)
-	return nil
+	return stats, nil
 }
 
 // skipPayload returns true when the payload corresponding to the provided line has to be skipped
@@ -168,13 +214,20 @@ func doEngineCall(engine LocalEngine, payload corpus.Payload, specificRule int, 
 		// append the line to the false positives
 		log.Trace().Msgf("False positive with string: %s", payload)
 		log.Trace().Msgf("=> rules matched: %+v", matchedRules)
+		// sentenceIsFP is set only if at least one unfiltered rule fired,
+		// ensuring we count this sentence at most once toward the sentence FP total.
+		sentenceIsFP := false
 		for ruleId, match := range matchedRules {
 			// check if we only want to show false positives for a specific rule
 			if wantSpecificRuleResults(specificRule, ruleId) {
 				continue
 			}
 			stats.addFalsePositive(ruleId, match.ParanoiaLevel)
+			sentenceIsFP = true
 			log.Debug().Msgf("**> rule %d (PL%d) with payload %d => %s", ruleId, match.ParanoiaLevel, payload.LineNumber(), match.MatchData)
+		}
+		if sentenceIsFP {
+			stats.addFalsePositiveSentence()
 		}
 	}
 }

@@ -66,7 +66,24 @@ nfpms:
 
       It uses the OWASP Core Ruleset V3 as a baseline to test rules on a WAF. Each rule from the ruleset is loaded into a YAML file that issues HTTP requests that will trigger these rules. Users can verify the execution of the rule after the tests are issued to make sure the expected response is received from an attack.
 
-    license: APL2
+    license: Apache-2.0
+
+brews:
+  - name: go-ftw
+    repository:
+      owner: coreruleset
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "chore: formula update for {{ .ProjectName }} version {{ .Tag }}"
+    homepage: "https://github.com/coreruleset/go-ftw"
+    description: "Framework for Testing WAFs - Go version"
+    license: "Apache-2.0"
+    skip_upload: auto
+
 announce:
   slack:
     enabled: true
