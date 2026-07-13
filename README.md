@@ -843,6 +843,26 @@ if any modification to the rule has caused more false positives.
 
 Integrating it to the CI/CD pipeline will allow us to check every PR for false positives before merging.
 
+## Regex performance benchmarking
+
+`ftw regex perf` compiles a regex from an OWASP CRS regex-assembly (`.ra`) file
+(using the crs-toolchain assembler) or a raw pattern, then measures its match
+performance against the quantitative corpus or a single subject. It reports
+aggregate timing (total, mean, median, p99, max, throughput) and the slowest
+subjects. It uses Go's `regexp` engine (RE2), so it measures Coraza-realistic
+performance and is not a ReDoS detector.
+
+```bash
+# Benchmark a regex from a .ra file against the corpus
+ftw regex perf --file rules/942100.ra -C /path/to/coreruleset -s 10K
+
+# Benchmark a raw pattern against a single subject
+ftw regex perf --pattern '(?i)union\s+select' --subject "' UNION SELECT 1,2,3"
+
+# JSON output
+ftw regex perf --pattern '\d{3}-\d{4}' --corpus raw --corpus-local-path ./subjects.txt -o json
+```
+
 ## Library usage
 
 `go-ftw` can be used as a library also. Just include it in your project:
