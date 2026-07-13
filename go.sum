@@ -25,6 +25,7 @@ github.com/corazawaf/libinjection-go v0.3.2 h1:9rrKt0lpg4WvUXt+lwS06GywfqRXXsa/7
 github.com/corazawaf/libinjection-go v0.3.2/go.mod h1:Ik/+w3UmTWH9yn366RgS9D95K3y7Atb5m/H/gXzzPCk=
 github.com/coreruleset/ftw-tests-schema/v2 v2.3.0 h1:zs2US8z7sDba1O//qgaD1qj5R5B90m6FjHuRAuKK03g=
 github.com/coreruleset/ftw-tests-schema/v2 v2.3.0/go.mod h1:wvQApSsBz7qy0aGb88UwYWOnu6k6DlyPsJ3QoJ+tRhA=
+github.com/coreruleset/ftw-tests-schema/v3 v3.0.1/go.mod h1:S1MlcTtcRrohmajCl2gS/if1rky0qIuN0VN95lqrLZg=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/creativeprojects/go-selfupdate v1.5.2 h1:3KR3JLrq70oplb9yZzbmJ89qRP78D1AN/9u+l3k0LJ4=
 github.com/creativeprojects/go-selfupdate v1.5.2/go.mod h1:BCOuwIl1dRRCmPNRPH0amULeZqayhKyY2mH/h4va7Dk=
@@ -121,6 +122,8 @@ github.com/kyokomi/emoji/v2 v2.2.13 h1:GhTfQa67venUUvmleTNFnb+bi7S3aocF7ZCXU9fSO
 github.com/kyokomi/emoji/v2 v2.2.13/go.mod h1:JUcn42DTdsXJo1SWanHh4HKDEyPaR5CqkmoirZZP9qE=
 github.com/magefile/mage v1.17.0 h1:dS4tkq997Ism03akafC8509iqDjeE7TNTexI25Y7sXM=
 github.com/magefile/mage v1.17.0/go.mod h1:Yj51kqllmsgFpvvSzgrZPK9WtluG3kUhFaBUVLo4feA=
+github.com/magefile/mage v1.17.2 h1:fyXVu1eadI8Ap1HCCNgEhJ5McIWiYhLR8uol64ZZc40=
+github.com/magefile/mage v1.17.2/go.mod h1:Yj51kqllmsgFpvvSzgrZPK9WtluG3kUhFaBUVLo4feA=
 github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
 github.com/mattn/go-colorable v0.1.14/go.mod h1:6LmQG8QLFO4G5z1gPvYEzlUgJ2wF+stgPZH1UqBm1s8=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
