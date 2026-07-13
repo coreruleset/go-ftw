@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -72,7 +73,7 @@ For the "raw" corpus type, this flag specifies the path to the corpus file.`)
 	runCmd.Flags().String(baselineFlag, "", "Path to a prior quantitative JSON result to compare against.")
 	runCmd.Flags().String(compareCRSFlag, "", "Path to another CRS tree to run with the same parameters and compare against.")
 	runCmd.Flags().StringP(outputFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
-	runCmd.Flags().StringP(outputTypeFlag, "o", "normal", "Output type for quantitative tests.")
+	runCmd.Flags().StringP(outputTypeFlag, "o", "normal", `Output type for quantitative tests. Use "markdown" for PR-comment-ready Markdown ("github" is accepted as an alias).`)
 	_ = runCmd.Flags().MarkDeprecated(paranoiaLevelFlag, fmt.Sprintf("use --%s instead", paranoiaLevelsFlag))
 	runCmd.MarkFlagsMutuallyExclusive(paranoiaLevelFlag, paranoiaLevelsFlag, allParanoiaLevelsFlag)
 	runCmd.MarkFlagsMutuallyExclusive(baselineFlag, compareCRSFlag)
@@ -107,9 +108,20 @@ func runQuantitativeE(cmd *cobra.Command, _ []string) error {
 		}
 		defer func() { _ = outputFile.Close() }()
 	}
-	out := output.NewOutput(wantedOutput, outputFile)
+	out := output.NewOutput(normalizeQuantitativeOutputType(wantedOutput), outputFile)
 
 	return quantitative.RunQuantitativeTests(params, out)
+}
+
+func normalizeQuantitativeOutputType(wantedOutput string) string {
+	normalizedOutput := strings.ToLower(wantedOutput)
+
+	switch normalizedOutput {
+	case "github":
+		return string(output.Markdown)
+	default:
+		return normalizedOutput
+	}
 }
 
 //gocyclo:ignore
