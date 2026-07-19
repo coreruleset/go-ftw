@@ -370,9 +370,35 @@ func (s *statsTestSuite) TestIgnoredRules_printSummary_Plain() {
 
 	q.printSummary(out)
 	output := b.String()
-	s.Require().Contains(output, "Total False positive ratio: 1/1 = 1.0000 (1 FPs from 1 ignored rules not counted)")
+	s.Require().Contains(output, "Total False positive ratio: 1/1 = 1.0000 (1 FPs from 1 ignored rule not counted)")
 	s.Require().Contains(output, "False positives for ignored rules (not counted in aggregate):")
 	s.Require().Contains(output, "920272 (PL3): 1 false positives")
+}
+
+func (s *statsTestSuite) TestIgnoredRules_printSummary_MultiParanoiaLevels() {
+	var b bytes.Buffer
+	out := output.NewOutput("plain", &b)
+	q := NewQuantitativeStats([]int{920272, 920273})
+
+	q.incrementRun()
+	q.incrementRun()
+	evaluatedLevels, err := NewParanoiaLevels(1, 2, 4)
+	s.Require().NoError(err)
+	q.SetEvaluatedParanoiaLevels(evaluatedLevels)
+
+	// Non-ignored FP
+	q.addFalsePositive(920100, 1)
+	// Ignored FPs
+	q.addFalsePositive(920272, 2)
+	q.addFalsePositive(920273, 4)
+
+	q.printSummary(out)
+	output := b.String()
+	s.Require().Contains(output,
+		"Total False positive ratio at PL4: 1/2 = 0.5000 (2 FPs from 2 ignored rules not counted)")
+	s.Require().Contains(output, "False positives for ignored rules (not counted in aggregate):")
+	s.Require().Contains(output, "920272 (PL2): 1 false positives")
+	s.Require().Contains(output, "920273 (PL4): 1 false positives")
 }
 
 func (s *statsTestSuite) TestIgnoredRules_printSummary_OnlyIgnored() {
@@ -386,7 +412,7 @@ func (s *statsTestSuite) TestIgnoredRules_printSummary_OnlyIgnored() {
 
 	q.printSummary(out)
 	output := b.String()
-	s.Require().Contains(output, "No false positives detected (excluding 1 ignored rules)")
+	s.Require().Contains(output, "No false positives detected (excluding 1 ignored rule)")
 	s.Require().Contains(output, "False positives for ignored rules (not counted in aggregate):")
 }
 

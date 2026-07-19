@@ -304,7 +304,7 @@ func parseIgnoreRulesFile(filePath string) ([]int, error) {
 	if err != nil {
 		return nil, fmt.Errorf("opening ignore-rules-file %q: %w", filePath, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var rules []int
 	scanner := bufio.NewScanner(f)

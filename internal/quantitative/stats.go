@@ -195,7 +195,8 @@ func (s *QuantitativeRunStats) sortedRuleIDsByStatus() (regular, ignored []int) 
 func (s *QuantitativeRunStats) printFalsePositiveRatio(out *output.Output, ignoredRuleCount int) {
 	if s.falsePositives == 0 {
 		if s.ignoredFalsePositives > 0 {
-			out.Println("No false positives detected (excluding %d ignored rules)", ignoredRuleCount)
+			out.Println("No false positives detected (excluding %d ignored %s)",
+				ignoredRuleCount, ignoredRuleWord(ignoredRuleCount))
 		}
 		return
 	}
@@ -204,15 +205,25 @@ func (s *QuantitativeRunStats) printFalsePositiveRatio(out *output.Output, ignor
 	multiPL := s.evaluatedParanoiaLevels.Len() > 1
 	switch {
 	case multiPL && s.ignoredFalsePositives > 0:
-		out.Println("Total False positive ratio at PL%d: %d/%d = %.4f (%d FPs from %d ignored rules not counted)",
-			s.evaluatedParanoiaLevels.Highest(), s.falsePositives, s.count_, ratio, s.ignoredFalsePositives, ignoredRuleCount)
+		out.Println("Total False positive ratio at PL%d: %d/%d = %.4f (%d FPs from %d ignored %s not counted)",
+			s.evaluatedParanoiaLevels.Highest(), s.falsePositives, s.count_, ratio,
+			s.ignoredFalsePositives, ignoredRuleCount, ignoredRuleWord(ignoredRuleCount))
 	case multiPL:
 		out.Println("Total False positive ratio at PL%d: %d/%d = %.4f", s.evaluatedParanoiaLevels.Highest(), s.falsePositives, s.count_, ratio)
 	case s.ignoredFalsePositives > 0:
-		out.Println("Total False positive ratio: %d/%d = %.4f (%d FPs from %d ignored rules not counted)", s.falsePositives, s.count_, ratio, s.ignoredFalsePositives, ignoredRuleCount)
+		out.Println("Total False positive ratio: %d/%d = %.4f (%d FPs from %d ignored %s not counted)",
+			s.falsePositives, s.count_, ratio, s.ignoredFalsePositives, ignoredRuleCount, ignoredRuleWord(ignoredRuleCount))
 	default:
 		out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
 	}
+}
+
+// ignoredRuleWord returns the singular or plural noun for the given ignored rule count.
+func ignoredRuleWord(count int) string {
+	if count == 1 {
+		return "rule"
+	}
+	return "rules"
 }
 
 // printFalsePositivesPerParanoiaLevel prints the per-paranoia-level false positive breakdown.
@@ -434,7 +445,6 @@ func (s *QuantitativeRunStats) markdownSummary() string {
 
 	return summary.String()
 }
-
 
 // addFalsePositive increments the false positive count, the false positive count for the rule
 // and the false positive count for the paranoia level.
