@@ -137,7 +137,6 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel()
 	}
 }
 
-<<<<<<< HEAD
 func (s *quantitativeCmdTestSuite) TestIgnoreRulesFlag() {
 	tests := []struct {
 		name            string
@@ -160,7 +159,23 @@ func (s *quantitativeCmdTestSuite) TestIgnoreRulesFlag() {
 			args:            []string{"-C", s.tempDir, "--ignore-rules", "920272,920273,942432"},
 			wantIgnoreRules: []int{920272, 920273, 942432},
 		},
-=======
+	}
+
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			cmd := New(internal.NewCommandContext())
+			s.Require().NoError(cmd.ParseFlags(tc.args))
+			params, err := buildParams(cmd)
+			if tc.wantErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+			s.Equal(tc.wantIgnoreRules, params.IgnoreRules)
+		})
+	}
+}
+
 func (s *quantitativeCmdTestSuite) TestNormalizeQuantitativeOutputType() {
 	tests := []struct {
 		name string
@@ -172,24 +187,11 @@ func (s *quantitativeCmdTestSuite) TestNormalizeQuantitativeOutputType() {
 		{name: "markdown unchanged", in: "markdown", want: "markdown"},
 		{name: "markdown uppercase", in: "Markdown", want: "markdown"},
 		{name: "json unchanged", in: "json", want: "json"},
->>>>>>> origin/main
 	}
 
 	for _, tc := range tests {
 		s.Run(tc.name, func() {
-<<<<<<< HEAD
-			cmd := New(internal.NewCommandContext())
-			s.Require().NoError(cmd.ParseFlags(tc.args))
-			params, err := buildParams(cmd)
-			if tc.wantErr {
-				s.Require().Error(err)
-				return
-			}
-			s.Require().NoError(err)
-			s.Equal(tc.wantIgnoreRules, params.IgnoreRules)
-=======
 			s.Equal(tc.want, normalizeQuantitativeOutputType(tc.in))
->>>>>>> origin/main
 		})
 	}
 }

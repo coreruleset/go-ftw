@@ -243,7 +243,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MultiParanoiaLeve
 func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_Markdown() {
 	var b bytes.Buffer
 	out := output.NewOutput("markdown", &b)
-	q := NewQuantitativeStats()
+	q := NewQuantitativeStats(nil)
 
 	q.incrementRun()
 	q.incrementRun()
@@ -277,7 +277,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_Markdown() {
 func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MarkdownNoFalsePositives() {
 	var b bytes.Buffer
 	out := output.NewOutput("markdown", &b)
-	q := NewQuantitativeStats()
+	q := NewQuantitativeStats(nil)
 
 	q.incrementRun()
 

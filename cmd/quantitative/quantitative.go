@@ -7,10 +7,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-<<<<<<< HEAD
 	"strconv"
-=======
->>>>>>> origin/main
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -80,13 +77,9 @@ For the "raw" corpus type, this flag specifies the path to the corpus file.`)
 	runCmd.Flags().String(baselineFlag, "", "Path to a prior quantitative JSON result to compare against.")
 	runCmd.Flags().String(compareCRSFlag, "", "Path to another CRS tree to run with the same parameters and compare against.")
 	runCmd.Flags().StringP(outputFileFlag, "f", "", "Output file path for quantitative tests. Prints to standard output by default.")
-<<<<<<< HEAD
-	runCmd.Flags().StringP(outputTypeFlag, "o", "normal", "Output type for quantitative tests.")
+	runCmd.Flags().StringP(outputTypeFlag, "o", "normal", `Output type for quantitative tests. Use "markdown" for PR-comment-ready Markdown ("github" is accepted as an alias).`)
 	runCmd.Flags().IntSlice(ignoreRulesFlag, []int{}, "Comma-separated list of rule IDs to exclude from aggregate false-positive metrics, e.g. 920272,920273,942432.")
 	runCmd.Flags().String(ignoreRulesFileFlag, "", "Path to a file containing rule IDs to exclude from aggregate false-positive metrics (one rule ID per line).")
-=======
-	runCmd.Flags().StringP(outputTypeFlag, "o", "normal", `Output type for quantitative tests. Use "markdown" for PR-comment-ready Markdown ("github" is accepted as an alias).`)
->>>>>>> origin/main
 	_ = runCmd.Flags().MarkDeprecated(paranoiaLevelFlag, fmt.Sprintf("use --%s instead", paranoiaLevelsFlag))
 	runCmd.MarkFlagsMutuallyExclusive(paranoiaLevelFlag, paranoiaLevelsFlag, allParanoiaLevelsFlag)
 	runCmd.MarkFlagsMutuallyExclusive(baselineFlag, compareCRSFlag)
