@@ -41,16 +41,18 @@ func (s *statsTestSuite) TestNewQuantitativeStats() {
 			want: &QuantitativeRunStats{
 				count_:                         0,
 				falsePositives:                 0,
+				ignoredFalsePositives:          0,
 				falsePositiveSentences:         0,
 				falsePositivesPerRule:          make(map[int]RuleStats),
 				falsePositivesPerParanoiaLevel: make(map[int]int),
+				ignoredRules:                   map[int]struct{}{},
 				totalTime:                      0,
 			},
 		},
 	}
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			got := NewQuantitativeStats()
+			got := NewQuantitativeStats(nil)
 			s.Require().Equal(got, tt.want)
 		})
 	}
@@ -122,7 +124,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_MarshalJSON() {
 }
 
 func (s *statsTestSuite) TestQuantitativeRunStats_functions() {
-	q := NewQuantitativeStats()
+	q := NewQuantitativeStats(nil)
 
 	q.incrementRun()
 	s.Require().Equal(q.Count(), 1)
@@ -149,7 +151,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_functions() {
 func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_Plain() {
 	var b bytes.Buffer
 	out := output.NewOutput("plain", &b)
-	q := NewQuantitativeStats()
+	q := NewQuantitativeStats(nil)
 
 	q.incrementRun()
 	s.Require().Equal(q.Count(), 1)
@@ -167,7 +169,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_Plain() {
 func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_JSON() {
 	var b bytes.Buffer
 	out := output.NewOutput("json", &b)
-	q := NewQuantitativeStats()
+	q := NewQuantitativeStats(nil)
 
 	q.incrementRun()
 	s.Require().Equal(q.Count(), 1)
@@ -185,7 +187,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_JSON() {
 func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MultiParanoiaLevels_Plain() {
 	var b bytes.Buffer
 	out := output.NewOutput("plain", &b)
-	q := NewQuantitativeStats()
+	q := NewQuantitativeStats(nil)
 
 	for range 10 {
 		q.incrementRun()
@@ -206,7 +208,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MultiParanoiaLeve
 func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MultiParanoiaLevels_JSON() {
 	var b bytes.Buffer
 	out := output.NewOutput("json", &b)
-	q := NewQuantitativeStats()
+	q := NewQuantitativeStats(nil)
 
 	for range 3 {
 		q.incrementRun()
@@ -241,7 +243,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MultiParanoiaLeve
 func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_Markdown() {
 	var b bytes.Buffer
 	out := output.NewOutput("markdown", &b)
-	q := NewQuantitativeStats()
+	q := NewQuantitativeStats(nil)
 
 	q.incrementRun()
 	q.incrementRun()
@@ -275,7 +277,7 @@ func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_Markdown() {
 func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_MarkdownNoFalsePositives() {
 	var b bytes.Buffer
 	out := output.NewOutput("markdown", &b)
-	q := NewQuantitativeStats()
+	q := NewQuantitativeStats(nil)
 
 	q.incrementRun()
 
@@ -302,6 +304,7 @@ func (s *statsTestSuite) TestAddFalsePositiveRace() {
 	stats := &QuantitativeRunStats{
 		falsePositivesPerRule:          make(map[int]RuleStats),
 		falsePositivesPerParanoiaLevel: make(map[int]int),
+		ignoredRules:                   make(map[int]struct{}),
 		mu:                             sync.Mutex{},
 	}
 
@@ -327,10 +330,112 @@ func (s *statsTestSuite) TestAddFalsePositiveRace() {
 	s.Require().Equal(numGoroutines, totalPerRule, "Sum of per-rule counts should equal number of goroutines")
 }
 
+func (s *statsTestSuite) TestIgnoredRules_ExcludedFromAggregate() {
+	// Rules 920272 and 920273 are "noisy" and should be ignored in aggregate
+	q := NewQuantitativeStats([]int{920272, 920273})
+	q.incrementRun()
+	q.incrementRun()
+	q.incrementRun()
+
+	// This one counts toward aggregate
+	q.addFalsePositive(920100, 1)
+	// These two should NOT count toward aggregate
+	q.addFalsePositive(920272, 3)
+	q.addFalsePositive(920273, 4)
+
+	s.Require().Equal(1, q.FalsePositives(), "only non-ignored FPs count toward aggregate")
+	s.Require().Equal(2, q.ignoredFalsePositives, "ignored rules' FPs are tracked separately")
+	// All three rules appear in per-rule stats
+	s.Require().Len(q.falsePositivesPerRule, 3)
+	s.Require().False(q.falsePositivesPerRule[920100].Ignored)
+	s.Require().True(q.falsePositivesPerRule[920272].Ignored)
+	s.Require().True(q.falsePositivesPerRule[920273].Ignored)
+	// Paranoia-level aggregate excludes ignored rules
+	s.Require().Equal(1, q.falsePositivesPerParanoiaLevel[1])
+	s.Require().Equal(0, q.falsePositivesPerParanoiaLevel[3])
+	s.Require().Equal(0, q.falsePositivesPerParanoiaLevel[4])
+}
+
+func (s *statsTestSuite) TestIgnoredRules_printSummary_Plain() {
+	var b bytes.Buffer
+	out := output.NewOutput("plain", &b)
+	q := NewQuantitativeStats([]int{920272})
+
+	q.incrementRun()
+
+	// Non-ignored FP
+	q.addFalsePositive(920100, 1)
+	// Ignored FP
+	q.addFalsePositive(920272, 3)
+
+	q.printSummary(out)
+	output := b.String()
+	s.Require().Contains(output, "Total False positive ratio: 1/1 = 1.0000 (1 FPs from 1 ignored rule not counted)")
+	s.Require().Contains(output, "False positives for ignored rules (not counted in aggregate):")
+	s.Require().Contains(output, "920272 (PL3): 1 false positives")
+}
+
+func (s *statsTestSuite) TestIgnoredRules_printSummary_MultiParanoiaLevels() {
+	var b bytes.Buffer
+	out := output.NewOutput("plain", &b)
+	q := NewQuantitativeStats([]int{920272, 920273})
+
+	q.incrementRun()
+	q.incrementRun()
+	evaluatedLevels, err := NewParanoiaLevels(1, 2, 4)
+	s.Require().NoError(err)
+	q.SetEvaluatedParanoiaLevels(evaluatedLevels)
+
+	// Non-ignored FP
+	q.addFalsePositive(920100, 1)
+	// Ignored FPs
+	q.addFalsePositive(920272, 2)
+	q.addFalsePositive(920273, 4)
+
+	q.printSummary(out)
+	output := b.String()
+	s.Require().Contains(output,
+		"Total False positive ratio at PL4: 1/2 = 0.5000 (2 FPs from 2 ignored rules not counted)")
+	s.Require().Contains(output, "False positives for ignored rules (not counted in aggregate):")
+	s.Require().Contains(output, "920272 (PL2): 1 false positives")
+	s.Require().Contains(output, "920273 (PL4): 1 false positives")
+}
+
+func (s *statsTestSuite) TestIgnoredRules_printSummary_OnlyIgnored() {
+	var b bytes.Buffer
+	out := output.NewOutput("plain", &b)
+	q := NewQuantitativeStats([]int{920272})
+
+	q.incrementRun()
+	// Only an ignored FP, no regular FPs
+	q.addFalsePositive(920272, 3)
+
+	q.printSummary(out)
+	output := b.String()
+	s.Require().Contains(output, "No false positives detected (excluding 1 ignored rule)")
+	s.Require().Contains(output, "False positives for ignored rules (not counted in aggregate):")
+}
+
+func (s *statsTestSuite) TestIgnoredRules_JSON() {
+	var b bytes.Buffer
+	out := output.NewOutput("json", &b)
+	q := NewQuantitativeStats([]int{920272})
+
+	q.incrementRun()
+	q.addFalsePositive(920100, 1)
+	q.addFalsePositive(920272, 3)
+
+	q.printSummary(out)
+	jsonStr := b.String()
+	s.Require().Contains(jsonStr, `"ignoredFalsePositives":1`)
+	s.Require().Contains(jsonStr, `"falsePositives":1`)
+	s.Require().Contains(jsonStr, `"ignored":true`)
+}
+
 func (s *statsTestSuite) TestLoadQuantitativeRunStats() {
 	dir := s.T().TempDir()
 	baselinePath := filepath.Join(dir, "baseline.json")
-	err := os.WriteFile(baselinePath, []byte(`{"count":10,"skipped":1,"totalTimeSeconds":1.5,"falsePositives":3,"falsePositivesPerRule":{"920100":{"paranoiaLevel":1,"falsePositives":2},"933100":{"paranoiaLevel":2,"falsePositives":1}},"falsePositivesPerParanoiaLevel":{"1":2,"2":1}}`), 0644)
+	err := os.WriteFile(baselinePath, []byte(`{"count":10,"skipped":1,"totalTimeSeconds":1.5,"falsePositives":3,"falsePositivesPerRule":{"920100":{"paranoiaLevel":1,"falsePositives":2},"933100":{"paranoiaLevel":2,"falsePositives":1}},"falsePositivesPerParanoiaLevel":{"1":2,"2":1}}`), 0o644)
 	s.Require().NoError(err)
 
 	stats, err := LoadQuantitativeRunStats(baselinePath)
@@ -349,7 +454,7 @@ func (s *statsTestSuite) TestLoadQuantitativeRunStats() {
 func (s *statsTestSuite) TestLoadQuantitativeRunStatsRejectsMalformedJSON() {
 	dir := s.T().TempDir()
 	baselinePath := filepath.Join(dir, "baseline.json")
-	err := os.WriteFile(baselinePath, []byte(`{not valid json`), 0644)
+	err := os.WriteFile(baselinePath, []byte(`{not valid json`), 0o644)
 	s.Require().NoError(err)
 
 	_, err = LoadQuantitativeRunStats(baselinePath)

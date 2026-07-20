@@ -21,8 +21,9 @@ import (
 
 // RuleStats holds the statistics for a specific rule
 type RuleStats struct {
-	ParanoiaLevel  int `json:"paranoiaLevel"`
-	FalsePositives int `json:"falsePositives"`
+	ParanoiaLevel  int  `json:"paranoiaLevel"`
+	FalsePositives int  `json:"falsePositives"`
+	Ignored        bool `json:"ignored,omitempty"`
 }
 
 type quantitativeRunStatsJSON struct {
@@ -31,6 +32,7 @@ type quantitativeRunStatsJSON struct {
 	Skipped                             int               `json:"skipped"`
 	TotalTimeSeconds                    float64           `json:"totalTimeSeconds"`
 	FalsePositives                      int               `json:"falsePositives"`
+	IgnoredFalsePositives               int               `json:"ignoredFalsePositives,omitempty"`
 	FalsePositiveSentences              int               `json:"falsePositiveSentences"`
 	FalsePositivesPerRule               map[int]RuleStats `json:"falsePositivesPerRule"`
 	FalsePositivesPerParanoiaLevel      map[int]int       `json:"falsePositivesPerParanoiaLevel"`
@@ -82,28 +84,40 @@ type QuantitativeRunStats struct {
 	skipped_ int
 	// totalTime is the duration over all runs, the sum of all individual run times.
 	totalTime time.Duration
-	// falsePositives is the total false positives detected (rule-hit count; one sentence can contribute multiple hits)
+	// falsePositives is the total false positives detected (excludes ignored rules; rule-hit count, one
+	// sentence can contribute multiple hits)
 	falsePositives int
+	// ignoredFalsePositives is the total false positives for ignored rules (not counted in aggregate)
+	ignoredFalsePositives int
 	// falsePositiveSentences is the number of distinct corpus sentences that triggered at least one rule
 	falsePositiveSentences int
 	// falsePositivesPerRule is the aggregated false positives per rule (key is rule ID)
 	falsePositivesPerRule map[int]RuleStats
-	// falsePositivesPerParanoiaLevel is the aggregated false positives per paranoia level
+	// falsePositivesPerParanoiaLevel is the aggregated false positives per paranoia level (excludes ignored rules)
 	falsePositivesPerParanoiaLevel map[int]int
+	// ignoredRules is the set of rule IDs whose false positives are excluded from aggregate metrics
+	ignoredRules map[int]struct{}
 	// evaluatedParanoiaLevels are the paranoia levels requested for reporting cumulative totals.
 	evaluatedParanoiaLevels ParanoiaLevels
 	// mu is the mutex to protect the falsePositivesPerRule and falsePositivesPerParanoiaLevel maps
 	mu sync.Mutex
 }
 
-// NewQuantitativeStats returns a new empty stats
-func NewQuantitativeStats() *QuantitativeRunStats {
+// NewQuantitativeStats returns a new empty stats.
+// ignoreRules is an optional list of rule IDs to exclude from aggregate false-positive metrics.
+func NewQuantitativeStats(ignoreRules []int) *QuantitativeRunStats {
+	ignoredRulesSet := make(map[int]struct{}, len(ignoreRules))
+	for _, r := range ignoreRules {
+		ignoredRulesSet[r] = struct{}{}
+	}
 	return &QuantitativeRunStats{
 		count_:                         0,
 		falsePositives:                 0,
+		ignoredFalsePositives:          0,
 		falsePositiveSentences:         0,
 		falsePositivesPerRule:          make(map[int]RuleStats),
 		falsePositivesPerParanoiaLevel: make(map[int]int),
+		ignoredRules:                   ignoredRulesSet,
 		totalTime:                      0,
 		mu:                             sync.Mutex{},
 	}
@@ -128,52 +142,109 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 
 	out.Println("Run %d payloads (%d skipped) in %s", s.count_, s.skipped_, s.totalTime)
 
-	if s.falsePositives == 0 {
+	if s.falsePositives == 0 && s.ignoredFalsePositives == 0 {
 		out.Println("No false positives detected with the passed corpus")
 		return
 	}
 
+	regularRuleIDs, ignoredRuleIDs := s.sortedRuleIDsByStatus()
+
+	s.printFalsePositiveRatio(out, len(ignoredRuleIDs))
 	if s.evaluatedParanoiaLevels.Len() > 1 {
-		highestParanoiaLevel := s.evaluatedParanoiaLevels.Highest()
-		ratio := s.falsePositiveRatio(s.falsePositives)
-		out.Println("Total False positive ratio at PL%d: %d/%d = %.4f", highestParanoiaLevel, s.falsePositives, s.count_, ratio)
 		s.printEvaluatedParanoiaLevelTotals(out)
-	} else {
-		ratio := s.falsePositiveRatio(s.falsePositives)
-		out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
 	}
+
 	sentenceRatio := s.falsePositiveRatio(s.falsePositiveSentences)
 	out.Println("Total False positive sentences: %d/%d = %.4f", s.falsePositiveSentences, s.count_, sentenceRatio)
 
-	// Extract and sort the rule IDs
-	ruleIDs := slices.Collect(maps.Keys(s.falsePositivesPerRule))
-	slices.SortFunc(ruleIDs, func(i, j int) int {
-		// First sort by paranoia level and then by rule ID
-		plSort := s.falsePositivesPerRule[i].ParanoiaLevel - s.falsePositivesPerRule[j].ParanoiaLevel
-		if plSort != 0 {
-			return plSort
-		}
-		return i - j
-	})
+	if s.falsePositives > 0 {
+		s.printFalsePositivesPerParanoiaLevel(out)
+		s.printRuleStatsSection(out, "False positives per rule id:", regularRuleIDs)
+	}
+	if s.ignoredFalsePositives > 0 {
+		s.printRuleStatsSection(out, "False positives for ignored rules (not counted in aggregate):", ignoredRuleIDs)
+	}
+}
 
+// sortedRuleIDsByStatus splits the per-rule false positive IDs into regular and ignored
+// buckets, each sorted by paranoia level and then rule ID.
+func (s *QuantitativeRunStats) sortedRuleIDsByStatus() (regular, ignored []int) {
+	for ruleID, ruleStats := range s.falsePositivesPerRule {
+		if ruleStats.Ignored {
+			ignored = append(ignored, ruleID)
+		} else {
+			regular = append(regular, ruleID)
+		}
+	}
+	sortByPLThenID := func(ids []int) {
+		slices.SortFunc(ids, func(i, j int) int {
+			plSort := s.falsePositivesPerRule[i].ParanoiaLevel - s.falsePositivesPerRule[j].ParanoiaLevel
+			if plSort != 0 {
+				return plSort
+			}
+			return i - j
+		})
+	}
+	sortByPLThenID(regular)
+	sortByPLThenID(ignored)
+	return regular, ignored
+}
+
+// printFalsePositiveRatio prints the total false positive ratio line, noting the highest
+// evaluated paranoia level and/or the ignored-rule counts when applicable.
+func (s *QuantitativeRunStats) printFalsePositiveRatio(out *output.Output, ignoredRuleCount int) {
+	if s.falsePositives == 0 {
+		if s.ignoredFalsePositives > 0 {
+			out.Println("No false positives detected (excluding %d ignored %s)",
+				ignoredRuleCount, ignoredRuleWord(ignoredRuleCount))
+		}
+		return
+	}
+
+	ratio := s.falsePositiveRatio(s.falsePositives)
+	multiPL := s.evaluatedParanoiaLevels.Len() > 1
+	switch {
+	case multiPL && s.ignoredFalsePositives > 0:
+		out.Println("Total False positive ratio at PL%d: %d/%d = %.4f (%d FPs from %d ignored %s not counted)",
+			s.evaluatedParanoiaLevels.Highest(), s.falsePositives, s.count_, ratio,
+			s.ignoredFalsePositives, ignoredRuleCount, ignoredRuleWord(ignoredRuleCount))
+	case multiPL:
+		out.Println("Total False positive ratio at PL%d: %d/%d = %.4f", s.evaluatedParanoiaLevels.Highest(), s.falsePositives, s.count_, ratio)
+	case s.ignoredFalsePositives > 0:
+		out.Println("Total False positive ratio: %d/%d = %.4f (%d FPs from %d ignored %s not counted)",
+			s.falsePositives, s.count_, ratio, s.ignoredFalsePositives, ignoredRuleCount, ignoredRuleWord(ignoredRuleCount))
+	default:
+		out.Println("Total False positive ratio: %d/%d = %.4f", s.falsePositives, s.count_, ratio)
+	}
+}
+
+// ignoredRuleWord returns the singular or plural noun for the given ignored rule count.
+func ignoredRuleWord(count int) string {
+	if count == 1 {
+		return "rule"
+	}
+	return "rules"
+}
+
+// printFalsePositivesPerParanoiaLevel prints the per-paranoia-level false positive breakdown.
+func (s *QuantitativeRunStats) printFalsePositivesPerParanoiaLevel(out *output.Output) {
 	out.Println("False positives per paranoia level:")
 	paranoiaLevels := slices.Sorted(maps.Keys(s.falsePositivesPerParanoiaLevel))
-
-	// Print sorted paranoia levels
 	for _, pl := range paranoiaLevels {
 		count := s.falsePositivesPerParanoiaLevel[pl]
 		perPLRatio := float64(count) / float64(s.count_)
 		out.Println("  PL%d: %d false positives. FP Ratio: %d/%d = %.4f", pl, count, count, s.count_, perPLRatio)
 	}
-	out.Println("False positives per rule id:")
+}
 
-	// Print the sorted false positives map
+// printRuleStatsSection prints a titled per-rule false positive breakdown for the given rule IDs.
+func (s *QuantitativeRunStats) printRuleStatsSection(out *output.Output, title string, ruleIDs []int) {
+	out.Println(title)
 	for _, ruleID := range ruleIDs {
 		ruleStats := s.falsePositivesPerRule[ruleID]
 		perRuleRatio := float64(ruleStats.FalsePositives) / float64(s.count_)
 		out.Println("  %d (PL%d): %d false positives. FP Ratio: %d/%d = %.4f", ruleID, ruleStats.ParanoiaLevel, ruleStats.FalsePositives, ruleStats.FalsePositives, s.count_, perRuleRatio)
 	}
-
 }
 
 // Compare returns the structured diff between the current stats and the baseline.
@@ -375,14 +446,19 @@ func (s *QuantitativeRunStats) markdownSummary() string {
 	return summary.String()
 }
 
-
 // addFalsePositive increments the false positive count, the false positive count for the rule
 // and the false positive count for the paranoia level.
+// If the rule is in the ignored rules set, only the per-rule counter is updated (not the aggregate).
 func (s *QuantitativeRunStats) addFalsePositive(ruleID int, paranoiaLevel int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.falsePositives++
-	s.falsePositivesPerParanoiaLevel[paranoiaLevel]++
+	_, isIgnored := s.ignoredRules[ruleID]
+	if isIgnored {
+		s.ignoredFalsePositives++
+	} else {
+		s.falsePositives++
+		s.falsePositivesPerParanoiaLevel[paranoiaLevel]++
+	}
 	if stats, exists := s.falsePositivesPerRule[ruleID]; exists {
 		stats.FalsePositives++
 		s.falsePositivesPerRule[ruleID] = stats
@@ -391,6 +467,7 @@ func (s *QuantitativeRunStats) addFalsePositive(ruleID int, paranoiaLevel int) {
 	s.falsePositivesPerRule[ruleID] = RuleStats{
 		ParanoiaLevel:  paranoiaLevel,
 		FalsePositives: 1,
+		Ignored:        isIgnored,
 	}
 }
 
@@ -456,6 +533,7 @@ func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 		Skipped:                        s.skipped_,
 		TotalTimeSeconds:               math.Round(s.totalTime.Seconds()*1e4) / 1e4,
 		FalsePositives:                 s.falsePositives,
+		IgnoredFalsePositives:          s.ignoredFalsePositives,
 		FalsePositiveSentences:         s.falsePositiveSentences,
 		FalsePositivesPerRule:          s.falsePositivesPerRule,
 		FalsePositivesPerParanoiaLevel: s.falsePositivesPerParanoiaLevel,

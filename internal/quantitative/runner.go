@@ -45,6 +45,8 @@ type Params struct {
 	CorpusSource string
 	// MaxConcurrency is the maximum number of goroutines spawned
 	MaxConcurrency int
+	// IgnoreRules is a list of rule IDs to exclude from aggregate false-positive metrics
+	IgnoreRules []int
 	// BaselinePath is a prior quantitative JSON result to compare the current run against
 	BaselinePath string
 	// CompareCRSPath is the path to the baseline CRS tree to compare against the current directory
@@ -102,7 +104,7 @@ func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 
 	startTime := time.Now()
 	// create the results
-	stats := NewQuantitativeStats()
+	stats := NewQuantitativeStats(params.IgnoreRules)
 	stats.SetEvaluatedParanoiaLevels(params.ParanoiaLevels)
 
 	// The engine runs at the highest requested paranoia level so that every

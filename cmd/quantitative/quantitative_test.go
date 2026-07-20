@@ -16,8 +16,10 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var crsSetupFileContents = `# CRS Setup Configuration filename`
-var emptyRulesFile = `# Empty Rules filename`
+var (
+	crsSetupFileContents = `# CRS Setup Configuration filename`
+	emptyRulesFile       = `# Empty Rules filename`
+)
 
 type quantitativeCmdTestSuite struct {
 	suite.Suite
@@ -63,11 +65,11 @@ func writeFakeCRS(t *testing.T, root string) {
 	if err != nil {
 		t.Fatalf("MkdirAll() error = %v", err)
 	}
-	err = os.WriteFile(path.Join(root, "crs-setup.conf.example"), []byte(crsSetupFileContents), 0644)
+	err = os.WriteFile(path.Join(root, "crs-setup.conf.example"), []byte(crsSetupFileContents), 0o644)
 	if err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
-	err = os.WriteFile(path.Join(root, "rules", "Rules1.conf"), []byte(emptyRulesFile), 0644)
+	err = os.WriteFile(path.Join(root, "rules", "Rules1.conf"), []byte(emptyRulesFile), 0o644)
 	if err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
@@ -135,6 +137,45 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandRuleAndParanoiaLevel()
 	}
 }
 
+func (s *quantitativeCmdTestSuite) TestIgnoreRulesFlag() {
+	tests := []struct {
+		name            string
+		args            []string
+		wantErr         bool
+		wantIgnoreRules []int
+	}{
+		{
+			name:            "no ignore-rules flag",
+			args:            []string{"-C", s.tempDir},
+			wantIgnoreRules: []int{},
+		},
+		{
+			name:            "single rule",
+			args:            []string{"-C", s.tempDir, "--ignore-rules", "920272"},
+			wantIgnoreRules: []int{920272},
+		},
+		{
+			name:            "comma-separated rules",
+			args:            []string{"-C", s.tempDir, "--ignore-rules", "920272,920273,942432"},
+			wantIgnoreRules: []int{920272, 920273, 942432},
+		},
+	}
+
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			cmd := New(internal.NewCommandContext())
+			s.Require().NoError(cmd.ParseFlags(tc.args))
+			params, err := buildParams(cmd)
+			if tc.wantErr {
+				s.Require().Error(err)
+				return
+			}
+			s.Require().NoError(err)
+			s.Equal(tc.wantIgnoreRules, params.IgnoreRules)
+		})
+	}
+}
+
 func (s *quantitativeCmdTestSuite) TestNormalizeQuantitativeOutputType() {
 	tests := []struct {
 		name string
@@ -178,6 +219,45 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandParanoiaLevelFlagConfl
 			s.Require().Error(err, "expected mutually exclusive paranoia level flag error")
 		})
 	}
+}
+
+func (s *quantitativeCmdTestSuite) TestIgnoreRulesFileFlag() {
+	// Write a file with two rule IDs (and a comment and blank line)
+	rulesFile := path.Join(s.tempDir, "ignore-rules.txt")
+	content := "# comment\n920272\n920273\n\n942432\n"
+	s.Require().NoError(os.WriteFile(rulesFile, []byte(content), 0o644))
+
+	cmd := New(internal.NewCommandContext())
+	s.Require().NoError(cmd.ParseFlags([]string{"-C", s.tempDir, "--ignore-rules-file", rulesFile}))
+	params, err := buildParams(cmd)
+	s.Require().NoError(err)
+	s.Equal([]int{920272, 920273, 942432}, params.IgnoreRules)
+}
+
+func (s *quantitativeCmdTestSuite) TestIgnoreRulesFileFlag_MergesWithFlag() {
+	// Write a file with one rule ID
+	rulesFile := path.Join(s.tempDir, "ignore-rules.txt")
+	s.Require().NoError(os.WriteFile(rulesFile, []byte("942432\n"), 0o644))
+
+	cmd := New(internal.NewCommandContext())
+	s.Require().NoError(cmd.ParseFlags([]string{"-C", s.tempDir, "--ignore-rules", "920272", "--ignore-rules-file", rulesFile}))
+	params, err := buildParams(cmd)
+	s.Require().NoError(err)
+	s.Equal([]int{920272, 942432}, params.IgnoreRules)
+}
+
+func (s *quantitativeCmdTestSuite) TestIgnoreRulesFileFlag_InvalidFile() {
+	cmd := New(internal.NewCommandContext())
+	s.Require().NoError(cmd.ParseFlags([]string{"-C", s.tempDir, "--ignore-rules-file", "/nonexistent/path.txt"}))
+	_, err := buildParams(cmd)
+	s.Require().Error(err)
+}
+
+func (s *quantitativeCmdTestSuite) TestIgnoreRulesCommand() {
+	s.cmd.SetArgs([]string{"quantitative", "-C", s.tempDir, "--ignore-rules", "920272,920273", "-p", "test payload"})
+	cmd, err := s.cmd.ExecuteContextC(context.Background())
+	s.Require().NoError(err, "quantitative command with --ignore-rules should not return error")
+	s.Equal("quantitative", cmd.Name())
 }
 
 func (s *quantitativeCmdTestSuite) TestBuildParamsComparisonFlags() {
