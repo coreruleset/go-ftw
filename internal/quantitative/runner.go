@@ -5,6 +5,8 @@ package quantitative
 
 import (
 	"errors"
+	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -21,8 +23,12 @@ type Params struct {
 	// Fast is the process 1 in every X lines of input ('fast run' mode)
 	// TODO: to be implemented
 	Fast int
-	// Rule is the rule ID of interest: only show false positives for specified rule ID
-	Rule int
+	// Rules is the list of rule IDs of interest: only show false positives for these rule IDs.
+	// An empty slice means no filtering (all rules are reported).
+	Rules []int
+	// Threshold is the maximum acceptable false-positive ratio for each rule in Rules.
+	// A value of 0 disables the check. Requires Rules to be non-empty.
+	Threshold float64
 	// Payload is just a string to use instead of reading from the corpus
 	Payload string
 	// Number is the payload number (the line in the corpus) to exclusively send
@@ -56,16 +62,20 @@ type Params struct {
 // ErrRegressionsDetected is returned when a quantitative comparison finds regressions.
 var ErrRegressionsDetected = errors.New("quantitative regressions detected")
 
+// ErrThresholdExceeded is returned when one or more requested rules exceed the false-positive threshold.
+var ErrThresholdExceeded = errors.New("quantitative false-positive threshold exceeded")
+
 // RunQuantitativeTests runs all quantitative tests
 func RunQuantitativeTests(params Params, out *output.Output) error {
 	currentStats, err := runQuantitativeTest(params)
 	if err != nil {
 		return err
 	}
+	currentStats.SetThresholdResult(evaluateThreshold(params, currentStats))
 
 	if params.BaselinePath == "" && params.CompareCRSPath == "" {
 		currentStats.printSummary(out)
-		return nil
+		return thresholdError(currentStats.thresholdResult)
 	}
 
 	baselineStats, err := baselineStatsForComparison(params)
@@ -78,7 +88,45 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	if comparison.HasRegressions() {
 		return ErrRegressionsDetected
 	}
-	return nil
+	return thresholdError(currentStats.thresholdResult)
+}
+
+// evaluateThreshold computes the false-positive ratio for each rule requested via Params.Rules
+// against Params.Threshold. It returns nil if no threshold check was requested (Threshold <= 0).
+func evaluateThreshold(params Params, stats *QuantitativeRunStats) *ThresholdResult {
+	if params.Threshold <= 0 {
+		return nil
+	}
+
+	result := &ThresholdResult{
+		Threshold: params.Threshold,
+		Rules:     make([]ThresholdRuleResult, 0, len(params.Rules)),
+		Passed:    true,
+	}
+	for _, ruleID := range params.Rules {
+		ratio := stats.FalsePositiveRatioForRule(ruleID)
+		passed := ratio <= params.Threshold
+		result.Rules = append(result.Rules, ThresholdRuleResult{RuleID: ruleID, Ratio: ratio, Passed: passed})
+		if !passed {
+			result.Passed = false
+		}
+	}
+	return result
+}
+
+// thresholdError returns ErrThresholdExceeded naming the rules that breached the threshold,
+// or nil if the result is absent (no threshold requested) or passed.
+func thresholdError(result *ThresholdResult) error {
+	if result == nil || result.Passed {
+		return nil
+	}
+	var breached []int
+	for _, r := range result.Rules {
+		if !r.Passed {
+			breached = append(breached, r.RuleID)
+		}
+	}
+	return fmt.Errorf("%w: rule(s) %v exceeded threshold %.4f", ErrThresholdExceeded, breached, result.Threshold)
 }
 
 func baselineStatsForComparison(params Params) (*QuantitativeRunStats, error) {
@@ -96,7 +144,7 @@ func baselineStatsForComparison(params Params) (*QuantitativeRunStats, error) {
 func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 	var lc corpus.File
 	log.Info().Msgf("⏳Running quantitative tests with %d goroutines", params.MaxConcurrency)
-	log.Trace().Msgf("Rule: %d", params.Rule)
+	log.Trace().Msgf("Rules: %v", params.Rules)
 	log.Trace().Msgf("Payload: %s", params.Payload)
 	log.Trace().Msgf("Directory: %s", params.Directory)
 	log.Trace().Msgf("Local path to corpus file: %s", params.CorpusLocalPath)
@@ -124,7 +172,7 @@ func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 		p.SetContent(params.Payload)
 		stats.incrementRun()
 		// CrsCall with payload
-		doEngineCall(runner, p, params.Rule, stats)
+		doEngineCall(runner, p, params.Rules, stats)
 
 		stats.SetTotalTime(time.Since(startTime))
 		return stats, nil
@@ -178,10 +226,10 @@ func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 
 		wg.Add(1)
 		ch <- 1
-		go func(runner LocalEngine, payload corpus.Payload, rule int, stats *QuantitativeRunStats) {
+		go func(runner LocalEngine, payload corpus.Payload, rules []int, stats *QuantitativeRunStats) {
 			defer func() { wg.Done(); <-ch }()
-			doEngineCall(runner, payload, rule, stats)
-		}(runner, payload, params.Rule, stats)
+			doEngineCall(runner, payload, rules, stats)
+		}(runner, payload, params.Rules, stats)
 	}
 	wg.Wait()
 	if err := corpusRunner.CloseIterator(); err != nil {
@@ -201,13 +249,14 @@ func skipPayload(want int, have int) bool {
 	return want != have
 }
 
-// wantSpecificRuleResults returns true
-func wantSpecificRuleResults(specific int, rule int) bool {
-	return specific > 0 && specific != rule
+// wantSpecificRuleResults returns true when the given rule should be skipped because a
+// non-empty set of rules of interest was requested and this rule is not one of them.
+func wantSpecificRuleResults(specific []int, rule int) bool {
+	return len(specific) > 0 && !slices.Contains(specific, rule)
 }
 
 // doEngineCall
-func doEngineCall(engine LocalEngine, payload corpus.Payload, specificRule int, stats *QuantitativeRunStats) {
+func doEngineCall(engine LocalEngine, payload corpus.Payload, specificRules []int, stats *QuantitativeRunStats) {
 	matchedRules := engine.CrsCall(payload.Content())
 	log.Trace().Msgf("Rules: %v", matchedRules)
 	if len(matchedRules) != 0 {
@@ -218,8 +267,8 @@ func doEngineCall(engine LocalEngine, payload corpus.Payload, specificRule int, 
 		// ensuring we count this sentence at most once toward the sentence FP total.
 		sentenceIsFP := false
 		for ruleId, match := range matchedRules {
-			// check if we only want to show false positives for a specific rule
-			if wantSpecificRuleResults(specificRule, ruleId) {
+			// check if we only want to show false positives for specific rules
+			if wantSpecificRuleResults(specificRules, ruleId) {
 				continue
 			}
 			stats.addFalsePositive(ruleId, match.ParanoiaLevel)

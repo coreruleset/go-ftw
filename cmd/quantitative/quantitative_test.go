@@ -176,6 +176,90 @@ func (s *quantitativeCmdTestSuite) TestIgnoreRulesFlag() {
 	}
 }
 
+func (s *quantitativeCmdTestSuite) TestRuleFlagAcceptsMultipleValues() {
+	tests := []struct {
+		name      string
+		args      []string
+		wantRules []int
+	}{
+		{
+			name:      "no rule flag",
+			args:      []string{"-C", s.tempDir, "-p", "test payload"},
+			wantRules: []int{},
+		},
+		{
+			name:      "single rule",
+			args:      []string{"-C", s.tempDir, "-r", "920100", "-p", "test payload"},
+			wantRules: []int{920100},
+		},
+		{
+			name:      "repeated flag",
+			args:      []string{"-C", s.tempDir, "-r", "920100", "-r", "920120", "-p", "test payload"},
+			wantRules: []int{920100, 920120},
+		},
+		{
+			name:      "comma-separated",
+			args:      []string{"-C", s.tempDir, "-r", "920100,920120,942100", "-p", "test payload"},
+			wantRules: []int{920100, 920120, 942100},
+		},
+	}
+
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			cmd := New(internal.NewCommandContext())
+			s.Require().NoError(cmd.ParseFlags(tc.args))
+			params, err := buildParams(cmd)
+			s.Require().NoError(err)
+			s.Equal(tc.wantRules, params.Rules)
+		})
+	}
+}
+
+func (s *quantitativeCmdTestSuite) TestThresholdFlag() {
+	tests := []struct {
+		name          string
+		args          []string
+		wantErr       string
+		wantThreshold float64
+	}{
+		{
+			name:          "threshold with rule is accepted",
+			args:          []string{"-C", s.tempDir, "-r", "920100", "-t", "0.05", "-p", "test payload"},
+			wantThreshold: 0.05,
+		},
+		{
+			name:          "threshold with multiple rules is accepted",
+			args:          []string{"-C", s.tempDir, "-r", "920100", "-r", "920120", "-t", "0.05", "-p", "test payload"},
+			wantThreshold: 0.05,
+		},
+		{
+			name:    "threshold without rule errors",
+			args:    []string{"-C", s.tempDir, "-t", "0.05", "-p", "test payload"},
+			wantErr: "--threshold requires --rule to be set",
+		},
+		{
+			name:    "negative threshold errors",
+			args:    []string{"-C", s.tempDir, "-r", "920100", "-t", "-0.1", "-p", "test payload"},
+			wantErr: "--threshold must not be negative",
+		},
+	}
+
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			cmd := New(internal.NewCommandContext())
+			s.Require().NoError(cmd.ParseFlags(tc.args))
+			params, err := buildParams(cmd)
+			if tc.wantErr != "" {
+				s.Require().Error(err)
+				s.Require().Contains(err.Error(), tc.wantErr)
+				return
+			}
+			s.Require().NoError(err)
+			s.InDelta(tc.wantThreshold, params.Threshold, 0.0001)
+		})
+	}
+}
+
 func (s *quantitativeCmdTestSuite) TestNormalizeQuantitativeOutputType() {
 	tests := []struct {
 		name string
@@ -341,6 +425,45 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandCompareCRSJSON() {
 	s.Require().NotNil(got.Baseline, "expected baseline results in comparison output")
 	s.Require().NotNil(got.Current, "expected current results in comparison output")
 	s.Require().False(got.Regressions.Detected, "expected no regressions for identical empty CRS trees")
+}
+
+func (s *quantitativeCmdTestSuite) TestQuantitativeCommandThresholdJSON() {
+	outputFile, err := os.CreateTemp(s.T().TempDir(), "quantitative-*.json")
+	s.Require().NoError(err)
+	defer func() { _ = outputFile.Close() }()
+
+	s.cmd.SetArgs([]string{
+		"quantitative",
+		"-C", s.tempDir,
+		"-r", "920100",
+		"-t", "0.05",
+		"-p", "test payload",
+		"-o", "json",
+		"-f", outputFile.Name(),
+	})
+
+	s.Require().NoError(s.cmd.ExecuteContext(context.Background()))
+
+	b, err := os.ReadFile(outputFile.Name())
+	s.Require().NoError(err)
+
+	var got struct {
+		ThresholdCheck struct {
+			Threshold float64 `json:"threshold"`
+			Passed    bool    `json:"passed"`
+			Rules     []struct {
+				RuleID int     `json:"ruleId"`
+				Ratio  float64 `json:"ratio"`
+				Passed bool    `json:"passed"`
+			} `json:"rules"`
+		} `json:"thresholdCheck"`
+	}
+	s.Require().NoError(json.Unmarshal(b, &got))
+	s.InDelta(0.05, got.ThresholdCheck.Threshold, 0.0001)
+	s.Require().True(got.ThresholdCheck.Passed, "expected threshold check to pass with no false positives")
+	s.Require().Len(got.ThresholdCheck.Rules, 1)
+	s.Equal(920100, got.ThresholdCheck.Rules[0].RuleID)
+	s.Require().True(got.ThresholdCheck.Rules[0].Passed)
 }
 
 func (s *quantitativeCmdTestSuite) TestQuantitativeCommandSavedBaselineComparisonJSON() {

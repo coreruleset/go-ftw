@@ -148,6 +148,109 @@ func (s *statsTestSuite) TestQuantitativeRunStats_functions() {
 	s.Require().Equal(q.TotalTime(), duration)
 }
 
+func (s *statsTestSuite) TestFalsePositiveRatioForRule() {
+	q := NewQuantitativeStats(nil)
+
+	q.incrementRun()
+	q.incrementRun()
+	q.incrementRun()
+	q.incrementRun()
+	s.Require().Equal(4, q.Count())
+
+	q.addFalsePositive(920100, 1)
+	q.addFalsePositive(920200, 2)
+	q.addFalsePositive(920200, 2)
+
+	s.Require().InDelta(0.25, q.FalsePositiveRatioForRule(920100), 0.0001)
+	s.Require().InDelta(0.5, q.FalsePositiveRatioForRule(920200), 0.0001)
+	s.Require().Zero(q.FalsePositiveRatioForRule(999999))
+}
+
+func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_ThresholdPlain() {
+	var b bytes.Buffer
+	out := output.NewOutput("plain", &b)
+	q := NewQuantitativeStats(nil)
+
+	q.incrementRun()
+	q.addFalsePositive(920100, 1)
+	q.SetThresholdResult(&ThresholdResult{
+		Threshold: 0.5,
+		Passed:    false,
+		Rules: []ThresholdRuleResult{
+			{RuleID: 920100, Ratio: 1, Passed: false},
+			{RuleID: 920200, Ratio: 0, Passed: true},
+		},
+	})
+
+	q.printSummary(out)
+	s.Require().Contains(b.String(), "Threshold check (max ratio 0.5000):")
+	s.Require().Contains(b.String(), "  rule 920100: ratio=1.0000 [FAIL]")
+	s.Require().Contains(b.String(), "  rule 920200: ratio=0.0000 [OK]")
+}
+
+func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_ThresholdPlain_NoFalsePositives() {
+	var b bytes.Buffer
+	out := output.NewOutput("plain", &b)
+	q := NewQuantitativeStats(nil)
+
+	q.incrementRun()
+	q.SetThresholdResult(&ThresholdResult{
+		Threshold: 0.5,
+		Passed:    true,
+		Rules:     []ThresholdRuleResult{{RuleID: 920100, Ratio: 0, Passed: true}},
+	})
+
+	q.printSummary(out)
+	s.Require().Contains(b.String(), "No false positives detected with the passed corpus")
+	s.Require().Contains(b.String(), "Threshold check (max ratio 0.5000):")
+	s.Require().Contains(b.String(), "  rule 920100: ratio=0.0000 [OK]")
+}
+
+func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_ThresholdJSON() {
+	var b bytes.Buffer
+	out := output.NewOutput("json", &b)
+	q := NewQuantitativeStats(nil)
+
+	q.incrementRun()
+	q.addFalsePositive(920100, 1)
+	q.SetThresholdResult(&ThresholdResult{
+		Threshold: 0.5,
+		Passed:    false,
+		Rules:     []ThresholdRuleResult{{RuleID: 920100, Ratio: 1, Passed: false}},
+	})
+
+	q.printSummary(out)
+	s.JSONEq(`{"corpusSize":1,"count":1,"falsePositiveSentences":0,"falsePositives":1,
+		"falsePositivesPerParanoiaLevel":{"1":1},
+		"falsePositivesPerRule":{"920100":{"paranoiaLevel":1,"falsePositives":1}},
+		"skipped":0,"totalTimeSeconds":0,
+		"thresholdCheck":{"threshold":0.5,"passed":false,"rules":[{"ruleId":920100,"ratio":1,"passed":false}]}
+	}`, b.String())
+}
+
+func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_ThresholdMarkdown() {
+	var b bytes.Buffer
+	out := output.NewOutput("markdown", &b)
+	q := NewQuantitativeStats(nil)
+
+	q.incrementRun()
+	q.addFalsePositive(920100, 1)
+	q.SetThresholdResult(&ThresholdResult{
+		Threshold: 0.5,
+		Passed:    false,
+		Rules: []ThresholdRuleResult{
+			{RuleID: 920100, Ratio: 1, Passed: false},
+			{RuleID: 920200, Ratio: 0, Passed: true},
+		},
+	})
+
+	q.printSummary(out)
+	s.Require().Contains(b.String(), "### Threshold check")
+	s.Require().Contains(b.String(), "⚠️ One or more rules exceeded the 0.5000 threshold.")
+	s.Require().Contains(b.String(), "| 920100 | 1.0000 | ⚠️ FAIL |")
+	s.Require().Contains(b.String(), "| 920200 | 0.0000 | ✅ OK |")
+}
+
 func (s *statsTestSuite) TestQuantitativeRunStats_printSummary_Plain() {
 	var b bytes.Buffer
 	out := output.NewOutput("plain", &b)
