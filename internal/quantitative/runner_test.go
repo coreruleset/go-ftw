@@ -113,6 +113,14 @@ func (s *runnerTestSuite) TestEvaluateThreshold() {
 	})
 }
 
+func (s *runnerTestSuite) TestRunQuantitativeTests_ThresholdRequiresRules() {
+	var b bytes.Buffer
+	out := output.NewOutput("plain", &b)
+	err := RunQuantitativeTests(Params{Threshold: 0.05}, out)
+	s.Require().Error(err)
+	s.Require().Contains(err.Error(), "Params.Rules")
+}
+
 func (s *runnerTestSuite) TestCorpusFactory_NoType() {
 	_, err := CorpusFactory(corpus.NoType, "")
 	s.Require().Error(err)

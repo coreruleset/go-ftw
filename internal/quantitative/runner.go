@@ -67,6 +67,10 @@ var ErrThresholdExceeded = errors.New("quantitative false-positive threshold exc
 
 // RunQuantitativeTests runs all quantitative tests
 func RunQuantitativeTests(params Params, out *output.Output) error {
+	if params.Threshold > 0 && len(params.Rules) == 0 {
+		return fmt.Errorf("threshold check requires Params.Rules to be non-empty")
+	}
+
 	currentStats, err := runQuantitativeTest(params)
 	if err != nil {
 		return err

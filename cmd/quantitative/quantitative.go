@@ -66,7 +66,7 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd.Flags().IntP(corpusLineFlag, "n", 0, "Number is the payload line from the corpus to exclusively send.")
 	runCmd.Flags().StringP(payloadFlag, "p", "", "Payload is a string you want to test using quantitative tests. Will not use the corpus.")
 	runCmd.Flags().IntSliceP(ruleFlag, "r", nil, "Rule ID(s) of interest: only show false positives for the specified rule ID(s). Can be repeated or comma-separated, e.g. -r 920100 -r 920120. Defaults to paranoia level 4 unless -P is also set.")
-	runCmd.Flags().Float64P(thresholdFlag, "t", 0, "Maximum acceptable false-positive ratio for each rule given via --rule; exceeding it for any rule causes a non-zero exit code. Requires --rule.")
+	runCmd.Flags().Float64P(thresholdFlag, "t", 0, "Maximum acceptable false-positive ratio for each rule given via --rule, expressed as a fraction of payloads tested (e.g. 0.05 for a 5% ratio, not 5 or 1200). A value of 0 (default) disables the check. Exceeding the threshold for any rule causes a non-zero exit code. Requires --rule.")
 	runCmd.Flags().IntP(maxConcurrencyFlag, "", 10, "maximum number of goroutines. Defaults to 10, or 1 if log level is debug/trace.")
 	runCmd.Flags().StringP(corpusFlag, "c", "leipzig", "Corpus to use for the quantitative tests (leipzig, raw).")
 	runCmd.Flags().StringP(corpusLangFlag, "L", "eng", "Corpus language to use for the quantitative tests.")
