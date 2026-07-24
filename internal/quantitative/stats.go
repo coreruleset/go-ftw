@@ -38,6 +38,21 @@ type quantitativeRunStatsJSON struct {
 	FalsePositivesPerParanoiaLevel      map[int]int       `json:"falsePositivesPerParanoiaLevel"`
 	EvaluatedParanoiaLevels             []int             `json:"evaluatedParanoiaLevels,omitempty"`
 	FalsePositiveTotalsPerParanoiaLevel map[int]int       `json:"falsePositiveTotalsPerParanoiaLevel,omitempty"`
+	ThresholdCheck                      *ThresholdResult  `json:"thresholdCheck,omitempty"`
+}
+
+// ThresholdRuleResult holds the --threshold check outcome for a single rule.
+type ThresholdRuleResult struct {
+	RuleID int     `json:"ruleId"`
+	Ratio  float64 `json:"ratio"`
+	Passed bool    `json:"passed"`
+}
+
+// ThresholdResult holds the outcome of a --threshold check across the requested rules.
+type ThresholdResult struct {
+	Threshold float64               `json:"threshold"`
+	Rules     []ThresholdRuleResult `json:"rules"`
+	Passed    bool                  `json:"passed"`
 }
 
 // RuleDelta holds the comparison for a single rule. The baseline and current
@@ -99,6 +114,8 @@ type QuantitativeRunStats struct {
 	ignoredRules map[int]struct{}
 	// evaluatedParanoiaLevels are the paranoia levels requested for reporting cumulative totals.
 	evaluatedParanoiaLevels ParanoiaLevels
+	// thresholdResult holds the outcome of a --threshold check, if one was requested.
+	thresholdResult *ThresholdResult
 	// mu is the mutex to protect the falsePositivesPerRule and falsePositivesPerParanoiaLevel maps
 	mu sync.Mutex
 }
@@ -141,6 +158,7 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 	}
 
 	out.Println("Run %d payloads (%d skipped) in %s", s.count_, s.skipped_, s.totalTime)
+	defer s.printThresholdResult(out)
 
 	if s.falsePositives == 0 && s.ignoredFalsePositives == 0 {
 		out.Println("No false positives detected with the passed corpus")
@@ -163,6 +181,21 @@ func (s *QuantitativeRunStats) printSummary(out *output.Output) {
 	}
 	if s.ignoredFalsePositives > 0 {
 		s.printRuleStatsSection(out, "False positives for ignored rules (not counted in aggregate):", ignoredRuleIDs)
+	}
+}
+
+// printThresholdResult prints the outcome of a --threshold check, if one was requested.
+func (s *QuantitativeRunStats) printThresholdResult(out *output.Output) {
+	if s.thresholdResult == nil {
+		return
+	}
+	out.Println("Threshold check (max ratio %.4f):", s.thresholdResult.Threshold)
+	for _, r := range s.thresholdResult.Rules {
+		status := "OK"
+		if !r.Passed {
+			status = "FAIL"
+		}
+		out.Println("  rule %d: ratio=%.4f [%s]", r.RuleID, r.Ratio, status)
 	}
 }
 
@@ -420,30 +453,56 @@ func (s *QuantitativeRunStats) markdownSummary() string {
 
 	if len(s.falsePositivesPerRule) == 0 {
 		summary.WriteString("_No false positives detected._\n")
-		return summary.String()
+	} else {
+		ruleIDs := slices.Collect(maps.Keys(s.falsePositivesPerRule))
+		slices.SortFunc(ruleIDs, func(i, j int) int {
+			plSort := s.falsePositivesPerRule[i].ParanoiaLevel - s.falsePositivesPerRule[j].ParanoiaLevel
+			if plSort != 0 {
+				return plSort
+			}
+			return i - j
+		})
+
+		summary.WriteString("| Rule ID | PL | False positives | Ratio |\n")
+		summary.WriteString("|---------|----|-----------------|-------|\n")
+		for _, ruleID := range ruleIDs {
+			ruleStats := s.falsePositivesPerRule[ruleID]
+			perRuleRatio := 0.0
+			if s.count_ > 0 {
+				perRuleRatio = float64(ruleStats.FalsePositives) / float64(s.count_)
+			}
+			fmt.Fprintf(&summary, "| %d | %d | %d | %d/%d = %.4f |\n", ruleID, ruleStats.ParanoiaLevel, ruleStats.FalsePositives, ruleStats.FalsePositives, s.count_, perRuleRatio)
+		}
 	}
 
-	ruleIDs := slices.Collect(maps.Keys(s.falsePositivesPerRule))
-	slices.SortFunc(ruleIDs, func(i, j int) int {
-		plSort := s.falsePositivesPerRule[i].ParanoiaLevel - s.falsePositivesPerRule[j].ParanoiaLevel
-		if plSort != 0 {
-			return plSort
-		}
-		return i - j
-	})
-
-	summary.WriteString("| Rule ID | PL | False positives | Ratio |\n")
-	summary.WriteString("|---------|----|-----------------|-------|\n")
-	for _, ruleID := range ruleIDs {
-		ruleStats := s.falsePositivesPerRule[ruleID]
-		perRuleRatio := 0.0
-		if s.count_ > 0 {
-			perRuleRatio = float64(ruleStats.FalsePositives) / float64(s.count_)
-		}
-		fmt.Fprintf(&summary, "| %d | %d | %d | %d/%d = %.4f |\n", ruleID, ruleStats.ParanoiaLevel, ruleStats.FalsePositives, ruleStats.FalsePositives, s.count_, perRuleRatio)
-	}
+	s.appendThresholdMarkdown(&summary)
 
 	return summary.String()
+}
+
+// appendThresholdMarkdown appends the threshold-check section to a Markdown summary,
+// if a --threshold check was requested.
+func (s *QuantitativeRunStats) appendThresholdMarkdown(summary *strings.Builder) {
+	if s.thresholdResult == nil {
+		return
+	}
+
+	summary.WriteString("\n### Threshold check\n\n")
+	if s.thresholdResult.Passed {
+		fmt.Fprintf(summary, "✅ All rules are within the %.4f threshold.\n\n", s.thresholdResult.Threshold)
+	} else {
+		fmt.Fprintf(summary, "⚠️ One or more rules exceeded the %.4f threshold.\n\n", s.thresholdResult.Threshold)
+	}
+
+	summary.WriteString("| Rule ID | Ratio | Status |\n")
+	summary.WriteString("|---------|-------|--------|\n")
+	for _, r := range s.thresholdResult.Rules {
+		status := "✅ OK"
+		if !r.Passed {
+			status = "⚠️ FAIL"
+		}
+		fmt.Fprintf(summary, "| %d | %.4f | %s |\n", r.RuleID, r.Ratio, status)
+	}
 }
 
 // addFalsePositive increments the false positive count, the false positive count for the rule
@@ -490,6 +549,15 @@ func (s *QuantitativeRunStats) FalsePositiveSentences() int {
 	return s.falsePositiveSentences
 }
 
+// FalsePositiveRatioForRule returns the false-positive ratio for a specific rule ID:
+// that rule's false positive count divided by the number of payloads run.
+func (s *QuantitativeRunStats) FalsePositiveRatioForRule(ruleID int) float64 {
+	s.mu.Lock()
+	falsePositives := s.falsePositivesPerRule[ruleID].FalsePositives
+	s.mu.Unlock()
+	return s.falsePositiveRatio(falsePositives)
+}
+
 // incrementRun increments the amount of tests executed in this run.
 func (s *QuantitativeRunStats) incrementRun() {
 	s.count_++
@@ -525,6 +593,12 @@ func (s *QuantitativeRunStats) SetEvaluatedParanoiaLevels(levels ParanoiaLevels)
 	s.evaluatedParanoiaLevels = levels
 }
 
+// SetThresholdResult attaches the outcome of a --threshold check for inclusion in output.
+// A nil result means no threshold check was requested.
+func (s *QuantitativeRunStats) SetThresholdResult(result *ThresholdResult) {
+	s.thresholdResult = result
+}
+
 // MarshalJSON marshals the stats to JSON.
 func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 	serialized := quantitativeRunStatsJSON{
@@ -537,6 +611,7 @@ func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 		FalsePositiveSentences:         s.falsePositiveSentences,
 		FalsePositivesPerRule:          s.falsePositivesPerRule,
 		FalsePositivesPerParanoiaLevel: s.falsePositivesPerParanoiaLevel,
+		ThresholdCheck:                 s.thresholdResult,
 	}
 	if s.evaluatedParanoiaLevels.Len() > 1 {
 		evaluatedLevels := s.evaluatedParanoiaLevels.All()

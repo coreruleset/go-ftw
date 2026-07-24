@@ -41,6 +41,7 @@ const (
 	paranoiaLevelsFlag    = "paranoia-levels"
 	payloadFlag           = "payload"
 	ruleFlag              = "rule"
+	thresholdFlag         = "threshold"
 
 	minCrsParanoiaLevel = quantitative.MinParanoiaLevel
 	maxCrsParanoiaLevel = quantitative.MaxParanoiaLevel
@@ -64,7 +65,8 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd.Flags().Bool(allParanoiaLevelsFlag, false, "Evaluate all CRS paranoia levels in one run.")
 	runCmd.Flags().IntP(corpusLineFlag, "n", 0, "Number is the payload line from the corpus to exclusively send.")
 	runCmd.Flags().StringP(payloadFlag, "p", "", "Payload is a string you want to test using quantitative tests. Will not use the corpus.")
-	runCmd.Flags().IntP(ruleFlag, "r", 0, "Rule ID of interest: only show false positives for specified rule ID. Defaults to paranoia level 4 unless -P is also set.")
+	runCmd.Flags().IntSliceP(ruleFlag, "r", nil, "Rule ID(s) of interest: only show false positives for the specified rule ID(s). Can be repeated or comma-separated, e.g. -r 920100 -r 920120. Defaults to paranoia level 4 unless -P is also set.")
+	runCmd.Flags().Float64P(thresholdFlag, "t", 0, "Maximum acceptable false-positive ratio for each rule given via --rule, expressed as a fraction of payloads tested (e.g. 0.05 for a 5% ratio, not 5 or 1200). A value of 0 (default) disables the check. Exceeding the threshold for any rule causes a non-zero exit code. Requires --rule.")
 	runCmd.Flags().IntP(maxConcurrencyFlag, "", 10, "maximum number of goroutines. Defaults to 10, or 1 if log level is debug/trace.")
 	runCmd.Flags().StringP(corpusFlag, "c", "leipzig", "Corpus to use for the quantitative tests (leipzig, raw).")
 	runCmd.Flags().StringP(corpusLangFlag, "L", "eng", "Corpus language to use for the quantitative tests.")
@@ -193,9 +195,19 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 	if err != nil {
 		return emptyParams, err
 	}
-	rule, err := cmd.Flags().GetInt(ruleFlag)
+	rules, err := cmd.Flags().GetIntSlice(ruleFlag)
 	if err != nil {
 		return emptyParams, err
+	}
+	threshold, err := cmd.Flags().GetFloat64(thresholdFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	if threshold < 0 {
+		return emptyParams, fmt.Errorf("--%s must not be negative: %v", thresholdFlag, threshold)
+	}
+	if threshold > 0 && len(rules) == 0 {
+		return emptyParams, fmt.Errorf("--%s requires --%s to be set", thresholdFlag, ruleFlag)
 	}
 	maxConcurrency, err := cmd.Flags().GetInt(maxConcurrencyFlag)
 	if err != nil {
@@ -243,7 +255,7 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		}
 	case len(paranoiaLevels) > 0:
 		requestedParanoiaLevels = paranoiaLevels
-	case rule > 0 && !cmd.Flags().Changed(paranoiaLevelFlag):
+	case len(rules) > 0 && !cmd.Flags().Changed(paranoiaLevelFlag):
 		// Default to max paranoia level so that all rules (including the one of interest) are run.
 		requestedParanoiaLevels = []int{maxCrsParanoiaLevel}
 	}
@@ -289,7 +301,8 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		ParanoiaLevels:  paranoiaLevelSet,
 		Number:          number,
 		Payload:         payload,
-		Rule:            rule,
+		Rules:           rules,
+		Threshold:       threshold,
 		MaxConcurrency:  maxConcurrency,
 		IgnoreRules:     ignoreRules,
 		BaselinePath:    baselinePath,

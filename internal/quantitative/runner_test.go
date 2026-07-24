@@ -40,7 +40,7 @@ func (s *runnerTestSuite) SetupTest() {
 	s.params = Params{
 		Lines:          1000,
 		Fast:           10,
-		Rule:           1000,
+		Rules:          []int{1000},
 		Directory:      path.Join(s.tempDir, fmt.Sprintf("coreruleset-%s", crsTestVersion)),
 		ParanoiaLevels: paranoiaLevels,
 		MaxConcurrency: 10,
@@ -63,6 +63,62 @@ func (s *runnerTestSuite) SetupTest() {
 
 	_, err = client.Get(context.Background(), request)
 	s.Require().NoError(err)
+}
+
+func (s *runnerTestSuite) TestEvaluateThreshold() {
+	newStats := func() *QuantitativeRunStats {
+		q := NewQuantitativeStats(nil)
+		q.incrementRun()
+		q.incrementRun()
+		q.incrementRun()
+		q.incrementRun()
+		q.addFalsePositive(920100, 1) // ratio 0.25
+		q.addFalsePositive(920200, 2) // ratio 0.25
+		q.addFalsePositive(920200, 2) // ratio 0.5 total for 920200
+		return q
+	}
+
+	s.Run("disabled when threshold is zero", func() {
+		result := evaluateThreshold(Params{Threshold: 0, Rules: []int{920200}}, newStats())
+		s.Require().Nil(result)
+	})
+
+	s.Run("passes when all requested rules are under threshold", func() {
+		result := evaluateThreshold(Params{Threshold: 0.6, Rules: []int{920100, 920200}}, newStats())
+		s.Require().NotNil(result)
+		s.Require().True(result.Passed)
+		s.Require().NoError(thresholdError(result))
+	})
+
+	s.Run("fails when one of several requested rules exceeds threshold", func() {
+		result := evaluateThreshold(Params{Threshold: 0.3, Rules: []int{920100, 920200}}, newStats())
+		s.Require().NotNil(result)
+		s.Require().False(result.Passed)
+		s.Require().Equal([]ThresholdRuleResult{
+			{RuleID: 920100, Ratio: 0.25, Passed: true},
+			{RuleID: 920200, Ratio: 0.5, Passed: false},
+		}, result.Rules)
+
+		err := thresholdError(result)
+		s.Require().ErrorIs(err, ErrThresholdExceeded)
+		s.Require().Contains(err.Error(), "920200")
+		s.Require().NotContains(err.Error(), "920100")
+	})
+
+	s.Run("rule never seen in results passes trivially", func() {
+		result := evaluateThreshold(Params{Threshold: 0.1, Rules: []int{999999}}, newStats())
+		s.Require().NotNil(result)
+		s.Require().True(result.Passed)
+		s.Require().NoError(thresholdError(result))
+	})
+}
+
+func (s *runnerTestSuite) TestRunQuantitativeTests_ThresholdRequiresRules() {
+	var b bytes.Buffer
+	out := output.NewOutput("plain", &b)
+	err := RunQuantitativeTests(Params{Threshold: 0.05}, out)
+	s.Require().Error(err)
+	s.Require().Contains(err.Error(), "Params.Rules")
 }
 
 func (s *runnerTestSuite) TestCorpusFactory_NoType() {
@@ -115,7 +171,7 @@ func (s *runnerTestSuite) TestRunQuantitative() {
 
 	s.Run("with payload", func() {
 		s.params.Payload = "<script>alert('0')</script>"
-		s.params.Rule = 0 // Reset the field, we don't want to check only a specific rule
+		s.params.Rules = nil // Reset the field, we don't want to check only a specific rule
 		var b bytes.Buffer
 		out := output.NewOutput("plain", &b)
 		err := RunQuantitativeTests(s.params, out)
