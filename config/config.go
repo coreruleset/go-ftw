@@ -4,6 +4,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -107,6 +108,10 @@ func unmarshalConfig(k *koanfv2.Koanf) (*FTWConfiguration, error) {
 	err := k.UnmarshalWithConf("", config, koanfv2.UnmarshalConf{Tag: "koanf"})
 	if err != nil {
 		return nil, err
+	}
+
+	if config.LogMarkerHeaderName == "" {
+		return nil, fmt.Errorf("logmarkerheadername must not be empty")
 	}
 
 	return config, nil

@@ -206,6 +206,12 @@ func (s *fileTestSuite) TestNewConfigFromStringHasDefaults() {
 		"unexpected default value '%s' for logmarkerheadername", s.cfg.LogMarkerHeaderName)
 }
 
+func (s *fileTestSuite) TestNewConfigFromStringRejectsEmptyLogMarkerHeader() {
+	cfg, err := NewConfigFromString("logmarkerheadername: \"\"")
+	s.Require().Error(err)
+	s.Nil(cfg)
+}
+
 func (s *fileTestSuite) TestNewConfigFromFileRunMode() {
 	s.Equalf(CloudRunMode, s.cfg.RunMode,
 		"unexpected value '%s' for run mode, expected '%s;", s.cfg.RunMode, CloudRunMode)
