@@ -235,6 +235,14 @@ func (ll *FTWLogLines) computeMarkedLines() error {
 			break
 		}
 
+		// Skip marker lines. markAndFlush may send multiple markers, so marker
+		// lines can end up between the start and end markers; they must not be
+		// treated as triggered rules or matched by no_match_regex.
+		if bytes.Contains(lineLower, ll.LogMarkerHeaderName) {
+			log.Trace().Msgf("ftw/waflog: skipping marker line: %s", line)
+			continue
+		}
+
 		saneCopy := make([]byte, len(line))
 		copy(saneCopy, line)
 		ll.markedLines = append(ll.markedLines, saneCopy)

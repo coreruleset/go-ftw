@@ -42,6 +42,42 @@ func generateLogMarkers(ruleId uint, testId uint) (string, string) {
 	return utils.CreateStartMarker(stageId), utils.CreateEndMarker(stageId)
 }
 
+func (s *readTestSuite) TestReadGetMarkedLinesSkipsStrayMarkers() {
+	// Reproduces the flaky scenario behind e.g. the 999999-12 CRS test: the
+	// end marker is retransmitted (because the log is flushed asynchronously)
+	// with a different unique id, so its duplicate is not byte-equal to the
+	// stored end marker and leaks into the assertion window carrying a
+	// spurious [id "999999"]. Such marker lines must not be treated as line
+	// content.
+	cfg, err := config.NewConfigFromEnv()
+	s.Require().NoError(err)
+
+	startMarker, endMarker := generateLogMarkers(999999, 12)
+	startMarkerLine := "X-cRs-TeSt: " + startMarker
+	endMarkerLine := "X-cRs-TeSt: " + endMarker
+	strayMarkerLine := `[id "999999"] ` + endMarkerLine
+	realLine := `[Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
+	logLines := fmt.Sprintf("%s\n%s\n%s\n%s", startMarkerLine, realLine, strayMarkerLine, endMarkerLine)
+	s.filename, err = utils.CreateTempFileWithContent(s.tempDir, logLines, "test-errorlog-")
+	s.Require().NoError(err)
+
+	cfg.LogFile = s.filename
+	runnerConfig := config.NewRunnerConfiguration(cfg)
+
+	ll, err := NewFTWLogLines(runnerConfig)
+	s.Require().NoError(err)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
+
+	ll.WithStartMarker(bytes.ToLower([]byte(startMarkerLine)))
+	ll.WithEndMarker(bytes.ToLower([]byte(endMarkerLine)))
+
+	foundLines, err := ll.GetMarkedLines()
+	s.Require().NoError(err)
+	// Only the real line should remain; the interleaved stray marker is skipped.
+	s.Len(foundLines, 1, "found unexpected number of log lines")
+	s.Contains(string(foundLines[0]), `[id "920300"]`)
+}
+
 func (s *readTestSuite) TestReadCheckLogForMarkerNoMarkerAtEnd() {
 	cfg, err := config.NewConfigFromEnv()
 	s.Require().NoError(err)
@@ -340,8 +376,8 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 	markerLineEnd := fmt.Sprint(`[2022-11-12 23:08:18.012580] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
 		"X-cRs-TeSt ", endMarker,
 		`"] [hostname "localhost"] [uri "/status/200"] [unique_id "Y3AZUo3Gja4gB-tPE9uasgBBBB4"]`)
-	logLines := fmt.Sprint("\n", markerLineStart,
-		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`,
+	logLines := fmt.Sprint("\n", markerLineStart, "\n",
+		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`, "\n",
 		`[2022-11-12 23:08:18.013007] [core:info] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 AH00128: File does not exist: /apache/htdocs/status/200`,
 		"\n", markerLineEnd)
 	filename, err := utils.CreateTempFileWithContent(s.tempDir, logLines, "test-errorlog-")
@@ -378,7 +414,7 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 			name:   "Test contains element",
 			fields: f,
 			args: args{
-				match: "999999",
+				match: "920210",
 			},
 			want: true,
 		},
