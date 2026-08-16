@@ -5,6 +5,7 @@ package test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path"
 
@@ -37,9 +38,7 @@ func GetTestsFromFiles(globPattern string) ([]*FTWTest, error) {
 		}
 		ftwTest, err := GetTestFromYaml(yamlString, fileName)
 		if err != nil {
-			log.Warn().Msgf("Problem detected in file %s:\n%v\n",
-				filePath, err)
-			continue
+			return tests, fmt.Errorf("problem detected in file %s: %w", filePath, err)
 		}
 
 		tests = append(tests, ftwTest)
