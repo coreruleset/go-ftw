@@ -92,3 +92,17 @@ func (s *filesTestSuite) TestGetFromBadYAML() {
 
 	s.Error(err, "reading yaml should fail")
 }
+
+// A single unparseable file must fail the whole run, even when other files in
+// the glob parse fine. Skipping it silently hides the loss of test coverage.
+func (s *filesTestSuite) TestGetFromBadYAMLAmongGoodFiles() {
+	_, err := utils.CreateTempFileWithContent(s.tempDir, yamlTest, "good-*.yaml")
+	s.Require().NoError(err)
+	bad, err := utils.CreateTempFileWithContent(s.tempDir, wrongYamlTest, "bad-*.yaml")
+	s.Require().NoError(err)
+
+	_, err = GetTestsFromFiles(s.tempDir + "/*.yaml")
+
+	s.Require().Error(err, "an unparseable file must not be skipped")
+	s.Contains(err.Error(), bad, "error should name the offending file")
+}
