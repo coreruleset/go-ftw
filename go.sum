@@ -99,8 +99,6 @@ github.com/kaptinlin/go-i18n v0.1.4 h1:wCiwAn1LOcvymvWIVAM4m5dUAMiHunTdEubLDk4hT
 github.com/kaptinlin/go-i18n v0.1.4/go.mod h1:g1fn1GvTgT4CiLE8/fFE1hboHWJ6erivrDpiDtCcFKg=
 github.com/kaptinlin/jsonschema v0.4.6 h1:vOSFg5tjmfkOdKg+D6Oo4fVOM/pActWu/ntkPsI1T64=
 github.com/kaptinlin/jsonschema v0.4.6/go.mod h1:1DUd7r5SdyB2ZnMtyB7uLv64dE3zTFTiYytDCd+AEL0=
-github.com/klauspost/compress v1.18.0 h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=
-github.com/klauspost/compress v1.18.0/go.mod h1:2Pp+KzxcywXVXMr50+X0Q/Lsb43OQHYWRCY2AiWywWQ=
 github.com/klauspost/compress v1.18.7 h1:aUyZsS4kH3QTKurYhAOwAHxllVPnOthb3vPfnF1Ehjw=
 github.com/klauspost/compress v1.18.7/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
 github.com/knadh/koanf/maps v0.1.2 h1:RBfmAW5CnZT+PJ1CVc1QSJKf4Xu9kxfQgYVQSu8hpbo=
