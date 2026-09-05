@@ -355,12 +355,15 @@ func checkTestSanity(stage *schema.Stage) error {
 }
 
 func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult, roundTripTime time.Duration) {
+	// Always reset to notice afterwards so other output is not mislabeled.
+	defer rc.Output.SetSeverity(output.AnnotationNotice)
 	switch result {
 	case Success:
 		if !rc.ShowOnlyFailed {
 			rc.Output.Println(rc.Output.Message("+ passed in %s (RTT %s)"), rc.CurrentStageDuration, roundTripTime)
 		}
 	case Failed:
+		rc.Output.SetSeverity(output.AnnotationError)
 		rc.Output.Println(rc.Output.Message("- %s failed in %s (RTT %s)"), testCase.IdString(), rc.CurrentStageDuration, roundTripTime)
 	case Ignored:
 		if !rc.ShowOnlyFailed {

@@ -77,3 +77,40 @@ func (s *outputTestSuite) TestPlainCatalogOutput() {
 		b.Reset()
 	}
 }
+
+func (s *outputTestSuite) TestGitHubAnnotationError() {
+	var b bytes.Buffer
+	o := NewOutput("github", &b)
+	o.SetSeverity(AnnotationError)
+
+	err := o.Printf("- %s failed in %s", "920100-1", "5ms")
+	s.Require().NoError(err)
+	// file/line/endLine are deliberately omitted: go-ftw has no per-test
+	// line info, and a file without a line renders as a misleading `#L0`.
+	s.Equal("::error::- 920100-1 failed in 5ms", b.String())
+}
+
+func (s *outputTestSuite) TestGitHubAnnotationEscapesSpecialChars() {
+	var b bytes.Buffer
+	o := NewOutput("github", &b)
+
+	err := o.Printf("100%% done\r\nwith: %s, ok", "newline")
+	s.Require().NoError(err)
+	// Only '%', CR and LF are escaped in the message body (per the actions
+	// runner): ':' and ',' pass through untouched.
+	s.Equal("::notice::100%25 done%0D%0Awith: newline, ok", b.String())
+}
+
+// Println's line break must remain a real newline: GitHub only parses one
+// workflow command per line, so escaping it would glue every command into a
+// single (rejected) annotation.
+func (s *outputTestSuite) TestGitHubAnnotationPrintlnKeepsRealNewline() {
+	var b bytes.Buffer
+	o := NewOutput("github", &b)
+
+	err := o.Println("+ passed in %s", "5ms")
+	s.Require().NoError(err)
+	err = o.Println("- failed")
+	s.Require().NoError(err)
+	s.Equal("::notice::+ passed in 5ms\n::notice::- failed\n", b.String())
+}

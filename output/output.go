@@ -26,6 +26,15 @@ const (
 	Markdown Type = "markdown" // markdown-friendly plain text
 )
 
+// AnnotationSeverity is the severity of a GitHub Actions workflow command.
+type AnnotationSeverity string
+
+const (
+	AnnotationNotice  AnnotationSeverity = "notice"
+	AnnotationWarning AnnotationSeverity = "warning"
+	AnnotationError   AnnotationSeverity = "error"
+)
+
 type catalog map[string]string
 
 // this catalog is used to translate text from basic terminals to enhanced ones that support emoji, just
@@ -53,6 +62,8 @@ type Output struct {
 	OutputType Type
 	cat        catalog
 	w          io.Writer
+	// severity is the severity used for GitHub annotation commands.
+	severity AnnotationSeverity
 }
 
 // ValidTypes returns an array of the valid output types.
@@ -73,16 +84,37 @@ func (o *Output) Printf(format string, a ...interface{}) error {
 	case Quiet, JSON:
 		// don't print anything
 		return nil
-	case GitHub:
-		s = fmt.Sprintf(format, a...)
-		s = fmt.Sprintf("::notice file={name},line={line},endLine={endLine},title={title}::{%s}", s)
 	case Plain, Markdown:
 		s = fmt.Sprintf(format, a...)
+	case GitHub:
+		s = fmt.Sprintf(format, a...)
+		// Println appends the line break to the format string; that break
+		// must stay a real newline so each workflow command sits on its own
+		// line. Only the message body gets escaped.
+		if strings.HasSuffix(s, "\n") {
+			s = githubCommand(string(o.severity), strings.TrimSuffix(s, "\n")) + "\n"
+		} else {
+			s = githubCommand(string(o.severity), s)
+		}
 	default:
 		s = emoji.Sprintf(format, a...)
 	}
 	_, _ = fmt.Fprintf(o.w, "%s", s)
 	return nil
+}
+
+// githubCommand formats a GitHub Actions workflow command (annotation).
+func githubCommand(severity, message string) string {
+	return "::" + severity + "::" + escapeWorkflow(message)
+}
+
+// escapeWorkflow URL-encodes the characters that are not allowed inside a
+// GitHub workflow command. Order matters: '%' must be escaped first.
+func escapeWorkflow(s string) string {
+	s = strings.ReplaceAll(s, "%", "%25")
+	s = strings.ReplaceAll(s, "\r", "%0D")
+	s = strings.ReplaceAll(s, "\n", "%0A")
+	return s
 }
 
 func (o *Output) RawPrint(s string) {
@@ -96,11 +128,13 @@ func NewOutput(o string, w io.Writer) *Output {
 		OutputType: Normal,
 		cat:        normalCatalog,
 		w:          w,
+		severity:   AnnotationNotice,
 	}
 	switch strings.ToLower(o) {
 	case "quiet":
 		out.OutputType = Quiet
 	case "github":
+		out.cat = createPlainCatalog(normalCatalog)
 		out.OutputType = GitHub
 	case "json":
 		out.OutputType = JSON
@@ -134,6 +168,11 @@ func (o *Output) IsJson() bool {
 
 func (o *Output) IsMarkdown() bool {
 	return o.OutputType == Markdown
+}
+
+// SetSeverity overrides the severity used for GitHub annotation commands.
+func (o *Output) SetSeverity(severity AnnotationSeverity) {
+	o.severity = severity
 }
 
 func createPlainCatalog(c catalog) catalog {
