@@ -87,7 +87,7 @@ func (s *outputTestSuite) TestGitHubAnnotationError() {
 	s.Require().NoError(err)
 	// file/line/endLine are deliberately omitted: go-ftw has no per-test
 	// line info, and a file without a line renders as a misleading `#L0`.
-	s.Equal("::error::- 920100-1 failed in 5ms", b.String())
+	s.Equal("::error::- 920100-1 failed in 5ms\n", b.String())
 }
 
 func (s *outputTestSuite) TestGitHubAnnotationEscapesSpecialChars() {
@@ -98,7 +98,7 @@ func (s *outputTestSuite) TestGitHubAnnotationEscapesSpecialChars() {
 	s.Require().NoError(err)
 	// Only '%', CR and LF are escaped in the message body (per the actions
 	// runner): ':' and ',' pass through untouched.
-	s.Equal("::notice::100%25 done%0D%0Awith: newline, ok", b.String())
+	s.Equal("::notice::100%25 done%0D%0Awith: newline, ok\n", b.String())
 }
 
 // Println's line break must remain a real newline: GitHub only parses one
