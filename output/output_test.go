@@ -114,3 +114,18 @@ func (s *outputTestSuite) TestGitHubAnnotationPrintlnKeepsRealNewline() {
 	s.Require().NoError(err)
 	s.Equal("::notice::+ passed in 5ms\n::notice::- failed\n", b.String())
 }
+
+// A Printf without a trailing newline (run.go's "\trunning %s: " progress
+// prefix) must become a complete command on its own line instead of letting
+// the next command be parsed as part of its message.
+func (s *outputTestSuite) TestGitHubPartialPrintfDoesNotSwallowNextCommand() {
+	var b bytes.Buffer
+	o := NewOutput("github", &b)
+
+	err := o.Printf("\trunning %s: ", "920100-1")
+	s.Require().NoError(err)
+	o.SetSeverity(AnnotationError)
+	err = o.Println("- %s failed in %s (RTT %s)", "920100-1", "5ms", "2ms")
+	s.Require().NoError(err)
+	s.Equal("::notice::\trunning 920100-1: \n::error::- 920100-1 failed in 5ms (RTT 2ms)\n", b.String())
+}
