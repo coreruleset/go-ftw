@@ -34,8 +34,8 @@ The reported need is profiling and latency data, not concurrent regression asser
 ## Decision
 
 Add a benchmark mode that fires the requests from existing YAML test files concurrently, up to a
-configurable concurrency limit, and reports aggregate latency/throughput stats
-(min/max/avg/percentiles, requests/sec) instead of per-test pass/fail.
+configurable concurrency limit, and reports aggregate latency/throughput stats instead of
+per-test pass/fail.
 
 - No start/end log markers and no log tailing in this mode — WAF log correlation is exactly the
   part that doesn't work under concurrency, so this mode doesn't attempt it.
@@ -44,6 +44,22 @@ configurable concurrency limit, and reports aggregate latency/throughput stats
   `corpus` subcommand pattern, rather than a flag on `run`. Its output (stats) and semantics (no
   pass/fail) differ enough from regression testing that folding it into `run` would overload one
   command with two unrelated output modes.
+- Concurrency applies at the test level: independent `FTWTest` instances run concurrently, up to
+  the configured limit. Stages within a single test stay sequential, since later stages can
+  depend on earlier ones (e.g. `follow_redirect`, shared connection state) — a multi-stage test
+  is one unit of concurrency, not N.
+- Per-request latency is measured from connection start (including TLS handshake, since that's
+  real overhead a WAF proxy adds) through sending the request and consuming the full response
+  body. Time spent queued waiting for a free concurrency slot is excluded from per-request
+  latency, but does count toward the overall requests/sec figure, since that's wall-clock
+  throughput for the whole run.
+- Reported stats: min/avg/max and p50/p90/p99 latency, plus overall requests/sec.
+- A request that completes — any response fully received, including an expected WAF block (e.g.
+  403) — counts toward latency and throughput stats; bench mode isn't asserting correctness, so a
+  block response is a normal completion, not a failure. A request that errors out (connection
+  failure, timeout, malformed response) is excluded from latency stats and counted separately as
+  an error rather than silently dropped, so a spike in failures doesn't disappear as an
+  implausibly fast average.
 
 ## Consequences
 
