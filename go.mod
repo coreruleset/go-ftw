@@ -1,6 +1,6 @@
 module github.com/coreruleset/go-ftw/v2
 
-go 1.25.0
+go 1.26.0
 
 toolchain go1.26.6
 
@@ -26,7 +26,7 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 	golang.org/x/net v0.56.0
-	golang.org/x/time v0.15.0
+	golang.org/x/time v0.16.0
 	wait4x.dev/v3 v3.6.0
 )
 
