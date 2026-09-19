@@ -50,7 +50,6 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           config-file: .github/release-please-config.json
           manifest-file: .github/.release-please-manifest.json
-          skip-github-release: true
 
       # A real preview: the release-please CLI's --dry-run reports what would
       # happen via read-only GitHub API calls, no PR or tag is ever created,
