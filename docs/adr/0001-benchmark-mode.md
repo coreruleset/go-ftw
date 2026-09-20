@@ -44,10 +44,12 @@ per-test pass/fail.
   `corpus` subcommand pattern, rather than a flag on `run`. Its output (stats) and semantics (no
   pass/fail) differ enough from regression testing that folding it into `run` would overload one
   command with two unrelated output modes.
-- Concurrency applies at the test level: independent `FTWTest` instances run concurrently, up to
-  the configured limit. Stages within a single test stay sequential, since later stages can
-  depend on earlier ones (e.g. `follow_redirect`, shared connection state) — a multi-stage test
-  is one unit of concurrency, not N.
+- Concurrency applies at the test-case level, not the test-file level: although
+  `test.GetTestsFromFiles` returns one `FTWTest` per YAML file, benchmark mode flattens and
+  schedules the individual entries in each `FTWTest.Tests` slice. This makes the configured
+  limit the maximum number of in-flight requests, rather than a limit on files. Stages within a
+  single test case stay sequential, since later stages can depend on earlier ones (e.g.
+  `follow_redirect`, shared connection state) — a multi-stage case is one unit of concurrency.
 - Per-request latency is measured from connection start (including TLS handshake, since that's
   real overhead a WAF proxy adds) through sending the request and consuming the full response
   body. Time spent queued waiting for a free concurrency slot is excluded from per-request
