@@ -1,6 +1,6 @@
 module github.com/coreruleset/go-ftw/v2
 
-go 1.25.7
+go 1.26.0
 
 toolchain go1.26.6
 
@@ -8,7 +8,6 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/corazawaf/coraza/v3 v3.7.0
 	github.com/coreruleset/ftw-tests-schema/v2 v2.3.0
-	github.com/coreruleset/ftw-tests-schema/v3 v3.0.1
 	github.com/creativeprojects/go-selfupdate v1.5.2
 	github.com/go-logr/zerologr v1.2.3
 	github.com/google/uuid v1.6.0
@@ -27,7 +26,7 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 	golang.org/x/net v0.58.0
-	golang.org/x/time v0.15.0
+	golang.org/x/time v0.16.0
 	wait4x.dev/v3 v3.6.0
 )
 
