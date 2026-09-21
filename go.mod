@@ -8,7 +8,6 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/corazawaf/coraza/v3 v3.7.0
 	github.com/coreruleset/ftw-tests-schema/v2 v2.3.0
-	github.com/coreruleset/ftw-tests-schema/v3 v3.0.1
 	github.com/creativeprojects/go-selfupdate v1.5.2
 	github.com/go-logr/zerologr v1.2.3
 	github.com/google/uuid v1.6.0

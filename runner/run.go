@@ -29,6 +29,7 @@ func Run(runnerConfig *config.RunnerConfig, tests []*test.FTWTest, out *output.O
 	if err != nil {
 		return &TestRunContext{}, err
 	}
+	defer cleanLogs(logLines)
 
 	client, err := ftwhttp.NewClient(runnerConfig)
 	if err != nil {
@@ -60,8 +61,6 @@ func Run(runnerConfig *config.RunnerConfig, tests []*test.FTWTest, out *output.O
 	}
 
 	runContext.Stats.printSummary(out)
-
-	defer cleanLogs(logLines)
 
 	return runContext, nil
 }
