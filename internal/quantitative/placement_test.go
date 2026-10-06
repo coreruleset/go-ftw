@@ -15,10 +15,10 @@ func TestParsePlacement(t *testing.T) {
 		want    Placement
 		wantErr bool
 	}{
-		{in: "", want: Placement{Kind: "args"}},
-		{in: "args", want: Placement{Kind: "args"}},
-		{in: "path", want: Placement{Kind: "path"}},
-		{in: "header:Referer", want: Placement{Kind: "header", Header: "Referer"}},
+		{in: "", want: Placement{Kind: PlacementArgs}},
+		{in: "args", want: Placement{Kind: PlacementArgs}},
+		{in: "path", want: Placement{Kind: PlacementPath}},
+		{in: "header:Referer", want: Placement{Kind: PlacementHeader, Header: "Referer"}},
 		{in: "header:", wantErr: true},
 		{in: "header", wantErr: true},
 		{in: "body", wantErr: true},
@@ -34,4 +34,24 @@ func TestParsePlacement(t *testing.T) {
 			require.Equal(t, tc.want, got)
 		})
 	}
+}
+
+func TestRequestHeaders(t *testing.T) {
+	// a header placement replaces a fixed header of the same name, case-insensitively
+	got := requestHeaders(Placement{Kind: PlacementHeader, Header: "user-agent"}, "payload")
+	var uas []string
+	for _, h := range got {
+		if h[0] == "user-agent" || h[0] == "User-Agent" {
+			uas = append(uas, h[1])
+		}
+	}
+	require.Equal(t, []string{"payload"}, uas)
+
+	// a non-colliding header is appended after the fixed ones
+	got = requestHeaders(Placement{Kind: PlacementHeader, Header: "Referer"}, "payload")
+	require.Len(t, got, 4)
+	require.Equal(t, [2]string{"Referer", "payload"}, got[3])
+
+	// args and path placements only send the fixed headers
+	require.Len(t, requestHeaders(Placement{Kind: PlacementArgs}, "payload"), 3)
 }

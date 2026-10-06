@@ -517,7 +517,7 @@ func (s *quantitativeCmdTestSuite) TestPlacementFlag() {
 	s.Require().NoError(err)
 	params, err := buildParams(cmd)
 	s.Require().NoError(err)
-	s.Equal(quantitative.Placement{Kind: "header", Header: "Referer"}, params.Placement)
+	s.Equal(quantitative.Placement{Kind: quantitative.PlacementHeader, Header: "Referer"}, params.Placement)
 
 	cmd = New(internal.NewCommandContext())
 	cmd.SetArgs([]string{"-C", s.tempDir, "-p", "test", "--placement", "body"})

@@ -35,7 +35,9 @@ the generated request. Exactly one placement applies to a whole run.
     transformations as it would for any real request.
   - `header:<Name>`: URI is `/get`; the payload is added verbatim as the value of request header
     `<Name>`. When `<Name>` collides with one of the fixed `Host`, `User-Agent`, or `Accept`
-    headers the engine always sends, the user-supplied value is the one the rules see.
+    headers the engine always sends, the fixed header is dropped so the user-supplied value is
+    the only one the rules see. Coraza appends on repeated header names, so call order alone
+    would not achieve this.
 - The placement is validated in the command layer, carried as `Params.Placement`, and stored on
   the engine at `Create` time. `CrsCall` builds the request from it.
 - One placement per run. Covering path and header targets means running the command once per
