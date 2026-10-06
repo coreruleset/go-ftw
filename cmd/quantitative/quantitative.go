@@ -40,6 +40,7 @@ const (
 	paranoiaLevelFlag     = "paranoia-level"
 	paranoiaLevelsFlag    = "paranoia-levels"
 	payloadFlag           = "payload"
+	placementFlag         = "placement"
 	ruleFlag              = "rule"
 	thresholdFlag         = "threshold"
 
@@ -65,6 +66,7 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 	runCmd.Flags().Bool(allParanoiaLevelsFlag, false, "Evaluate all CRS paranoia levels in one run.")
 	runCmd.Flags().IntP(corpusLineFlag, "n", 0, "Number is the payload line from the corpus to exclusively send.")
 	runCmd.Flags().StringP(payloadFlag, "p", "", "Payload is a string you want to test using quantitative tests. Will not use the corpus.")
+	runCmd.Flags().String(placementFlag, "args", "Where to place each payload in the request: args (query string), path (URL path segment) or header:<Name> (request header).")
 	runCmd.Flags().IntSliceP(ruleFlag, "r", nil, "Rule ID(s) of interest: only show false positives for the specified rule ID(s). Can be repeated or comma-separated, e.g. -r 920100 -r 920120. Defaults to paranoia level 4 unless -P is also set.")
 	runCmd.Flags().Float64P(thresholdFlag, "t", 0, "Maximum acceptable false-positive ratio for each rule given via --rule, expressed as a fraction of payloads tested (e.g. 0.05 for a 5% ratio, not 5 or 1200). A value of 0 (default) disables the check. Exceeding the threshold for any rule causes a non-zero exit code. Requires --rule.")
 	runCmd.Flags().IntP(maxConcurrencyFlag, "", 10, "maximum number of goroutines. Defaults to 10, or 1 if log level is debug/trace.")
@@ -195,6 +197,14 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 	if err != nil {
 		return emptyParams, err
 	}
+	placementAsString, err := cmd.Flags().GetString(placementFlag)
+	if err != nil {
+		return emptyParams, err
+	}
+	placement, err := quantitative.ParsePlacement(placementAsString)
+	if err != nil {
+		return emptyParams, err
+	}
 	rules, err := cmd.Flags().GetIntSlice(ruleFlag)
 	if err != nil {
 		return emptyParams, err
@@ -307,6 +317,7 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 		IgnoreRules:     ignoreRules,
 		BaselinePath:    baselinePath,
 		CompareCRSPath:  compareCRSPath,
+		Placement:       placement,
 	}, nil
 }
 

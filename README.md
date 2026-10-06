@@ -660,6 +660,7 @@ Flags:
   -P, --paranoia-level int         Paranoia level used to run the quantitative tests. (default 1)
       --paranoia-levels ints       Paranoia levels to evaluate in one run, e.g. 1,2,3,4.
   -p, --payload string             Payload is a string you want to test using quantitative tests. Will not use the corpus.
+      --placement string           Where to place each payload in the request: args (query string), path (URL path segment) or header:<Name> (request header). (default "args")
   -r, --rule int                   Rule ID of interest: only show false positives for specified rule ID. Defaults to paranoia level 4 unless -P is also set.
 
 Global Flags:
