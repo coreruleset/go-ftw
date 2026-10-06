@@ -100,9 +100,9 @@ func (e *localEngine) CrsCall(payload string) map[int]RuleMatch {
 	// the payload goes in the URI (or a header) so rules in phase 1 can catch it
 	uri := "/get"
 	switch e.placement.Kind {
-	case "path":
+	case PlacementPath:
 		uri = "/get/" + url.PathEscape(payload)
-	case "header":
+	case PlacementHeader:
 	default:
 		uri = "/get?uri_payload=" + url.QueryEscape(payload)
 	}
@@ -110,12 +110,8 @@ func (e *localEngine) CrsCall(payload string) map[int]RuleMatch {
 	tx := e.waf.NewTransaction()
 	tx.ProcessConnection("127.0.0.1", 8080, "127.0.0.1", 8080)
 	tx.ProcessURI(uri, "GET", "HTTP/1.1")
-	tx.AddRequestHeader("Host", "localhost")
-	tx.AddRequestHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75. 0.3770.100 Safari/537.36")
-	tx.AddRequestHeader("Accept", "*/*")
-	if e.placement.Kind == "header" {
-		// added last so a user-chosen name overrides the fixed headers above
-		tx.AddRequestHeader(e.placement.Header, payload)
+	for _, h := range requestHeaders(e.placement, payload) {
+		tx.AddRequestHeader(h[0], h[1])
 	}
 
 	// we need to check also for phase:1 rules only

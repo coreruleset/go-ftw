@@ -199,11 +199,11 @@ func buildParams(cmd *cobra.Command) (quantitative.Params, error) {
 	}
 	placementAsString, err := cmd.Flags().GetString(placementFlag)
 	if err != nil {
-		return emptyParams, err
+		return emptyParams, fmt.Errorf("reading --%s: %w", placementFlag, err)
 	}
 	placement, err := quantitative.ParsePlacement(placementAsString)
 	if err != nil {
-		return emptyParams, err
+		return emptyParams, fmt.Errorf("parsing --%s: %w", placementFlag, err)
 	}
 	rules, err := cmd.Flags().GetIntSlice(ruleFlag)
 	if err != nil {
