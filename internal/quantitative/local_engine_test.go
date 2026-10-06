@@ -130,3 +130,21 @@ func (s *localEngineTestSuite) TestExtractParanoiaLevel() {
 		})
 	}
 }
+
+// TestCrsCallPlacement checks that the payload reaches targets other than ARGS when requested.
+func (s *localEngineTestSuite) TestCrsCallPlacement() {
+	crs := path.Join(s.dir, fmt.Sprintf("coreruleset-%s", crsTestVersion))
+	engineFor := func(placement string) LocalEngine {
+		p, err := ParsePlacement(placement)
+		s.Require().NoError(err)
+		e := &localEngine{placement: p}
+		return e.Create(crs, 1)
+	}
+
+	// 920440 (restricted file extension) only looks at REQUEST_BASENAME: invisible from ARGS.
+	s.Require().Empty(engineFor("args").CrsCall("index.bak"))
+	s.Require().Contains(engineFor("path").CrsCall("index.bak"), 920440)
+
+	// 942100 (libinjection) inspects REQUEST_HEADERS:Referer.
+	s.Require().Contains(engineFor("header:Referer").CrsCall("' OR 1 = 1"), 942100)
+}

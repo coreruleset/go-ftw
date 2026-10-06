@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/coreruleset/go-ftw/v2/cmd/internal"
+	"github.com/coreruleset/go-ftw/v2/internal/quantitative"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
 )
@@ -508,4 +509,17 @@ func (s *quantitativeCmdTestSuite) TestQuantitativeCommandSavedBaselineCompariso
 	s.Require().NotNil(got.Baseline, "expected baseline results in comparison output")
 	s.Require().NotNil(got.Current, "expected current results in comparison output")
 	s.Require().False(got.Regressions.Detected, "expected no regressions for identical saved baseline results")
+}
+
+func (s *quantitativeCmdTestSuite) TestPlacementFlag() {
+	s.cmd.SetArgs([]string{"quantitative", "-C", s.tempDir, "-p", "test", "--placement", "header:Referer"})
+	cmd, err := s.cmd.ExecuteContextC(context.Background())
+	s.Require().NoError(err)
+	params, err := buildParams(cmd)
+	s.Require().NoError(err)
+	s.Equal(quantitative.Placement{Kind: "header", Header: "Referer"}, params.Placement)
+
+	cmd = New(internal.NewCommandContext())
+	cmd.SetArgs([]string{"-C", s.tempDir, "-p", "test", "--placement", "body"})
+	s.Require().Error(cmd.ExecuteContext(context.Background()))
 }

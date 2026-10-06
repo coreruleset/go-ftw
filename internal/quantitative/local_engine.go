@@ -76,26 +76,36 @@ type LocalEngine interface {
 
 // localEngine is the engine to test payloads
 type localEngine struct {
-	waf coraza.WAF
+	waf       coraza.WAF
+	placement Placement
 }
 
 // Create creates a new engine to test payloads
 func (e *localEngine) Create(prefix string, paranoia int) LocalEngine {
 	eng := localEngine{
-		waf: crsWAF(prefix, paranoia),
+		waf:       crsWAF(prefix, paranoia),
+		placement: e.placement,
 	}
 	return &eng
 }
 
 // CrsCall benchmarks the CRS WAF with a GET request
-// payload: the string to be passed as a query parameter
-// returns the status of the HTTP response and a map of the matched rules with their IDs, paranoia levels, and the data that matched.
+// payload: the string to be placed in the request according to the engine's Placement
+// (query parameter by default, URL path segment, or a request header).
+// returns a map of the matched rules with their IDs, paranoia levels, and the data that matched.
 func (e *localEngine) CrsCall(payload string) map[int]RuleMatch {
 	if e.waf == nil {
 		log.Fatal().Msg("local engine not initialized")
 	}
-	// we use the payload in the URI so rules in phase 1 can catch it
-	uri := fmt.Sprintf("/get?uri_payload=%s", url.QueryEscape(payload))
+	// the payload goes in the URI (or a header) so rules in phase 1 can catch it
+	uri := "/get"
+	switch e.placement.Kind {
+	case "path":
+		uri = "/get/" + url.PathEscape(payload)
+	case "header":
+	default:
+		uri = "/get?uri_payload=" + url.QueryEscape(payload)
+	}
 
 	tx := e.waf.NewTransaction()
 	tx.ProcessConnection("127.0.0.1", 8080, "127.0.0.1", 8080)
@@ -103,6 +113,10 @@ func (e *localEngine) CrsCall(payload string) map[int]RuleMatch {
 	tx.AddRequestHeader("Host", "localhost")
 	tx.AddRequestHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75. 0.3770.100 Safari/537.36")
 	tx.AddRequestHeader("Accept", "*/*")
+	if e.placement.Kind == "header" {
+		// added last so a user-chosen name overrides the fixed headers above
+		tx.AddRequestHeader(e.placement.Header, payload)
+	}
 
 	// we need to check also for phase:1 rules only
 	_ = tx.ProcessRequestHeaders()
