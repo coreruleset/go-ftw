@@ -25,7 +25,6 @@ github.com/corazawaf/libinjection-go v0.3.3 h1:NhbXKRfRpqKzBMzv8zpCcnjyEw7BCVhBO
 github.com/corazawaf/libinjection-go v0.3.3/go.mod h1:Ik/+w3UmTWH9yn366RgS9D95K3y7Atb5m/H/gXzzPCk=
 github.com/coreruleset/ftw-tests-schema/v2 v2.3.0 h1:zs2US8z7sDba1O//qgaD1qj5R5B90m6FjHuRAuKK03g=
 github.com/coreruleset/ftw-tests-schema/v2 v2.3.0/go.mod h1:wvQApSsBz7qy0aGb88UwYWOnu6k6DlyPsJ3QoJ+tRhA=
-github.com/coreruleset/ftw-tests-schema/v3 v3.0.1/go.mod h1:S1MlcTtcRrohmajCl2gS/if1rky0qIuN0VN95lqrLZg=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/creativeprojects/go-selfupdate v1.5.2 h1:3KR3JLrq70oplb9yZzbmJ89qRP78D1AN/9u+l3k0LJ4=
 github.com/creativeprojects/go-selfupdate v1.5.2/go.mod h1:BCOuwIl1dRRCmPNRPH0amULeZqayhKyY2mH/h4va7Dk=

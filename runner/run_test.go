@@ -432,6 +432,15 @@ func (s *runTestSuite) TestLogsRun() {
 	s.LessOrEqual(0, res.Stats.TotalFailed(), "Oops, test run failed!")
 }
 
+func (s *runTestSuite) TestHeaderCRLFInjectionRun() {
+	// A header value containing a raw CR or LF (e.g. from an unquoted YAML
+	// block scalar) must not be silently sent as a broken request; it should
+	// surface as an error instead of trivially passing. See coreruleset/go-ftw#662.
+	_, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().Error(err)
+	s.Contains(err.Error(), "CR or LF")
+}
+
 func (s *runTestSuite) TestFailedTestsRun() {
 	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
