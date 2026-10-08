@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.6.1](https://github.com/coreruleset/go-ftw/compare/v2.6.0...v2.6.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/corazawaf/coraza/v3 to v3.8.1 [security] ([#675](https://github.com/coreruleset/go-ftw/issues/675)) ([9334419](https://github.com/coreruleset/go-ftw/commit/93344198cd87bc746de1a8903eeafd1cfa69b875))
+* **deps:** update module github.com/coreruleset/ftw-tests-schema/v2 to v3 in go.mod ([#672](https://github.com/coreruleset/go-ftw/issues/672)) ([737f712](https://github.com/coreruleset/go-ftw/commit/737f7123aa46c1e6d1049220322e0ec4be31db73))
+* **ftwhttp:** reject raw CR/LF characters in header values ([#670](https://github.com/coreruleset/go-ftw/issues/670)) ([4234c3e](https://github.com/coreruleset/go-ftw/commit/4234c3e02166e57fdd3574e6a9a07ae2f1513630))
+
 ## [2.6.0](https://github.com/coreruleset/go-ftw/compare/v2.5.0...v2.6.0) (2026-09-20)
 
 
