@@ -57,6 +57,8 @@ type Params struct {
 	BaselinePath string
 	// CompareCRSPath is the path to the baseline CRS tree to compare against the current directory
 	CompareCRSPath string
+	// Placement is where the payload is placed in each request (args, path or a header)
+	Placement Placement
 }
 
 // ErrRegressionsDetected is returned when a quantitative comparison finds regressions.
@@ -153,6 +155,7 @@ func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 	log.Trace().Msgf("Directory: %s", params.Directory)
 	log.Trace().Msgf("Local path to corpus file: %s", params.CorpusLocalPath)
 	log.Trace().Msgf("Paranoia levels: %v", params.ParanoiaLevels.All())
+	log.Trace().Msgf("Placement: %s", params.Placement)
 
 	startTime := time.Now()
 	// create the results
@@ -162,7 +165,7 @@ func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 	// The engine runs at the highest requested paranoia level so that every
 	// rule up to that level is active; lower levels are reported from the matches.
 	highestParanoiaLevel := params.ParanoiaLevels.Highest()
-	var engine LocalEngine = &localEngine{}
+	var engine LocalEngine = &localEngine{placement: params.Placement}
 	runner := engine.Create(params.Directory, highestParanoiaLevel)
 
 	// Are we using the corpus at all?
