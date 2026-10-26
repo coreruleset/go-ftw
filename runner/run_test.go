@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"text/template"
 
@@ -712,14 +713,14 @@ func (s *runTestSuite) TestRunTestRetryErrorNamesFileAndTest() {
 	// The first attempt runs normally (start marker, request, end marker) but fails
 	// the check, triggering retry_once. The second attempt's start marker request
 	// gets its connection dropped, so the retry itself returns an error.
-	markerRequests := 0
+	var markerRequests atomic.Int32
 	s.ts.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get(s.cfg.LogMarkerHeaderName) != "" {
-			markerRequests++
-			if markerRequests > 2 {
+			if markerRequests.Add(1) > 2 {
 				conn, _, err := w.(http.Hijacker).Hijack()
-				s.Require().NoError(err)
-				_ = conn.Close()
+				if s.NoError(err) {
+					s.NoError(conn.Close())
+				}
 				return
 			}
 		}
@@ -764,7 +765,7 @@ func (s *runTestSuite) TestRunTestRetryErrorNamesFileAndTest() {
 		},
 	}
 	err = RunTest(s.context, ftwTest)
-	s.Equal(3, markerRequests, "expected a second attempt")
+	s.Equal(int32(3), markerRequests.Load(), "expected a second attempt")
 	s.ErrorContains(err, "123456.yaml (test 123456-8): ")
 	s.ErrorContains(err, "failed to find start marker")
 }
