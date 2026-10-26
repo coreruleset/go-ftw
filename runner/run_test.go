@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"text/template"
 
@@ -687,6 +688,86 @@ func (s *runTestSuite) TestIsolatedSanity() {
 	stage.Output.Log.ExpectIds = []uint{1, 2}
 	err = RunStage(s.context, &FTWCheck{}, schema.Test{}, stage)
 	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
+}
+
+func (s *runTestSuite) TestRunTestErrorNamesFileAndTest() {
+	ftwTest := &test.FTWTest{
+		FileName: "123456.yaml",
+		FTWTest: schema.FTWTest{
+			Tests: []schema.Test{{
+				RuleId: 123456,
+				TestId: 7,
+				Stages: []schema.Stage{{
+					Output: schema.Output{Isolated: true},
+				}},
+			}},
+		},
+	}
+	s.context.ShowOnlyFailed = true
+	err := RunTest(s.context, ftwTest)
+	s.ErrorContains(err, "123456.yaml (test 123456-7): ")
+	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
+}
+
+func (s *runTestSuite) TestRunTestRetryErrorNamesFileAndTest() {
+	// The first attempt runs normally (start marker, request, end marker) but fails
+	// the check, triggering retry_once. The second attempt's start marker request
+	// gets its connection dropped, so the retry itself returns an error.
+	var markerRequests atomic.Int32
+	s.ts.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(s.cfg.LogMarkerHeaderName) != "" {
+			if markerRequests.Add(1) > 2 {
+				conn, _, err := w.(http.Hijacker).Hijack()
+				if s.NoError(err) {
+					s.NoError(conn.Close())
+				}
+				return
+			}
+		}
+		w.WriteHeader(http.StatusOK)
+		s.writeMarkerOrMessageToTestServerLog(runTestLogLines, r)
+	})
+
+	client, err := ftwhttp.NewClientWithConfig(ftwhttp.NewClientConfig())
+	s.Require().NoError(err)
+	ll, err := waflog.NewFTWLogLines(s.runnerConfig)
+	s.Require().NoError(err)
+	s.context = &TestRunContext{
+		RunnerConfig:   s.runnerConfig,
+		Client:         client,
+		LogLines:       ll,
+		Stats:          NewRunStats(),
+		Output:         s.out,
+		ShowOnlyFailed: true,
+	}
+
+	retryOnce := true
+	autocomplete := true
+	ftwTest := &test.FTWTest{
+		FileName: "123456.yaml",
+		FTWTest: schema.FTWTest{
+			Tests: []schema.Test{{
+				RuleId: 123456,
+				TestId: 8,
+				Stages: []schema.Stage{{
+					Input: schema.Input{
+						DestAddr:            &s.dest.DestAddr,
+						Port:                &s.dest.Port,
+						AutocompleteHeaders: &autocomplete,
+						Protocol:            &s.dest.Protocol,
+					},
+					Output: schema.Output{
+						RetryOnce: &retryOnce,
+						Log:       schema.Log{ExpectIds: []uint{1}},
+					},
+				}},
+			}},
+		},
+	}
+	err = RunTest(s.context, ftwTest)
+	s.Equal(int32(3), markerRequests.Load(), "expected a second attempt")
+	s.ErrorContains(err, "123456.yaml (test 123456-8): ")
+	s.ErrorContains(err, "failed to find start marker")
 }
 
 func (s *runTestSuite) TestVirtualHostMode_Default() {

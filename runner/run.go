@@ -103,10 +103,10 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 				if err.Error() == "retry-once" {
 					log.Info().Msgf("Retrying test once: %s", testCase.IdString())
 					if err = RunStage(runContext, ftwCheck, testCase, stage); err != nil {
-						return err
+						return fmt.Errorf("%s (test %s): %w", ftwTest.FileName, testCase.IdString(), err)
 					}
 				} else {
-					return err
+					return fmt.Errorf("%s (test %s): %w", ftwTest.FileName, testCase.IdString(), err)
 				}
 			}
 		}
