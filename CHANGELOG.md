@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.2](https://github.com/coreruleset/go-ftw/compare/v2.6.1...v2.6.2) (2026-10-26)
+
+
+### Bug Fixes
+
+* **runner:** name test file and id in stage errors ([#682](https://github.com/coreruleset/go-ftw/issues/682)) ([886bd6e](https://github.com/coreruleset/go-ftw/commit/886bd6e0b428ef9e25d91d770b9b1a6c97ab0a27))
+
 ## [2.6.1](https://github.com/coreruleset/go-ftw/compare/v2.6.0...v2.6.1) (2026-10-07)
 
 
