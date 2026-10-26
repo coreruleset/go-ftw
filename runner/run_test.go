@@ -708,6 +708,67 @@ func (s *runTestSuite) TestRunTestErrorNamesFileAndTest() {
 	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
 }
 
+func (s *runTestSuite) TestRunTestRetryErrorNamesFileAndTest() {
+	// The first attempt runs normally (start marker, request, end marker) but fails
+	// the check, triggering retry_once. The second attempt's start marker request
+	// gets its connection dropped, so the retry itself returns an error.
+	markerRequests := 0
+	s.ts.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(s.cfg.LogMarkerHeaderName) != "" {
+			markerRequests++
+			if markerRequests > 2 {
+				conn, _, err := w.(http.Hijacker).Hijack()
+				s.Require().NoError(err)
+				_ = conn.Close()
+				return
+			}
+		}
+		w.WriteHeader(http.StatusOK)
+		s.writeMarkerOrMessageToTestServerLog(runTestLogLines, r)
+	})
+
+	client, err := ftwhttp.NewClientWithConfig(ftwhttp.NewClientConfig())
+	s.Require().NoError(err)
+	ll, err := waflog.NewFTWLogLines(s.runnerConfig)
+	s.Require().NoError(err)
+	s.context = &TestRunContext{
+		RunnerConfig:   s.runnerConfig,
+		Client:         client,
+		LogLines:       ll,
+		Stats:          NewRunStats(),
+		Output:         s.out,
+		ShowOnlyFailed: true,
+	}
+
+	retryOnce := true
+	autocomplete := true
+	ftwTest := &test.FTWTest{
+		FileName: "123456.yaml",
+		FTWTest: schema.FTWTest{
+			Tests: []schema.Test{{
+				RuleId: 123456,
+				TestId: 8,
+				Stages: []schema.Stage{{
+					Input: schema.Input{
+						DestAddr:            &s.dest.DestAddr,
+						Port:                &s.dest.Port,
+						AutocompleteHeaders: &autocomplete,
+						Protocol:            &s.dest.Protocol,
+					},
+					Output: schema.Output{
+						RetryOnce: &retryOnce,
+						Log:       schema.Log{ExpectIds: []uint{1}},
+					},
+				}},
+			}},
+		},
+	}
+	err = RunTest(s.context, ftwTest)
+	s.Equal(3, markerRequests, "expected a second attempt")
+	s.ErrorContains(err, "123456.yaml (test 123456-8): ")
+	s.ErrorContains(err, "failed to find start marker")
+}
+
 func (s *runTestSuite) TestVirtualHostMode_Default() {
 	method := "POST"
 	input := test.NewInput(&schema.Input{
