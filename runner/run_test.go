@@ -689,6 +689,25 @@ func (s *runTestSuite) TestIsolatedSanity() {
 	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
 }
 
+func (s *runTestSuite) TestRunTestErrorNamesFileAndTest() {
+	ftwTest := &test.FTWTest{
+		FileName: "123456.yaml",
+		FTWTest: schema.FTWTest{
+			Tests: []schema.Test{{
+				RuleId: 123456,
+				TestId: 7,
+				Stages: []schema.Stage{{
+					Output: schema.Output{Isolated: true},
+				}},
+			}},
+		},
+	}
+	s.context.ShowOnlyFailed = true
+	err := RunTest(s.context, ftwTest)
+	s.ErrorContains(err, "123456.yaml (test 123456-7): ")
+	s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
+}
+
 func (s *runTestSuite) TestVirtualHostMode_Default() {
 	method := "POST"
 	input := test.NewInput(&schema.Input{
