@@ -4,6 +4,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"strings"
 
@@ -103,6 +104,9 @@ func NewConfigFromString(conf string) (*FTWConfiguration, error) {
 
 // Unmarshal the loaded koanf instance into a configuration object
 func unmarshalConfig(k *koanfv2.Koanf) (*FTWConfiguration, error) {
+	if k.Exists("testoverride.input.stop_magic") {
+		return nil, errors.New("testoverride.input.stop_magic is no longer supported, use autocomplete_headers")
+	}
 	config := NewDefaultConfig()
 	err := k.UnmarshalWithConf("", config, koanfv2.UnmarshalConf{Tag: "koanf"})
 	if err != nil {

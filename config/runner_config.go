@@ -119,6 +119,11 @@ func unmarshalPlatformOverrides(k *koanfv2.Koanf) (*schema.FTWOverrides, error) 
 	if err != nil {
 		return nil, err
 	}
+	for _, testOverride := range overrides.TestOverrides {
+		if err := CheckDeprecatedOutput(&testOverride.Output); err != nil {
+			return nil, fmt.Errorf("override for rule %d: %w", testOverride.RuleId, err)
+		}
+	}
 
 	return overrides, nil
 }

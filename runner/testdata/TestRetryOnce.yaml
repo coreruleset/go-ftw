@@ -16,4 +16,5 @@ tests:
         output:
           expect_error: false
           retry_once: true
-          log_contains: id "980170"
+          log:
+            match_regex: id "980170"
