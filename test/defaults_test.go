@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 
-	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
+	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
 )
 
 type defaultsTestSuite struct {

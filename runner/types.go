@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"time"
 
-	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
+	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
 	"github.com/coreruleset/go-ftw/v2/config"
 	"github.com/coreruleset/go-ftw/v2/ftwhttp"
 	"github.com/coreruleset/go-ftw/v2/output"

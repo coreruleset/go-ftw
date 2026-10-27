@@ -10,8 +10,8 @@ import (
 
 	"slices"
 
-	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
-	overridesSchema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
+	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
+	overridesSchema "github.com/coreruleset/ftw-tests-schema/v3/types/overrides"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/maps"
 
