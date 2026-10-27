@@ -6,6 +6,7 @@ package test
 import (
 	"testing"
 
+	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
@@ -558,4 +559,92 @@ func (s *typesTestSuite) TestPostLoadHeaders_HeadersAndOrderedHeaders() {
 	s.Equal("ordered agent", input.OrderedHeaders[0].Value)
 	s.Equal("Accept", input.OrderedHeaders[1].Name)
 	s.Equal("ordered/agent", input.OrderedHeaders[1].Value)
+}
+
+var payloadTemplateYaml = `---
+meta:
+  author: "tester"
+rule_id: 942100
+template:
+  method: GET
+  uri: "/?q={{.Payload | urlquery}}"
+  headers:
+    - name: Host
+      value: localhost
+    - name: X-Payload
+      value: "{{.Payload}}"
+tests:
+  - id: 1
+    payload: "1 UNION SELECT 1,2,3--"
+    output:
+      log:
+        expect_ids: [942100]
+  - id: 2
+    template:
+      method: POST
+      data: "q={{.Payload}}"
+    payload: "{{7*7}}"
+`
+
+func (s *typesTestSuite) TestPayloadTemplate_FileLevel() {
+	test, err := GetTestFromYaml([]byte(payloadTemplateYaml), "")
+	s.Require().NoError(err)
+
+	s.Require().Len(test.Tests[0].Stages, 1)
+	stage := test.Tests[0].Stages[0]
+	s.Equal("GET", *stage.Input.Method)
+	s.Equal("/?q=1+UNION+SELECT+1%2C2%2C3--", *stage.Input.URI)
+	s.Equal([]schema.HeaderTuple{{Name: "Host", Value: "localhost"}, {Name: "X-Payload", Value: "1 UNION SELECT 1,2,3--"}}, stage.Input.OrderedHeaders)
+	s.Equal([]uint{942100}, stage.Output.Log.ExpectIds)
+	s.True(*stage.Input.AutocompleteHeaders, "stage should be post-processed")
+}
+
+func (s *typesTestSuite) TestPayloadTemplate_PerTestOverride() {
+	test, err := GetTestFromYaml([]byte(payloadTemplateYaml), "")
+	s.Require().NoError(err)
+
+	s.Require().Len(test.Tests[1].Stages, 1)
+	input := NewInput(&test.Tests[1].Stages[0].Input)
+	s.Equal("POST", input.GetMethod())
+	s.Equal("/?q=%7B%7B7%2A7%7D%7D", input.GetURI(), "unset fields fall through to the file-level template")
+	s.Equal("q={{7*7}}", string(input.GetData()), "payload must not be evaluated as a template")
+}
+
+func (s *typesTestSuite) TestPayloadTemplate_WithStagesFails() {
+	yaml := `---
+rule_id: 1
+template:
+  uri: "/{{.Payload}}"
+tests:
+  - payload: x
+    stages:
+      - input: {}
+`
+	_, err := GetTestFromYaml([]byte(yaml), "")
+	s.ErrorContains(err, "mutually exclusive")
+}
+
+func (s *typesTestSuite) TestPayloadTemplate_WithoutTemplateFails() {
+	yaml := `---
+rule_id: 1
+tests:
+  - payload: x
+`
+	_, err := GetTestFromYaml([]byte(yaml), "")
+	s.ErrorContains(err, "requires a file-level or per-test template")
+}
+
+func (s *typesTestSuite) TestPayloadTemplate_RenderFails() {
+	for name, tmpl := range map[string]string{
+		"uri parse error":   "  uri: \"/{{.Payload\"",
+		"uri exec error":    "  uri: \"/{{.Missing}}\"",
+		"data exec error":   "  data: \"{{.Missing}}\"",
+		"header exec error": "  headers:\n    - name: X\n      value: \"{{.Missing}}\"",
+	} {
+		s.Run(name, func() {
+			yaml := "---\nrule_id: 1\ntemplate:\n" + tmpl + "\ntests:\n  - payload: x\n"
+			_, err := GetTestFromYaml([]byte(yaml), "")
+			s.ErrorContains(err, "test 1-1: rendering")
+		})
+	}
 }
