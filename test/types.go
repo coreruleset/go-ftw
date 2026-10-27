@@ -192,6 +192,10 @@ func payloadStage(fileTemplate *schema.RequestTemplate, test *schema.Test) (sche
 	if fileTemplate == nil && test.Template == nil {
 		return schema.Stage{}, errors.New("payload requires a file-level or per-test template")
 	}
+	//nolint:staticcheck
+	if (fileTemplate != nil && fileTemplate.StopMagic != nil) || (test.Template != nil && test.Template.StopMagic != nil) {
+		return schema.Stage{}, errors.New("stop_magic is not supported in templates, use autocomplete_headers")
+	}
 	tmpl := mergeTemplates(fileTemplate, test.Template)
 	vars := struct{ Payload string }{*test.Payload}
 	render := func(text string) (string, error) {
@@ -211,7 +215,6 @@ func payloadStage(fileTemplate *schema.RequestTemplate, test *schema.Test) (sche
 		Version:             tmpl.Version,
 		Method:              tmpl.Method,
 		AutocompleteHeaders: tmpl.AutocompleteHeaders,
-		StopMagic:           tmpl.StopMagic, //nolint:staticcheck
 		SaveCookie:          tmpl.SaveCookie,
 	}
 	if tmpl.URI != nil {
@@ -281,11 +284,6 @@ func mergeTemplates(base *schema.RequestTemplate, override *schema.RequestTempla
 	}
 	if override.AutocompleteHeaders != nil {
 		merged.AutocompleteHeaders = override.AutocompleteHeaders
-	}
-	//nolint:staticcheck
-	if override.StopMagic != nil {
-		//nolint:staticcheck
-		merged.StopMagic = override.StopMagic
 	}
 	if override.SaveCookie != nil {
 		merged.SaveCookie = override.SaveCookie

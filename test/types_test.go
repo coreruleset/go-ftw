@@ -648,3 +648,15 @@ func (s *typesTestSuite) TestPayloadTemplate_RenderFails() {
 		})
 	}
 }
+
+func (s *typesTestSuite) TestPayloadTemplate_StopMagicFails() {
+	for name, yaml := range map[string]string{
+		"file-level": "---\nrule_id: 1\ntemplate:\n  stop_magic: true\ntests:\n  - payload: x\n",
+		"per-test":   "---\nrule_id: 1\ntemplate:\n  uri: /\ntests:\n  - payload: x\n    template:\n      stop_magic: true\n",
+	} {
+		s.Run(name, func() {
+			_, err := GetTestFromYaml([]byte(yaml), "")
+			s.ErrorContains(err, "stop_magic is not supported in templates")
+		})
+	}
+}
