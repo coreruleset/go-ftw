@@ -186,15 +186,8 @@ func postLoadTest(ruleId uint, testId uint, fileTemplate *schema.RequestTemplate
 // payloadStage expands a v3 payload test into a single stage, built from the
 // file-level template, the per-test template overrides and the test's output.
 func payloadStage(fileTemplate *schema.RequestTemplate, test *schema.Test) (schema.Stage, error) {
-	if len(test.Stages) > 0 {
-		return schema.Stage{}, errors.New("payload and stages are mutually exclusive")
-	}
-	if fileTemplate == nil && test.Template == nil {
-		return schema.Stage{}, errors.New("payload requires a file-level or per-test template")
-	}
-	//nolint:staticcheck
-	if (fileTemplate != nil && fileTemplate.StopMagic != nil) || (test.Template != nil && test.Template.StopMagic != nil) {
-		return schema.Stage{}, errors.New("stop_magic is not supported in templates, use autocomplete_headers")
+	if err := checkPayloadTest(fileTemplate, test); err != nil {
+		return schema.Stage{}, err
 	}
 	tmpl := mergeTemplates(fileTemplate, test.Template)
 	vars := struct{ Payload string }{*test.Payload}
@@ -247,6 +240,20 @@ func payloadStage(fileTemplate *schema.RequestTemplate, test *schema.Test) (sche
 		stage.Output = *test.Output
 	}
 	return stage, nil
+}
+
+func checkPayloadTest(fileTemplate *schema.RequestTemplate, test *schema.Test) error {
+	if len(test.Stages) > 0 {
+		return errors.New("payload and stages are mutually exclusive")
+	}
+	if fileTemplate == nil && test.Template == nil {
+		return errors.New("payload requires a file-level or per-test template")
+	}
+	//nolint:staticcheck
+	if (fileTemplate != nil && fileTemplate.StopMagic != nil) || (test.Template != nil && test.Template.StopMagic != nil) {
+		return errors.New("stop_magic is not supported in templates, use autocomplete_headers")
+	}
+	return nil
 }
 
 // mergeTemplates returns base with every field that is set in override replaced.
