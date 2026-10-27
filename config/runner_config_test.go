@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -64,4 +65,19 @@ test_overrides:
 	s.Len(entry.Output.Log.NoExpectIds, 1)
 	s.Equal(uint(1234), entry.Output.Log.NoExpectIds[0])
 	s.Equal("404", entry.Output.ResponseContains)
+}
+
+func (s *baseTestSuite) TestLoadPlatformOverridesLogContainsFails() {
+	for field, expected := range map[string]string{
+		"log_contains":    "override for rule 920100: log_contains is no longer supported",
+		"no_log_contains": "override for rule 920100: no_log_contains is no longer supported",
+	} {
+		s.Run(field, func() {
+			overridesFile := filepath.Join(s.T().TempDir(), "overrides.yaml")
+			s.Require().NoError(os.WriteFile(overridesFile, []byte("---\ntest_overrides:\n  - rule_id: 920100\n    output:\n      "+field+": homer\n"), 0o600))
+
+			err := (&RunnerConfig{}).LoadPlatformOverrides(overridesFile)
+			s.ErrorContains(err, expected)
+		})
+	}
 }

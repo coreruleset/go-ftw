@@ -29,7 +29,8 @@ tests:
             Accept: "*/*"
             Host: "{{ .TestAddr }}"
         output:
-          log_contains: "ModSecurity: Access denied with code 403"
+          log:
+            match_regex: "ModSecurity: Access denied with code 403"
   - test_id: 405
     description: "using no_log_contains should return a 405 response."
     stages:
@@ -42,7 +43,8 @@ tests:
             Accept: "*/*"
             Host: "{{ .TestAddr }}"
         output:
-          no_log_contains: "ModSecurity: Access denied with code 403"
+          log:
+            no_match_regex: "ModSecurity: Access denied with code 403"
   - test_id: 8
     description: "this test is number 8"
     stages:

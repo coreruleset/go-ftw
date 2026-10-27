@@ -13,7 +13,8 @@ tests:
             Accept: "*/*"
             Host: "localhost"
         output:
-          log_contains: id \"949110\"
+          log:
+            match_regex: id \"949110\"
   - test_id: 201
     stages:
       - input:
@@ -24,4 +25,5 @@ tests:
             Accept: "*/*"
             Host: "localhost"
         output:
-          no_log_contains: ABCDE
+          log:
+            no_match_regex: ABCDE
