@@ -159,7 +159,7 @@ The input section supports these fields:
 - **encoded_request**: Base64 encoded full HTTP request (overrides all other settings)
 - **save_cookie**: Save cookies from response for subsequent requests
 - **autocomplete_headers**: Auto-add common headers (Connection, Content-Length, Content-Type). Defaults to true.
-- **stop_magic**: (Deprecated) No longer used
+- **stop_magic**: (Removed) Use `autocomplete_headers` instead; tests that set it fail to load
 - **raw_request**: (Deprecated) Use `encoded_request` instead
 
 ##### Output Fields
@@ -168,8 +168,7 @@ The output section supports these validation fields:
 
 - **status**: Expected HTTP status code
 - **response_contains**: String that should appear in response body
-- **log_contains**: String that should appear in WAF logs
-- **no_log_contains**: String that should NOT appear in WAF logs
+- **log_contains** / **no_log_contains**: (Removed) Use `log.match_regex` / `log.no_match_regex` instead; tests that set them fail to load
 - **log**: Object containing log validation fields:
   - **expect_ids**: Array of rule IDs expected to trigger
   - **no_expect_ids**: Array of rule IDs that should NOT trigger
@@ -546,8 +545,8 @@ Then run: `./ftw run --config cloud-test.yaml`
 
 ## How log parsing works
 
-The WAF's log file with the alert messages is parsed and compared to the expected output defined in the unit test under `log_contains` or `no_log_contains`.
-Note that the expected output may contain multiple checks (E.g. `log_contains` and `status`). If any of the checks fail, the test will fail.
+The WAF's log file with the alert messages is parsed and compared to the expected output defined in the unit test under `log`.
+Note that the expected output may contain multiple checks (E.g. `log` and `status`). If any of the checks fail, the test will fail.
 
 The problem with log files is that `go-ftw` is very, very fast and the log files are not updated in real time. Frequently, the
 web server / WAF is not syncing the file fast enough. That results in a situation where `go-ftw` won't find the log messages it has triggered.
