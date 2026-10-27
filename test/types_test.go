@@ -633,3 +633,18 @@ tests:
 	_, err := GetTestFromYaml([]byte(yaml), "")
 	s.ErrorContains(err, "requires a file-level or per-test template")
 }
+
+func (s *typesTestSuite) TestPayloadTemplate_RenderFails() {
+	for name, tmpl := range map[string]string{
+		"uri parse error":   "  uri: \"/{{.Payload\"",
+		"uri exec error":    "  uri: \"/{{.Missing}}\"",
+		"data exec error":   "  data: \"{{.Missing}}\"",
+		"header exec error": "  headers:\n    - name: X\n      value: \"{{.Missing}}\"",
+	} {
+		s.Run(name, func() {
+			yaml := "---\nrule_id: 1\ntemplate:\n" + tmpl + "\ntests:\n  - payload: x\n"
+			_, err := GetTestFromYaml([]byte(yaml), "")
+			s.ErrorContains(err, "test 1-1: rendering")
+		})
+	}
+}
