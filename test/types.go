@@ -4,12 +4,17 @@
 package test
 
 import (
+	"bytes"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
+	"text/template"
 
 	"slices"
 
+	"github.com/Masterminds/sprig/v3"
 	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
 	overridesSchema "github.com/coreruleset/ftw-tests-schema/v3/types/overrides"
 	"github.com/rs/zerolog/log"
@@ -132,7 +137,9 @@ func postLoadTestFTWTest(ftwTest *FTWTest, fileName string) error {
 		return err
 	}
 	for index := 0; index < len(ftwTest.Tests); index++ {
-		postLoadTest(ftwTest.RuleId, uint(index+1), &ftwTest.Tests[index])
+		if err := postLoadTest(ftwTest.RuleId, uint(index+1), ftwTest.Template, &ftwTest.Tests[index]); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -157,15 +164,133 @@ func postLoadRuleId(ftwTest *FTWTest) error {
 	}
 	return nil
 }
-func postLoadTest(ruleId uint, testId uint, test *schema.Test) {
+func postLoadTest(ruleId uint, testId uint, fileTemplate *schema.RequestTemplate, test *schema.Test) error {
 	test.RuleId = ruleId
 	// Retain explicitly defined test IDs
 	if test.TestId == 0 {
 		test.TestId = testId
 	}
+	if test.Payload != nil {
+		stage, err := payloadStage(fileTemplate, test)
+		if err != nil {
+			return fmt.Errorf("test %s: %w", test.IdString(), err)
+		}
+		test.Stages = []schema.Stage{stage}
+	}
 	for index := range test.Stages {
 		postLoadStage(&test.Stages[index])
 	}
+	return nil
+}
+
+// payloadStage expands a v3 payload test into a single stage, built from the
+// file-level template, the per-test template overrides and the test's output.
+func payloadStage(fileTemplate *schema.RequestTemplate, test *schema.Test) (schema.Stage, error) {
+	if len(test.Stages) > 0 {
+		return schema.Stage{}, errors.New("payload and stages are mutually exclusive")
+	}
+	if fileTemplate == nil && test.Template == nil {
+		return schema.Stage{}, errors.New("payload requires a file-level or per-test template")
+	}
+	tmpl := mergeTemplates(fileTemplate, test.Template)
+	vars := struct{ Payload string }{*test.Payload}
+	render := func(text string) (string, error) {
+		t, err := template.New("payload").Funcs(sprig.TxtFuncMap()).Parse(text)
+		if err != nil {
+			return "", err
+		}
+		var out bytes.Buffer
+		err = t.Execute(&out, vars)
+		return out.String(), err
+	}
+
+	input := schema.Input{
+		DestAddr:            tmpl.DestAddr,
+		Port:                tmpl.Port,
+		Protocol:            tmpl.Protocol,
+		Version:             tmpl.Version,
+		Method:              tmpl.Method,
+		AutocompleteHeaders: tmpl.AutocompleteHeaders,
+		StopMagic:           tmpl.StopMagic, //nolint:staticcheck
+		SaveCookie:          tmpl.SaveCookie,
+	}
+	if tmpl.URI != nil {
+		uri, err := render(*tmpl.URI)
+		if err != nil {
+			return schema.Stage{}, fmt.Errorf("rendering uri: %w", err)
+		}
+		input.URI = &uri
+	}
+	if tmpl.Data != nil {
+		data, err := render(*tmpl.Data)
+		if err != nil {
+			return schema.Stage{}, fmt.Errorf("rendering data: %w", err)
+		}
+		// `data` is evaluated as a template again at request time; encoding it
+		// keeps payloads such as `{{7*7}}` literal.
+		encoded := base64.StdEncoding.EncodeToString([]byte(data))
+		input.EncodedData = &encoded
+	}
+	for _, header := range tmpl.Headers {
+		value, err := render(header.Value)
+		if err != nil {
+			return schema.Stage{}, fmt.Errorf("rendering header %s: %w", header.Name, err)
+		}
+		input.OrderedHeaders = append(input.OrderedHeaders, schema.HeaderTuple{Name: header.Name, Value: value})
+	}
+
+	stage := schema.Stage{Input: input}
+	if test.Output != nil {
+		stage.Output = *test.Output
+	}
+	return stage, nil
+}
+
+// mergeTemplates returns base with every field that is set in override replaced.
+func mergeTemplates(base *schema.RequestTemplate, override *schema.RequestTemplate) schema.RequestTemplate {
+	var merged schema.RequestTemplate
+	if base != nil {
+		merged = *base
+	}
+	if override == nil {
+		return merged
+	}
+	if override.DestAddr != nil {
+		merged.DestAddr = override.DestAddr
+	}
+	if override.Port != nil {
+		merged.Port = override.Port
+	}
+	if override.Protocol != nil {
+		merged.Protocol = override.Protocol
+	}
+	if override.URI != nil {
+		merged.URI = override.URI
+	}
+	if override.Version != nil {
+		merged.Version = override.Version
+	}
+	if override.Method != nil {
+		merged.Method = override.Method
+	}
+	if override.Headers != nil {
+		merged.Headers = override.Headers
+	}
+	if override.Data != nil {
+		merged.Data = override.Data
+	}
+	if override.AutocompleteHeaders != nil {
+		merged.AutocompleteHeaders = override.AutocompleteHeaders
+	}
+	//nolint:staticcheck
+	if override.StopMagic != nil {
+		//nolint:staticcheck
+		merged.StopMagic = override.StopMagic
+	}
+	if override.SaveCookie != nil {
+		merged.SaveCookie = override.SaveCookie
+	}
+	return merged
 }
 
 func postLoadStage(stage *schema.Stage) {
