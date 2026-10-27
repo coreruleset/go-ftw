@@ -18,7 +18,7 @@ import (
 	"testing"
 	"text/template"
 
-	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
+	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
