@@ -237,3 +237,8 @@ func (s *baseTestSuite) TestWithMaxMarker() {
 	s.Equal(uint(111), cfg.MaxMarkerLogLines)
 
 }
+
+func (s *baseTestSuite) TestNewConfigStopMagicFails() {
+	_, err := NewConfigFromString("---\ntestoverride:\n  input:\n    stop_magic: true\n")
+	s.ErrorContains(err, "testoverride.input.stop_magic is no longer supported")
+}

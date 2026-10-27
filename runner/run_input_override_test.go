@@ -32,7 +32,6 @@ var configTemplate = `
 ---
 testoverride:
   input:
-    {{ with .StopMagic }}stop_magic: {{ . }}{{ end }}
     {{ with .AutocompleteHeaders }}autocomplete_headers: {{ . }}{{ end }}
     {{ with .BrokenConfig }}this_does_not_exist: "test"{{ end }}
     {{ with .Port }}port: {{ . }}{{ end }}
@@ -96,9 +95,6 @@ var overrideConfigMap = map[string]interface{}{
 	},
 	"TestApplyInputOverrideProtocol": map[string]interface{}{
 		"Protocol": "HTTP/1.1",
-	},
-	"TestApplyInputOverrideStopMagic": map[string]interface{}{
-		"StopMagic": "true",
 	},
 	"TestApplyInputOverrideAutocompleteHeaders": map[string]interface{}{
 		"AutocompleteHeaders": "true",
@@ -290,20 +286,6 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideData() {
 	s.Equal(overrideData, *testInput.Data, "`Data` should have been overridden")
 }
 
-func (s *inputOverrideTestSuite) TestApplyInputOverrideStopMagic() {
-	stopMagicBool, err := getOverrideConfigValue("StopMagic")
-	s.Require().NoError(err, "cannot get override value")
-	overrideStopMagic, err := strconv.ParseBool(stopMagicBool)
-	s.Require().NoError(err, "Failed to parse `StopMagic` override value")
-	testInput := test.NewInput(&schema.Input{
-		StopMagic: func() *bool { b := false; return &b }(),
-	})
-	test.ApplyInputOverrides(s.runnerConfig, testInput)
-
-	// nolint
-	s.Equal(overrideStopMagic, *testInput.StopMagic, "`StopMagic` should have been overridden")
-}
-
 func (s *inputOverrideTestSuite) TestApplyInputOverrideAutocompleteHeaders() {
 	autocompleteHeadersBool, err := getOverrideConfigValue("AutocompleteHeaders")
 	s.NoError(err, "cannot get override value")
@@ -323,24 +305,9 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideNoAutocompleteHeaders() {
 		AutocompleteHeaders: func() *bool { b := false; return &b }(),
 	})
 	s.Nil(s.cfg.TestOverride.Overrides.AutocompleteHeaders)
-	//nolint:staticcheck
-	s.Nil(s.cfg.TestOverride.Overrides.StopMagic)
 	test.ApplyInputOverrides(s.runnerConfig, testInput)
 
 	s.False(*testInput.AutocompleteHeaders, "`AutocompleteHeaders` should not have been overridden")
-}
-
-func (s *inputOverrideTestSuite) TestApplyInputOverrideNoStopMagic() {
-	testInput := test.NewInput(&schema.Input{
-		StopMagic: func() *bool { b := true; return &b }(),
-	})
-	s.Nil(s.cfg.TestOverride.Overrides.AutocompleteHeaders)
-	//nolint:staticcheck
-	s.Nil(s.cfg.TestOverride.Overrides.StopMagic)
-	test.ApplyInputOverrides(s.runnerConfig, testInput)
-
-	//nolint:staticcheck
-	s.True(*testInput.StopMagic, "`AutocompleteHeaders` should not have been overridden")
 }
 
 func (s *inputOverrideTestSuite) TestApplyInputOverrideEncodedRequest() {

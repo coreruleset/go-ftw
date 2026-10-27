@@ -82,8 +82,6 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 	to := test.Output{
 		Status:           200,
 		ResponseContains: "",
-		LogContains:      "nothing",
-		NoLogContains:    "",
 		ExpectError:      func() *bool { b := true; return &b }(),
 	}
 	c.SetExpectTestOutput(&to)
@@ -92,8 +90,7 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 
 	c.SetNoLogContains("nologcontains")
 
-	//nolint:staticcheck
-	s.Equal(c.expected.NoLogContains, "nologcontains", "Problem setting nologcontains")
+	s.Equal("nologcontains", c.expected.Log.NoMatchRegex, "Problem setting nologcontains")
 }
 
 func (s *checkBaseTestSuite) TestForced() {
