@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
+	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
 	"github.com/rs/zerolog/log"
 
 	"github.com/coreruleset/go-ftw/v2/config"
@@ -29,6 +29,7 @@ func Run(runnerConfig *config.RunnerConfig, tests []*test.FTWTest, out *output.O
 	if err != nil {
 		return &TestRunContext{}, err
 	}
+	defer cleanLogs(logLines)
 
 	client, err := ftwhttp.NewClient(runnerConfig)
 	if err != nil {
@@ -60,8 +61,6 @@ func Run(runnerConfig *config.RunnerConfig, tests []*test.FTWTest, out *output.O
 	}
 
 	runContext.Stats.printSummary(out)
-
-	defer cleanLogs(logLines)
 
 	return runContext, nil
 }
@@ -104,10 +103,10 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 				if err.Error() == "retry-once" {
 					log.Info().Msgf("Retrying test once: %s", testCase.IdString())
 					if err = RunStage(runContext, ftwCheck, testCase, stage); err != nil {
-						return err
+						return fmt.Errorf("%s (test %s): %w", ftwTest.FileName, testCase.IdString(), err)
 					}
 				} else {
-					return err
+					return fmt.Errorf("%s (test %s): %w", ftwTest.FileName, testCase.IdString(), err)
 				}
 			}
 		}
@@ -355,12 +354,15 @@ func checkTestSanity(stage *schema.Stage) error {
 }
 
 func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult, roundTripTime time.Duration) {
+	// Always reset to notice afterwards so other output is not mislabeled.
+	defer rc.Output.SetSeverity(output.AnnotationNotice)
 	switch result {
 	case Success:
 		if !rc.ShowOnlyFailed {
 			rc.Output.Println(rc.Output.Message("+ passed in %s (RTT %s)"), rc.CurrentStageDuration, roundTripTime)
 		}
 	case Failed:
+		rc.Output.SetSeverity(output.AnnotationError)
 		rc.Output.Println(rc.Output.Message("- %s failed in %s (RTT %s)"), testCase.IdString(), rc.CurrentStageDuration, roundTripTime)
 	case Ignored:
 		if !rc.ShowOnlyFailed {

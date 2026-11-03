@@ -6,7 +6,7 @@ package runner
 import (
 	"testing"
 
-	schema "github.com/coreruleset/ftw-tests-schema/v2/types"
+	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 

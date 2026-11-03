@@ -5,6 +5,7 @@ package ftwhttp
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"net/textproto"
 	"strings"
@@ -110,6 +111,10 @@ func (h *Header) GetAll(name string) []HeaderTuple {
 func (h *Header) Write(writer io.Writer) error {
 	buf := bufio.NewWriter(writer)
 	for index, tuple := range h.entries {
+		if strings.ContainsAny(tuple.Name, "\r\n") || strings.ContainsAny(tuple.Value, "\r\n") {
+			return fmt.Errorf("header %q contains a raw CR or LF character, which would corrupt the request; "+
+				"use 'encoded_request' or 'encoded_data' to send control characters intentionally", tuple.Name)
+		}
 		if log.Trace().Enabled() {
 			log.Trace().Msgf("Writing header %d: %s: %s", index, tuple.Name, tuple.Value)
 		}

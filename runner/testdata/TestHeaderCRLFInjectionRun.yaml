@@ -1,0 +1,20 @@
+---
+meta:
+  author: "tester"
+  description: "Regression test for coreruleset/go-ftw#662"
+tests:
+  - test_id: 10
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+            # A YAML block scalar appends a trailing "\n" to the value.
+            sec-ch-ua-full-version-list: |
+              "Google Chrome";v="149.0.0.0", "Chromium";v="149.0.0.0", "Not)A;Brand";v="24.0.0.0"
+        output:
+          log:
+            no_expect_ids: [920274]

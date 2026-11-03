@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"time"
 
-	schema "github.com/coreruleset/ftw-tests-schema/v2/types/overrides"
+	schema "github.com/coreruleset/ftw-tests-schema/v3/types/overrides"
 	"github.com/coreruleset/go-ftw/v2/output"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
