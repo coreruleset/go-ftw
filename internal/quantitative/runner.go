@@ -57,7 +57,7 @@ type Params struct {
 	BaselinePath string
 	// CompareCRSPath is the path to the baseline CRS tree to compare against the current directory
 	CompareCRSPath string
-	// Placement is where the payload is placed in each request (args, path or a header)
+	// Placement is where the payload is placed in each request (query, path or a header)
 	Placement Placement
 }
 

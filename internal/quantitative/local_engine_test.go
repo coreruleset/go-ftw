@@ -142,7 +142,7 @@ func (s *localEngineTestSuite) TestCrsCallPlacement() {
 	}
 
 	// 920440 (restricted file extension) only looks at REQUEST_BASENAME: invisible from ARGS.
-	s.Require().Empty(engineFor("args").CrsCall("index.bak"))
+	s.Require().Empty(engineFor("query").CrsCall("index.bak"))
 	s.Require().Contains(engineFor("path").CrsCall("index.bak"), 920440)
 
 	// 942100 (libinjection) inspects REQUEST_HEADERS:Referer.

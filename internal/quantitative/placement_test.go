@@ -15,11 +15,13 @@ func TestParsePlacement(t *testing.T) {
 		want    Placement
 		wantErr bool
 	}{
-		{in: "", want: Placement{Kind: PlacementArgs}},
-		{in: "args", want: Placement{Kind: PlacementArgs}},
+		{in: "", want: Placement{Kind: PlacementQuery}},
+		{in: "query", want: Placement{Kind: PlacementQuery}},
 		{in: "path", want: Placement{Kind: PlacementPath}},
 		{in: "header:Referer", want: Placement{Kind: PlacementHeader, Header: "Referer"}},
 		{in: "header:", wantErr: true},
+		{in: "header:Bad Name", want: Placement{Kind: PlacementHeader, Header: "Bad Name"}},
+		{in: "header:X-Foo:bar", want: Placement{Kind: PlacementHeader, Header: "X-Foo:bar"}},
 		{in: "header", wantErr: true},
 		{in: "body", wantErr: true},
 	}
@@ -52,6 +54,6 @@ func TestRequestHeaders(t *testing.T) {
 	require.Len(t, got, 4)
 	require.Equal(t, [2]string{"Referer", "payload"}, got[3])
 
-	// args and path placements only send the fixed headers
-	require.Len(t, requestHeaders(Placement{Kind: PlacementArgs}, "payload"), 3)
+	// query and path placements only send the fixed headers
+	require.Len(t, requestHeaders(Placement{Kind: PlacementQuery}, "payload"), 3)
 }

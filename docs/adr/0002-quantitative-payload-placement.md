@@ -28,8 +28,8 @@ where the payload was placed.
 Add a `--placement` flag to `ftw quantitative` that selects where each corpus payload is placed in
 the generated request. Exactly one placement applies to a whole run.
 
-- Accepted values: `args` (default, current behavior), `path`, and `header:<Name>`.
-  - `args`: `/get?uri_payload=<QueryEscape(payload)>`, unchanged.
+- Accepted values: `query` (default, current behavior), `path`, and `header:<Name>`.
+  - `query`: `/get?uri_payload=<QueryEscape(payload)>`, unchanged.
   - `path`: `/get/<PathEscape(payload)>` with no query string. Escaping is required so a raw
     space or `#` cannot truncate or break URI parsing; CRS decodes the value through its
     transformations as it would for any real request.
@@ -49,10 +49,10 @@ the generated request. Exactly one placement applies to a whole run.
 
 **Positive:** CRS gets real quantitative coverage for `REQUEST_FILENAME`, `REQUEST_URI`, and
 header-targeted rules using the same corpus and the same reporting, with an additive change. The
-default stays `args`, so existing CI jobs and saved baselines keep their meaning.
+default stays `query`, so existing CI jobs and saved baselines keep their meaning.
 
 **Negative:** the stats JSON does not record the placement, so `--baseline` will not warn when a
-`path` run is compared against an `args` baseline. Users must keep baselines per placement
+`path` run is compared against a `query` baseline. Users must keep baselines per placement
 themselves. Recording the placement in the output (and warning on mismatch) is a cheap follow-up
 if this bites in practice.
 

@@ -12,8 +12,8 @@ import (
 type PlacementKind string
 
 const (
-	// PlacementArgs puts the payload in the query string (the default).
-	PlacementArgs PlacementKind = "args"
+	// PlacementQuery puts the payload in the query string (the default).
+	PlacementQuery PlacementKind = "query"
 	// PlacementPath puts the payload in a URL path segment.
 	PlacementPath PlacementKind = "path"
 	// PlacementHeader puts the payload in the request header named by Placement.Header.
@@ -26,18 +26,20 @@ type Placement struct {
 	Header string
 }
 
-// ParsePlacement parses the --placement flag value: "args", "path" or "header:<Name>".
-// An empty string means "args".
+// ParsePlacement parses the --placement flag value: "query", "path" or "header:<Name>".
+// An empty string means "query".
 func ParsePlacement(s string) (Placement, error) {
 	switch {
-	case s == "" || s == string(PlacementArgs):
-		return Placement{Kind: PlacementArgs}, nil
+	case s == "" || s == string(PlacementQuery):
+		return Placement{Kind: PlacementQuery}, nil
 	case s == string(PlacementPath):
 		return Placement{Kind: PlacementPath}, nil
 	case strings.HasPrefix(s, "header:") && len(s) > len("header:"):
+		// The name is deliberately not checked against the HTTP token grammar:
+		// go-ftw exists to send malformed input, so odd names must be testable.
 		return Placement{Kind: PlacementHeader, Header: s[len("header:"):]}, nil
 	}
-	return Placement{}, fmt.Errorf("invalid placement %q: want args, path or header:<Name>", s)
+	return Placement{}, fmt.Errorf("invalid placement %q: want query, path or header:<Name>", s)
 }
 
 // String renders the placement in the same form ParsePlacement accepts.
@@ -46,7 +48,7 @@ func (p Placement) String() string {
 		return "header:" + p.Header
 	}
 	if p.Kind == "" {
-		return string(PlacementArgs)
+		return string(PlacementQuery)
 	}
 	return string(p.Kind)
 }
