@@ -7,6 +7,7 @@ toolchain go1.26.10
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/corazawaf/coraza/v3 v3.8.1
+	github.com/coreruleset/crs-toolchain/v2 v2.9.0
 	github.com/coreruleset/ftw-tests-schema/v3 v3.0.1
 	github.com/creativeprojects/go-selfupdate v1.5.2
 	github.com/go-logr/zerologr v1.2.3
@@ -42,7 +43,7 @@ require (
 
 require (
 	code.gitea.io/sdk/gitea v0.22.1 // indirect
-	dario.cat/mergo v1.0.1 // indirect
+	dario.cat/mergo v1.0.2 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/antchfx/htmlquery v1.3.4 // indirect
@@ -68,6 +69,7 @@ require (
 	github.com/hashicorp/go-version v1.8.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/itchyny/rassemble-go v0.1.2 // indirect
 	github.com/kaptinlin/go-i18n v0.1.4 // indirect
 	github.com/kaptinlin/jsonschema v0.4.6 // indirect
 	github.com/klauspost/compress v1.18.7 // indirect
@@ -80,6 +82,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/petar-dambovaliev/aho-corasick v0.0.0-20250424160509-463d218d4745 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
