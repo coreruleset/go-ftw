@@ -64,6 +64,9 @@ type Params struct {
 // ErrRegressionsDetected is returned when a quantitative comparison finds regressions.
 var ErrRegressionsDetected = errors.New("quantitative regressions detected")
 
+// ErrPlacementMismatch is returned when a baseline was produced with a different payload placement.
+var ErrPlacementMismatch = errors.New("baseline placement does not match")
+
 // ErrThresholdExceeded is returned when one or more requested rules exceed the false-positive threshold.
 var ErrThresholdExceeded = errors.New("quantitative false-positive threshold exceeded")
 
@@ -87,6 +90,11 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 	baselineStats, err := baselineStatsForComparison(params)
 	if err != nil {
 		return err
+	}
+
+	if baselineStats.Placement() != currentStats.Placement() {
+		return fmt.Errorf("%w: baseline used placement %q, this run uses %q",
+			ErrPlacementMismatch, baselineStats.Placement(), currentStats.Placement())
 	}
 
 	comparison := currentStats.Compare(baselineStats)
@@ -161,6 +169,7 @@ func runQuantitativeTest(params Params) (*QuantitativeRunStats, error) {
 	// create the results
 	stats := NewQuantitativeStats(params.IgnoreRules)
 	stats.SetEvaluatedParanoiaLevels(params.ParanoiaLevels)
+	stats.SetPlacement(params.Placement)
 
 	// The engine runs at the highest requested paranoia level so that every
 	// rule up to that level is active; lower levels are reported from the matches.

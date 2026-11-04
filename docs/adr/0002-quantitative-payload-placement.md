@@ -51,10 +51,9 @@ the generated request. Exactly one placement applies to a whole run.
 header-targeted rules using the same corpus and the same reporting, with an additive change. The
 default stays `query`, so existing CI jobs and saved baselines keep their meaning.
 
-**Negative:** the stats JSON does not record the placement, so `--baseline` will not warn when a
-`path` run is compared against a `query` baseline. Users must keep baselines per placement
-themselves. Recording the placement in the output (and warning on mismatch) is a cheap follow-up
-if this bites in practice.
+**Neutral:** the stats JSON records the placement (`placement`, omitted by older results, which
+are read as `query`). `--baseline` refuses to compare results produced with different placements,
+so users must keep one baseline per placement.
 
 **Negative:** header placement sends the payload verbatim. A corpus line containing characters
 that are invalid in a header value is the user's problem to filter; the engine does not sanitize.

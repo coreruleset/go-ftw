@@ -39,6 +39,9 @@ type quantitativeRunStatsJSON struct {
 	EvaluatedParanoiaLevels             []int             `json:"evaluatedParanoiaLevels,omitempty"`
 	FalsePositiveTotalsPerParanoiaLevel map[int]int       `json:"falsePositiveTotalsPerParanoiaLevel,omitempty"`
 	ThresholdCheck                      *ThresholdResult  `json:"thresholdCheck,omitempty"`
+	// Placement is where payloads were put in the request. Results saved before
+	// the field existed omit it and are treated as "query".
+	Placement string `json:"placement,omitempty"`
 }
 
 // ThresholdRuleResult holds the --threshold check outcome for a single rule.
@@ -116,6 +119,8 @@ type QuantitativeRunStats struct {
 	evaluatedParanoiaLevels ParanoiaLevels
 	// thresholdResult holds the outcome of a --threshold check, if one was requested.
 	thresholdResult *ThresholdResult
+	// placement is where payloads were put in the request, in Placement.String() form.
+	placement string
 	// mu is the mutex to protect the falsePositivesPerRule and falsePositivesPerParanoiaLevel maps
 	mu sync.Mutex
 }
@@ -399,6 +404,7 @@ func LoadQuantitativeRunStats(path string) (*QuantitativeRunStats, error) {
 		falsePositiveSentences:         serialized.FalsePositiveSentences,
 		falsePositivesPerRule:          serialized.FalsePositivesPerRule,
 		falsePositivesPerParanoiaLevel: serialized.FalsePositivesPerParanoiaLevel,
+		placement:                      serialized.Placement,
 		mu:                             sync.Mutex{},
 	}, nil
 }
@@ -593,6 +599,20 @@ func (s *QuantitativeRunStats) SetEvaluatedParanoiaLevels(levels ParanoiaLevels)
 	s.evaluatedParanoiaLevels = levels
 }
 
+// SetPlacement records where payloads were put in the request, for inclusion in saved results.
+func (s *QuantitativeRunStats) SetPlacement(p Placement) {
+	s.placement = p.String()
+}
+
+// Placement returns the placement the results were produced with. Results saved
+// before placements existed always used the query string.
+func (s *QuantitativeRunStats) Placement() string {
+	if s.placement == "" {
+		return string(PlacementQuery)
+	}
+	return s.placement
+}
+
 // SetThresholdResult attaches the outcome of a --threshold check for inclusion in output.
 // A nil result means no threshold check was requested.
 func (s *QuantitativeRunStats) SetThresholdResult(result *ThresholdResult) {
@@ -612,6 +632,7 @@ func (s *QuantitativeRunStats) MarshalJSON() ([]byte, error) {
 		FalsePositivesPerRule:          s.falsePositivesPerRule,
 		FalsePositivesPerParanoiaLevel: s.falsePositivesPerParanoiaLevel,
 		ThresholdCheck:                 s.thresholdResult,
+		Placement:                      s.placement,
 	}
 	if s.evaluatedParanoiaLevels.Len() > 1 {
 		evaluatedLevels := s.evaluatedParanoiaLevels.All()

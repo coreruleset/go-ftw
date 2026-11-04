@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"testing"
 
@@ -178,4 +179,18 @@ func (s *runnerTestSuite) TestRunQuantitative() {
 		s.Require().NoError(err)
 		s.Require().Contains(b.String(), "1 false positives")
 	})
+}
+
+func (s *runnerTestSuite) TestRunQuantitativeRejectsBaselineWithOtherPlacement() {
+	baselinePath := path.Join(s.tempDir, "baseline-path.json")
+	s.Require().NoError(os.WriteFile(baselinePath, []byte(`{"count":1,"placement":"path"}`), 0o644))
+
+	s.params.Payload = "<script>alert('0')</script>"
+	s.params.Rules = nil
+	s.params.BaselinePath = baselinePath
+
+	var b bytes.Buffer
+	err := RunQuantitativeTests(s.params, output.NewOutput("plain", &b))
+	s.Require().ErrorIs(err, ErrPlacementMismatch)
+	s.Require().ErrorContains(err, `"path"`)
 }
