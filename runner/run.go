@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
@@ -90,11 +91,16 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 			changed = false
 		}
 
+		runningPrefix := fmt.Sprintf("running %s: ", testCase.IdString())
 		if !runContext.ShowOnlyFailed {
-			runContext.Output.Printf("\trunning %s: ", testCase.IdString())
+			runContext.Output.Printf("\t%s", runningPrefix)
 		}
 		// Iterate over stages
-		for _, stage := range testCase.Stages {
+		for stageIndex, stage := range testCase.Stages {
+			// align the output of subsequent stages under the first one
+			if stageIndex > 0 && !runContext.ShowOnlyFailed {
+				runContext.Output.Printf("\t%s", strings.Repeat(" ", len(runningPrefix)))
+			}
 			ftwCheck, err := NewCheck(runContext)
 			if err != nil {
 				return err
