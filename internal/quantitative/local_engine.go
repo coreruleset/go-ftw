@@ -103,6 +103,7 @@ func (e *localEngine) CrsCall(payload string) map[int]RuleMatch {
 	case PlacementPath:
 		uri = "/get/" + url.PathEscape(payload)
 	case PlacementHeader:
+		// the payload travels in a header (see requestHeaders); the URI stays /get
 	default:
 		uri = "/get?uri_payload=" + url.QueryEscape(payload)
 	}
