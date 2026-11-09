@@ -34,7 +34,7 @@ jobs:
       # this use rather than the Homebrew tap bump. client-id (not app-id):
       # create-github-app-token deprecated app-id in favor of it.
       # Skipped for dry-run: the preview below never uses it.
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # ratchet:actions/create-github-app-token@v3.2.0
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         id: app-token
         if: inputs.dry-run != true
         with:
@@ -55,7 +55,7 @@ jobs:
       # happen via read-only GitHub API calls, no PR or tag is ever created,
       # so it runs on the default GITHUB_TOKEN instead of the write-scoped App
       # token above.
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # ratchet:actions/setup-node@v6.0.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         if: inputs.dry-run == true
         with:
           node-version: "24"
