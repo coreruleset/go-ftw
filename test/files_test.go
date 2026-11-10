@@ -30,7 +30,8 @@ tests:
             User-Agent: "ModSecurity CRS 3 Tests"
             Host: "localhost"
         output:
-          no_log_contains: "id \"911100\""
+          log:
+            no_match_regex: "id \"911100\""
   - test_id: 2
     stages:
       - input:
@@ -41,7 +42,8 @@ tests:
             User-Agent: "ModSecurity CRS 3 Tests"
             Host: "localhost"
         output:
-          no_log_contains: "id \"911100\""
+          log:
+            no_match_regex: "id \"911100\""
 `
 
 var wrongYamlTest = `
