@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -92,7 +93,8 @@ func RunQuantitativeTests(params Params, out *output.Output) error {
 		return err
 	}
 
-	if baselineStats.Placement() != currentStats.Placement() {
+	// header names are case-insensitive, so header:Referer and header:referer are the same placement
+	if !strings.EqualFold(baselineStats.Placement(), currentStats.Placement()) {
 		return fmt.Errorf("%w: baseline used placement %q, this run uses %q",
 			ErrPlacementMismatch, baselineStats.Placement(), currentStats.Placement())
 	}

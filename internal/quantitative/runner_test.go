@@ -194,3 +194,17 @@ func (s *runnerTestSuite) TestRunQuantitativeRejectsBaselineWithOtherPlacement()
 	s.Require().ErrorIs(err, ErrPlacementMismatch)
 	s.Require().ErrorContains(err, `"path"`)
 }
+
+func (s *runnerTestSuite) TestRunQuantitativeBaselinePlacementHeaderNameCaseInsensitive() {
+	baselinePath := path.Join(s.tempDir, "baseline-header.json")
+	s.Require().NoError(os.WriteFile(baselinePath, []byte(`{"count":1,"placement":"header:referer"}`), 0o644))
+
+	s.params.Payload = "<script>alert('0')</script>"
+	s.params.Rules = nil
+	s.params.BaselinePath = baselinePath
+	s.params.Placement = Placement{Kind: PlacementHeader, Header: "Referer"}
+
+	var b bytes.Buffer
+	err := RunQuantitativeTests(s.params, output.NewOutput("plain", &b))
+	s.Require().NotErrorIs(err, ErrPlacementMismatch)
+}
