@@ -67,6 +67,16 @@ testoverride:
   forcepass:
     ".*-99": "This test failed, but it shall pass!"
 `,
+	"TestOverriddenTestsRun": `---
+testoverride:
+  forcepass:
+    ".*-1$": "known bug"
+    ".*-2$": "not needed anymore"
+    ".*-5$": "connection is refused"
+  forcefail:
+    ".*-3$": "must be fixed"
+    ".*-4$": "fails anyway"
+`,
 	"TestOverrideRun": `---
 testoverride:
   input:
@@ -487,10 +497,47 @@ func (s *runTestSuite) TestStoreFailureWafLogs_Disabled() {
 func (s *runTestSuite) TestIgnoredTestsRun() {
 	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
-	s.Equal(1, len(res.Stats.ForcedPass), "Oops, unexpected number of forced pass tests")
+	// `ignore` is a deprecated alias of `forcepass`
+	s.Equal(5, len(res.Stats.ForcedPass), "Oops, unexpected number of forced pass tests")
 	s.Equal(1, len(res.Stats.Failed), "Oops, unexpected number of failed tests")
 	s.Equal(1, len(res.Stats.ForcedFail), "Oops, unexpected number of forced failed tests")
-	s.Equal(4, len(res.Stats.Ignored), "Oops, unexpected number of ignored tests")
+	s.Len(res.Stats.Overridden, 6)
+}
+
+func (s *runTestSuite) TestOverriddenTestsRun() {
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().NoError(err, "runtime errors in overridden tests must not abort the run")
+
+	id := func(testId int) string {
+		return s.ftwTests[0].Tests[testId-1].IdString()
+	}
+
+	// overridden tests are run and report their actual and their forced result
+	s.Equal(6, res.Stats.Run)
+	s.Len(res.Stats.ForcedPass, 3)
+	s.Len(res.Stats.ForcedFail, 2)
+	s.Equal([]string{id(6)}, res.Stats.Failed)
+	s.Equal([]OverrideResult{
+		{ID: id(1), Override: "forcepass", Actual: "failed", Reason: "known bug"},
+		{ID: id(2), Override: "forcepass", Actual: "passed", Reason: "not needed anymore"},
+		{ID: id(3), Override: "forcefail", Actual: "passed", Reason: "must be fixed"},
+		{ID: id(4), Override: "forcefail", Actual: "failed", Reason: "fails anyway"},
+		{ID: id(5), Override: "forcepass", Actual: "failed", Reason: "connection is refused"},
+	}, res.Stats.Overridden)
+
+	// stale overrides don't change the result of the test, they fail the run by default
+	s.Equal([]string{id(2), id(4)}, res.Stats.StaleOverrides())
+	s.Equal(2, res.Stats.FailedOnStaleOverrides())
+
+	s.Run("only warn about stale overrides", func() {
+		s.runnerConfig.TestOverride.StaleOverrides = config.StaleOverridesWarn
+
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+		s.Require().NoError(err)
+
+		s.Equal([]string{id(2), id(4)}, res.Stats.StaleOverrides())
+		s.Zero(res.Stats.FailedOnStaleOverrides())
+	})
 }
 
 func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders_WithoutData() {

@@ -321,38 +321,7 @@ include: '^9.*'
 	s.Equal("^1.*", runnerConfig.Include.String())
 }
 
-func (s *runCmdTestSuite) TestGlobalExclude() {
-	configYaml := `---
-exclude: '^9.*'
-`
-	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
-	s.Require().NoError(err)
-	cfg, err := config.NewConfigFromFile(configFile)
-	s.Require().NoError(err)
-
-	s.cmdContext.Configuration = cfg
-	s.cmd.SetArgs([]string{
-		"-d", s.tempDir,
-	})
-	cmd, _ := s.cmd.ExecuteC()
-
-	runnerConfig, err := buildRunnerConfig(cmd, s.cmdContext)
-	s.Require().NoError(err)
-
-	s.NotNil(runnerConfig.Exclude)
-	s.Equal("^9.*", runnerConfig.Exclude.String())
-}
-
-func (s *runCmdTestSuite) TestGlobalExcludeOverriddenByCmdLineFlag() {
-	configYaml := `---
-exclude: '^9.*'
-`
-	configFile, err := utils.CreateTempFileWithContent(s.tempDir, configYaml, "global-config.yaml")
-	s.Require().NoError(err)
-	cfg, err := config.NewConfigFromFile(configFile)
-	s.Require().NoError(err)
-
-	s.cmdContext.Configuration = cfg
+func (s *runCmdTestSuite) TestExcludeFlag() {
 	s.cmd.SetArgs([]string{
 		"-d", s.tempDir,
 		"--exclude", "^1.*",

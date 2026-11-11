@@ -73,9 +73,6 @@ func NewRunnerConfiguration(cfg *FTWConfiguration) *RunnerConfig {
 	if cfg.IncludeTests != nil {
 		runnerConfig.Include = (*regexp.Regexp)(cfg.IncludeTests)
 	}
-	if cfg.ExcludeTests != nil {
-		runnerConfig.Exclude = (*regexp.Regexp)(cfg.ExcludeTests)
-	}
 	if cfg.IncludeTags != nil {
 		runnerConfig.IncludeTags = (*regexp.Regexp)(cfg.IncludeTags)
 	}

@@ -75,7 +75,8 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
-	for _, text := range c.cfg.TestOverride.Ignore {
+	// deprecated `ignore` entries are treated as `forcepass`
+	for _, text := range c.cfg.TestOverride.ForcePass {
 		s.Equal(text, "Ignore Me", "Well, didn't match Ignore Me")
 	}
 
@@ -100,7 +101,7 @@ func (s *checkBaseTestSuite) TestForced() {
 	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
-	s.True(c.ForcedIgnore(&schema.Test{RuleId: 942200, TestId: 1}), "Can't find ignored value")
+	s.True(c.ForcedPass(&schema.Test{RuleId: 942200, TestId: 1}), "Can't find ignored value")
 
 	s.False(c.ForcedFail(&schema.Test{RuleId: 12345, TestId: 1}), "Value should not be found")
 
@@ -110,8 +111,8 @@ func (s *checkBaseTestSuite) TestForced() {
 
 	s.True(c.ForcedFail(&schema.Test{RuleId: 6789, TestId: 1}), "Value should be found")
 
-	s.cfg.TestOverride.Ignore = make(map[*config.FTWRegexp]string)
-	s.Falsef(c.ForcedIgnore(&schema.Test{RuleId: 1234, TestId: 1}), "Should not find ignored value in empty map")
+	s.cfg.TestOverride.ForcePass = make(map[*config.FTWRegexp]string)
+	s.Falsef(c.ForcedPass(&schema.Test{RuleId: 1234, TestId: 1}), "Should not find forced value in empty map")
 
 }
 

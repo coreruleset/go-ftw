@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"net"
 	"net/http/cookiejar"
 	"strings"
@@ -78,8 +79,8 @@ func (c *Client) SetRateLimiter(limiter *rate.Limiter) {
 
 // NewConnection creates a new Connection based on a Destination
 func (c *Client) NewConnection(d Destination) error {
-	if c.Transport != nil && c.Transport.connection != nil {
-		if err := c.Transport.connection.Close(); err != nil {
+	if c.Transport != nil {
+		if err := c.closeConnection(); err != nil {
 			return err
 		}
 	}
@@ -104,7 +105,7 @@ func (c *Client) NewOrReusedConnection(d Destination) error {
 	if c.Transport == nil {
 		return c.NewConnection(d)
 	}
-	if err := c.Transport.connection.Close(); err != nil {
+	if err := c.closeConnection(); err != nil {
 		return err
 	}
 
@@ -114,6 +115,18 @@ func (c *Client) NewOrReusedConnection(d Destination) error {
 	}
 
 	return err
+}
+
+// closeConnection closes the current connection. A connection that is missing or
+// already closed, e.g., after a failed attempt to establish a new connection, is not an error.
+func (c *Client) closeConnection() error {
+	if c.Transport.connection == nil {
+		return nil
+	}
+	if err := c.Transport.connection.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		return err
+	}
+	return nil
 }
 
 // dial tries to establish a connection

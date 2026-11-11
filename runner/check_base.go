@@ -63,34 +63,26 @@ func (c *FTWCheck) SetNoLogContains(regex string) {
 	c.expected.Log.NoMatchRegex = regex
 }
 
-// ForcedIgnore check if this ID need to be ignored from results
-func (c *FTWCheck) ForcedIgnore(testCase *schema.Test) bool {
-	for re := range c.cfg.TestOverride.Ignore {
-		if re.MatchString(testCase.IdString()) {
-			return true
-		}
-	}
-	return false
-}
-
-// ForcedPass check if this ID need to be ignored from results
+// ForcedPass check if this ID needs to be forced to pass
 func (c *FTWCheck) ForcedPass(testCase *schema.Test) bool {
-	for re := range c.cfg.TestOverride.ForcePass {
-		if re.MatchString(testCase.IdString()) {
-			return true
-		}
-	}
-	return false
+	_, found := forcedReason(c.cfg.TestOverride.ForcePass, testCase)
+	return found
 }
 
-// ForcedFail check if this ID need to be ignored from results
+// ForcedFail check if this ID needs to be forced to fail
 func (c *FTWCheck) ForcedFail(testCase *schema.Test) bool {
-	for re := range c.cfg.TestOverride.ForceFail {
+	_, found := forcedReason(c.cfg.TestOverride.ForceFail, testCase)
+	return found
+}
+
+// forcedReason returns the reason for the first override matching the test
+func forcedReason(overrides map[*config.FTWRegexp]string, testCase *schema.Test) (string, bool) {
+	for re, reason := range overrides {
 		if re.MatchString(testCase.IdString()) {
-			return true
+			return reason, true
 		}
 	}
-	return false
+	return "", false
 }
 
 // CloudMode returns true if we are running in cloud mode

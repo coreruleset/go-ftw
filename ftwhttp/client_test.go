@@ -243,6 +243,22 @@ func (s *clientTestSuite) TestNewOrReusedConnectionReusesTransport() {
 	s.Equal(begin, s.client.Transport.duration.begin, "Transport must not be reinitialized when reusing connection")
 }
 
+// A failed attempt to connect must not prevent subsequent connections.
+func (s *clientTestSuite) TestNewOrReusedConnectionRecoversFromFailedConnection() {
+	s.httpTestServer(insecureServer)
+	d, err := DestinationFromString(s.ts.URL)
+	s.Require().NoError(err, "Failed to construct destination from test server")
+	s.Require().NoError(s.client.NewOrReusedConnection(*d))
+
+	// no one is listening on this port
+	unreachable := &Destination{DestAddr: d.DestAddr, Port: 1, Protocol: d.Protocol}
+	s.Require().Error(s.client.NewOrReusedConnection(*unreachable))
+	s.Require().Error(s.client.NewOrReusedConnection(*unreachable))
+
+	s.Require().NoError(s.client.NewOrReusedConnection(*d), "Failed to connect after failed connection attempts")
+	s.Require().NoError(s.client.NewConnection(*d), "Failed to create connection after failed connection attempts")
+}
+
 // TestClientRateLimits tests the rate limiter functionality of the client. Test should take at least 3 seconds to run.
 func (s *clientTestSuite) TestClientRateLimits() {
 	waitTime := 3 * time.Second
