@@ -764,7 +764,7 @@ func (s *runTestSuite) TestRunTestRetryErrorNamesFileAndTest() {
 	s.ts.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get(s.cfg.LogMarkerHeaderName) != "" {
 			if markerRequests.Add(1) > 2 {
-				conn, _, err := w.(http.Hijacker).Hijack()
+				conn, _, err := http.NewResponseController(w).Hijack()
 				if s.NoError(err) {
 					s.NoError(conn.Close())
 				}

@@ -83,9 +83,11 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 	to := test.Output{
 		Status:           200,
 		ResponseContains: "",
-		LogContains:      "nothing",
-		NoLogContains:    "",
-		ExpectError:      func() *bool { b := true; return &b }(),
+		//nolint:staticcheck
+		LogContains: "nothing",
+		//nolint:staticcheck
+		NoLogContains: "",
+		ExpectError:   func() *bool { b := true; return &b }(),
 	}
 	c.SetExpectTestOutput(&to)
 
