@@ -203,11 +203,11 @@ func (s *runTestSuite) TearDownTest() {
 func (s *runTestSuite) closedPort() int {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	s.Require().NoError(err)
-	defer listener.Close()
 	_, port, err := net.SplitHostPort(listener.Addr().String())
 	s.Require().NoError(err)
 	portNumber, err := strconv.Atoi(port)
 	s.Require().NoError(err)
+	s.Require().NoError(listener.Close(), "the port must be closed")
 	return portNumber
 }
 
@@ -577,6 +577,8 @@ func (s *runTestSuite) TestOverriddenErrorsRun() {
 		s.Zero(res.Stats.TotalFailed())
 		// remaining stages are skipped after a transport error
 		s.Len(res.Stats.TriggeredRules[id(2)], 1)
+		// ... and after a failed retry (the second stage would abort the run without a redirect to follow)
+		s.Len(res.Stats.TriggeredRules[id(1)], 1)
 	})
 
 	s.Run("does not hide errors in the definition of a test", func() {

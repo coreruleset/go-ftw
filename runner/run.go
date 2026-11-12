@@ -107,8 +107,7 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 				skipRemainingStages, err = runStageAllowingOverrides(runContext, ftwCheck, testCase, stage)
 				if errors.Is(err, errRetryOnce) && isOverridden(runContext, &testCase) {
 					// The retry failed as well. Overrides exist to tolerate failing tests.
-					completeStage(runContext, &testCase, Failed, nil, time.Duration(0))
-					skipRemainingStages, err = false, nil
+					skipRemainingStages, err = completeFailedStage(runContext, &testCase), nil
 				}
 			}
 			if err != nil {
@@ -162,11 +161,17 @@ func runStageAllowingOverrides(runContext *TestRunContext, ftwCheck *FTWCheck, t
 	}
 
 	log.Warn().Err(err).Msgf("Transport error in overridden test %s, counting the actual result as failed and skipping remaining stages", testCase.IdString())
+	return completeFailedStage(runContext, &testCase), nil
+}
+
+// completeFailedStage records the failure of a stage that did not produce a usable response.
+// Returns true: the remaining stages of the test are to be skipped, they can't be expected to work.
+func completeFailedStage(runContext *TestRunContext, testCase *schema.Test) bool {
 	// there is no usable response for a following stage to redirect to
 	runContext.LastStageResponse = nil
 	runContext.LastStageInput = nil
-	completeStage(runContext, &testCase, Failed, nil, time.Duration(0))
-	return true, nil
+	completeStage(runContext, testCase, Failed, nil, time.Duration(0))
+	return true
 }
 
 func isOverridden(runContext *TestRunContext, testCase *schema.Test) bool {

@@ -4,7 +4,7 @@ meta:
   description: "Errors in overridden tests"
 tests:
   - test_id: 1
-    description: "fails twice (retry_once), forced to pass"
+    description: "fails twice (retry_once), forced to pass; the follow up stage must be skipped"
     stages:
       - input:
           dest_addr: "{{ .TestAddr }}"
@@ -16,6 +16,16 @@ tests:
         output:
           status: 413
           retry_once: true
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          follow_redirect: true
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "none.host"
+        output:
+          status: 200
   - test_id: 2
     description: "transport error in the first stage, the remaining stages must be skipped"
     stages:
