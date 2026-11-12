@@ -78,10 +78,8 @@ func (c *Client) SetRateLimiter(limiter *rate.Limiter) {
 
 // NewConnection creates a new Connection based on a Destination
 func (c *Client) NewConnection(d Destination) error {
-	if c.Transport != nil && c.Transport.connection != nil {
-		if err := c.Transport.connection.Close(); err != nil {
-			return err
-		}
+	if c.Transport != nil {
+		c.closeConnection()
 	}
 
 	c.Transport = &Connection{
@@ -104,9 +102,7 @@ func (c *Client) NewOrReusedConnection(d Destination) error {
 	if c.Transport == nil {
 		return c.NewConnection(d)
 	}
-	if err := c.Transport.connection.Close(); err != nil {
-		return err
-	}
+	c.closeConnection()
 
 	netConn, err := c.dial(d)
 	if err == nil {
@@ -114,6 +110,19 @@ func (c *Client) NewOrReusedConnection(d Destination) error {
 	}
 
 	return err
+}
+
+// closeConnection closes and discards the current connection, if any. Errors are logged and
+// otherwise ignored: the connection is about to be replaced and a failure to close it, e.g.,
+// because the peer has reset it, must not prevent that.
+func (c *Client) closeConnection() {
+	if c.Transport.connection == nil {
+		return
+	}
+	if err := c.Transport.connection.Close(); err != nil {
+		log.Debug().Err(err).Msg("http/client: ignoring error while closing connection")
+	}
+	c.Transport.connection = nil
 }
 
 // dial tries to establish a connection

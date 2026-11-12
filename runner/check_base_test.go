@@ -22,7 +22,7 @@ logfile: 'tests/logs/modsec3-nginx/nginx/error.log'
 testoverride:
   ignore:
     '942200-1': 'Ignore Me'
-`, "TestForced": `---
+`, "TestOverrideFor": `---
 testoverride:
   ignore:
     '942200-1': 'Ignore Me'
@@ -75,16 +75,19 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 	c, err := NewCheck(s.context)
 	s.Require().NoError(err)
 
-	for _, text := range c.cfg.TestOverride.Ignore {
+	// deprecated `ignore` entries are treated as `forcepass`
+	for _, text := range c.cfg.TestOverride.ForcePass {
 		s.Equal(text, "Ignore Me", "Well, didn't match Ignore Me")
 	}
 
 	to := test.Output{
 		Status:           200,
 		ResponseContains: "",
-		LogContains:      "nothing",
-		NoLogContains:    "",
-		ExpectError:      func() *bool { b := true; return &b }(),
+		//nolint:staticcheck
+		LogContains: "nothing",
+		//nolint:staticcheck
+		NoLogContains: "",
+		ExpectError:   func() *bool { b := true; return &b }(),
 	}
 	c.SetExpectTestOutput(&to)
 
@@ -96,23 +99,62 @@ func (s *checkBaseTestSuite) TestNewCheck() {
 	s.Equal(c.expected.NoLogContains, "nologcontains", "Problem setting nologcontains")
 }
 
-func (s *checkBaseTestSuite) TestForced() {
-	c, err := NewCheck(s.context)
+func (s *checkBaseTestSuite) TestOverrideFor() {
+	forcedPass, reason, overridden := overrideFor(s.runnerConfig, &schema.Test{RuleId: 1245, TestId: 1})
+	s.True(overridden, "Value should be found")
+	s.Equal(ForcePass, forcedPass)
+	s.Equal("Forced Pass", reason)
+
+	forcedFail, reason, overridden := overrideFor(s.runnerConfig, &schema.Test{RuleId: 6789, TestId: 1})
+	s.True(overridden, "Value should be found")
+	s.Equal(ForceFail, forcedFail)
+	s.Equal("Forced Fail", reason)
+
+	// the deprecated `ignore` is treated as `forcepass`
+	forcedPass, reason, overridden = overrideFor(s.runnerConfig, &schema.Test{RuleId: 942200, TestId: 1})
+	s.True(overridden, "Can't find ignored value")
+	s.Equal(ForcePass, forcedPass)
+	s.Equal("Ignore Me", reason)
+
+	_, _, overridden = overrideFor(s.runnerConfig, &schema.Test{RuleId: 12345, TestId: 1})
+	s.False(overridden, "Value should not be found")
+
+	s.runnerConfig.TestOverride.ForcePass = make(map[*config.FTWRegexp]string)
+	_, _, overridden = overrideFor(s.runnerConfig, &schema.Test{RuleId: 1234, TestId: 1})
+	s.False(overridden, "Should not find forced value in empty map")
+}
+
+// If a test is matched by `forcepass` and `forcefail`, the failure is forced.
+func (s *checkBaseTestSuite) TestOverrideForPrefersForceFail() {
+	forceFail, err := config.NewFTWRegexp("^1-1$")
 	s.Require().NoError(err)
+	forcePass, err := config.NewFTWRegexp("^1-.*$")
+	s.Require().NoError(err)
+	s.runnerConfig.TestOverride.ForceFail = map[*config.FTWRegexp]string{forceFail: "fail"}
+	s.runnerConfig.TestOverride.ForcePass = map[*config.FTWRegexp]string{forcePass: "pass"}
 
-	s.True(c.ForcedIgnore(&schema.Test{RuleId: 942200, TestId: 1}), "Can't find ignored value")
+	forced, reason, overridden := overrideFor(s.runnerConfig, &schema.Test{RuleId: 1, TestId: 1})
+	s.True(overridden)
+	s.Equal(ForceFail, forced)
+	s.Equal("fail", reason)
+}
 
-	s.False(c.ForcedFail(&schema.Test{RuleId: 12345, TestId: 1}), "Value should not be found")
+// The reason must not depend on the iteration order of the map.
+func (s *checkBaseTestSuite) TestOverrideForReasonIsDeterministic() {
+	general, err := config.NewFTWRegexp("^9421.*")
+	s.Require().NoError(err)
+	specific, err := config.NewFTWRegexp("942100-3$")
+	s.Require().NoError(err)
+	s.runnerConfig.TestOverride.ForcePass = map[*config.FTWRegexp]string{
+		general:  "general",
+		specific: "specific",
+	}
 
-	s.False(c.ForcedPass(&schema.Test{RuleId: 12345, TestId: 1}), "Value should not be found")
-
-	s.True(c.ForcedPass(&schema.Test{RuleId: 1245, TestId: 1}), "Value should be found")
-
-	s.True(c.ForcedFail(&schema.Test{RuleId: 6789, TestId: 1}), "Value should be found")
-
-	s.cfg.TestOverride.Ignore = make(map[*config.FTWRegexp]string)
-	s.Falsef(c.ForcedIgnore(&schema.Test{RuleId: 1234, TestId: 1}), "Should not find ignored value in empty map")
-
+	for range 50 {
+		_, reason, overridden := overrideFor(s.runnerConfig, &schema.Test{RuleId: 942100, TestId: 3})
+		s.True(overridden)
+		s.Equal("specific", reason, "expected the alphabetically first pattern (942100-3$) to win")
+	}
 }
 
 func (s *checkBaseTestSuite) TestSetMarkers() {

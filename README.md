@@ -278,7 +278,7 @@ Flags:
       --connect-timeout duration               timeout for connecting to endpoints during test execution (default 3s)
   -d, --dir string                             recursively find yaml tests in this directory (default ".")
   -e, --exclude string                         exclude tests matching this Go regular expression (e.g. to exclude all tests beginning with "91", use "^91.*").
-                                               If you want more permanent exclusion, check the 'exclude' option in the config file.
+                                               If you want to describe permanent platform differences, use platform overrides (--overrides).
       --fail-fast                              Fail on first failed test
       --failure-waf-logs-dir string            directory path for failure-waf-logs-file; defaults to the same directory as the WAF log file; see (log-file); see store-failure-waf-logs and failure-waf-logs-file
       --failure-waf-logs-file string           file name for WAF log entries for failed tests; defaults to 'go-ftw-failure-waf-logs.log'; see store-failure-waf-logs and failure-waf-logs-dir (default "go-ftw-failure-waf-logs.log")
@@ -406,9 +406,9 @@ To support automation for processing the test results, there is also a new JSON 
     "...",
     "980170-2"
   ],
-  "ignored": null,
   "forced-pass": null,
   "forced-fail": null,
+  "overridden": [],
   "runtime": {
     "911100-1": 20631077,
     "911100-2": 14112617,
@@ -477,9 +477,9 @@ Other interesting functions you can use are: `randBytes`, `htpasswd`, `encryptAE
 
 ## Overriding tests
 
-Sometimes you have tests that work well for some platform combinations, e.g. Apache + ModSecurity 2, but fail for others, e.g. NGiNX + ModSecurity 3. Taking that into account, you can override test results using the `testoverride` config param. The test will be skipped, and the result forced as configured.
+Sometimes you have tests that work well for some platform combinations, e.g. Apache + ModSecurity 2, but fail for others, e.g. NGiNX + ModSecurity 3. Taking that into account, you can override test results using the `testoverride` config param. Overridden tests are **always run**, so that you notice when their behavior changes: the report shows both the actual result and the forced result.
 
-Tests can be altered using four lists:
+Tests can be altered using these settings:
 - `input` allows you to override global parameters in tests. The following ones can be overridden:
   - `dest_addr`: overrides the destination address (accepts IP or hostname)
   - `override_empty_host_header`: if true and `dest_addr` override is _also_ set, empty `Host` headers will be replaced with `dest_addr`
@@ -493,9 +493,10 @@ Tests can be altered using four lists:
   - `autocomplete_headers`: overrides header autocompletion (currently sets `Connection: close` and `Content-Length` and `Content-Type` for requests with body data)
   - `encodedrequest`: overrides base64 encoded request
   - `virtual_host_mode`: set the `Host` header specified in tests for internal requests as well (overrides sending internal requests to `localhost`)
-- `ignore` is for tests you want to ignore. You should add a comment on why you ignore the test
 - `forcepass` is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
 - `forcefail` is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
+- `stale_overrides` determines what happens if an override is stale, i.e., it does not change the result of a test (a test that is forced to pass passes anyway, or a test that is forced to fail fails anyway). Either `fail` (default), to fail the run, or `warn`, to only report stale overrides. Remove stale overrides from your configuration.
+- `ignore` is deprecated. Entries are treated as `forcepass` (with a warning).
 
 Each list is populated by regular expressions (see https://pkg.go.dev/regexp), which match against test IDs.
 The following is an example using all the lists mentioned above:
@@ -507,21 +508,40 @@ testoverride:
     dest_addr: "192.168.1.100"
     port: 8080
     protocol: "http"
-  ignore:
+  forcepass:
     # text comes from our friends at https://github.com/digitalwave/ftwrunner
     '941190-3$': 'known MSC bug - PR #2023 (Cookie without value)'
     '941330-1$': 'know MSC bug - #2148 (double escape)'
     '942480-2$': 'known MSC bug - PR #2023 (Cookie without value)'
     '944100-11$': 'known MSC bug - PR #2045, ISSUE #2146'
-    '^920': 'All the tests about Protocol Attack (rules starting with "920") will be ignored'
-  forcefail:
-    '123456-01$': 'I want this specific test to fail, even if passing'
-  forcepass:
+    '^920': 'All the tests about Protocol Attack (rules starting with "920") will always pass'
     '123456-02$': 'This test will always pass'
     '123457-.*': 'All the tests about rule 123457 will always pass'
+  forcefail:
+    '123456-01$': 'I want this specific test to fail, even if passing'
+  stale_overrides: fail
 ```
 
-You can combine any of `ignore`, `forcefail` and `forcepass` to make it work for you.
+You can combine `forcefail` and `forcepass` to make it work for you. If a test matches both lists, `forcefail` wins. If multiple patterns of a list match, the reason of the pattern that is first in alphabetical order is reported.
+
+Errors while communicating with the target in overridden tests (e.g. a connection error) don't abort the run. They are counted as an actual result of `failed` and the remaining stages of the test are skipped. Overridden tests that still fail after `retry_once` are counted as failed as well. Errors in the definition of a test are never tolerated.
+
+Example output:
+
+```
+running 941190-3: :information:test forced to pass (actual: failed) - known MSC bug - PR #2023 (Cookie without value)
+running 123456-02: :information:test forced to pass (actual: passed) - This test will always pass
+running 123456-01: :information:test forced to fail (actual: passed) - I want this specific test to fail, even if passing
+...
+^ forced to pass 2 tests
+- 1 stale override(s): ["123456-02"] (set stale_overrides: warn to only report)
+```
+
+The JSON output lists all overridden tests, with their actual result, in `overridden`.
+
+### Permanent exclusion of tests
+
+The `exclude` option is no longer supported in the configuration file (go-ftw fails with an error if it is set). Excluded tests were never run, which made it impossible to notice when their behavior changed. Use platform overrides (`--overrides`, see the [ftw-tests-schema](https://github.com/coreruleset/ftw-tests-schema) repository for the format) to describe how a platform behaves differently. The `--include` and `--exclude` command line flags are still available to filter the tests for a run.
 
 ## ☁️ Cloud mode
 

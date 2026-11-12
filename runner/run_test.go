@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -66,6 +67,23 @@ testoverride:
     ".*-8": "This test should pass, but it is going to fail"
   forcepass:
     ".*-99": "This test failed, but it shall pass!"
+`,
+	"TestOverriddenTestsRun": `---
+testoverride:
+  forcepass:
+    ".*-1$": "known bug"
+    ".*-2$": "not needed anymore"
+    ".*-5$": "connection is refused"
+  forcefail:
+    ".*-3$": "must be fixed"
+    ".*-4$": "fails anyway"
+`,
+	"TestOverriddenErrorsRun": `---
+testoverride:
+  forcepass:
+    ".*-1$": "fails twice"
+    ".*-2$": "connection is refused"
+    ".*-3$": "invalid test"
 `,
 	"TestOverrideRun": `---
 testoverride:
@@ -181,6 +199,18 @@ func (s *runTestSuite) TearDownTest() {
 	s.ts.Close()
 }
 
+// closedPort returns a port on the loopback interface that no one is listening on
+func (s *runTestSuite) closedPort() int {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	s.Require().NoError(err)
+	_, port, err := net.SplitHostPort(listener.Addr().String())
+	s.Require().NoError(err)
+	portNumber, err := strconv.Atoi(port)
+	s.Require().NoError(err)
+	s.Require().NoError(listener.Close(), "the port must be closed")
+	return portNumber
+}
+
 func (s *runTestSuite) BeforeTest(_ string, name string) {
 	s.tempDir = s.T().TempDir()
 
@@ -209,9 +239,10 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	log.Info().Msgf("Using port %d and addr '%s'", s.dest.Port, s.dest.DestAddr)
 
 	// set up variables for template
-	vars := map[string]interface{}{
-		"TestPort": s.dest.Port,
-		"TestAddr": s.dest.DestAddr,
+	vars := map[string]any{
+		"TestPort":   s.dest.Port,
+		"TestAddr":   s.dest.DestAddr,
+		"ClosedPort": s.closedPort(),
 	}
 
 	// set up configuration from template
@@ -487,10 +518,76 @@ func (s *runTestSuite) TestStoreFailureWafLogs_Disabled() {
 func (s *runTestSuite) TestIgnoredTestsRun() {
 	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
-	s.Equal(1, len(res.Stats.ForcedPass), "Oops, unexpected number of forced pass tests")
+	// `ignore` is a deprecated alias of `forcepass`
+	s.Equal(5, len(res.Stats.ForcedPass), "Oops, unexpected number of forced pass tests")
 	s.Equal(1, len(res.Stats.Failed), "Oops, unexpected number of failed tests")
 	s.Equal(1, len(res.Stats.ForcedFail), "Oops, unexpected number of forced failed tests")
-	s.Equal(4, len(res.Stats.Ignored), "Oops, unexpected number of ignored tests")
+	s.Len(res.Stats.Overridden, 6)
+}
+
+func (s *runTestSuite) TestOverriddenTestsRun() {
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().NoError(err, "runtime errors in overridden tests must not abort the run")
+
+	id := func(testId int) string {
+		return s.ftwTests[0].Tests[testId-1].IdString()
+	}
+
+	// overridden tests are run and report their actual and their forced result
+	s.Equal(6, res.Stats.Run)
+	s.Len(res.Stats.ForcedPass, 3)
+	s.Len(res.Stats.ForcedFail, 2)
+	s.Equal([]string{id(6)}, res.Stats.Failed)
+	s.Equal([]OverrideResult{
+		{ID: id(1), Override: "forcepass", Actual: "failed", Reason: "known bug"},
+		{ID: id(2), Override: "forcepass", Actual: "passed", Reason: "not needed anymore"},
+		{ID: id(3), Override: "forcefail", Actual: "passed", Reason: "must be fixed"},
+		{ID: id(4), Override: "forcefail", Actual: "failed", Reason: "fails anyway"},
+		{ID: id(5), Override: "forcepass", Actual: "failed", Reason: "connection is refused"},
+	}, res.Stats.Overridden)
+
+	// stale overrides don't change the result of the test, they fail the run by default
+	s.Equal([]string{id(2), id(4)}, res.Stats.StaleOverrides())
+	s.Equal(2, res.Stats.FailedOnStaleOverrides())
+
+	s.Run("only warn about stale overrides", func() {
+		s.runnerConfig.TestOverride.StaleOverrides = config.StaleOverridesWarn
+
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+		s.Require().NoError(err)
+
+		s.Equal([]string{id(2), id(4)}, res.Stats.StaleOverrides())
+		s.Zero(res.Stats.FailedOnStaleOverrides())
+	})
+}
+
+func (s *runTestSuite) TestOverriddenErrorsRun() {
+	id := func(testId int) string {
+		return s.ftwTests[0].Tests[testId-1].IdString()
+	}
+
+	s.Run("tolerates failing retries and transport errors, runs the remaining tests", func() {
+		s.runnerConfig.Include = regexp.MustCompile("-[124]$")
+
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+		s.Require().NoError(err)
+
+		s.Equal([]string{id(1), id(2)}, res.Stats.ForcedPass)
+		s.Equal([]string{id(4)}, res.Stats.Success)
+		s.Zero(res.Stats.TotalFailed())
+		// remaining stages are skipped after a transport error
+		s.Len(res.Stats.TriggeredRules[id(2)], 1)
+		// ... and after a failed retry (the second stage would abort the run without a redirect to follow)
+		s.Len(res.Stats.TriggeredRules[id(1)], 1)
+	})
+
+	s.Run("does not hide errors in the definition of a test", func() {
+		s.runnerConfig.Include = regexp.MustCompile("-3$")
+
+		_, err := Run(s.runnerConfig, s.ftwTests, s.out)
+		s.Require().Error(err)
+		s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
+	})
 }
 
 func (s *runTestSuite) TestGetRequestFromTestWithAutocompleteHeaders_WithoutData() {
@@ -717,7 +814,7 @@ func (s *runTestSuite) TestRunTestRetryErrorNamesFileAndTest() {
 	s.ts.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get(s.cfg.LogMarkerHeaderName) != "" {
 			if markerRequests.Add(1) > 2 {
-				conn, _, err := w.(http.Hijacker).Hijack()
+				conn, _, err := http.NewResponseController(w).Hijack()
 				if s.NoError(err) {
 					s.NoError(conn.Close())
 				}

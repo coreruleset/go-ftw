@@ -70,7 +70,7 @@ func New(cmdContext *internal.CommandContext) *cobra.Command {
 		RunE:  runE(cmdContext),
 	}
 
-	runCmd.Flags().StringP(excludeFlag, "e", "", "exclude tests matching this Go regular expression (e.g. to exclude all tests beginning with \"91\", use \"^91.*\"). \nIf you want more permanent exclusion, check the 'exclude' option in the config file.")
+	runCmd.Flags().StringP(excludeFlag, "e", "", "exclude tests matching this Go regular expression (e.g. to exclude all tests beginning with \"91\", use \"^91.*\"). \nIf you want to describe permanent platform differences, use platform overrides (--overrides).")
 	runCmd.Flags().StringP(includeFlag, "i", "", "include only tests matching this Go regular expression (e.g. to include only tests beginning with \"91\", use \"^91.*\"). \nIf you want more permanent inclusion, check the 'include' option in the config file.")
 	runCmd.Flags().StringP(includeTagsFlag, "T", "", "include tests tagged with labels matching this Go regular expression (e.g. to include all tests being tagged with \"cookie\", use \"^cookie$\").")
 	runCmd.Flags().StringP(dirFlag, "d", ".", "recursively find yaml tests in this directory")
@@ -131,6 +131,9 @@ func runE(cmdContext *internal.CommandContext) func(cmd *cobra.Command, args []s
 
 		if currentRun.Stats.TotalFailed() > 0 {
 			return fmt.Errorf("failed %d tests", currentRun.Stats.TotalFailed())
+		}
+		if stale := currentRun.Stats.FailedOnStaleOverrides(); stale > 0 {
+			return fmt.Errorf("%d stale overrides, remove them from the configuration or set 'stale_overrides: warn'", stale)
 		}
 
 		return nil

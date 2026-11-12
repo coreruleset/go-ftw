@@ -18,6 +18,9 @@ import (
 // TestRunContext carries information about the current test run.
 // This includes configuration information as well as statistics
 // and results.
+// Result is the effective result of the current test, i.e., the forced result
+// if the test is overridden. ActualResult is the result the test had without
+// overrides (failed if any stage failed).
 type TestRunContext struct {
 	RunnerConfig           *config.RunnerConfig
 	Include                *regexp.Regexp
@@ -30,6 +33,8 @@ type TestRunContext struct {
 	Output                 *output.Output
 	Stats                  *RunStats
 	Result                 TestResult
+	ActualResult           TestResult
+	OverrideReason         string
 	Duration               time.Duration
 	Client                 *ftwhttp.Client
 	LogLines               *waflog.FTWLogLines
@@ -44,10 +49,15 @@ type TestRunContext struct {
 }
 
 func (t *TestRunContext) StartTest() {
+	t.ActualResult = Success
+	t.OverrideReason = ""
 }
 
 func (t *TestRunContext) EndTest(testCase *schema.Test) {
 	t.Stats.addResultToStats(t.Result, testCase)
+	if t.Result == ForcePass || t.Result == ForceFail {
+		t.Stats.addOverrideToStats(t.Result, t.ActualResult, t.OverrideReason, testCase)
+	}
 }
 
 func (t *TestRunContext) StartStage() {

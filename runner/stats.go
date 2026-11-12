@@ -25,7 +25,6 @@ const (
 	Success TestResult = iota
 	Failed
 	Skipped
-	Ignored
 	ForcePass
 	ForceFail
 )
@@ -40,9 +39,12 @@ type RunStats struct {
 	Failed []string `json:"failed"`
 	// Skipped is a list containing the tests that were skipped.
 	Skipped    []string `json:"skipped"`
-	Ignored    []string `json:"ignored"`
 	ForcedPass []string `json:"forced-pass"`
 	ForcedFail []string `json:"forced-fail"`
+	// Overridden lists the overridden tests with their forced and their actual result.
+	Overridden []OverrideResult `json:"overridden"`
+	// FailOnStaleOverrides determines whether stale overrides count as failures
+	FailOnStaleOverrides bool `json:"-"`
 	// RunTime maps the time taken to run each test.
 	RunTime map[string]time.Duration `json:"runtime"`
 	// TotalTime is the duration over all runs, the sum of all individual run times.
@@ -50,6 +52,30 @@ type RunStats struct {
 	// TriggeredRules maps triggered rules to stages of tests
 	TriggeredRules map[string][][]uint `json:"triggered-rules"`
 }
+
+// OverrideResult describes an overridden test and what its result would have been without the override.
+type OverrideResult struct {
+	ID string `json:"id"`
+	// Override is either "forcepass" or "forcefail"
+	Override string `json:"override"`
+	// Actual is either "passed" or "failed"
+	Actual string `json:"actual"`
+	Reason string `json:"reason"`
+}
+
+// Stale returns true if the override does not change the result of the test, i.e.,
+// a test forced to pass passes anyway or a test forced to fail fails anyway.
+func (r OverrideResult) Stale() bool {
+	return (r.Override == forcePassName && r.Actual == passedName) ||
+		(r.Override == forceFailName && r.Actual == failedName)
+}
+
+const (
+	forcePassName = "forcepass"
+	forceFailName = "forcefail"
+	passedName    = "passed"
+	failedName    = "failed"
+)
 
 // type rulesByStage struct {
 // 	Stages map[uint][]uint `json:"stages"`
@@ -62,9 +88,9 @@ func NewRunStats() *RunStats {
 		Success:        []string{},
 		Failed:         []string{},
 		Skipped:        []string{},
-		Ignored:        []string{},
 		ForcedPass:     []string{},
 		ForcedFail:     []string{},
+		Overridden:     []OverrideResult{},
 		RunTime:        make(map[string]time.Duration),
 		TotalTime:      0,
 		TriggeredRules: make(map[string][][]uint),
@@ -86,8 +112,6 @@ func (stats *RunStats) addResultToStats(result TestResult, testCase *schema.Test
 		stats.Failed = append(stats.Failed, title)
 	case Skipped:
 		stats.Skipped = append(stats.Skipped, title)
-	case Ignored:
-		stats.Ignored = append(stats.Ignored, title)
 	case ForceFail:
 		stats.ForcedFail = append(stats.ForcedFail, title)
 	case ForcePass:
@@ -95,6 +119,38 @@ func (stats *RunStats) addResultToStats(result TestResult, testCase *schema.Test
 	default:
 		log.Info().Msgf("runner/stats: don't know how to handle TestResult %d", result)
 	}
+}
+
+func (stats *RunStats) addOverrideToStats(forced TestResult, actual TestResult, reason string, testCase *schema.Test) {
+	override := forcePassName
+	if forced == ForceFail {
+		override = forceFailName
+	}
+	stats.Overridden = append(stats.Overridden, OverrideResult{
+		ID:       testCase.IdString(),
+		Override: override,
+		Actual:   actualString(actual),
+		Reason:   reason,
+	})
+}
+
+// StaleOverrides returns the IDs of the tests with overrides that do not change the result of the test.
+func (stats *RunStats) StaleOverrides() []string {
+	stale := []string{}
+	for _, overridden := range stats.Overridden {
+		if overridden.Stale() {
+			stale = append(stale, overridden.ID)
+		}
+	}
+	return stale
+}
+
+// FailedOnStaleOverrides returns the number of stale overrides that count as failures.
+func (stats *RunStats) FailedOnStaleOverrides() int {
+	if !stats.FailOnStaleOverrides {
+		return 0
+	}
+	return len(stats.StaleOverrides())
 }
 
 func (stats *RunStats) addStageResultToStats(testCase *schema.Test, stageTime time.Duration, triggeredRules []uint) {
@@ -112,14 +168,21 @@ func (stats *RunStats) printSummary(out *output.Output) {
 		} else {
 			out.Println(out.Message("+ run %d total tests in %s"), stats.Run, stats.TotalTime)
 			out.Println(out.Message(">> skipped %d tests"), len(stats.Skipped))
-			if len(stats.Ignored) > 0 {
-				out.Println(out.Message("^ ignored %d tests"), len(stats.Ignored))
-			}
 			if len(stats.ForcedPass) > 0 {
 				out.Println(out.Message("^ forced to pass %d tests"), len(stats.ForcedPass))
 			}
+			stale := stats.StaleOverrides()
+			if len(stale) > 0 {
+				if stats.FailOnStaleOverrides {
+					out.Println(out.Message("- %d stale override(s): %+q (set stale_overrides: warn to only report)"), len(stale), stale)
+				} else {
+					out.Println(out.Message("! %d stale override(s): %+q"), len(stale), stale)
+				}
+			}
 			if stats.TotalFailed() == 0 {
-				out.Println(out.Message("\\o/ All tests successful!"))
+				if stats.FailedOnStaleOverrides() == 0 {
+					out.Println(out.Message("\\o/ All tests successful!"))
+				}
 			} else {
 				out.Println(out.Message("- %d test(s) failed to run: %+q"), len(stats.Failed), stats.Failed)
 				if len(stats.ForcedFail) > 0 {
@@ -163,10 +226,13 @@ func (stats *RunStats) writeGitHubSummary() {
 	summary.WriteString("## FTW Test Results\n\n")
 
 	// Status badge
-	if stats.TotalFailed() == 0 {
-		summary.WriteString("✅ **All tests passed!**\n\n")
-	} else {
+	switch {
+	case stats.TotalFailed() > 0:
 		summary.WriteString("❌ **Some tests failed**\n\n")
+	case stats.FailedOnStaleOverrides() > 0:
+		summary.WriteString("❌ **Stale overrides found**\n\n")
+	default:
+		summary.WriteString("✅ **All tests passed!**\n\n")
 	}
 
 	// Overall statistics table
@@ -177,14 +243,14 @@ func (stats *RunStats) writeGitHubSummary() {
 	fmt.Fprintf(&summary, "| ✅ Passed | %d |\n", len(stats.Success))
 	fmt.Fprintf(&summary, "| ❌ Failed | %d |\n", stats.TotalFailed())
 	fmt.Fprintf(&summary, "| ⏭️ Skipped | %d |\n", len(stats.Skipped))
-	if len(stats.Ignored) > 0 {
-		fmt.Fprintf(&summary, "| ℹ️ Ignored | %d |\n", len(stats.Ignored))
-	}
 	if len(stats.ForcedPass) > 0 {
 		fmt.Fprintf(&summary, "| 🔧 Forced Pass | %d |\n", len(stats.ForcedPass))
 	}
 	if len(stats.ForcedFail) > 0 {
 		fmt.Fprintf(&summary, "| 🔧 Forced Fail | %d |\n", len(stats.ForcedFail))
+	}
+	if stale := stats.StaleOverrides(); len(stale) > 0 {
+		fmt.Fprintf(&summary, "| ⚠️ Stale Overrides | %d |\n", len(stale))
 	}
 	fmt.Fprintf(&summary, "| ⏱️ Total Time | %s |\n\n", stats.TotalTime)
 
@@ -197,6 +263,20 @@ func (stats *RunStats) writeGitHubSummary() {
 	if len(stats.ForcedFail) > 0 {
 		summary.WriteString("### 🔧 Forced Fail Tests\n\n")
 		stats.writeTestTable(&summary, stats.ForcedFail)
+	}
+
+	if len(stats.Overridden) > 0 {
+		summary.WriteString("### 🔧 Overridden Tests\n\n")
+		summary.WriteString("| Test ID | Override | Actual | Stale | Reason |\n")
+		summary.WriteString("|---------|----------|--------|-------|--------|\n")
+		for _, overridden := range stats.Overridden {
+			stale := ""
+			if overridden.Stale() {
+				stale = "⚠️"
+			}
+			fmt.Fprintf(&summary, "| `%s` | %s | %s | %s | %s |\n", overridden.ID, overridden.Override, overridden.Actual, stale, overridden.Reason)
+		}
+		summary.WriteString("\n")
 	}
 
 	// Write to file (append mode)
