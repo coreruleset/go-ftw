@@ -522,9 +522,9 @@ testoverride:
   stale_overrides: fail
 ```
 
-You can combine `forcefail` and `forcepass` to make it work for you.
+You can combine `forcefail` and `forcepass` to make it work for you. If a test matches both lists, `forcefail` wins. If multiple patterns of a list match, the reason of the pattern that is first in alphabetical order is reported.
 
-Runtime errors in overridden tests (e.g. a connection error) don't abort the run. They are counted as an actual result of `failed`.
+Errors while communicating with the target in overridden tests (e.g. a connection error) don't abort the run. They are counted as an actual result of `failed` and the remaining stages of the test are skipped. Overridden tests that still fail after `retry_once` are counted as failed as well. Errors in the definition of a test are never tolerated.
 
 Example output:
 

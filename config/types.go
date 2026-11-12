@@ -116,6 +116,11 @@ func (r *FTWRegexp) UnmarshalText(b []byte) error {
 	return nil
 }
 
+// String implements the String method of the regexp.Regexp struct
+func (r *FTWRegexp) String() string {
+	return (*regexp.Regexp)(r).String()
+}
+
 // MatchString implements the MatchString method of the regexp.Regexp struct
 func (r *FTWRegexp) MatchString(s string) bool {
 	return (*regexp.Regexp)(r).MatchString(s)

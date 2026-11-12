@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"net"
 	"net/http/cookiejar"
 	"strings"
@@ -80,9 +79,7 @@ func (c *Client) SetRateLimiter(limiter *rate.Limiter) {
 // NewConnection creates a new Connection based on a Destination
 func (c *Client) NewConnection(d Destination) error {
 	if c.Transport != nil {
-		if err := c.closeConnection(); err != nil {
-			return err
-		}
+		c.closeConnection()
 	}
 
 	c.Transport = &Connection{
@@ -105,9 +102,7 @@ func (c *Client) NewOrReusedConnection(d Destination) error {
 	if c.Transport == nil {
 		return c.NewConnection(d)
 	}
-	if err := c.closeConnection(); err != nil {
-		return err
-	}
+	c.closeConnection()
 
 	netConn, err := c.dial(d)
 	if err == nil {
@@ -117,16 +112,17 @@ func (c *Client) NewOrReusedConnection(d Destination) error {
 	return err
 }
 
-// closeConnection closes the current connection. A connection that is missing or
-// already closed, e.g., after a failed attempt to establish a new connection, is not an error.
-func (c *Client) closeConnection() error {
+// closeConnection closes and discards the current connection, if any. Errors are logged and
+// otherwise ignored: the connection is about to be replaced and a failure to close it, e.g.,
+// because the peer has reset it, must not prevent that.
+func (c *Client) closeConnection() {
 	if c.Transport.connection == nil {
-		return nil
+		return
 	}
-	if err := c.Transport.connection.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
-		return err
+	if err := c.Transport.connection.Close(); err != nil {
+		log.Debug().Err(err).Msg("http/client: ignoring error while closing connection")
 	}
-	return nil
+	c.Transport.connection = nil
 }
 
 // dial tries to establish a connection

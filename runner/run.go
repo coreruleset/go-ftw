@@ -101,15 +101,21 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 			if err != nil {
 				return err
 			}
-			if err := RunStage(runContext, ftwCheck, testCase, stage); err != nil {
-				if err.Error() == "retry-once" {
-					log.Info().Msgf("Retrying test once: %s", testCase.IdString())
-					if err = RunStage(runContext, ftwCheck, testCase, stage); err != nil {
-						return fmt.Errorf("%s (test %s): %w", ftwTest.FileName, testCase.IdString(), err)
-					}
-				} else {
-					return fmt.Errorf("%s (test %s): %w", ftwTest.FileName, testCase.IdString(), err)
+			skipRemainingStages, err := runStageAllowingOverrides(runContext, ftwCheck, testCase, stage)
+			if errors.Is(err, errRetryOnce) {
+				log.Info().Msgf("Retrying test once: %s", testCase.IdString())
+				skipRemainingStages, err = runStageAllowingOverrides(runContext, ftwCheck, testCase, stage)
+				if errors.Is(err, errRetryOnce) && isOverridden(runContext, &testCase) {
+					// The retry failed as well. Overrides exist to tolerate failing tests.
+					completeStage(runContext, &testCase, Failed, nil, time.Duration(0))
+					skipRemainingStages, err = false, nil
 				}
+			}
+			if err != nil {
+				return fmt.Errorf("%s (test %s): %w", ftwTest.FileName, testCase.IdString(), err)
+			}
+			if skipRemainingStages {
+				break
 			}
 		}
 		runContext.EndTest(&testCase)
@@ -121,28 +127,63 @@ func RunTest(runContext *TestRunContext, ftwTest *test.FTWTest) error {
 	return nil
 }
 
+// errRetryOnce is returned for failed stages that are to be retried once.
+var errRetryOnce = errors.New("retry-once")
+
+// transportError marks errors that occur while communicating with the target (connecting, sending
+// requests, finding log markers), as opposed to errors in the definition of a test.
+type transportError struct {
+	err error
+}
+
+func (e *transportError) Error() string {
+	return e.err.Error()
+}
+
+func (e *transportError) Unwrap() error {
+	return e.err
+}
+
+func newTransportError(format string, args ...any) error {
+	return &transportError{err: fmt.Errorf(format, args...)}
+}
+
+// runStageAllowingOverrides runs a stage like RunStage, but does not fail on errors that occur
+// while communicating with the target if the test is overridden: overrides may exist to avoid
+// exactly such errors. The stage is counted as failed in this case.
+// Returns true if the remaining stages of the test are to be skipped, because they can't be
+// expected to work after a transport error.
+// Errors in the definition of a test are never tolerated, they would be hidden by the override.
+func runStageAllowingOverrides(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Test, stage schema.Stage) (bool, error) {
+	err := RunStage(runContext, ftwCheck, testCase, stage)
+	var transportErr *transportError
+	if err == nil || !errors.As(err, &transportErr) || !isOverridden(runContext, &testCase) {
+		return false, err
+	}
+
+	log.Warn().Err(err).Msgf("Transport error in overridden test %s, counting the actual result as failed and skipping remaining stages", testCase.IdString())
+	// there is no usable response for a following stage to redirect to
+	runContext.LastStageResponse = nil
+	runContext.LastStageInput = nil
+	completeStage(runContext, &testCase, Failed, nil, time.Duration(0))
+	return true, nil
+}
+
+func isOverridden(runContext *TestRunContext, testCase *schema.Test) bool {
+	_, _, overridden := overrideFor(runContext.RunnerConfig, testCase)
+	return overridden
+}
+
 // RunStage runs an individual test stage.
 // runContext contains information for the current test run
 // ftwCheck is the current check utility
 // testCase is the test case the stage belongs to
 // stage is the stage you want to run
-func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Test, stage schema.Stage) error {
-	err := runStage(runContext, ftwCheck, testCase, stage)
-	if err == nil || err.Error() == "retry-once" {
-		return err
-	}
-
-	// Overrides may exist to avoid errors at runtime, don't abort the run for overridden tests.
-	if _, _, overridden := overrideFor(runContext.RunnerConfig, &testCase); overridden {
-		log.Warn().Err(err).Msgf("Runtime error in overridden test %s, counting the actual result as failed", testCase.IdString())
-		completeStage(runContext, &testCase, Failed, nil, time.Duration(0))
-		return nil
-	}
-	return err
-}
-
+//
+// Returns errRetryOnce if the stage failed and is to be retried.
+//
 //gocyclo:ignore
-func runStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Test, stage schema.Stage) error {
+func RunStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Test, stage schema.Stage) error {
 	runContext.StartStage()
 	stageId := utils.GenerateStageId(testCase.RuleId, testCase.TestId)
 	// Apply global overrides initially
@@ -179,7 +220,7 @@ func runStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 		startId := utils.CreateStartMarker(stageId)
 		startMarker, err := markAndFlush(runContext, testInput, startId)
 		if err != nil && !expectErr {
-			return fmt.Errorf("failed to find start marker: %w", err)
+			return newTransportError("failed to find start marker: %w", err)
 		}
 		ftwCheck.SetStartMarker(startMarker)
 	}
@@ -192,7 +233,7 @@ func runStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 	err = runContext.Client.NewConnection(*dest)
 
 	if err != nil && !expectErr {
-		return fmt.Errorf("can't connect to destination %+v: %w", dest, err)
+		return newTransportError("can't connect to destination %+v: %w", dest, err)
 	}
 	runContext.Client.StartTrackingTime()
 
@@ -200,14 +241,14 @@ func runStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 
 	runContext.Client.StopTrackingTime()
 	if responseErr != nil && !expectErr {
-		return fmt.Errorf("failed sending request to destination %+v: %w", dest, responseErr)
+		return newTransportError("failed sending request to destination %+v: %w", dest, responseErr)
 	}
 
 	if notRunningInCloudMode(ftwCheck) {
 		endId := utils.CreateEndMarker(stageId)
 		endMarker, err := markAndFlush(runContext, testInput, endId)
 		if err != nil && !expectErr {
-			return fmt.Errorf("failed to find end marker: %w", err)
+			return newTransportError("failed to find end marker: %w", err)
 
 		}
 		ftwCheck.SetEndMarker(endMarker)
@@ -219,7 +260,7 @@ func runStage(runContext *TestRunContext, ftwCheck *FTWCheck, testCase schema.Te
 	// now get the test result based on output
 	testResult := checkResult(ftwCheck, response, responseErr)
 	if testResult == Failed && expectedOutput.RetryOnce != nil && *expectedOutput.RetryOnce {
-		return errors.New("retry-once")
+		return errRetryOnce
 	}
 
 	roundTripTime := runContext.Client.GetRoundTripTime().RoundTripDuration()
@@ -377,12 +418,15 @@ func completeStage(rc *TestRunContext, testCase *schema.Test, actual TestResult,
 }
 
 func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult, actual TestResult, roundTripTime time.Duration) {
+	// Always reset to notice afterwards so other output is not mislabeled.
+	defer rc.Output.SetSeverity(output.AnnotationNotice)
 	switch result {
 	case Success:
 		if !rc.ShowOnlyFailed {
 			rc.Output.Println(rc.Output.Message("+ passed in %s (RTT %s)"), rc.CurrentStageDuration, roundTripTime)
 		}
 	case Failed:
+		rc.Output.SetSeverity(output.AnnotationError)
 		rc.Output.Println(rc.Output.Message("- %s failed in %s (RTT %s)"), testCase.IdString(), rc.CurrentStageDuration, roundTripTime)
 	case ForceFail:
 		rc.Output.Println(rc.Output.Message(":information:test forced to fail (actual: %s)%s"), actualString(actual), reasonSuffix(rc.OverrideReason))
@@ -397,9 +441,9 @@ func displayResult(testCase *schema.Test, rc *TestRunContext, result TestResult,
 
 func actualString(actual TestResult) string {
 	if actual == Success {
-		return "passed"
+		return passedName
 	}
-	return "failed"
+	return failedName
 }
 
 func reasonSuffix(reason string) string {
@@ -407,18 +451,6 @@ func reasonSuffix(reason string) string {
 		return ""
 	}
 	return " - " + reason
-}
-
-// overrideFor returns the forced result and the reason if the test is overridden.
-// Forcing a failure takes precedence over forcing a pass.
-func overrideFor(cfg *config.RunnerConfig, testCase *schema.Test) (TestResult, string, bool) {
-	if reason, found := forcedReason(cfg.TestOverride.ForceFail, testCase); found {
-		return ForceFail, reason, true
-	}
-	if reason, found := forcedReason(cfg.TestOverride.ForcePass, testCase); found {
-		return ForcePass, reason, true
-	}
-	return Success, "", false
 }
 
 // checkResult has the logic for verifying the result for the test sent

@@ -6,6 +6,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 
@@ -136,15 +137,23 @@ func normalizeTestOverride(override *FTWTestOverride) error {
 
 	if len(override.Ignore) > 0 {
 		log.Warn().Msg("the 'ignore' test override is deprecated, use 'forcepass' instead; 'ignore' entries are treated as 'forcepass'")
-		if override.ForcePass == nil {
-			override.ForcePass = make(map[*FTWRegexp]string, len(override.Ignore))
-		}
-		for re, reason := range override.Ignore {
-			override.ForcePass[re] = reason
-		}
 	}
-	override.Ignore = nil
+	mergeIgnoreIntoForcePass(override)
 	return nil
+}
+
+// mergeIgnoreIntoForcePass merges the entries of the deprecated `ignore` override into `forcepass`.
+// Does not modify the existing maps.
+func mergeIgnoreIntoForcePass(override *FTWTestOverride) {
+	if len(override.Ignore) == 0 {
+		override.Ignore = nil
+		return
+	}
+	forcePass := make(map[*FTWRegexp]string, len(override.ForcePass)+len(override.Ignore))
+	maps.Copy(forcePass, override.ForcePass)
+	maps.Copy(forcePass, override.Ignore)
+	override.ForcePass = forcePass
+	override.Ignore = nil
 }
 
 // Get the global koanf instance

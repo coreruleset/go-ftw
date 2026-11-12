@@ -70,6 +70,9 @@ func NewRunnerConfiguration(cfg *FTWConfiguration) *RunnerConfig {
 		CustomLogIdRegex:    cfg.CustomLogIdRegex,
 	}
 
+	// configurations that were not loaded from a file may still use `ignore`
+	mergeIgnoreIntoForcePass(&runnerConfig.TestOverride)
+
 	if cfg.IncludeTests != nil {
 		runnerConfig.Include = (*regexp.Regexp)(cfg.IncludeTests)
 	}

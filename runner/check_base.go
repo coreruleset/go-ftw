@@ -4,8 +4,6 @@
 package runner
 
 import (
-	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
-
 	"github.com/coreruleset/go-ftw/v2/config"
 	"github.com/coreruleset/go-ftw/v2/test"
 	"github.com/coreruleset/go-ftw/v2/waflog"
@@ -61,28 +59,6 @@ func (c *FTWCheck) SetNoLogContains(regex string) {
 	//nolint:staticcheck
 	c.expected.NoLogContains = regex
 	c.expected.Log.NoMatchRegex = regex
-}
-
-// ForcedPass check if this ID needs to be forced to pass
-func (c *FTWCheck) ForcedPass(testCase *schema.Test) bool {
-	_, found := forcedReason(c.cfg.TestOverride.ForcePass, testCase)
-	return found
-}
-
-// ForcedFail check if this ID needs to be forced to fail
-func (c *FTWCheck) ForcedFail(testCase *schema.Test) bool {
-	_, found := forcedReason(c.cfg.TestOverride.ForceFail, testCase)
-	return found
-}
-
-// forcedReason returns the reason for the first override matching the test
-func forcedReason(overrides map[*config.FTWRegexp]string, testCase *schema.Test) (string, bool) {
-	for re, reason := range overrides {
-		if re.MatchString(testCase.IdString()) {
-			return reason, true
-		}
-	}
-	return "", false
 }
 
 // CloudMode returns true if we are running in cloud mode

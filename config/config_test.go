@@ -281,3 +281,20 @@ testoverride:
 	}
 	s.Equal(map[string]string{"920400-1$": "ignored", "920400-2$": "forced"}, reasons)
 }
+
+func (s *baseTestSuite) TestRunnerConfigurationMergesIgnoreIntoForcePass() {
+	ignore, err := NewFTWRegexp("920400-1$")
+	s.Require().NoError(err)
+	forcePass, err := NewFTWRegexp("920400-2$")
+	s.Require().NoError(err)
+	cfg := NewDefaultConfig()
+	cfg.TestOverride.Ignore = map[*FTWRegexp]string{ignore: "ignored"}
+	cfg.TestOverride.ForcePass = map[*FTWRegexp]string{forcePass: "forced"}
+
+	runnerConfig := NewRunnerConfiguration(cfg)
+
+	s.Empty(runnerConfig.TestOverride.Ignore)
+	s.Equal(map[*FTWRegexp]string{ignore: "ignored", forcePass: "forced"}, runnerConfig.TestOverride.ForcePass)
+	// the configuration is not modified
+	s.Equal(map[*FTWRegexp]string{forcePass: "forced"}, cfg.TestOverride.ForcePass)
+}

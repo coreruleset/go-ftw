@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -76,6 +77,13 @@ testoverride:
   forcefail:
     ".*-3$": "must be fixed"
     ".*-4$": "fails anyway"
+`,
+	"TestOverriddenErrorsRun": `---
+testoverride:
+  forcepass:
+    ".*-1$": "fails twice"
+    ".*-2$": "connection is refused"
+    ".*-3$": "invalid test"
 `,
 	"TestOverrideRun": `---
 testoverride:
@@ -191,6 +199,18 @@ func (s *runTestSuite) TearDownTest() {
 	s.ts.Close()
 }
 
+// closedPort returns a port on the loopback interface that no one is listening on
+func (s *runTestSuite) closedPort() int {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	s.Require().NoError(err)
+	defer listener.Close()
+	_, port, err := net.SplitHostPort(listener.Addr().String())
+	s.Require().NoError(err)
+	portNumber, err := strconv.Atoi(port)
+	s.Require().NoError(err)
+	return portNumber
+}
+
 func (s *runTestSuite) BeforeTest(_ string, name string) {
 	s.tempDir = s.T().TempDir()
 
@@ -219,9 +239,10 @@ func (s *runTestSuite) BeforeTest(_ string, name string) {
 	log.Info().Msgf("Using port %d and addr '%s'", s.dest.Port, s.dest.DestAddr)
 
 	// set up variables for template
-	vars := map[string]interface{}{
-		"TestPort": s.dest.Port,
-		"TestAddr": s.dest.DestAddr,
+	vars := map[string]any{
+		"TestPort":   s.dest.Port,
+		"TestAddr":   s.dest.DestAddr,
+		"ClosedPort": s.closedPort(),
 	}
 
 	// set up configuration from template
@@ -537,6 +558,33 @@ func (s *runTestSuite) TestOverriddenTestsRun() {
 
 		s.Equal([]string{id(2), id(4)}, res.Stats.StaleOverrides())
 		s.Zero(res.Stats.FailedOnStaleOverrides())
+	})
+}
+
+func (s *runTestSuite) TestOverriddenErrorsRun() {
+	id := func(testId int) string {
+		return s.ftwTests[0].Tests[testId-1].IdString()
+	}
+
+	s.Run("tolerates failing retries and transport errors, runs the remaining tests", func() {
+		s.runnerConfig.Include = regexp.MustCompile("-[124]$")
+
+		res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+		s.Require().NoError(err)
+
+		s.Equal([]string{id(1), id(2)}, res.Stats.ForcedPass)
+		s.Equal([]string{id(4)}, res.Stats.Success)
+		s.Zero(res.Stats.TotalFailed())
+		// remaining stages are skipped after a transport error
+		s.Len(res.Stats.TriggeredRules[id(2)], 1)
+	})
+
+	s.Run("does not hide errors in the definition of a test", func() {
+		s.runnerConfig.Include = regexp.MustCompile("-3$")
+
+		_, err := Run(s.runnerConfig, s.ftwTests, s.out)
+		s.Require().Error(err)
+		s.ErrorContains(err, "'isolated' is only valid if 'expected_ids' has exactly one entry")
 	})
 }
 

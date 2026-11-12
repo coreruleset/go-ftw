@@ -226,10 +226,13 @@ func (stats *RunStats) writeGitHubSummary() {
 	summary.WriteString("## FTW Test Results\n\n")
 
 	// Status badge
-	if stats.TotalFailed() == 0 {
-		summary.WriteString("✅ **All tests passed!**\n\n")
-	} else {
+	switch {
+	case stats.TotalFailed() > 0:
 		summary.WriteString("❌ **Some tests failed**\n\n")
+	case stats.FailedOnStaleOverrides() > 0:
+		summary.WriteString("❌ **Stale overrides found**\n\n")
+	default:
+		summary.WriteString("✅ **All tests passed!**\n\n")
 	}
 
 	// Overall statistics table

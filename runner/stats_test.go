@@ -332,3 +332,23 @@ func (s *statsTestSuite) TestWriteGitHubSummary_Overridden() {
 	s.Contains(contentStr, "| `test-1` | forcepass | passed | ⚠️ | known bug |")
 	s.Contains(contentStr, "| `test-2` | forcefail | passed |  | must be fixed |")
 }
+
+func (s *statsTestSuite) TestWriteGitHubSummary_StaleOverridesFail() {
+	stats := &RunStats{
+		Run:                  1,
+		Success:              []string{},
+		ForcedPass:           []string{"test-1"},
+		FailOnStaleOverrides: true,
+		Overridden: []OverrideResult{
+			{ID: "test-1", Override: "forcepass", Actual: "passed"},
+		},
+		TotalTime: 1 * time.Second,
+	}
+
+	stats.writeGitHubSummary()
+
+	content, err := os.ReadFile(s.summaryFile)
+	s.Require().NoError(err)
+	s.NotContains(string(content), "All tests passed!")
+	s.Contains(string(content), "Stale overrides found")
+}

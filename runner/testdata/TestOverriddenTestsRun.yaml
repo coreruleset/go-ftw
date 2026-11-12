@@ -56,7 +56,7 @@ tests:
     stages:
       - input:
           dest_addr: "{{ .TestAddr }}"
-          port: 8090
+          port: {{ .ClosedPort }}
           headers:
             User-Agent: "ModSecurity CRS 3 Tests"
             Accept: "*/*"
