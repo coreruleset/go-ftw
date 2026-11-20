@@ -198,6 +198,7 @@ func (ll *FTWLogLines) computeMarkedLines() error {
 		ChunkSize: 4096,
 	}
 	scanner := backscanner.NewOptions(ll.logFile, int(fileInfo.Size()), backscannerOptions)
+	markerHeader := bytes.ToLower(ll.LogMarkerHeaderName)
 	startFound := false
 	endFound := false
 	// end marker is the *first* marker when reading backwards,
@@ -220,19 +221,22 @@ func (ll *FTWLogLines) computeMarkedLines() error {
 			}
 			continue
 		}
-		if endFound && bytes.Equal(lineLower, ll.endMarker) {
-			// Found a duplicate end marker. This can happen when we force log
-			// flushing through `markAndFlush()`, where we resend the end marker until
-			// we see it in the log.
-
-			// As we pretty much control the log, we don't need to clear any
-			// log lines that could, technically, occur between two consecutive
-			// end markers.
-			log.Trace().Msg("Skipping duplicate end marker")
-			continue
-		} else if endFound && bytes.Equal(lineLower, ll.startMarker) {
+		if bytes.Equal(lineLower, ll.startMarker) {
 			startFound = true
 			break
+		}
+		if bytes.Equal(lineLower, ll.endMarker) ||
+			(len(markerHeader) > 0 && bytes.Contains(lineLower, markerHeader)) {
+			// Found another marker line. This happens when `markAndFlush()` sends a marker
+			// again because it didn't see it in the log yet (a late flush, or a line still
+			// being written). The copies of a marker line usually differ (timestamp,
+			// unique_id), so they aren't equal to the stored marker. Only marker requests
+			// carry the marker header (`CheckLogForMarker` relies on that too), so the line
+			// isn't part of the test. A log line that runs into a marker line, with no
+			// newline between them, is skipped with it. The exact-copy check only matters
+			// when no header name is set: every stored marker holds the header.
+			log.Trace().Msg("Skipping repeated marker line")
+			continue
 		}
 
 		saneCopy := make([]byte, len(line))
@@ -265,6 +269,19 @@ func (ll *FTWLogLines) CheckLogForMarker(markerId string, readLimit uint) []byte
 		ChunkSize: 4096,
 	}
 	scanner := backscanner.NewOptions(ll.logFile, int(offset), backscannerOptions)
+
+	// Skip what follows the last newline. When the file ends with a newline, that is an empty
+	// line. Otherwise it is a line that may still be being written: a reader can see a write
+	// arrive in parts (on Linux, one page at a time). Taking it as the marker would store a
+	// prefix of the marker line, which computeMarkedLines never finds again. If the marker isn't
+	// on an earlier line, the caller sends the marker request again.
+	if _, _, err = scanner.LineBytes(); err != nil {
+		if !errors.Is(err, io.EOF) {
+			log.Error().Err(err).Msg("failed to skip the last, possibly partial, line of the log")
+		}
+		return nil
+	}
+
 	stageIDBytes := []byte(markerId)
 	crsHeaderBytes := bytes.ToLower([]byte(ll.LogMarkerHeaderName))
 

@@ -84,7 +84,7 @@ func (s *readTestSuite) TestReadCheckLogForMarkerWithMarkerAtEnd() {
 [Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.637731 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Match of "pm AppleWebKit Android" against "REQUEST_HEADERS:User-Agent" required. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "1230"] [id "920300"] [msg "Request Missing an Accept Header"] [severity "NOTICE"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [tag "PCI/6.5.10"] [tag "paranoia-level/2"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
 [Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]
-` + endMarkerLine
+` + endMarkerLine + "\n"
 	s.filename, err = utils.CreateTempFileWithContent(s.tempDir, logLines, "test-errorlog-")
 	s.Require().NoError(err)
 
@@ -340,8 +340,8 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 	markerLineEnd := fmt.Sprint(`[2022-11-12 23:08:18.012580] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "`,
 		"X-cRs-TeSt ", endMarker,
 		`"] [hostname "localhost"] [uri "/status/200"] [unique_id "Y3AZUo3Gja4gB-tPE9uasgBBBB4"]`)
-	logLines := fmt.Sprint("\n", markerLineStart,
-		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`,
+	logLines := fmt.Sprint("\n", markerLineStart, "\n",
+		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`, "\n",
 		`[2022-11-12 23:08:18.013007] [core:info] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 AH00128: File does not exist: /apache/htdocs/status/200`,
 		"\n", markerLineEnd)
 	filename, err := utils.CreateTempFileWithContent(s.tempDir, logLines, "test-errorlog-")
@@ -378,7 +378,7 @@ func (s *readTestSuite) TestFTWLogLines_ContainsIn404() {
 			name:   "Test contains element",
 			fields: f,
 			args: args{
-				match: "999999",
+				match: "File does not exist",
 			},
 			want: true,
 		},
@@ -412,7 +412,7 @@ func (s *readTestSuite) TestFTWLogLines_CheckForLogMarkerIn404() {
 	logLines := fmt.Sprint("\n", startMarkerLine,
 		`[Tue Jan 05 02:21:09.637165 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Pattern match "\\\\b(?:keep-alive|close),\\\\s?(?:keep-alive|close)\\\\b" at REQUEST_HEADERS:Connection. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-920-PROTOCOL-ENFORCEMENT.conf"] [line "339"] [id "920210"] [msg "Multiple/Conflicting Connection Header Data Found"] [data "close,close"] [severity "WARNING"] [ver "OWASP_CRS/3.3.0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-protocol"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "capec/1000/210/272"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`,
 		`[2022-11-12 23:08:18.013007] [core:info] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 AH00128: File does not exist: /apache/htdocs/status/200`,
-		"\n", endMarkerLine)
+		"\n", endMarkerLine, "\n")
 	filename, err := utils.CreateTempFileWithContent(s.tempDir, logLines, "test-errorlog-")
 	s.Require().NoError(err)
 
@@ -635,4 +635,111 @@ func (s *readTestSuite) TestFTWLogLines_ContainsAnyId() {
 	s.Require().NoError(err)
 	s.False(ok)
 	s.Empty(allFound)
+}
+
+// The WAF may still be writing the last line when go-ftw reads the log, so the file can end in the
+// middle of a marker line, after the marker id. That line must not be taken as the marker: it would
+// never match the complete line later. The earlier marker line, with another id, must not be taken
+// either.
+func (s *readTestSuite) TestReadCheckLogForMarkerSkipsPartialLastLine() {
+	cfg, err := config.NewConfigFromEnv()
+	s.Require().NoError(err)
+
+	startMarker, endMarker := generateLogMarkers(100000, 1)
+	markerLine := func(marker string) string {
+		return `[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 Y3AZUo3Gja4gB-tPE9uasgAAAA4 [client 127.0.0.1] ModSecurity: Warning. Unconditional match in SecAction. [file "/apache/conf/httpd.conf_pod_2022-11-12_22:23"] [line "265"] [id "999999"] [msg "X-CRS-Test ` +
+			marker + `"] [hostname "localhost"] [uri "/status/200"] [unique_id "Y3AZUo3Gja4gB-tPE9uasgAAAA4"]`
+	}
+	ruleLine := `[Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
+	line := markerLine(endMarker)
+	cut := strings.Index(line, endMarker) + len(endMarker)
+
+	filename, err := utils.CreateTempFileWithContent(s.tempDir, markerLine(startMarker)+"\n"+ruleLine+"\n"+line[:cut], "test-errorlog-")
+	s.Require().NoError(err)
+	cfg.LogFile = filename
+	ll, err := NewFTWLogLines(config.NewRunnerConfiguration(cfg))
+	s.Require().NoError(err)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
+
+	s.Nil(ll.CheckLogForMarker(endMarker, 100), "took a partially written line as the marker")
+
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_APPEND, 0600)
+	s.Require().NoError(err)
+	_, err = file.WriteString(line[cut:] + "\n")
+	s.Require().NoError(err)
+	s.Require().NoError(file.Close())
+
+	s.Equal(strings.ToLower(line), string(ll.CheckLogForMarker(endMarker, 100)))
+}
+
+// When go-ftw sends a marker again, the log holds two copies of the marker line, and they differ
+// (here in unique_id). With the first start marker and the second end marker stored, one copy of
+// each falls between them, and neither may count as a line of the test: it would add the marker
+// rule (999999) to the triggered rules.
+func (s *readTestSuite) TestReadGetMarkedLinesSkipsRepeatedMarkerLines() {
+	cfg, err := config.NewConfigFromEnv()
+	s.Require().NoError(err)
+
+	startMarker, endMarker := generateLogMarkers(100000, 1)
+	markerLine := func(marker string, uniqueId string) string {
+		return `[2022-11-12 23:08:18.012572] [-:error] 127.0.0.1:36126 ` + uniqueId + ` [client 127.0.0.1] ModSecurity: Warning. Pattern match "^.*$" at REQUEST_HEADERS:X-CRS-Test. [file "/apache/conf/httpd.conf"] [line "265"] [id "999999"] [msg "` +
+			marker + `"] [hostname "localhost"] [uri "/status/200"] [unique_id "` + uniqueId + `"]`
+	}
+	ruleLine := `[Tue Jan 05 02:21:09.638572 2021] [:error] [pid 76:tid 139683434571520] [client 172.23.0.1:58998] [client 172.23.0.1] ModSecurity: Warning. Operator GE matched 5 at TX:anomaly_score. [file "/etc/modsecurity.d/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "91"] [id "949110"] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [severity "CRITICAL"] [hostname "localhost"] [uri "/"] [unique_id "X-PNFSe1VwjCgYRI9FsbHgAAAIY"]`
+	start1, start2 := markerLine(startMarker, "AAAA1"), markerLine(startMarker, "AAAA2")
+	end1, end2 := markerLine(endMarker, "AAAA3"), markerLine(endMarker, "AAAA4")
+	logLines := strings.Join([]string{start1, start2, ruleLine, end1, end2}, "\n") + "\n"
+
+	filename, err := utils.CreateTempFileWithContent(s.tempDir, logLines, "test-errorlog-")
+	s.Require().NoError(err)
+	cfg.LogFile = filename
+	ll, err := NewFTWLogLines(config.NewRunnerConfiguration(cfg))
+	s.Require().NoError(err)
+	s.T().Cleanup(func() { _ = ll.Cleanup() })
+
+	ll.WithStartMarker([]byte(start1))
+	ll.WithEndMarker([]byte(end2))
+
+	foundLines, err := ll.GetMarkedLines()
+	s.Require().NoError(err)
+	s.Equal([][]byte{[]byte(ruleLine)}, foundLines)
+	rules, err := ll.TriggeredRules()
+	s.Require().NoError(err)
+	s.Equal([]uint{949110}, rules)
+}
+
+// A hand-built FTWLogLines may hold the header name in another case, or none at all. With the name
+// in upper case, a differing copy of a marker line is still skipped; with no name, an exact copy of
+// the end marker is, as before.
+func (s *readTestSuite) TestReadGetMarkedLinesSkipsRepeatedMarkerLinesHandBuilt() {
+	startMarker, endMarker := generateLogMarkers(100000, 1)
+	startMarkerLine := "X-cRs-TeSt: " + startMarker
+	endMarkerLine := "X-cRs-TeSt: " + endMarker
+	ruleLine := `[id "949110"]`
+
+	for _, tc := range []struct {
+		name   string
+		header string
+		repeat string
+	}{
+		{"header in upper case, differing copy", "X-CRS-TEST", endMarkerLine + ` [unique_id "2"]`},
+		{"no header, exact copy", "", endMarkerLine},
+	} {
+		s.Run(tc.name, func() {
+			logLines := strings.Join([]string{startMarkerLine, ruleLine, tc.repeat, endMarkerLine}, "\n") + "\n"
+			filename, err := utils.CreateTempFileWithContent(s.T().TempDir(), logLines, "test-errorlog-")
+			s.Require().NoError(err)
+			file, err := os.Open(filename)
+			s.Require().NoError(err)
+			s.T().Cleanup(func() { _ = file.Close() })
+
+			ll := &FTWLogLines{logFile: file, LogMarkerHeaderName: []byte(tc.header)}
+			ll.WithStartMarker([]byte(startMarkerLine))
+			ll.WithEndMarker([]byte(endMarkerLine))
+
+			foundLines, err := ll.GetMarkedLines()
+			s.Require().NoError(err)
+			s.Equal([][]byte{[]byte(ruleLine)}, foundLines)
+		})
+	}
 }

@@ -662,6 +662,54 @@ func (s *runTestSuite) TestRetryOnce() {
 	s.Equalf(res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
 }
 
+// The WAF may still be writing a marker line when go-ftw reads the log. Here every marker line is
+// first written only up to the end of the marker id, and finished by the next request. go-ftw must
+// wait for the complete line. A partial start marker never matches once the line is complete, so
+// go-ftw would collect every line since the top of the file, and test 2 would see test 1's rule.
+func (s *runTestSuite) TestPartialMarkerLines() {
+	markerLine := `[Sat Mar 18 16:47:21.474075 2023] [security2:error] [pid 193:tid 140523746522880] [client 172.18.0.1:39150] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at REQUEST_HEADERS:X-CRS-Test. [file "/etc/modsecurity.d/owasp-crs/crs-setup.conf"] [line "737"] [id "999999"] [msg "%s"] [tag "modsecurity"] [hostname "localhost"] [uri "/status/200"] [unique_id "%d"]`
+	ruleLine := `[Sat Mar 18 16:47:21.476378 2023] [security2:error] [pid 193:tid 140524082149120] [client 172.18.0.1:39164] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at ARGS. [file "/etc/modsecurity.d/owasp-crs/rules/test.conf"] [line "1"] [id "%s"] [msg "test rule"] [hostname "localhost"] [uri "/"] [unique_id "ZBXrGVXqtKqlnATxdUEg7gAAANk"]` + "\n"
+	unfinished := ""
+	requests := 0
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		// Write the log before answering, so that go-ftw reads it only after this request is logged.
+		logText := ""
+		if unfinished != "" {
+			logText = unfinished + "\n"
+			unfinished = ""
+		}
+		if marker := r.Header.Get(s.cfg.LogMarkerHeaderName); marker != "" {
+			// Every request gets its own unique_id, as in a real log, so a resent marker is not
+			// byte-identical to the first one.
+			requests++
+			line := fmt.Sprintf(markerLine, marker, requests)
+			cut := strings.Index(line, marker) + len(marker)
+			logText += line[:cut]
+			unfinished = line[cut:]
+		} else if ruleId, ok := strings.CutPrefix(r.URL.Path, "/rule/"); ok {
+			logText += fmt.Sprintf(ruleLine, ruleId)
+		}
+		if logText != "" {
+			file, err := os.OpenFile(s.logFilePath, os.O_WRONLY|os.O_APPEND, 0600)
+			s.Require().NoError(err)
+			_, err = file.WriteString(logText)
+			s.Require().NoError(err)
+			s.Require().NoError(file.Close())
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("Hello, client"))
+	}
+	s.ts.Config.Handler = http.HandlerFunc(handler)
+
+	s.runnerConfig.Output = output.Quiet
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().NoError(err)
+	s.Empty(res.Stats.Failed, "failed tests")
+	s.Len(res.Stats.Success, 2)
+}
+
 func (s *runTestSuite) TestFailFast() {
 	s.Equal(3, len(s.ftwTests[0].Tests))
 
