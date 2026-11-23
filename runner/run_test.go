@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"text/template"
@@ -669,10 +670,13 @@ func (s *runTestSuite) TestRetryOnce() {
 func (s *runTestSuite) TestPartialMarkerLines() {
 	markerLine := `[Sat Mar 18 16:47:21.474075 2023] [security2:error] [pid 193:tid 140523746522880] [client 172.18.0.1:39150] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at REQUEST_HEADERS:X-CRS-Test. [file "/etc/modsecurity.d/owasp-crs/crs-setup.conf"] [line "737"] [id "999999"] [msg "%s"] [tag "modsecurity"] [hostname "localhost"] [uri "/status/200"] [unique_id "%d"]`
 	ruleLine := `[Sat Mar 18 16:47:21.476378 2023] [security2:error] [pid 193:tid 140524082149120] [client 172.18.0.1:39164] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at ARGS. [file "/etc/modsecurity.d/owasp-crs/rules/test.conf"] [line "1"] [id "%s"] [msg "test rule"] [hostname "localhost"] [uri "/"] [unique_id "ZBXrGVXqtKqlnATxdUEg7gAAANk"]` + "\n"
+	var mu sync.Mutex // the server may run handlers concurrently
 	unfinished := ""
 	requests := 0
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
 		// Write the log before answering, so that go-ftw reads it only after this request is logged.
 		logText := ""
 		if unfinished != "" {
@@ -691,11 +695,13 @@ func (s *runTestSuite) TestPartialMarkerLines() {
 			logText += fmt.Sprintf(ruleLine, ruleId)
 		}
 		if logText != "" {
+			// s.NoError, not s.Require(): FailNow must not be called from the server's goroutine.
 			file, err := os.OpenFile(s.logFilePath, os.O_WRONLY|os.O_APPEND, 0600)
-			s.Require().NoError(err)
-			_, err = file.WriteString(logText)
-			s.Require().NoError(err)
-			s.Require().NoError(file.Close())
+			if s.NoError(err) {
+				_, err = file.WriteString(logText)
+				s.NoError(err)
+				s.NoError(file.Close())
+			}
 		}
 
 		w.WriteHeader(http.StatusOK)
