@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"text/template"
@@ -660,6 +661,71 @@ func (s *runTestSuite) TestRetryOnce() {
 	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
 	s.Require().NoError(err)
 	s.Equalf(res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
+}
+
+// The WAF may flush a marker line late, or still be writing it when go-ftw reads the log. Here the
+// first request for each marker logs nothing, so go-ftw sends the marker again; that request logs
+// the late first copy and then a second copy only in part, finished by the next request. A start
+// marker line is cut after the marker id, an end marker line after the header name but before the
+// id. go-ftw must find the marker lines by the marker id: matching the partial start marker line
+// it read, it would never find it again, so test 2 would see test 1's rule, and the first copy of
+// the end marker would count as a line of the test (rule 999999). And it must look past the partial
+// end marker line to the complete copy above it, or it never finds the end marker.
+func (s *runTestSuite) TestPartialMarkerLines() {
+	markerLine := `[Sat Mar 18 16:47:21.474075 2023] [security2:error] [pid 193:tid 140523746522880] [client 172.18.0.1:39150] [client 172.18.0.1] [request %[2]d] ModSecurity: Warning. Pattern match "^.*$" at REQUEST_HEADERS:X-CRS-Test. [file "/etc/modsecurity.d/owasp-crs/crs-setup.conf"] [line "737"] [id "999999"] [msg "%[1]s"] [tag "modsecurity"] [hostname "localhost"] [uri "/status/200"] [unique_id "%[2]d"]`
+	ruleLine := `[Sat Mar 18 16:47:21.476378 2023] [security2:error] [pid 193:tid 140524082149120] [client 172.18.0.1:39164] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at ARGS. [file "/etc/modsecurity.d/owasp-crs/rules/test.conf"] [line "1"] [id "%s"] [msg "test rule"] [hostname "localhost"] [uri "/"] [unique_id "ZBXrGVXqtKqlnATxdUEg7gAAANk"]` + "\n"
+	var mu sync.Mutex // the server may run handlers concurrently
+	unfinished := ""
+	late := map[string]string{}
+	requests := 0
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		// Write the log before answering, so that go-ftw reads it only after this request is logged.
+		logText := ""
+		if unfinished != "" {
+			logText = unfinished + "\n"
+			unfinished = ""
+		}
+		if marker := r.Header.Get(s.cfg.LogMarkerHeaderName); marker != "" {
+			// Every marker request gets its own unique_id, logged before and after the marker as in
+			// a real log, so the copies of a resent marker differ even in the part written first.
+			requests++
+			line := fmt.Sprintf(markerLine, marker, requests)
+			if first, ok := late[marker]; !ok {
+				late[marker] = line
+			} else {
+				cut := strings.Index(line, marker)
+				if strings.HasSuffix(marker, "-s") {
+					cut += len(marker)
+				}
+				logText += first + "\n" + line[:cut]
+				unfinished = line[cut:]
+			}
+		} else if ruleId, ok := strings.CutPrefix(r.URL.Path, "/rule/"); ok {
+			logText += fmt.Sprintf(ruleLine, ruleId)
+		}
+		if logText != "" {
+			// s.NoError, not s.Require(): FailNow must not be called from the server's goroutine.
+			file, err := os.OpenFile(s.logFilePath, os.O_WRONLY|os.O_APPEND, 0600)
+			if s.NoError(err) {
+				_, err = file.WriteString(logText)
+				s.NoError(err)
+				s.NoError(file.Close())
+			}
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("Hello, client"))
+	}
+	s.ts.Config.Handler = http.HandlerFunc(handler)
+
+	s.runnerConfig.Output = output.Quiet
+	res, err := Run(s.runnerConfig, s.ftwTests, s.out)
+	s.Require().NoError(err)
+	s.Empty(res.Stats.Failed, "failed tests")
+	s.Len(res.Stats.Success, 2)
 }
 
 func (s *runTestSuite) TestFailFast() {

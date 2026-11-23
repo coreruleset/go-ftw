@@ -38,13 +38,15 @@ func NewFTWLogLines(cfg *config.RunnerConfig) (*FTWLogLines, error) {
 	return ll, nil
 }
 
-// WithStartMarker resets the internal state of the log file checker and sets the start marker for the log file
+// WithStartMarker resets the internal state of the log file checker and sets the start marker for the log file.
+// The marker is a unique id, such as the stage id with its suffix: the log lines that contain it are the
+// marker lines.
 func (ll *FTWLogLines) WithStartMarker(marker []byte) {
 	ll.reset()
 	ll.startMarker = bytes.ToLower(marker)
 }
 
-// WithEndMarker sets the end marker for the log file
+// WithEndMarker sets the end marker for the log file, a unique id like the start marker.
 func (ll *FTWLogLines) WithEndMarker(marker []byte) {
 	ll.endMarker = bytes.ToLower(marker)
 }

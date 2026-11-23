@@ -98,12 +98,12 @@ func (c *FTWCheck) CloudMode() bool {
 	return c.cfg.RunMode == config.CloudRunMode
 }
 
-// SetStartMarker sets the log line that marks the start of the logs to analyze
+// SetStartMarker sets the marker id whose log line marks the start of the logs to analyze
 func (c *FTWCheck) SetStartMarker(marker []byte) {
 	c.log.WithStartMarker(marker)
 }
 
-// SetEndMarker sets the log line that marks the end of the logs to analyze
+// SetEndMarker sets the marker id whose log line marks the end of the logs to analyze
 func (c *FTWCheck) SetEndMarker(marker []byte) {
 	c.log.WithEndMarker(marker)
 }

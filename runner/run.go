@@ -259,7 +259,9 @@ func markAndFlush(runContext *TestRunContext, testInput *test.Input, stageId str
 
 		marker := runContext.LogLines.CheckLogForMarker(stageId, runContext.RunnerConfig.MaxMarkerLogLines)
 		if marker != nil {
-			return marker, nil
+			// The marker id, not the line: the line found here may be one of several copies, or
+			// still be being written. The log reader finds the marker lines by their id.
+			return []byte(stageId), nil
 		}
 	}
 	return nil, fmt.Errorf("can't find log marker. Am I reading the correct log? Log file: %s", runContext.RunnerConfig.LogFilePath)

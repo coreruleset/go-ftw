@@ -1,0 +1,33 @@
+---
+meta:
+  author: "tester"
+  description: "Each marker line is logged late, and its second copy is half written when go-ftw reads it"
+tests:
+  - test_id: 1
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          uri: "/rule/920210"
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+        output:
+          log:
+            expect_ids: [920210]
+            no_expect_ids: [999999]
+  - test_id: 2
+    stages:
+      - input:
+          dest_addr: "{{ .TestAddr }}"
+          port: {{ .TestPort }}
+          uri: "/rule/949110"
+          headers:
+            User-Agent: "ModSecurity CRS 3 Tests"
+            Accept: "*/*"
+            Host: "localhost"
+        output:
+          log:
+            expect_ids: [949110]
+            no_expect_ids: [920210, 999999]

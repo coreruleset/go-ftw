@@ -198,6 +198,9 @@ func (ll *FTWLogLines) computeMarkedLines() error {
 		ChunkSize: 4096,
 	}
 	scanner := backscanner.NewOptions(ll.logFile, int(fileInfo.Size()), backscannerOptions)
+	// Collected here, and kept only once both markers are found, so that a failed lookup leaves
+	// no lines behind for the next call.
+	var lines [][]byte
 	startFound := false
 	endFound := false
 	// end marker is the *first* marker when reading backwards,
@@ -215,39 +218,45 @@ func (ll *FTWLogLines) computeMarkedLines() error {
 		if !endFound {
 			// Skip lines until we find the end marker. Reading backwards, the lines we are looking for are
 			// between the end and start markers.
-			if bytes.Equal(lineLower, ll.endMarker) {
-				endFound = true
-			}
+			endFound = isMarkerLine(lineLower, ll.endMarker)
 			continue
 		}
-		if endFound && bytes.Equal(lineLower, ll.endMarker) {
-			// Found a duplicate end marker. This can happen when we force log
-			// flushing through `markAndFlush()`, where we resend the end marker until
-			// we see it in the log.
-
-			// As we pretty much control the log, we don't need to clear any
-			// log lines that could, technically, occur between two consecutive
-			// end markers.
-			log.Trace().Msg("Skipping duplicate end marker")
-			continue
-		} else if endFound && bytes.Equal(lineLower, ll.startMarker) {
+		if isMarkerLine(lineLower, ll.startMarker) {
 			startFound = true
 			break
+		}
+		if isMarkerLine(lineLower, ll.endMarker) {
+			// Another copy of the end marker line: `markAndFlush()` sends the marker again when it
+			// doesn't see it in the log yet. It isn't part of the test.
+			log.Trace().Msg("Skipping repeated end marker line")
+			continue
 		}
 
 		saneCopy := make([]byte, len(line))
 		copy(saneCopy, line)
-		ll.markedLines = append(ll.markedLines, saneCopy)
+		lines = append(lines, saneCopy)
+	}
+	if !endFound {
+		return fmt.Errorf("end marker %q not found in the log", ll.endMarker)
 	}
 	if !startFound {
-		log.Debug().Msg("start marker not found while collecting marked lines")
+		return fmt.Errorf("start marker %q not found in the log", ll.startMarker)
 	}
 
 	// Reverse the order to restore original log order
-	slices.Reverse(ll.markedLines)
+	slices.Reverse(lines)
+	ll.markedLines = lines
 
 	log.Trace().Msgf("Found %d log lines: %s\n", len(ll.markedLines), bytes.Join(ll.markedLines, []byte{'\n'}))
 	return nil
+}
+
+// isMarkerLine reports whether a lowercased log line is a marker line for the marker, an id that
+// holds a UUID. Matching the id rather than a whole stored line finds every copy of the marker line
+// (`markAndFlush()` may send the marker more than once, and the copies differ in timestamp and
+// unique_id), and finds the line even when it was read before the WAF finished writing it.
+func isMarkerLine(lineLower []byte, marker []byte) bool {
+	return bytes.Contains(lineLower, marker)
 }
 
 // CheckLogForMarker reads the log file and searches for a marker line.
@@ -268,9 +277,10 @@ func (ll *FTWLogLines) CheckLogForMarker(markerId string, readLimit uint) []byte
 	stageIDBytes := []byte(markerId)
 	crsHeaderBytes := bytes.ToLower([]byte(ll.LogMarkerHeaderName))
 
-	var line []byte
 	lineCounter := uint(0)
-	// Look for the header until EOF or `readLimit` lines at most
+	// Look for the marker line until EOF or `readLimit` lines at most. A line that holds the header
+	// but not the marker id may be a copy of the marker line that the WAF is still writing, so the
+	// search goes on past it: an earlier, complete copy may be above it.
 	for {
 		if lineCounter > readLimit {
 			log.Debug().Msg("aborting search for marker")
@@ -278,7 +288,7 @@ func (ll *FTWLogLines) CheckLogForMarker(markerId string, readLimit uint) []byte
 		}
 		lineCounter++
 
-		line, _, err = scanner.LineBytes()
+		line, _, err := scanner.LineBytes()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Trace().Err(err).Msg("found EOF while looking for log marker")
@@ -290,15 +300,8 @@ func (ll *FTWLogLines) CheckLogForMarker(markerId string, readLimit uint) []byte
 		}
 
 		line = bytes.ToLower(line)
-		if bytes.Contains(line, crsHeaderBytes) {
-			break
+		if bytes.Contains(line, crsHeaderBytes) && bytes.Contains(line, stageIDBytes) {
+			return line
 		}
 	}
-
-	// Found the header, now the line should also match the stage ID
-	if bytes.Contains(line, stageIDBytes) {
-		return line
-	}
-	log.Debug().Msgf("found unexpected marker line while looking for %s: %s", markerId, line)
-	return nil
 }
