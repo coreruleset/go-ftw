@@ -663,15 +663,20 @@ func (s *runTestSuite) TestRetryOnce() {
 	s.Equalf(res.Stats.TotalFailed(), 0, "Oops, %d tests failed to run!", res.Stats.TotalFailed())
 }
 
-// The WAF may still be writing a marker line when go-ftw reads the log. Here every marker line is
-// first written only up to the end of the marker id, and finished by the next request. go-ftw must
-// wait for the complete line. A partial start marker never matches once the line is complete, so
-// go-ftw would collect every line since the top of the file, and test 2 would see test 1's rule.
+// The WAF may flush a marker line late, or still be writing it when go-ftw reads the log. Here the
+// first request for each marker logs nothing, so go-ftw sends the marker again; that request logs
+// the late first copy and then a second copy only in part, finished by the next request. A start
+// marker line is cut after the marker id, an end marker line after the header name but before the
+// id. go-ftw must find the marker lines by the marker id: matching the partial start marker line
+// it read, it would never find it again, so test 2 would see test 1's rule, and the first copy of
+// the end marker would count as a line of the test (rule 999999). And it must look past the partial
+// end marker line to the complete copy above it, or it never finds the end marker.
 func (s *runTestSuite) TestPartialMarkerLines() {
-	markerLine := `[Sat Mar 18 16:47:21.474075 2023] [security2:error] [pid 193:tid 140523746522880] [client 172.18.0.1:39150] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at REQUEST_HEADERS:X-CRS-Test. [file "/etc/modsecurity.d/owasp-crs/crs-setup.conf"] [line "737"] [id "999999"] [msg "%s"] [tag "modsecurity"] [hostname "localhost"] [uri "/status/200"] [unique_id "%d"]`
+	markerLine := `[Sat Mar 18 16:47:21.474075 2023] [security2:error] [pid 193:tid 140523746522880] [client 172.18.0.1:39150] [client 172.18.0.1] [request %[2]d] ModSecurity: Warning. Pattern match "^.*$" at REQUEST_HEADERS:X-CRS-Test. [file "/etc/modsecurity.d/owasp-crs/crs-setup.conf"] [line "737"] [id "999999"] [msg "%[1]s"] [tag "modsecurity"] [hostname "localhost"] [uri "/status/200"] [unique_id "%[2]d"]`
 	ruleLine := `[Sat Mar 18 16:47:21.476378 2023] [security2:error] [pid 193:tid 140524082149120] [client 172.18.0.1:39164] [client 172.18.0.1] ModSecurity: Warning. Pattern match "^.*$" at ARGS. [file "/etc/modsecurity.d/owasp-crs/rules/test.conf"] [line "1"] [id "%s"] [msg "test rule"] [hostname "localhost"] [uri "/"] [unique_id "ZBXrGVXqtKqlnATxdUEg7gAAANk"]` + "\n"
 	var mu sync.Mutex // the server may run handlers concurrently
 	unfinished := ""
+	late := map[string]string{}
 	requests := 0
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -684,13 +689,20 @@ func (s *runTestSuite) TestPartialMarkerLines() {
 			unfinished = ""
 		}
 		if marker := r.Header.Get(s.cfg.LogMarkerHeaderName); marker != "" {
-			// Every request gets its own unique_id, as in a real log, so a resent marker is not
-			// byte-identical to the first one.
+			// Every marker request gets its own unique_id, logged before and after the marker as in
+			// a real log, so the copies of a resent marker differ even in the part written first.
 			requests++
 			line := fmt.Sprintf(markerLine, marker, requests)
-			cut := strings.Index(line, marker) + len(marker)
-			logText += line[:cut]
-			unfinished = line[cut:]
+			if first, ok := late[marker]; !ok {
+				late[marker] = line
+			} else {
+				cut := strings.Index(line, marker)
+				if strings.HasSuffix(marker, "-s") {
+					cut += len(marker)
+				}
+				logText += first + "\n" + line[:cut]
+				unfinished = line[cut:]
+			}
 		} else if ruleId, ok := strings.CutPrefix(r.URL.Path, "/rule/"); ok {
 			logText += fmt.Sprintf(ruleLine, ruleId)
 		}

@@ -1,7 +1,7 @@
 ---
 meta:
   author: "tester"
-  description: "The log ends in the middle of each marker line when go-ftw first reads it, so every marker is sent twice"
+  description: "Each marker line is logged late, and its second copy is half written when go-ftw reads it"
 tests:
   - test_id: 1
     stages:
