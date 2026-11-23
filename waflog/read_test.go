@@ -677,7 +677,7 @@ func (s *readTestSuite) TestReadGetMarkedLinesFindsMarkerLinesById() {
 }
 
 // A marker that isn't in the log is an error, not a reason to collect every line up to the top of
-// the file (no start marker) or none at all (no end marker).
+// the file (no start marker) or none at all (no end marker), and it leaves no lines behind.
 func (s *readTestSuite) TestReadGetMarkedLinesFailsWithoutMarker() {
 	startMarker, endMarker := generateLogMarkers(100000, 1)
 	ruleLine := `[id "949110"]`
@@ -703,6 +703,8 @@ func (s *readTestSuite) TestReadGetMarkedLinesFailsWithoutMarker() {
 
 			_, err = ll.GetMarkedLines()
 			s.ErrorContains(err, tc.missing+" ")
+			// Nothing collected may stay behind for a later call.
+			s.Empty(ll.markedLines)
 		})
 	}
 }

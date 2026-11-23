@@ -198,6 +198,9 @@ func (ll *FTWLogLines) computeMarkedLines() error {
 		ChunkSize: 4096,
 	}
 	scanner := backscanner.NewOptions(ll.logFile, int(fileInfo.Size()), backscannerOptions)
+	// Collected here, and kept only once both markers are found, so that a failed lookup leaves
+	// no lines behind for the next call.
+	var lines [][]byte
 	startFound := false
 	endFound := false
 	// end marker is the *first* marker when reading backwards,
@@ -231,7 +234,7 @@ func (ll *FTWLogLines) computeMarkedLines() error {
 
 		saneCopy := make([]byte, len(line))
 		copy(saneCopy, line)
-		ll.markedLines = append(ll.markedLines, saneCopy)
+		lines = append(lines, saneCopy)
 	}
 	if !endFound {
 		return fmt.Errorf("end marker %q not found in the log", ll.endMarker)
@@ -241,7 +244,8 @@ func (ll *FTWLogLines) computeMarkedLines() error {
 	}
 
 	// Reverse the order to restore original log order
-	slices.Reverse(ll.markedLines)
+	slices.Reverse(lines)
+	ll.markedLines = lines
 
 	log.Trace().Msgf("Found %d log lines: %s\n", len(ll.markedLines), bytes.Join(ll.markedLines, []byte{'\n'}))
 	return nil
