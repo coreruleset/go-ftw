@@ -554,6 +554,27 @@ func (s *statsTestSuite) TestLoadQuantitativeRunStats() {
 	s.Require().Equal(1500*time.Millisecond, stats.TotalTime())
 }
 
+func (s *statsTestSuite) TestPlacementRoundTrip() {
+	stats := NewQuantitativeStats(nil)
+	stats.SetPlacement(Placement{Kind: PlacementHeader, Header: "Referer"})
+	b, err := json.Marshal(stats)
+	s.Require().NoError(err)
+	s.Require().Contains(string(b), `"placement":"header:Referer"`)
+
+	path := filepath.Join(s.T().TempDir(), "r.json")
+	s.Require().NoError(os.WriteFile(path, b, 0o644))
+	loaded, err := LoadQuantitativeRunStats(path)
+	s.Require().NoError(err)
+	s.Require().Equal("header:Referer", loaded.Placement())
+
+	// results saved before the field existed used the query string
+	legacy := filepath.Join(s.T().TempDir(), "legacy.json")
+	s.Require().NoError(os.WriteFile(legacy, []byte(`{"count":1}`), 0o644))
+	loaded, err = LoadQuantitativeRunStats(legacy)
+	s.Require().NoError(err)
+	s.Require().Equal("query", loaded.Placement())
+}
+
 func (s *statsTestSuite) TestLoadQuantitativeRunStatsRejectsMalformedJSON() {
 	dir := s.T().TempDir()
 	baselinePath := filepath.Join(dir, "baseline.json")
