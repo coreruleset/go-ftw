@@ -49,7 +49,6 @@ func (s *statsTestSuite) TestWriteGitHubSummary_Success() {
 		Success:    []string{"test-1", "test-2", "test-3"},
 		Failed:     []string{"test-4", "test-5"},
 		Skipped:    []string{"test-6"},
-		Ignored:    []string{"test-7"},
 		ForcedPass: []string{"test-8"},
 		ForcedFail: []string{"test-9"},
 		RunTime: map[string]time.Duration{
@@ -78,7 +77,6 @@ func (s *statsTestSuite) TestWriteGitHubSummary_Success() {
 	s.Contains(contentStr, "| ✅ Passed | 3 |")
 	s.Contains(contentStr, "| ❌ Failed | 3 |")
 	s.Contains(contentStr, "| ⏭️ Skipped | 1 |")
-	s.Contains(contentStr, "| ℹ️ Ignored | 1 |")
 	s.Contains(contentStr, "| 🔧 Forced Pass | 1 |")
 	s.Contains(contentStr, "| 🔧 Forced Fail | 1 |")
 	s.Contains(contentStr, "| ⏱️ Total Time | 5s |")
@@ -117,13 +115,12 @@ func (s *statsTestSuite) TestWriteGitHubSummary_AllPassed() {
 	s.NotContains(contentStr, "### 🔧 Forced Fail Tests")
 }
 
-func (s *statsTestSuite) TestWriteGitHubSummary_NoIgnoredOrForced() {
+func (s *statsTestSuite) TestWriteGitHubSummary_NoOverrides() {
 	stats := &RunStats{
 		Run:        3,
 		Success:    []string{"test-1", "test-2"},
 		Failed:     []string{"test-3"},
 		Skipped:    []string{},
-		Ignored:    []string{},
 		ForcedPass: []string{},
 		ForcedFail: []string{},
 		TotalTime:  1 * time.Second,
@@ -136,7 +133,6 @@ func (s *statsTestSuite) TestWriteGitHubSummary_NoIgnoredOrForced() {
 
 	contentStr := string(content)
 	// Should not contain ignored or forced rows
-	s.NotContains(contentStr, "| ℹ️ Ignored")
 	s.NotContains(contentStr, "| 🔧 Forced Pass")
 	s.NotContains(contentStr, "| 🔧 Forced Fail |")
 }
@@ -295,4 +291,64 @@ func (s *statsTestSuite) TestWriteGitHubSummary_WithoutDuration() {
 		}
 	}
 	s.True(foundNA, "Should show N/A for tests without duration")
+}
+
+func (s *statsTestSuite) TestStaleOverrides() {
+	stats := &RunStats{
+		Overridden: []OverrideResult{
+			{ID: "test-1", Override: "forcepass", Actual: "failed"},
+			{ID: "test-2", Override: "forcepass", Actual: "passed"},
+			{ID: "test-3", Override: "forcefail", Actual: "passed"},
+			{ID: "test-4", Override: "forcefail", Actual: "failed"},
+		},
+	}
+
+	s.Equal([]string{"test-2", "test-4"}, stats.StaleOverrides())
+	s.Zero(stats.FailedOnStaleOverrides())
+
+	stats.FailOnStaleOverrides = true
+	s.Equal(2, stats.FailedOnStaleOverrides())
+}
+
+func (s *statsTestSuite) TestWriteGitHubSummary_Overridden() {
+	stats := &RunStats{
+		Run:        2,
+		ForcedPass: []string{"test-1"},
+		ForcedFail: []string{"test-2"},
+		Overridden: []OverrideResult{
+			{ID: "test-1", Override: "forcepass", Actual: "passed", Reason: "known bug"},
+			{ID: "test-2", Override: "forcefail", Actual: "passed", Reason: "must be fixed"},
+		},
+		TotalTime: 1 * time.Second,
+	}
+
+	stats.writeGitHubSummary()
+
+	content, err := os.ReadFile(s.summaryFile)
+	s.Require().NoError(err)
+
+	contentStr := string(content)
+	s.Contains(contentStr, "| ⚠️ Stale Overrides | 1 |")
+	s.Contains(contentStr, "| `test-1` | forcepass | passed | ⚠️ | known bug |")
+	s.Contains(contentStr, "| `test-2` | forcefail | passed |  | must be fixed |")
+}
+
+func (s *statsTestSuite) TestWriteGitHubSummary_StaleOverridesFail() {
+	stats := &RunStats{
+		Run:                  1,
+		Success:              []string{},
+		ForcedPass:           []string{"test-1"},
+		FailOnStaleOverrides: true,
+		Overridden: []OverrideResult{
+			{ID: "test-1", Override: "forcepass", Actual: "passed"},
+		},
+		TotalTime: 1 * time.Second,
+	}
+
+	stats.writeGitHubSummary()
+
+	content, err := os.ReadFile(s.summaryFile)
+	s.Require().NoError(err)
+	s.NotContains(string(content), "All tests passed!")
+	s.Contains(string(content), "Stale overrides found")
 }

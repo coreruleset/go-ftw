@@ -296,6 +296,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideStopMagic() {
 	overrideStopMagic, err := strconv.ParseBool(stopMagicBool)
 	s.Require().NoError(err, "Failed to parse `StopMagic` override value")
 	testInput := test.NewInput(&schema.Input{
+		//nolint:staticcheck
 		StopMagic: func() *bool { b := false; return &b }(),
 	})
 	test.ApplyInputOverrides(s.runnerConfig, testInput)
@@ -332,6 +333,7 @@ func (s *inputOverrideTestSuite) TestApplyInputOverrideNoAutocompleteHeaders() {
 
 func (s *inputOverrideTestSuite) TestApplyInputOverrideNoStopMagic() {
 	testInput := test.NewInput(&schema.Input{
+		//nolint:staticcheck
 		StopMagic: func() *bool { b := true; return &b }(),
 	})
 	s.Nil(s.cfg.TestOverride.Overrides.AutocompleteHeaders)

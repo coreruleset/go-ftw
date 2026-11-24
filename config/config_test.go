@@ -18,7 +18,6 @@ var testData = map[string]string{
 	"TestNewConfigFromFile": `---
 logfile: 'tests/logs/modsec2-apache/apache2/error.log'
 include: '^9.*'
-exclude: '^920400-2$'
 include_tags: '^cookie$'
 testoverride:
   input:
@@ -123,13 +122,14 @@ func (s *fileTestSuite) TestNewConfigBadFileConfig() {
 
 func (s *fileTestSuite) TestNewConfigFromFile() {
 	s.NotEmpty(s.cfg.IncludeTests, "Include regex must not be empty")
-	s.NotEmpty(s.cfg.ExcludeTests, "Exclude regex must not be empty")
 	s.NotEmpty(s.cfg.TestOverride.Overrides, "Ignore list must not be empty")
 
 	s.Require().Contains((*regexp.Regexp)(s.cfg.IncludeTests).String(), "^9.*", "Looks like we could not find item to include")
-	s.Require().Contains((*regexp.Regexp)(s.cfg.ExcludeTests).String(), "^920400-2$", "Looks like we could not find item to exclude")
 
-	for id, text := range s.cfg.TestOverride.Ignore {
+	// deprecated `ignore` entries are treated as `forcepass`
+	s.Empty(s.cfg.TestOverride.Ignore)
+	s.Require().Len(s.cfg.TestOverride.ForcePass, 1)
+	for id, text := range s.cfg.TestOverride.ForcePass {
 		s.Contains((*regexp.Regexp)(id).String(), "920400-1$", "Looks like we could not find item to ignore")
 		s.Equal("This test result must be ignored", text, "Text doesn't match")
 	}
@@ -217,7 +217,6 @@ func (s *fileTestSuite) TestNewDefaultConfigWithParams() {
 	s.Equal("mylogfile.log", cfg.LogFile)
 	overrides := FTWTestOverride{
 		Overrides: Overrides{},
-		Ignore:    nil,
 		ForcePass: nil,
 		ForceFail: nil,
 	}
@@ -236,4 +235,66 @@ func (s *baseTestSuite) TestWithMaxMarker() {
 	cfg.MaxMarkerLogLines = 111
 	s.Equal(uint(111), cfg.MaxMarkerLogLines)
 
+}
+
+func (s *baseTestSuite) TestExcludeIsNotSupported() {
+	cfg, err := NewConfigFromString("exclude: '^920400-2$'")
+	s.Require().Error(err)
+	s.Nil(cfg)
+	s.Contains(err.Error(), "platform overrides")
+}
+
+func (s *baseTestSuite) TestStaleOverridesDefaultsToFail() {
+	cfg, err := NewConfigFromString("logfile: 'test.log'")
+	s.Require().NoError(err)
+	s.Equal(StaleOverridesFail, cfg.TestOverride.StaleOverrides)
+	s.True(cfg.TestOverride.FailOnStaleOverrides())
+}
+
+func (s *baseTestSuite) TestStaleOverridesWarn() {
+	cfg, err := NewConfigFromString("testoverride:\n  stale_overrides: warn")
+	s.Require().NoError(err)
+	s.Equal(StaleOverridesWarn, cfg.TestOverride.StaleOverrides)
+	s.False(cfg.TestOverride.FailOnStaleOverrides())
+}
+
+func (s *baseTestSuite) TestStaleOverridesInvalid() {
+	cfg, err := NewConfigFromString("testoverride:\n  stale_overrides: ignore")
+	s.Require().Error(err)
+	s.Nil(cfg)
+	s.Contains(err.Error(), "stale_overrides")
+}
+
+func (s *baseTestSuite) TestIgnoreIsMergedIntoForcePass() {
+	cfg, err := NewConfigFromString(`---
+testoverride:
+  ignore:
+    '920400-1$': 'ignored'
+  forcepass:
+    '920400-2$': 'forced'
+`)
+	s.Require().NoError(err)
+	s.Empty(cfg.TestOverride.Ignore)
+	reasons := map[string]string{}
+	for re, reason := range cfg.TestOverride.ForcePass {
+		reasons[(*regexp.Regexp)(re).String()] = reason
+	}
+	s.Equal(map[string]string{"920400-1$": "ignored", "920400-2$": "forced"}, reasons)
+}
+
+func (s *baseTestSuite) TestRunnerConfigurationMergesIgnoreIntoForcePass() {
+	ignore, err := NewFTWRegexp("920400-1$")
+	s.Require().NoError(err)
+	forcePass, err := NewFTWRegexp("920400-2$")
+	s.Require().NoError(err)
+	cfg := NewDefaultConfig()
+	cfg.TestOverride.Ignore = map[*FTWRegexp]string{ignore: "ignored"}
+	cfg.TestOverride.ForcePass = map[*FTWRegexp]string{forcePass: "forced"}
+
+	runnerConfig := NewRunnerConfiguration(cfg)
+
+	s.Empty(runnerConfig.TestOverride.Ignore)
+	s.Equal(map[*FTWRegexp]string{ignore: "ignored", forcePass: "forced"}, runnerConfig.TestOverride.ForcePass)
+	// the configuration is not modified
+	s.Equal(map[*FTWRegexp]string{forcePass: "forced"}, cfg.TestOverride.ForcePass)
 }

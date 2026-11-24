@@ -5,6 +5,7 @@ package ftwhttp
 
 import (
 	"bytes"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -86,6 +87,13 @@ func (s *clientTestSuite) httpTestServer(secure bool) {
 	}
 }
 
+// testServerRootCAs returns the root CAs that the TLS test server's certificate is signed by
+func (s *clientTestSuite) testServerRootCAs() *x509.CertPool {
+	pool := x509.NewCertPool()
+	pool.AddCert(s.ts.Certificate())
+	return pool
+}
+
 func (s *clientTestSuite) TestNewClient() {
 	s.NotNil(s.client.Jar, "Error creating Client")
 }
@@ -106,7 +114,7 @@ func (s *clientTestSuite) TestConnectDestinationHTTPS() {
 	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
 	s.Require().NoError(err, "This should not error")
-	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
+	s.client.SetRootCAs(s.testServerRootCAs())
 	err = s.client.NewConnection(*d)
 	s.Require().NoError(err, "This should not error")
 	s.Equal("https", s.client.Transport.protocol, "Error connecting to example.com using https")
@@ -116,7 +124,7 @@ func (s *clientTestSuite) TestDoRequest() {
 	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
 	s.Require().NoError(err, "This should not error")
-	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
+	s.client.SetRootCAs(s.testServerRootCAs())
 	req := generateBaseRequestForTesting()
 	req.requestLine.URI = "/not-found"
 	err = s.client.NewConnection(*d)
@@ -167,7 +175,7 @@ func (s *clientTestSuite) TestClientMultipartFormDataRequest() {
 	d, err := DestinationFromString(s.ts.URL)
 	s.Require().NoError(err, "This should not error")
 
-	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
+	s.client.SetRootCAs(s.testServerRootCAs())
 
 	rl := &RequestLine{
 		Method:  "POST",
@@ -208,7 +216,7 @@ func (s *clientTestSuite) TestNewConnectionCreatesTransport() {
 	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
 	s.Require().NoError(err, "Failed to construct destination from test server")
-	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
+	s.client.SetRootCAs(s.testServerRootCAs())
 	err = s.client.NewConnection(*d)
 	s.Require().NoError(err, "Failed to create new connection")
 	s.NotNil(s.client.Transport, "Transport expected to be initialized")
@@ -219,7 +227,7 @@ func (s *clientTestSuite) TestNewOrReusedConnectionCreatesTransport() {
 	s.httpTestServer(secureServer)
 	d, err := DestinationFromString(s.ts.URL)
 	s.Require().NoError(err, "Failed to construct destination from test server")
-	s.client.SetRootCAs(s.ts.Client().Transport.(*http.Transport).TLSClientConfig.RootCAs)
+	s.client.SetRootCAs(s.testServerRootCAs())
 	err = s.client.NewOrReusedConnection(*d)
 	s.Require().NoError(err, "Failed to create new or to reuse connection")
 	s.NotNil(s.client.Transport, "Transport expected to be initialized")
@@ -241,6 +249,22 @@ func (s *clientTestSuite) TestNewOrReusedConnectionReusesTransport() {
 	s.Require().NoError(err, "Failed to reuse connection")
 
 	s.Equal(begin, s.client.Transport.duration.begin, "Transport must not be reinitialized when reusing connection")
+}
+
+// A failed attempt to connect must not prevent subsequent connections.
+func (s *clientTestSuite) TestNewOrReusedConnectionRecoversFromFailedConnection() {
+	s.httpTestServer(insecureServer)
+	d, err := DestinationFromString(s.ts.URL)
+	s.Require().NoError(err, "Failed to construct destination from test server")
+	s.Require().NoError(s.client.NewOrReusedConnection(*d))
+
+	// no one is listening on this port
+	unreachable := &Destination{DestAddr: d.DestAddr, Port: 1, Protocol: d.Protocol}
+	s.Require().Error(s.client.NewOrReusedConnection(*unreachable))
+	s.Require().Error(s.client.NewOrReusedConnection(*unreachable))
+
+	s.Require().NoError(s.client.NewOrReusedConnection(*d), "Failed to connect after failed connection attempts")
+	s.Require().NoError(s.client.NewConnection(*d), "Failed to create connection after failed connection attempts")
 }
 
 // TestClientRateLimits tests the rate limiter functionality of the client. Test should take at least 3 seconds to run.

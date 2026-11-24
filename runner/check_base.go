@@ -4,8 +4,6 @@
 package runner
 
 import (
-	schema "github.com/coreruleset/ftw-tests-schema/v3/types"
-
 	"github.com/coreruleset/go-ftw/v2/config"
 	"github.com/coreruleset/go-ftw/v2/test"
 	"github.com/coreruleset/go-ftw/v2/waflog"
@@ -61,36 +59,6 @@ func (c *FTWCheck) SetNoLogContains(regex string) {
 	//nolint:staticcheck
 	c.expected.NoLogContains = regex
 	c.expected.Log.NoMatchRegex = regex
-}
-
-// ForcedIgnore check if this ID need to be ignored from results
-func (c *FTWCheck) ForcedIgnore(testCase *schema.Test) bool {
-	for re := range c.cfg.TestOverride.Ignore {
-		if re.MatchString(testCase.IdString()) {
-			return true
-		}
-	}
-	return false
-}
-
-// ForcedPass check if this ID need to be ignored from results
-func (c *FTWCheck) ForcedPass(testCase *schema.Test) bool {
-	for re := range c.cfg.TestOverride.ForcePass {
-		if re.MatchString(testCase.IdString()) {
-			return true
-		}
-	}
-	return false
-}
-
-// ForcedFail check if this ID need to be ignored from results
-func (c *FTWCheck) ForcedFail(testCase *schema.Test) bool {
-	for re := range c.cfg.TestOverride.ForceFail {
-		if re.MatchString(testCase.IdString()) {
-			return true
-		}
-	}
-	return false
 }
 
 // CloudMode returns true if we are running in cloud mode

@@ -4,6 +4,9 @@
 package config
 
 import (
+	"errors"
+	"fmt"
+	"maps"
 	"os"
 	"strings"
 
@@ -12,6 +15,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/rawbytes"
 	koanfv2 "github.com/knadh/koanf/v2"
+	"github.com/rs/zerolog/log"
 )
 
 // NewDefaultConfig initializes the configuration with default values
@@ -23,6 +27,9 @@ func NewDefaultConfig() *FTWConfiguration {
 		MaxMarkerRetries:    DefaultMaxMarkerRetries,
 		MaxMarkerLogLines:   DefaultMaxMarkerLogLines,
 		CustomLogIdRegex:    "",
+		TestOverride: FTWTestOverride{
+			StaleOverrides: StaleOverridesFail,
+		},
 	}
 }
 
@@ -103,13 +110,50 @@ func NewConfigFromString(conf string) (*FTWConfiguration, error) {
 
 // Unmarshal the loaded koanf instance into a configuration object
 func unmarshalConfig(k *koanfv2.Koanf) (*FTWConfiguration, error) {
+	if k.Exists("exclude") {
+		return nil, errors.New("the 'exclude' option is no longer supported, use platform overrides (--overrides) to describe platform specific behavior and the --exclude command line flag to filter tests for a run")
+	}
+
 	config := NewDefaultConfig()
 	err := k.UnmarshalWithConf("", config, koanfv2.UnmarshalConf{Tag: "koanf"})
 	if err != nil {
 		return nil, err
 	}
 
+	if err = normalizeTestOverride(&config.TestOverride); err != nil {
+		return nil, err
+	}
+
 	return config, nil
+}
+
+// normalizeTestOverride validates the test overrides and merges deprecated entries into their replacements
+func normalizeTestOverride(override *FTWTestOverride) error {
+	switch override.StaleOverrides {
+	case StaleOverridesFail, StaleOverridesWarn:
+	default:
+		return fmt.Errorf("invalid value '%s' for 'stale_overrides', must be '%s' or '%s'", override.StaleOverrides, StaleOverridesFail, StaleOverridesWarn)
+	}
+
+	if len(override.Ignore) > 0 {
+		log.Warn().Msg("the 'ignore' test override is deprecated, use 'forcepass' instead; 'ignore' entries are treated as 'forcepass'")
+	}
+	mergeIgnoreIntoForcePass(override)
+	return nil
+}
+
+// mergeIgnoreIntoForcePass merges the entries of the deprecated `ignore` override into `forcepass`.
+// Does not modify the existing maps.
+func mergeIgnoreIntoForcePass(override *FTWTestOverride) {
+	if len(override.Ignore) == 0 {
+		override.Ignore = nil
+		return
+	}
+	forcePass := make(map[*FTWRegexp]string, len(override.ForcePass)+len(override.Ignore))
+	maps.Copy(forcePass, override.ForcePass)
+	maps.Copy(forcePass, override.Ignore)
+	override.ForcePass = forcePass
+	override.Ignore = nil
 }
 
 // Get the global koanf instance

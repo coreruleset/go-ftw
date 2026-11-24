@@ -42,8 +42,6 @@ type FTWConfiguration struct {
 	MaxMarkerLogLines uint `koanf:"maxmarkerloglines"`
 	// IncludeTests is a regular expression for tests to include, matched against the rule ID (same as --include)
 	IncludeTests *FTWRegexp `koanf:"include"`
-	// ExcludeTests is a regular expression for tests to exclude, matched against the rule ID (same as --exclude)
-	ExcludeTests *FTWRegexp `koanf:"exclude"`
 	// IncludeTags is a regular expression for tests to include, matched aginst the tags of tests (same as --tag)
 	IncludeTags *FTWRegexp `koanf:"include_tags"`
 	// to domains with a self-signed certificate.
@@ -52,17 +50,36 @@ type FTWConfiguration struct {
 	CustomLogIdRegex string `koanf:"custom_log_id_regex"`
 }
 
-// FTWTestOverride holds four lists:
+// StaleOverridesMode determines how overrides that no longer change anything are handled
+type StaleOverridesMode string
+
+const (
+	// StaleOverridesFail fails the run if there are stale overrides (default)
+	StaleOverridesFail StaleOverridesMode = "fail"
+	// StaleOverridesWarn only reports stale overrides
+	StaleOverridesWarn StaleOverridesMode = "warn"
+)
+
+// FTWTestOverride holds the test overrides.
+// All overridden tests are run, the actual result is reported alongside the forced result.
 //
 //	Overrides allows you to override input parameters in tests. An example usage is if you want to change the `dest_addr` of all tests to point to an external IP or host.
-//	Ignore is for tests you want to ignore. You should add a comment on why you ignore the test
 //	ForcePass is for tests you want to pass unconditionally. You should add a comment on why you force to pass the test
 //	ForceFail is for tests you want to fail unconditionally. You should add a comment on why you force to fail the test
+//	StaleOverrides determines what happens if an override does not change the result of a test (a forced pass test passes or a forced fail test fails)
+//	Ignore is deprecated, entries are merged into ForcePass when the configuration is loaded
 type FTWTestOverride struct {
-	Overrides Overrides             `koanf:"input"`
-	Ignore    map[*FTWRegexp]string `koanf:"ignore"`
-	ForcePass map[*FTWRegexp]string `koanf:"forcepass"`
-	ForceFail map[*FTWRegexp]string `koanf:"forcefail"`
+	Overrides      Overrides             `koanf:"input"`
+	ForcePass      map[*FTWRegexp]string `koanf:"forcepass"`
+	ForceFail      map[*FTWRegexp]string `koanf:"forcefail"`
+	StaleOverrides StaleOverridesMode    `koanf:"stale_overrides"`
+	// Deprecated: use ForcePass instead
+	Ignore map[*FTWRegexp]string `koanf:"ignore"`
+}
+
+// FailOnStaleOverrides returns true unless stale overrides should only be reported
+func (o *FTWTestOverride) FailOnStaleOverrides() bool {
+	return o.StaleOverrides != StaleOverridesWarn
 }
 
 // Overrides represents the overridden inputs that have to be applied to tests
@@ -97,6 +114,11 @@ func (r *FTWRegexp) UnmarshalText(b []byte) error {
 	}
 	*r = FTWRegexp(*re)
 	return nil
+}
+
+// String implements the String method of the regexp.Regexp struct
+func (r *FTWRegexp) String() string {
+	return (*regexp.Regexp)(r).String()
 }
 
 // MatchString implements the MatchString method of the regexp.Regexp struct
