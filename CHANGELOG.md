@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.7.0](https://github.com/coreruleset/go-ftw/compare/v2.6.2...v2.7.0) (2026-11-23)
+
+
+### Features
+
+* **test:** support v3 payload/template test format ([#686](https://github.com/coreruleset/go-ftw/issues/686)) ([2da0b00](https://github.com/coreruleset/go-ftw/commit/2da0b00176303d6e14c4d3cfd710acb9a082ee09))
+
+
+### Bug Fixes
+
+* **deps:** migrate ftw-tests-schema from v2 to v3 ([#685](https://github.com/coreruleset/go-ftw/issues/685)) ([b19dcc0](https://github.com/coreruleset/go-ftw/commit/b19dcc032761b428e955ca2a5d87bd6392c7ecb7))
+* **deps:** update module golang.org/x/net to v0.60.0 [security] ([#678](https://github.com/coreruleset/go-ftw/issues/678)) ([9fe6faa](https://github.com/coreruleset/go-ftw/commit/9fe6faa2ed827a8fa9c9bc763a8a7ffa7f843f5d))
+* **deps:** update module golang.org/x/net to v0.62.0 [security] ([#688](https://github.com/coreruleset/go-ftw/issues/688)) ([7ce9856](https://github.com/coreruleset/go-ftw/commit/7ce9856a933049906a4fa3d72ad6d5e053fe0b6a))
+* **waflog:** handle half-written and repeated marker lines ([#694](https://github.com/coreruleset/go-ftw/issues/694)) ([72dbcc2](https://github.com/coreruleset/go-ftw/commit/72dbcc2982234407b1e7ee8a9aad69e64e0e61b4))
+
 ## [2.6.2](https://github.com/coreruleset/go-ftw/compare/v2.6.1...v2.6.2) (2026-10-26)
 
 
