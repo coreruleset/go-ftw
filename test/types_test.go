@@ -140,6 +140,19 @@ func (s *typesTestSuite) TestRemovedFieldsFail() {
 	}
 }
 
+func (s *typesTestSuite) TestRemovedTestLevelOutputFails() {
+	for field, expected := range map[string]string{
+		"log_contains":    "test 123456-1: log_contains is no longer supported",
+		"no_log_contains": "test 123456-1: no_log_contains is no longer supported",
+	} {
+		s.Run(field, func() {
+			yaml := "---\nrule_id: 123456\ntests:\n  - output:\n      " + field + ": homer\n    stages:\n      - input:\n          uri: /\n"
+			_, err := GetTestFromYaml([]byte(yaml), "")
+			s.ErrorContains(err, expected)
+		})
+	}
+}
+
 func (s *typesTestSuite) TestPostLoadHeaders_EmptyHeaders() {
 	test, err := GetTestFromYaml([]byte(headersEmpty), "")
 	s.NoError(err, "Parsing YAML shouldn't fail")
@@ -289,8 +302,9 @@ func (s *typesTestSuite) TestPayloadTemplate_RenderFails() {
 
 func (s *typesTestSuite) TestPayloadTemplate_StopMagicFails() {
 	for name, yaml := range map[string]string{
-		"file-level": "---\nrule_id: 1\ntemplate:\n  stop_magic: true\ntests:\n  - payload: x\n",
-		"per-test":   "---\nrule_id: 1\ntemplate:\n  uri: /\ntests:\n  - payload: x\n    template:\n      stop_magic: true\n",
+		"file-level":               "---\nrule_id: 1\ntemplate:\n  stop_magic: true\ntests:\n  - payload: x\n",
+		"per-test":                 "---\nrule_id: 1\ntemplate:\n  uri: /\ntests:\n  - payload: x\n    template:\n      stop_magic: true\n",
+		"file-level, staged tests": "---\nrule_id: 1\ntemplate:\n  stop_magic: true\ntests:\n  - stages:\n      - input:\n          uri: /\n",
 	} {
 		s.Run(name, func() {
 			_, err := GetTestFromYaml([]byte(yaml), "")

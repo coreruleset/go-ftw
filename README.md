@@ -159,7 +159,7 @@ The input section supports these fields:
 - **encoded_request**: Base64 encoded full HTTP request (overrides all other settings)
 - **save_cookie**: Save cookies from response for subsequent requests
 - **autocomplete_headers**: Auto-add common headers (Connection, Content-Length, Content-Type). Defaults to true.
-- **stop_magic**: (Removed) Use `autocomplete_headers` instead; tests that set it fail to load
+- **stop_magic**: (Removed) Use `autocomplete_headers` with the opposite value (`stop_magic: true` becomes `autocomplete_headers: false`); tests that set it fail to load
 - **raw_request**: (Deprecated) Use `encoded_request` instead
 
 ##### Output Fields

@@ -168,6 +168,9 @@ func postLoadTest(ruleId uint, testId uint, fileTemplate *schema.RequestTemplate
 	if test.TestId == 0 {
 		test.TestId = testId
 	}
+	if err := checkRemovedTestFields(fileTemplate, test); err != nil {
+		return fmt.Errorf("test %s: %w", test.IdString(), err)
+	}
 	if test.Payload != nil {
 		stage, err := payloadStage(fileTemplate, test)
 		if err != nil {
@@ -249,9 +252,18 @@ func checkPayloadTest(fileTemplate *schema.RequestTemplate, test *schema.Test) e
 	if fileTemplate == nil && test.Template == nil {
 		return errors.New("payload requires a file-level or per-test template")
 	}
+	return nil
+}
+
+// checkRemovedTestFields rejects removed fields in test-level templates and
+// output, whether or not the test uses a payload.
+func checkRemovedTestFields(fileTemplate *schema.RequestTemplate, test *schema.Test) error {
 	//nolint:staticcheck
 	if (fileTemplate != nil && fileTemplate.StopMagic != nil) || (test.Template != nil && test.Template.StopMagic != nil) {
 		return errors.New("stop_magic is not supported in templates, use autocomplete_headers")
+	}
+	if test.Output != nil {
+		return config.CheckDeprecatedOutput(test.Output)
 	}
 	return nil
 }
