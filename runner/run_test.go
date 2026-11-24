@@ -85,11 +85,6 @@ testoverride:
   input:
     data: %s
 `,
-	"TestApplyInputOverrideStopMagic": `---
-testoverride:
-  input:
-    stop_magic: %t
-`,
 	"TestApplyInputOverrideEncodedRequest": `---
 testoverride:
   input:

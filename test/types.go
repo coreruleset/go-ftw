@@ -29,10 +29,8 @@ func ApplyInputOverrides(conf *config.RunnerConfig, input *Input) {
 	applySimpleOverrides(overrides, input)
 	applyDestAddrOverride(overrides, input)
 	applyHeadersOverride(overrides, input)
-	//nolint:staticcheck
-	if overrides.AutocompleteHeaders != nil || overrides.StopMagic != nil {
-		//nolint:staticcheck
-		postProcessAutocompleteHeaders(overrides.AutocompleteHeaders, overrides.StopMagic, input.Input)
+	if overrides.AutocompleteHeaders != nil {
+		input.AutocompleteHeaders = overrides.AutocompleteHeaders
 	}
 }
 
@@ -170,6 +168,9 @@ func postLoadTest(ruleId uint, testId uint, fileTemplate *schema.RequestTemplate
 	if test.TestId == 0 {
 		test.TestId = testId
 	}
+	if err := checkRemovedTestFields(fileTemplate, test); err != nil {
+		return fmt.Errorf("test %s: %w", test.IdString(), err)
+	}
 	if test.Payload != nil {
 		stage, err := payloadStage(fileTemplate, test)
 		if err != nil {
@@ -178,7 +179,9 @@ func postLoadTest(ruleId uint, testId uint, fileTemplate *schema.RequestTemplate
 		test.Stages = []schema.Stage{stage}
 	}
 	for index := range test.Stages {
-		postLoadStage(&test.Stages[index])
+		if err := postLoadStage(&test.Stages[index]); err != nil {
+			return fmt.Errorf("test %s, stage %d: %w", test.IdString(), index, err)
+		}
 	}
 	return nil
 }
@@ -249,9 +252,18 @@ func checkPayloadTest(fileTemplate *schema.RequestTemplate, test *schema.Test) e
 	if fileTemplate == nil && test.Template == nil {
 		return errors.New("payload requires a file-level or per-test template")
 	}
+	return nil
+}
+
+// checkRemovedTestFields rejects removed fields in test-level templates and
+// output, whether or not the test uses a payload.
+func checkRemovedTestFields(fileTemplate *schema.RequestTemplate, test *schema.Test) error {
 	//nolint:staticcheck
 	if (fileTemplate != nil && fileTemplate.StopMagic != nil) || (test.Template != nil && test.Template.StopMagic != nil) {
 		return errors.New("stop_magic is not supported in templates, use autocomplete_headers")
+	}
+	if test.Output != nil {
+		return config.CheckDeprecatedOutput(test.Output)
 	}
 	return nil
 }
@@ -298,50 +310,20 @@ func mergeTemplates(base *schema.RequestTemplate, override *schema.RequestTempla
 	return merged
 }
 
-func postLoadStage(stage *schema.Stage) {
-	postLoadInput(&stage.Input)
-	postLoadOutput(&stage.Output)
-}
-
-func postLoadInput(input *schema.Input) {
+func postLoadStage(stage *schema.Stage) error {
 	//nolint:staticcheck
-	postProcessAutocompleteHeaders(input.AutocompleteHeaders, input.StopMagic, input)
-	postProcessHeaders(input)
-}
-func postLoadOutput(output *schema.Output) {
-	postProcessLogContains(output)
-}
-
-func postProcessAutocompleteHeaders(autocompleteHeaders *bool, stopMagic *bool, input *schema.Input) {
-	autocompleteHeadersMissing := autocompleteHeaders == nil
-	stopMagicMissing := stopMagic == nil
-	// default value
-	finalValue := true
-
-	if autocompleteHeadersMissing && !stopMagicMissing {
-		// StopMagic has the inverse boolean logic
-		finalValue = !*stopMagic
-	} else if !autocompleteHeadersMissing {
-		finalValue = *autocompleteHeaders
+	if stage.Input.StopMagic != nil {
+		return errors.New("stop_magic is no longer supported, use autocomplete_headers")
 	}
-	input.AutocompleteHeaders = &finalValue
-	// StopMagic has the inverse boolean logic
-	//nolint:staticcheck
-	input.StopMagic = func() *bool { b := !finalValue; return &b }()
-}
-
-func postProcessLogContains(output *schema.Output) {
-	log := &output.Log
-	//nolint:staticcheck
-	if output.LogContains != "" && log.ExpectIds == nil && log.MatchRegex == "" {
-		//nolint:staticcheck
-		log.MatchRegex = output.LogContains
+	if err := config.CheckDeprecatedOutput(&stage.Output); err != nil {
+		return err
 	}
-	//nolint:staticcheck
-	if output.NoLogContains != "" && log.NoExpectIds == nil && log.NoMatchRegex == "" {
-		//nolint:staticcheck
-		log.NoMatchRegex = output.NoLogContains
+	if stage.Input.AutocompleteHeaders == nil {
+		autocompleteHeaders := true
+		stage.Input.AutocompleteHeaders = &autocompleteHeaders
 	}
+	postProcessHeaders(&stage.Input)
+	return nil
 }
 
 //nolint:staticcheck
